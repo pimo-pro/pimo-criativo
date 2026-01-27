@@ -1,32 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Panel from "../ui/Panel";
-import {
-  listaInicialDeTemplates,
-  salvarTemplate,
-  type TemplateItem,
-} from "../../core/templates/templates";
-
-const STORAGE_KEY = "pimo_admin_templates";
-
-const inputStyle = {
-  width: "100%",
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  color: "var(--text-main)",
-  padding: "8px 10px",
-  borderRadius: "var(--radius)",
-  fontSize: 12,
-};
-
-const buttonStyle = {
-  background: "rgba(59,130,246,0.2)",
-  border: "1px solid rgba(59,130,246,0.4)",
-  color: "var(--text-main)",
-  padding: "8px 12px",
-  borderRadius: "var(--radius)",
-  fontSize: 12,
-  cursor: "pointer",
-};
+import type { TemplateItem } from "../../core/templates/templates";
+import { useTemplates } from "../../hooks/useTemplates";
 
 const toTemplate = (form: TemplateItem): TemplateItem => ({
   id: form.id,
@@ -37,18 +12,7 @@ const toTemplate = (form: TemplateItem): TemplateItem => ({
 });
 
 export default function TemplatesManager() {
-  const [templates, setTemplates] = useState<TemplateItem[]>(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as TemplateItem[];
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // ignore
-      }
-    }
-    return listaInicialDeTemplates;
-  });
+  const { templates, setTemplates } = useTemplates();
 
   const [form, setForm] = useState<TemplateItem>({
     id: "",
@@ -70,10 +34,6 @@ export default function TemplatesManager() {
     [form]
   );
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
-  }, [templates]);
-
   const handleAdd = () => {
     setForm({ id: "", nome: "", categoria: "", descricao: "", dados: {} });
     setDadosTexto("{}");
@@ -84,8 +44,7 @@ export default function TemplatesManager() {
     if (!canSave) return;
     const id = form.id || `template-${Date.now()}`;
     const normalized = toTemplate({ ...form, id });
-    const updated = salvarTemplate(normalized);
-    setTemplates(updated);
+    setTemplates((prev) => [...prev, normalized]);
     setForm({ id: "", nome: "", categoria: "", descricao: "", dados: {} });
     setDadosTexto("{}");
   };
@@ -123,30 +82,21 @@ export default function TemplatesManager() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="stack">
       <Panel title="Templates existentes">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="list-vertical">
           {templates.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            <div className="muted-text">
               Nenhum template registado.
             </div>
           ) : (
             templates.map((template) => (
               <div
                 key={template.id}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: "var(--radius)",
-                  padding: "8px 10px",
-                  fontSize: 12,
-                }}
+                className="card"
               >
-                <div style={{ fontWeight: 600 }}>{template.nome}</div>
-                <div style={{ color: "var(--text-muted)" }}>
+                <div className="card-title">{template.nome}</div>
+                <div className="muted-text">
                   {template.categoria} · {template.descricao}
                 </div>
               </div>
@@ -156,31 +106,31 @@ export default function TemplatesManager() {
       </Panel>
 
       <Panel title="Adicionar Template">
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <button style={buttonStyle} onClick={handleAdd}>
+        <div className="stack-tight">
+          <button className="button" onClick={handleAdd}>
             Adicionar Template
           </button>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="form-grid">
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Nome do template"
               value={form.nome}
               onChange={(e) => setForm((prev) => ({ ...prev, nome: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Categoria"
               value={form.categoria}
               onChange={(e) => setForm((prev) => ({ ...prev, categoria: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Descrição curta"
               value={form.descricao}
               onChange={(e) => setForm((prev) => ({ ...prev, descricao: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="ID (opcional)"
               value={form.id}
               onChange={(e) => setForm((prev) => ({ ...prev, id: e.target.value }))}
@@ -188,27 +138,23 @@ export default function TemplatesManager() {
           </div>
 
           <div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>
+            <div className="muted-text" style={{ marginBottom: 6 }}>
               Dados do template (JSON)
             </div>
             <textarea
-              style={{
-                ...inputStyle,
-                minHeight: 120,
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-              }}
+              className="input textarea"
               value={dadosTexto}
               onChange={(e) => handleDadosChange(e.target.value)}
             />
             {importError && (
-              <div style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>
+              <div className="muted-text-xs" style={{ color: "#f87171", marginTop: 6 }}>
                 {importError}
               </div>
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <label style={{ ...buttonStyle, display: "inline-block" }}>
+          <div className="row row-gap-md">
+            <label className="button" style={{ display: "inline-block" }}>
               Importar Template (JSON)
               <input
                 type="file"
@@ -221,8 +167,8 @@ export default function TemplatesManager() {
               />
             </label>
             <button
+              className="button"
               style={{
-                ...buttonStyle,
                 background: canSave ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.08)",
                 border: canSave
                   ? "1px solid rgba(34,197,94,0.4)"

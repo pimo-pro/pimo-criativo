@@ -1,3 +1,5 @@
+import { safeGetItem, safeParseJson, safeSetItem } from "../../utils/storage";
+
 export type TemplateItem = {
   id: string;
   nome: string;
@@ -11,32 +13,22 @@ const STORAGE_KEY = "pimo_admin_templates";
 export const listaInicialDeTemplates: TemplateItem[] = [];
 
 export const getTemplate = (nome: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as TemplateItem[];
-      return parsed.find((item) => item.nome === nome);
-    } catch {
-      return undefined;
-    }
+  const stored = safeGetItem(STORAGE_KEY);
+  const parsed = safeParseJson<TemplateItem[]>(stored);
+  if (Array.isArray(parsed)) {
+    return parsed.find((item) => item.nome === nome);
   }
   return listaInicialDeTemplates.find((item) => item.nome === nome);
 };
 
 export const salvarTemplate = (template: TemplateItem) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = safeGetItem(STORAGE_KEY);
   let data = listaInicialDeTemplates;
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as TemplateItem[];
-      if (Array.isArray(parsed)) {
-        data = parsed;
-      }
-    } catch {
-      // fallback
-    }
+  const parsed = safeParseJson<TemplateItem[]>(stored);
+  if (Array.isArray(parsed)) {
+    data = parsed;
   }
   const next = [...data, template];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  safeSetItem(STORAGE_KEY, JSON.stringify(next));
   return next;
 };

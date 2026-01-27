@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import Panel from "../../ui/Panel";
+import { useCadModels } from "../../../hooks/useCadModels";
 
 export default function LeftPanel() {
   const { project, actions } = useProject();
@@ -10,9 +11,7 @@ export default function LeftPanel() {
   const selectedEspessura = selectedBox?.espessura ?? project.material.espessura;
   const selectedPrateleiras = selectedBox?.prateleiras ?? 0;
   const tipoProjeto = project.tipoProjeto;
-  const [cadModels, setCadModels] = useState<{ id: string; nome: string; categoria: string }[]>(
-    []
-  );
+  const { models: cadModels, reload: reloadCadModels } = useCadModels();
   const [materialTipo, setMaterialTipo] = useState(project.material.tipo);
   const [espessuraUI, setEspessuraUI] = useState(selectedEspessura);
 
@@ -24,46 +23,14 @@ export default function LeftPanel() {
     setEspessuraUI(selectedEspessura);
   }, [selectedEspessura]);
 
-  const reloadCadModels = () => {
-    const stored = localStorage.getItem("pimo_admin_cad_models");
-    if (!stored) {
-      setCadModels([]);
-      return;
-    }
-    try {
-      const parsed = JSON.parse(stored) as { id: string; nome: string; categoria: string }[];
-      if (Array.isArray(parsed)) setCadModels(parsed);
-      else setCadModels([]);
-    } catch {
-      setCadModels([]);
-    }
-  };
-
   useEffect(() => {
     reloadCadModels();
-  }, []);
+  }, [reloadCadModels]);
 
   return (
-    <aside
-      style={{
-        width: 260,
-        background: "rgba(15,23,42,0.96)",
-        borderRight: "1px solid var(--border)",
-        padding: "16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "14px",
-      }}
-    >
+    <aside className="panel-content panel-content--side">
       {/* Título da Secção */}
-      <div
-        style={{
-          fontSize: 13,
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          letterSpacing: 0.8,
-        }}
-      >
+      <div className="section-title">
         Definições
       </div>
 
@@ -73,15 +40,7 @@ export default function LeftPanel() {
           value={project.projectName}
           onChange={(e) => actions.setProjectName(e.target.value)}
           placeholder="Nome do projeto"
-          style={{
-            width: "100%",
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid var(--border)",
-            color: "var(--text-main)",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-            fontSize: 13,
-          }}
+          className="input input-sm"
         />
       </Panel>
 
@@ -99,16 +58,7 @@ export default function LeftPanel() {
               actions.setPortaTipo("sem_porta");
             }
           }}
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "1px solid var(--border)",
-            color: "var(--text-main)",
-            fontSize: 13,
-            cursor: "pointer",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-          }}
+          className="select"
         >
           {[
             "Caixa sem porta",
@@ -124,30 +74,6 @@ export default function LeftPanel() {
         </select>
       </Panel>
 
-      <Panel title="Selecionar Caixa do Projeto">
-        <select
-          value={project.selectedCaixaId}
-          onChange={(e) => actions.selectBox(e.target.value)}
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "1px solid var(--border)",
-            color: "var(--text-main)",
-            fontSize: 13,
-            cursor: "pointer",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-            marginBottom: 8,
-          }}
-        >
-          {project.workspaceBoxes.map((box) => (
-            <option key={box.id} value={box.id}>
-              {box.nome || box.id}
-            </option>
-          ))}
-        </select>
-      </Panel>
-
       <Panel title="Modelo 3D (lista de cadModels)">
         <select
           value={selectedBox?.modelId ?? ""}
@@ -157,16 +83,7 @@ export default function LeftPanel() {
               e.target.value === "" ? null : e.target.value
             )
           }
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "1px solid var(--border)",
-            color: "var(--text-main)",
-            fontSize: 13,
-            cursor: "pointer",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-          }}
+          className="select"
         >
           <option value="">Nenhum modelo</option>
           {cadModels.map((model) => (
@@ -177,17 +94,8 @@ export default function LeftPanel() {
         </select>
         <button
           onClick={reloadCadModels}
-          style={{
-            marginTop: 8,
-            width: "100%",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "var(--text-main)",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
+          className="panel-button"
+          style={{ marginTop: 8 }}
         >
           Recarregar modelos
         </button>
@@ -199,16 +107,7 @@ export default function LeftPanel() {
           <select
             value={materialTipo}
             onChange={(e) => setMaterialTipo(e.target.value)}
-            style={{
-              width: "100%",
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--text-main)",
-              fontSize: 13,
-              cursor: "pointer",
-              padding: "6px 8px",
-              borderRadius: "var(--radius)",
-            }}
+            className="select"
           >
             <option value="MDF">MDF</option>
             <option value="Contraplacado">Contraplacado</option>
@@ -220,16 +119,7 @@ export default function LeftPanel() {
         <select
           value={espessuraUI}
           onChange={(e) => setEspessuraUI(Number(e.target.value))}
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "1px solid var(--border)",
-            color: "var(--text-main)",
-            fontSize: 13,
-            cursor: "pointer",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-          }}
+          className="select"
         >
           <option value={15}>15mm</option>
           <option value={18}>18mm</option>
@@ -241,8 +131,8 @@ export default function LeftPanel() {
       {/* Dimensões */}
       <Panel title="Dimensões" description="Valores em milímetros">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "var(--text-muted)", width: 88 }}>
+          <div className="panel-field-row">
+            <span className="panel-label">
               Largura:
             </span>
             <input
@@ -251,19 +141,11 @@ export default function LeftPanel() {
               onChange={(e) =>
                 actions.setDimensoes({ largura: Number(e.target.value) })
               }
-              style={{
-                flex: 1,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid var(--border)",
-                color: "var(--text-main)",
-                padding: "4px 8px",
-                borderRadius: "var(--radius)",
-                fontSize: 12,
-              }}
+              className="input input-xs"
             />
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "var(--text-muted)", width: 88 }}>
+          <div className="panel-field-row">
+            <span className="panel-label">
               Altura:
             </span>
             <input
@@ -272,19 +154,11 @@ export default function LeftPanel() {
               onChange={(e) =>
                 actions.setDimensoes({ altura: Number(e.target.value) })
               }
-              style={{
-                flex: 1,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid var(--border)",
-                color: "var(--text-main)",
-                padding: "4px 8px",
-                borderRadius: "var(--radius)",
-                fontSize: 12,
-              }}
+              className="input input-xs"
             />
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "var(--text-muted)", width: 88 }}>
+          <div className="panel-field-row">
+            <span className="panel-label">
               Profundidade:
             </span>
             <input
@@ -293,15 +167,7 @@ export default function LeftPanel() {
               onChange={(e) =>
                 actions.setDimensoes({ profundidade: Number(e.target.value) })
               }
-              style={{
-                flex: 1,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid var(--border)",
-                color: "var(--text-main)",
-                padding: "4px 8px",
-                borderRadius: "var(--radius)",
-                fontSize: 12,
-              }}
+              className="input input-xs"
             />
           </div>
         </div>
@@ -313,15 +179,7 @@ export default function LeftPanel() {
           min="0"
           value={selectedPrateleiras}
           onChange={(e) => actions.setPrateleiras(Number(e.target.value))}
-          style={{
-            width: "100%",
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid var(--border)",
-            color: "var(--text-main)",
-            padding: "6px 8px",
-            borderRadius: "var(--radius)",
-            fontSize: 13,
-          }}
+          className="input input-sm"
         />
       </Panel>
 

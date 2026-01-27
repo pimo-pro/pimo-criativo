@@ -1,47 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Panel from "../ui/Panel";
 import ThreeViewer from "../three/ThreeViewer";
-import {
-  listaInicialDeModelos,
-  salvarModelo,
-  type CadModel,
-} from "../../core/cad/cadModels";
-
-const STORAGE_KEY = "pimo_admin_cad_models";
-
-const inputStyle = {
-  width: "100%",
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  color: "var(--text-main)",
-  padding: "8px 10px",
-  borderRadius: "var(--radius)",
-  fontSize: 12,
-};
-
-const buttonStyle = {
-  background: "rgba(59,130,246,0.2)",
-  border: "1px solid rgba(59,130,246,0.4)",
-  color: "var(--text-main)",
-  padding: "8px 12px",
-  borderRadius: "var(--radius)",
-  fontSize: 12,
-  cursor: "pointer",
-};
+import type { CadModel } from "../../core/cad/cadModels";
+import { useCadModels } from "../../hooks/useCadModels";
 
 export default function CADModelsManager() {
-  const [models, setModels] = useState<CadModel[]>(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as CadModel[];
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // ignore
-      }
-    }
-    return listaInicialDeModelos;
-  });
+  const { models, setModels } = useCadModels();
 
   const [form, setForm] = useState<CadModel>({
     id: "",
@@ -62,10 +26,6 @@ export default function CADModelsManager() {
     [form]
   );
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(models));
-  }, [models]);
-
   const handleAdd = () => {
     setForm({ id: "", nome: "", categoria: "", descricao: "", arquivo: "" });
     setArquivoNome("");
@@ -82,8 +42,7 @@ export default function CADModelsManager() {
       descricao: form.descricao.trim(),
       arquivo: form.arquivo,
     };
-    const updated = salvarModelo(normalized);
-    setModels(updated);
+    setModels((prev) => [...prev, normalized]);
     setForm({ id: "", nome: "", categoria: "", descricao: "", arquivo: "" });
     setArquivoNome("");
   };
@@ -113,33 +72,24 @@ export default function CADModelsManager() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="stack">
       <Panel title="Modelos CAD existentes">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="list-vertical">
           {models.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            <div className="muted-text">
               Nenhum modelo registado.
             </div>
           ) : (
             models.map((model) => (
               <div
                 key={model.id}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: "var(--radius)",
-                  padding: "8px 10px",
-                  fontSize: 12,
-                }}
+                className="card"
               >
-                <div style={{ fontWeight: 600 }}>{model.nome}</div>
-                <div style={{ color: "var(--text-muted)" }}>
+                <div className="card-title">{model.nome}</div>
+                <div className="muted-text">
                   {model.categoria} · {model.descricao}
                 </div>
-                <div style={{ color: "var(--text-muted)" }}>
+                <div className="muted-text">
                   Ficheiro: {model.arquivo ? "carregado" : "pendente"}
                 </div>
               </div>
@@ -149,31 +99,31 @@ export default function CADModelsManager() {
       </Panel>
 
       <Panel title="Adicionar Modelo 3D">
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <button style={buttonStyle} onClick={handleAdd}>
+        <div className="stack-tight">
+          <button className="button" onClick={handleAdd}>
             Adicionar Modelo 3D
           </button>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="form-grid">
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Nome do modelo"
               value={form.nome}
               onChange={(e) => setForm((prev) => ({ ...prev, nome: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Categoria"
               value={form.categoria}
               onChange={(e) => setForm((prev) => ({ ...prev, categoria: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Descrição"
               value={form.descricao}
               onChange={(e) => setForm((prev) => ({ ...prev, descricao: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="ID (opcional)"
               value={form.id}
               onChange={(e) => setForm((prev) => ({ ...prev, id: e.target.value }))}
@@ -181,10 +131,10 @@ export default function CADModelsManager() {
           </div>
 
           <div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>
+            <div className="muted-text" style={{ marginBottom: 6 }}>
               Upload do ficheiro (.glb)
             </div>
-            <label style={{ ...buttonStyle, display: "inline-block" }}>
+            <label className="button" style={{ display: "inline-block" }}>
               Escolher ficheiro
               <input
                 type="file"
@@ -197,20 +147,20 @@ export default function CADModelsManager() {
               />
             </label>
             {arquivoNome && (
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
+              <div className="muted-text-xs" style={{ marginTop: 6 }}>
                 Ficheiro: {arquivoNome}
               </div>
             )}
             {uploadError && (
-              <div style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>
+              <div className="muted-text-xs" style={{ marginTop: 6, color: "#f87171" }}>
                 {uploadError}
               </div>
             )}
           </div>
 
           <button
+            className="button"
             style={{
-              ...buttonStyle,
               background: canSave ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.08)",
               border: canSave
                 ? "1px solid rgba(34,197,94,0.4)"
@@ -228,7 +178,6 @@ export default function CADModelsManager() {
           <div style={{ marginTop: 12 }}>
             <ThreeViewer
               modelUrl={form.arquivo}
-              autoRotate={true}
               height={300}
               backgroundColor="#1e293b"
               showGrid={false}

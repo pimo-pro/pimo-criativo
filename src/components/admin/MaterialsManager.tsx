@@ -1,42 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Panel from "../ui/Panel";
-import { MATERIAIS_INDUSTRIAIS, type MaterialIndustrial } from "../../core/manufacturing/materials";
-
-const STORAGE_KEY = "pimo_admin_materials";
-
-const inputStyle = {
-  width: "100%",
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  color: "var(--text-main)",
-  padding: "8px 10px",
-  borderRadius: "var(--radius)",
-  fontSize: 12,
-};
-
-const buttonStyle = {
-  background: "rgba(59,130,246,0.2)",
-  border: "1px solid rgba(59,130,246,0.4)",
-  color: "var(--text-main)",
-  padding: "8px 12px",
-  borderRadius: "var(--radius)",
-  fontSize: 12,
-  cursor: "pointer",
-};
+import type { MaterialIndustrial } from "../../core/manufacturing/materials";
+import { useMaterials } from "../../hooks/useMaterials";
 
 export default function MaterialsManager() {
-  const [materials, setMaterials] = useState<MaterialIndustrial[]>(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as MaterialIndustrial[];
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {
-        // ignore storage errors
-      }
-    }
-    return MATERIAIS_INDUSTRIAIS;
-  });
+  const { materials, setMaterials } = useMaterials();
 
   const [form, setForm] = useState<MaterialIndustrial>({
     nome: "",
@@ -49,10 +17,6 @@ export default function MaterialsManager() {
     () => form.nome.trim().length > 0 && form.espessuraPadrao > 0 && form.custo_m2 >= 0,
     [form]
   );
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(materials));
-  }, [materials]);
 
   const handleAdd = () => {
     setForm({ nome: "", espessuraPadrao: 18, custo_m2: 0, cor: "" });
@@ -71,26 +35,17 @@ export default function MaterialsManager() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="stack">
       <Panel title="Materiais existentes">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="list-vertical">
           {materials.map((material) => (
             <div
               key={`${material.nome}-${material.espessuraPadrao}`}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "var(--radius)",
-                padding: "8px 10px",
-                fontSize: 12,
-              }}
+              className="card"
             >
               <div>
-                <div style={{ fontWeight: 600 }}>{material.nome}</div>
-                <div style={{ color: "var(--text-muted)" }}>
+                <div className="card-title">{material.nome}</div>
+                <div className="muted-text">
                   Espessura: {material.espessuraPadrao}mm · Custo: {material.custo_m2}€/m²
                 </div>
               </div>
@@ -112,19 +67,19 @@ export default function MaterialsManager() {
       </Panel>
 
       <Panel title="Adicionar Material">
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <button style={buttonStyle} onClick={handleAdd}>
+        <div className="stack-tight">
+          <button className="button" onClick={handleAdd}>
             Adicionar Material
           </button>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="form-grid">
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Nome"
               value={form.nome}
               onChange={(e) => setForm((prev) => ({ ...prev, nome: e.target.value }))}
             />
             <input
-              style={inputStyle}
+              className="input"
               type="number"
               placeholder="Espessura padrão (mm)"
               value={form.espessuraPadrao}
@@ -133,7 +88,7 @@ export default function MaterialsManager() {
               }
             />
             <input
-              style={inputStyle}
+              className="input"
               type="number"
               placeholder="Custo por m²"
               value={form.custo_m2}
@@ -142,15 +97,15 @@ export default function MaterialsManager() {
               }
             />
             <input
-              style={inputStyle}
+              className="input"
               placeholder="Cor (opcional)"
               value={form.cor ?? ""}
               onChange={(e) => setForm((prev) => ({ ...prev, cor: e.target.value }))}
             />
           </div>
           <button
+            className="button"
             style={{
-              ...buttonStyle,
               background: canSave ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.08)",
               border: canSave ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.12)",
               cursor: canSave ? "pointer" : "not-allowed",

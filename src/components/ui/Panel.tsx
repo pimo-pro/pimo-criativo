@@ -46,7 +46,7 @@ export default function Panel({ title, description, children }: PanelProps) {
         </div>
       )}
 
-      <div>{children}</div>
+      {children}
     </div>
   );
 }

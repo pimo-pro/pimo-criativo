@@ -4,9 +4,11 @@ import { Cube } from "../../ui/Cube";
 import { CUBE_BASE_SIZE, updateCubePreview } from "../../ui/cubeUtils";
 import ThreeViewer from "../../three/ThreeViewer";
 import WorkspaceBottomPanel from "./WorkspaceBottomPanel";
+import { useMaterialSystem } from "../../../context/materialContext";
 
 export default function Workspace() {
   const { project, actions } = useProject();
+  const { state: materialState } = useMaterialSystem();
   const [rotation, setRotation] = useState({ x: 20, y: -30 });
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const [isUserControlling, setIsUserControlling] = useState(false);
@@ -273,45 +275,25 @@ export default function Workspace() {
   const temDesign3D = project.estrutura3D && project.estrutura3D.pecas.length > 0;
 
   return (
-    <main
-      style={{
-        flex: 1,
-        background: "radial-gradient(circle at top, #1e293b, #0b0f17 60%)",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ flex: 1, position: "relative" }}>
+    <main className="workspace-root">
+      <div className="workspace-canvas">
         {temDesign3D ? (
           <>
             {/* Visualização 3D do design gerado */}
-            <div style={{ width: "100%", height: "100%", position: "absolute" }}>
+            <div className="workspace-viewer">
               <ThreeViewer
                 modelUrl={project.selectedCaixaModelUrl ?? ""}
-                autoRotate={false}
                 height="100%"
                 backgroundColor="#2f3f5a"
                 showGrid={true}
                 showFloor={true}
-                colorize={true}
+                colorize={false}
                 wireframe={wireframeMode}
                 cameraPreset={cameraPreset}
+                materialConfig={materialState}
               />
               {!project.selectedCaixaModelUrl && (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--text-muted)",
-                    fontSize: 13,
-                    pointerEvents: "none",
-                  }}
-                >
+                <div className="workspace-empty-overlay">
                   Nenhum modelo associado a este caixa
                 </div>
               )}
@@ -321,14 +303,11 @@ export default function Workspace() {
           <>
             {/* Placeholder - Cubo CSS quando não há design */}
             <div
+              className={`workspace-placeholder${isDragging ? " is-dragging" : ""}${
+                isUserControlling ? " is-controlling" : ""
+              }`}
               style={{
-                position: "relative",
-                width: "100%",
-                height: "100%",
-                transformStyle: "preserve-3d",
                 transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
-                transition: isDragging ? "none" : "transform 0.2s ease-out",
-                cursor: isUserControlling ? "grab" : "pointer",
               }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -341,30 +320,14 @@ export default function Workspace() {
             >
               {snapLineX !== null && (
                 <div
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "50%",
-                    transform: `translate(-50%, -50%) translateX(${snapLineX}px)`,
-                    height: 160,
-                    borderLeft: "1px dashed rgba(59,130,246,0.5)",
-                    pointerEvents: "none",
-                  }}
+                  className="workspace-snapline"
+                  style={{ transform: `translate(-50%, -50%) translateX(${snapLineX}px)` }}
                 />
               )}
               {cubePreviews.map((preview) => (
                 <div
                   key={preview.box.id}
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "50%",
-                    transform: "translate(-50%, -50%)",
-                    cursor: "grab",
-                    outline: preview.isDragging ? "2px solid rgba(59,130,246,0.6)" : "none",
-                    outlineOffset: 4,
-                    transition: preview.isDragging ? "none" : "outline 150ms ease-out",
-                  }}
+                  className={`workspace-cube${preview.isDragging ? " is-dragging" : ""}`}
                   onPointerDown={(event) =>
                     handleBoxPointerDown(event, preview.box.id, preview.pxPerMm)
                   }
@@ -375,32 +338,14 @@ export default function Workspace() {
                     actions.selectBox(preview.box.id);
                   }}
                 >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: -10,
-                      right: -6,
-                      display: "flex",
-                      gap: 6,
-                      zIndex: 2,
-                    }}
-                  >
+                  <div className="workspace-cube-actions">
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
                         actions.rotateWorkspaceBox(preview.box.id);
                       }}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(255,255,255,0.06)",
-                        color: "var(--text-main)",
-                        cursor: "pointer",
-                        fontSize: 11,
-                      }}
+                      className="icon-button"
                       title="Rodar 90°"
                       aria-label="Rodar 90 graus"
                     >
@@ -413,16 +358,7 @@ export default function Workspace() {
                         actions.selectBox(preview.box.id);
                         setTimeout(() => actions.duplicateWorkspaceBox(), 0);
                       }}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(255,255,255,0.06)",
-                        color: "var(--text-main)",
-                        cursor: "pointer",
-                        fontSize: 11,
-                      }}
+                      className="icon-button"
                       title="Duplicar"
                       aria-label="Duplicar caixote"
                     >
@@ -435,17 +371,7 @@ export default function Workspace() {
                         actions.selectBox(preview.box.id);
                         setTimeout(() => actions.removeWorkspaceBox(), 0);
                       }}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(255,255,255,0.06)",
-                        color: "var(--text-main)",
-                        cursor: project.workspaceBoxes.length <= 1 ? "not-allowed" : "pointer",
-                        opacity: project.workspaceBoxes.length <= 1 ? 0.5 : 1,
-                        fontSize: 11,
-                      }}
+                      className="icon-button"
                       title="Remover"
                       aria-label="Remover caixote"
                       disabled={project.workspaceBoxes.length <= 1}
@@ -469,28 +395,18 @@ export default function Workspace() {
         )}
       </div>
 
-      <div
-        style={{
-          width: "100%",
-          padding: "12px 16px",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          background: "rgba(8,12,22,0.85)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
+      <div className="workspace-footer">
+        <div className="workspace-footer-title">
           Preço Total do Projeto
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--blue-light)" }}>
+        <div className="workspace-footer-value">
           {project.precoTotalProjeto !== null
             ? `${project.precoTotalProjeto.toFixed(2)}€`
             : "--"}
         </div>
       </div>
 
-      <div style={{ width: "100%" }}>
+      <div className="w-full">
         <WorkspaceBottomPanel />
       </div>
     </main>

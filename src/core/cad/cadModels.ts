@@ -1,3 +1,5 @@
+import { safeGetItem, safeParseJson, safeSetItem } from "../../utils/storage";
+
 export type CadModel = {
   id: string;
   nome: string;
@@ -11,32 +13,22 @@ const STORAGE_KEY = "pimo_admin_cad_models";
 export const listaInicialDeModelos: CadModel[] = [];
 
 export const getModelo = (id: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as CadModel[];
-      return parsed.find((item) => item.id === id);
-    } catch {
-      return undefined;
-    }
+  const stored = safeGetItem(STORAGE_KEY);
+  const parsed = safeParseJson<CadModel[]>(stored);
+  if (Array.isArray(parsed)) {
+    return parsed.find((item) => item.id === id);
   }
   return listaInicialDeModelos.find((item) => item.id === id);
 };
 
 export const salvarModelo = (modelo: CadModel) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = safeGetItem(STORAGE_KEY);
   let data = listaInicialDeModelos;
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as CadModel[];
-      if (Array.isArray(parsed)) {
-        data = parsed;
-      }
-    } catch {
-      // fallback
-    }
+  const parsed = safeParseJson<CadModel[]>(stored);
+  if (Array.isArray(parsed)) {
+    data = parsed;
   }
   const next = [...data, modelo];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  safeSetItem(STORAGE_KEY, JSON.stringify(next));
   return next;
 };

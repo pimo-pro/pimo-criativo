@@ -8,27 +8,60 @@ import Documentation from "./pages/Documentation";
 import SobreNos from "./pages/SobreNos";
 import Documentacao from "./pages/Documentacao";
 import AdminPanel from "./pages/AdminPanel";
+import ProjectRoadmap from "./pages/ProjectRoadmap";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { ProjectProvider } from "./context/ProjectProvider";
-import { useEffect, useState } from "react";
+import { MaterialProvider } from "./context/materialContext";
+import { useEffect, useRef, useState } from "react";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [leftWidth, setLeftWidth] = useState(260);
   const [showBottom, setShowBottom] = useState(true);
+  const resizeState = useRef({
+    active: false,
+    startX: 0,
+    startWidth: 260,
+  });
+
+  const clampLeftWidth = (value: number) => Math.min(420, Math.max(220, value));
+
+  const handleResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!leftOpen) return;
+    resizeState.current = {
+      active: true,
+      startX: event.clientX,
+      startWidth: leftWidth,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleResizeMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!resizeState.current.active) return;
+    const delta = event.clientX - resizeState.current.startX;
+    setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
+  };
+
+  const handleResizeEnd = () => {
+    resizeState.current.active = false;
+  };
   const [showDocs, setShowDocs] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSystemDocs, setShowSystemDocs] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showRoadmap, setShowRoadmap] = useState(false);
 
   useEffect(() => {
     const syncRoute = () => {
       const isAbout = window.location.pathname === "/sobre-nos";
       const isSystemDocs = window.location.pathname === "/documentacao";
       const isAdmin = window.location.pathname === "/admin";
+      const isRoadmap = window.location.pathname === "/roadmap";
       setShowAbout(isAbout);
       setShowSystemDocs(isSystemDocs);
       setShowAdmin(isAdmin);
+      setShowRoadmap(isRoadmap);
       if (isAbout) {
         setShowDocs(false);
       }
@@ -36,6 +69,9 @@ export default function App() {
         setShowDocs(false);
       }
       if (isAdmin) {
+        setShowDocs(false);
+      }
+      if (isRoadmap) {
         setShowDocs(false);
       }
     };
@@ -65,6 +101,16 @@ export default function App() {
     setShowDocs(false);
     setShowAbout(false);
     setShowSystemDocs(false);
+    setShowRoadmap(false);
+  };
+
+  const navigateToRoadmap = () => {
+    window.history.pushState({}, "", "/roadmap");
+    setShowRoadmap(true);
+    setShowDocs(false);
+    setShowAbout(false);
+    setShowSystemDocs(false);
+    setShowAdmin(false);
   };
 
   const navigateToApp = () => {
@@ -72,20 +118,30 @@ export default function App() {
     setShowAbout(false);
     setShowSystemDocs(false);
     setShowAdmin(false);
+    setShowRoadmap(false);
   };
 
   return (
     <ThemeProvider>
       <ProjectProvider>
-        <div className="app-root">
+        <MaterialProvider>
+          <div className="app-root">
         <Header
           onToggleDocs={() => {
-            if (showAbout || showSystemDocs || showAdmin) {
+            if (showAbout || showSystemDocs || showAdmin || showRoadmap) {
               navigateToApp();
             }
             setShowDocs((prev) => !prev);
           }}
           docsOpen={showDocs}
+          onShowRoadmap={() => {
+            if (showRoadmap) {
+              navigateToApp();
+              return;
+            }
+            navigateToRoadmap();
+          }}
+          roadmapOpen={showRoadmap}
         />
 
         {/* MAIN AREA */}
@@ -96,20 +152,34 @@ export default function App() {
             <Documentacao />
           ) : showAdmin ? (
             <AdminPanel />
+          ) : showRoadmap ? (
+            <ProjectRoadmap />
           ) : showAbout ? (
             <SobreNos />
           ) : (
             <div className="app-panels">
               {/* LEFT PANEL */}
               <div
-                className="panel left-panel"
+                className="panel panel-shell panel-shell--side left-panel panel-shell-left"
                 style={{
-                  width: leftOpen ? 260 : 0,
+                  width: leftOpen ? leftWidth : 0,
+                  minWidth: leftOpen ? leftWidth : 0,
+                  maxWidth: leftOpen ? leftWidth : 0,
                   overflow: "hidden",
                   transition: "width 0.2s ease",
+                  position: "relative",
                 }}
               >
                 <LeftPanel />
+                {leftOpen && (
+                  <div
+                    className="panel-resizer"
+                    onPointerDown={handleResizeStart}
+                    onPointerMove={handleResizeMove}
+                    onPointerUp={handleResizeEnd}
+                    onPointerCancel={handleResizeEnd}
+                  />
+                )}
               </div>
 
               {/* WORKSPACE */}
@@ -117,9 +187,10 @@ export default function App() {
 
               {/* RIGHT PANEL */}
               <div
-                className="panel right-panel"
+                className="panel panel-shell panel-shell--side right-panel panel-shell-right"
                 style={{
                   width: rightOpen ? 260 : 0,
+                  minWidth: rightOpen ? 260 : 0,
                   overflow: "hidden",
                   transition: "width 0.2s ease",
                 }}
@@ -131,8 +202,14 @@ export default function App() {
         </div>
 
         {/* BOTTOM PANEL */}
-        {!showDocs && !showAbout && !showSystemDocs && !showAdmin && (
-          <div className={showBottom ? "panel" : "panel panel-hidden"}>
+        {!showDocs && !showAbout && !showSystemDocs && !showAdmin && !showRoadmap && (
+          <div
+            className={
+              showBottom
+                ? "panel panel-shell panel-shell--bottom bottom-panel-shell"
+                : "panel panel-shell panel-shell--bottom bottom-panel-shell bottom-panel-hidden"
+            }
+          >
             <BottomPanel />
           </div>
         )}
@@ -229,7 +306,8 @@ export default function App() {
             </button>
           </>
         )}
-        </div>
+          </div>
+        </MaterialProvider>
       </ProjectProvider>
     </ThemeProvider>
   );

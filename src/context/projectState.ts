@@ -17,6 +17,7 @@ import type {
   WorkspaceBox,
 } from "../core/types";
 import type { ProjectState } from "./projectTypes";
+import { safeGetItem, safeParseJson } from "../utils/storage";
 
 const defaultMaterial: Material = {
   tipo: "MDF",
@@ -261,15 +262,11 @@ export const getSelectedWorkspaceBox = (state: ProjectState): WorkspaceBox | und
 
 export const getModelUrlFromStorage = (modelId?: string | null): string | null => {
   if (!modelId) return null;
-  const stored = localStorage.getItem("pimo_admin_cad_models");
-  if (!stored) return null;
-  try {
-    const parsed = JSON.parse(stored) as { id?: string; arquivo?: string }[];
-    const found = parsed.find((item) => item.id === modelId);
-    return found?.arquivo ?? null;
-  } catch {
-    return null;
-  }
+  const stored = safeGetItem("pimo_admin_cad_models");
+  const parsed = safeParseJson<{ id?: string; arquivo?: string }[]>(stored);
+  if (!Array.isArray(parsed)) return null;
+  const found = parsed.find((item) => item.id === modelId);
+  return found?.arquivo ?? null;
 };
 
 const convertWorkspaceToBox = (box: WorkspaceBox): BoxModule => ({

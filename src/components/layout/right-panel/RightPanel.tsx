@@ -1,61 +1,27 @@
 import { useProject } from "../../../context/useProject";
+import MaterialPanel from "./MaterialPanel";
 
 export default function RightPanel() {
   const { project, actions } = useProject();
 
   return (
-    <aside
-      style={{
-        width: 260,
-        background: "rgba(10,16,30,0.98)",
-        borderLeft: "1px solid var(--border)",
-        padding: "16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-        height: "100vh",
-        overflowY: "auto",
-        position: "sticky",
-        top: 0,
-      }}
-    >
+    <aside className="panel-content panel-content--side">
       {/* Título da Secção */}
-      <div
-        style={{
-          fontSize: 12,
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          letterSpacing: 0.8,
-        }}
-      >
+      <div className="section-title">
         Ações
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="stack-tight">
         {/* Botão Gerar */}
         <button
           onClick={() => actions.gerarDesign()}
           disabled={project.estaCarregando}
+          className="button button-primary"
           style={{
             background: project.estaCarregando
               ? "rgba(59, 130, 246, 0.5)"
               : "var(--blue-light)",
-            border: "none",
-            color: "white",
-            padding: "10px 14px",
-            borderRadius: "var(--radius)",
-            fontSize: 13,
             cursor: project.estaCarregando ? "not-allowed" : "pointer",
-            fontWeight: 600,
-            transition: "0.2s",
-          }}
-          onMouseOver={(e) => {
-            if (!project.estaCarregando) {
-              e.currentTarget.style.opacity = "0.85";
-            }
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.opacity = "1";
           }}
         >
           {project.estaCarregando ? "A Calcular..." : "Gerar Design 3D"}
@@ -63,56 +29,29 @@ export default function RightPanel() {
 
         <button
           onClick={() => actions.addWorkspaceBox()}
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "var(--text-main)",
-            padding: "10px 14px",
-            borderRadius: "var(--radius)",
-            fontSize: 13,
-            cursor: "pointer",
-            transition: "0.2s",
-          }}
-          onMouseOver={(e) =>
-            (e.currentTarget.style.background = "rgba(255,255,255,0.12)")
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.background = "rgba(255,255,255,0.04)")
-          }
+          className="button button-ghost"
         >
           Adicionar caixote
         </button>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="row row-gap-sm">
           <button
             onClick={() => actions.duplicateWorkspaceBox()}
-            style={{
-              flex: 1,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "var(--text-main)",
-              padding: "8px 10px",
-              borderRadius: "var(--radius)",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
+            className="button button-ghost"
+            style={{ flex: 1 }}
           >
             Duplicar
           </button>
           <button
             onClick={() => actions.removeWorkspaceBox()}
             disabled={project.workspaceBoxes.length <= 1}
+            className="button button-ghost"
             style={{
               flex: 1,
               background:
                 project.workspaceBoxes.length <= 1
                   ? "rgba(255,255,255,0.02)"
                   : "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "var(--text-main)",
-              padding: "8px 10px",
-              borderRadius: "var(--radius)",
-              fontSize: 13,
               cursor: project.workspaceBoxes.length <= 1 ? "not-allowed" : "pointer",
               opacity: project.workspaceBoxes.length <= 1 ? 0.6 : 1,
             }}
@@ -124,35 +63,16 @@ export default function RightPanel() {
         {/* Botão Exportar */}
         <button
           onClick={() => actions.exportarPDF()}
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "var(--text-main)",
-            padding: "10px 14px",
-            borderRadius: "var(--radius)",
-            fontSize: 13,
-            cursor: "pointer",
-            transition: "0.2s",
-          }}
-          onMouseOver={(e) =>
-            (e.currentTarget.style.background = "rgba(255,255,255,0.12)")
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.background = "rgba(255,255,255,0.04)")
-          }
+          className="button button-ghost"
         >
           Exportar Cut List (PDF)
         </button>
       </div>
 
-      <div
-        style={{
-          height: 1,
-          background: "rgba(255,255,255,0.06)",
-        }}
-      />
+      <div className="panel-divider" />
 
       {/* Caixa de informações */}
+      <MaterialPanel />
     </aside>
   );
 }
