@@ -4,11 +4,11 @@ import { Cube } from "../../ui/Cube";
 import { CUBE_BASE_SIZE, updateCubePreview } from "../../ui/cubeUtils";
 import ThreeViewer from "../../three/ThreeViewer";
 import WorkspaceBottomPanel from "./WorkspaceBottomPanel";
-import { useMaterialSystem } from "../../../context/materialContext";
+import { useMaterial } from "../../../context/useMaterial";
 
 export default function Workspace() {
   const { project, actions } = useProject();
-  const { state: materialState } = useMaterialSystem();
+  const { state: materialState } = useMaterial();
   const [rotation, setRotation] = useState({ x: 20, y: -30 });
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const [isUserControlling, setIsUserControlling] = useState(false);

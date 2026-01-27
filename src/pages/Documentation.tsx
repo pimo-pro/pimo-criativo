@@ -277,6 +277,19 @@ const sections: DocSection[] = [
     interactions: "Materiais aplicados ao modelo por categoria e parte.",
   },
   {
+    title: "Refatoração do materialContext",
+    description: "Provider isolado e hook em arquivo separado.",
+    internals:
+      "Contexto exporta apenas o Provider; hook e utilitários ficam em arquivos auxiliares.",
+    files: [
+      "src/context/materialContext.tsx",
+      "src/context/materialContextInstance.ts",
+      "src/context/useMaterial.ts",
+      "src/context/materialUtils.ts",
+    ],
+    interactions: "Compatível com fast refresh e lint sem warnings.",
+  },
+  {
     title: "Melhorias de visualização 3D",
     description: "Grid suave, chão PBR e rotação manual.",
     internals:

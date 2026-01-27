@@ -1,26 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { safeGetItem, safeParseJson, safeSetItem } from "../utils/storage";
 import type { MaterialCategory } from "../core/materials/materialPresets";
 import { getPresetById } from "../core/materials/materialPresets";
-import type {
-  MaterialCategoryConfig,
-  MaterialSystemState,
-  ModelPart,
-} from "./materialUtils";
+import type { MaterialCategoryConfig, MaterialSystemState, ModelPart } from "./materialUtils";
 import { MATERIAL_STORAGE_KEY, normalizeMaterialState } from "./materialUtils";
-
-type MaterialContextValue = {
-  state: MaterialSystemState;
-  setCategoryPreset: (category: MaterialCategory, presetId: string) => void;
-  setCategoryOverrides: (
-    category: MaterialCategory,
-    overrides: Partial<MaterialCategoryConfig>
-  ) => void;
-  setAssignment: (part: ModelPart, category: MaterialCategory) => void;
-};
-
-const MaterialContext = createContext<MaterialContextValue | null>(null);
+import { MaterialContext } from "./materialContextInstance";
 
 export function MaterialProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<MaterialSystemState>(() => {
@@ -89,11 +74,3 @@ export function MaterialProvider({ children }: { children: ReactNode }) {
 
   return <MaterialContext.Provider value={value}>{children}</MaterialContext.Provider>;
 }
-
-export const useMaterialSystem = () => {
-  const ctx = useContext(MaterialContext);
-  if (!ctx) {
-    throw new Error("useMaterialSystem must be used within MaterialProvider");
-  }
-  return ctx;
-};

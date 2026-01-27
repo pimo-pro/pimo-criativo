@@ -7,12 +7,12 @@ import {
   materialCategoryOptions,
   modelPartOptions,
 } from "../../../context/materialUtils";
-import { useMaterialSystem } from "../../../context/materialContext";
+import { useMaterial } from "../../../context/useMaterial";
 import { getPresetById, getPresetsByCategory } from "../../../core/materials/materialPresets";
 
 export default function MaterialPanel() {
   const { actions } = useProject();
-  const { state, setAssignment, setCategoryOverrides, setCategoryPreset } = useMaterialSystem();
+  const { state, setAssignment, setCategoryOverrides, setCategoryPreset } = useMaterial();
   const [activeCategory, setActiveCategory] = useState(materialCategoryOptions[0].id);
   const currentConfig = state.categories[activeCategory];
   const presets = getPresetsByCategory(activeCategory);

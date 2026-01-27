@@ -80,6 +80,7 @@ export default function Documentacao() {
           {"\n"}- Sistema de Materiais Profissional iniciado com presets reais.
           {"\n"}- Painel lateral de materiais com preview e ajustes.
           {"\n"}- Aplicação de materiais por partes (madeira, metal, vidro, etc.).
+          {"\n"}- materialContext separado em Provider/Hook e utilitários dedicados.
           {"\n"}- Rotação automática removida no ThreeViewer.
           {"\n"}- Grid suave de referência adicionado ao fundo.
           {"\n"}- Ground plane PBR com sombras ativas.
@@ -190,6 +191,9 @@ export default function Documentacao() {
           {"\n"}- src/core/docs/projectRoadmap.ts
           {"\n"}- src/core/materials/materialPresets.ts
           {"\n"}- src/context/materialContext.tsx
+          {"\n"}- src/context/materialContextInstance.ts
+          {"\n"}- src/context/materialUtils.ts
+          {"\n"}- src/context/useMaterial.ts
           {"\n"}- src/components/layout/right-panel/MaterialPanel.tsx
           {"\n"}- src/pages/Documentation.tsx
           {"\n"}- src/components/ui/Panel.tsx
