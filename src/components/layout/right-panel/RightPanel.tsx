@@ -1,5 +1,4 @@
 import { useProject } from "../../../context/useProject";
-import MaterialPanel from "./MaterialPanel";
 
 export default function RightPanel() {
   const { project, actions } = useProject();
@@ -69,10 +68,6 @@ export default function RightPanel() {
         </button>
       </div>
 
-      <div className="panel-divider" />
-
-      {/* Caixa de informações */}
-      <MaterialPanel />
     </aside>
   );
 }

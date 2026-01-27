@@ -7,7 +7,7 @@ import WorkspaceBottomPanel from "./WorkspaceBottomPanel";
 import { useMaterial } from "../../../context/useMaterial";
 
 export default function Workspace() {
-  const { project, actions } = useProject();
+  const { project, actions, viewerSync } = useProject();
   const { state: materialState } = useMaterial();
   const [rotation, setRotation] = useState({ x: 20, y: -30 });
   const [isAutoRotating, setIsAutoRotating] = useState(true);
@@ -291,6 +291,8 @@ export default function Workspace() {
                 wireframe={wireframeMode}
                 cameraPreset={cameraPreset}
                 materialConfig={materialState}
+                notifyChangeSignal={viewerSync.notifyChangeSignal}
+                registerViewerApi={viewerSync.registerViewerApi}
               />
               {!project.selectedCaixaModelUrl && (
                 <div className="workspace-empty-overlay">
@@ -393,17 +395,6 @@ export default function Workspace() {
             </div>
           </>
         )}
-      </div>
-
-      <div className="workspace-footer">
-        <div className="workspace-footer-title">
-          Preço Total do Projeto
-        </div>
-        <div className="workspace-footer-value">
-          {project.precoTotalProjeto !== null
-            ? `${project.precoTotalProjeto.toFixed(2)}€`
-            : "--"}
-        </div>
       </div>
 
       <div className="w-full">

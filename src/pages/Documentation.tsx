@@ -28,7 +28,8 @@ type DocSection = {
 
 const rawFiles = import.meta.glob("/src/**/*.{ts,tsx,css,html}", {
   eager: true,
-  as: "raw",
+  query: "?raw",
+  import: "default",
 }) as Record<string, string>;
 
 const computeStats = (boxCount: number): DocStat[] => {
@@ -277,6 +278,136 @@ const sections: DocSection[] = [
     interactions: "Materiais aplicados ao modelo por categoria e parte.",
   },
   {
+    title: "Materiais & Fabricação no Admin",
+    description: "Painel de materiais movido para o Admin Panel.",
+    internals:
+      "A UI de materiais foi removida da interface principal e reaproveitada no Admin.",
+    files: [
+      "src/pages/AdminPanel.tsx",
+      "src/components/admin/MaterialsManufacturing.tsx",
+      "src/components/layout/right-panel/MaterialPanel.tsx",
+    ],
+    interactions: "Controles de materiais disponíveis apenas no Admin.",
+  },
+  {
+    title: "Resultados no BottomPanel",
+    description: "Preço total, cutlist, ferragens e preço por caixa no painel inferior.",
+    internals:
+      "Módulos de resultado foram movidos do workspace para Resultados Atuais.",
+    files: [
+      "src/components/layout/bottom-panel/BottomPanel.tsx",
+      "src/components/layout/workspace/Workspace.tsx",
+      "src/components/layout/workspace/WorkspaceBottomPanel.tsx",
+    ],
+    interactions: "Resultados consolidados no painel inferior sem mudar cálculos.",
+  },
+  {
+    title: "Left-Left Panel",
+    description: "Barra lateral estreita com ícones e nomes curtos.",
+    internals:
+      "Clique nos itens apenas reabre o painel esquerdo existente, sem nova lógica.",
+    files: [
+      "src/components/layout/left-toolbar/LeftToolbar.tsx",
+      "src/App.tsx",
+      "src/index.css",
+    ],
+    interactions: "Navegação visual rápida sem alterar comportamento do sistema.",
+  },
+  {
+    title: "Right-Tools Bar",
+    description: "Barra de ferramentas abaixo do painel direito.",
+    internals:
+      "Itens acionam ações e modais do projeto, incluindo renderização e envio.",
+    files: [
+      "src/components/layout/right-tools/RightToolsBar.tsx",
+      "src/App.tsx",
+      "src/index.css",
+    ],
+    interactions: "Atalhos para ações rápidas e modais contextuais.",
+  },
+  {
+    title: "Sistema de envio (ENVIAR)",
+    description: "Geração de pacote do projeto com seleção de conteúdo.",
+    internals:
+      "Modal permite selecionar imagem, snapshots, cutlist, ferragens e preços para gerar JSON composto.",
+    files: ["src/components/layout/right-tools/RightToolsBar.tsx"],
+    interactions: "Download local disponível; WhatsApp e Email seguem como placeholders.",
+  },
+  {
+    title: "Undo/Redo e Save/Load",
+    description: "Histórico básico e snapshots no localStorage.",
+    internals:
+      "Undo/Redo via stacks internos e Save/Load com JSON do ProjectState.",
+    files: [
+      "src/context/ProjectProvider.tsx",
+      "src/context/projectTypes.ts",
+      "src/components/layout/right-tools/RightToolsBar.tsx",
+      "src/index.css",
+    ],
+    interactions: "Right-Tools aciona histórico e modais de projeto.",
+  },
+  {
+    title: "Viewer Sync (base)",
+    description: "Fluxo de sincronização entre ProjectState e ThreeViewer.",
+    internals:
+      "Hook useViewerSync expõe notifyChange e callbacks vazios por enquanto.",
+    files: [
+      "src/hooks/useViewerSync.ts",
+      "src/context/ProjectProvider.tsx",
+      "src/components/layout/workspace/Workspace.tsx",
+      "src/components/three/ThreeViewer.tsx",
+    ],
+    interactions: "Viewer recebe notifyChange quando o estado muda.",
+  },
+  {
+    title: "Viewer Snapshot (base)",
+    description: "Estrutura inicial de snapshots do Viewer.",
+    internals:
+      "Save/Load inclui snapshot do Viewer com câmera, objetos e materiais básicos.",
+    files: [
+      "src/context/projectTypes.ts",
+      "src/hooks/useViewerSync.ts",
+      "src/context/ProjectProvider.tsx",
+      "src/components/three/ThreeViewer.tsx",
+    ],
+    interactions: "Viewer restaura estado sem alterar comportamento visual.",
+  },
+  {
+    title: "Project Manager",
+    description: "Gestão local de projetos no modal PROJETO.",
+    internals:
+      "Lista em localStorage com criar, renomear, excluir e carregar snapshots completos.",
+    files: [
+      "src/context/ProjectProvider.tsx",
+      "src/components/layout/right-tools/RightToolsBar.tsx",
+      "src/context/projectTypes.ts",
+    ],
+    interactions: "Modal PROJETO gerencia projetos e restaura Viewer/ProjectState.",
+  },
+  {
+    title: "2D Viewer (Orthographic)",
+    description: "Câmera ortográfica e alternância de ângulos.",
+    internals:
+      "Modo 2D alterna entre câmeras sem alterar a lógica da cena.",
+    files: [
+      "src/components/three/ThreeViewer.tsx",
+      "src/components/layout/right-tools/RightToolsBar.tsx",
+    ],
+    interactions: "Modal 2D ativa Top/Front/Left/Right e volta ao 3D.",
+  },
+  {
+    title: "Render de imagem",
+    description: "Captura estática do ThreeViewer.",
+    internals:
+      "Render offscreen com câmera atual e opções de qualidade/fundo.",
+    files: [
+      "src/components/three/ThreeViewer.tsx",
+      "src/components/layout/right-tools/RightToolsBar.tsx",
+      "src/context/projectTypes.ts",
+    ],
+    interactions: "Modal IMAGEM gera preview e permite download.",
+  },
+  {
     title: "Refatoração do materialContext",
     description: "Provider isolado e hook em arquivo separado.",
     internals:
@@ -296,6 +427,30 @@ const sections: DocSection[] = [
       "Grid leve de referência, ground plane com sombras e câmera ajustada.",
     files: ["src/components/three/ThreeViewer.tsx"],
     interactions: "Visualização mais estável e leitura espacial melhor.",
+  },
+  {
+    title: "Otimizações de build",
+    description: "Chunking controlado e import.meta.glob otimizado.",
+    internals:
+      "manualChunks separa vendors e import.meta.glob usa query '?raw'.",
+    files: ["vite.config.ts", "src/pages/Documentation.tsx"],
+    interactions: "Bundles menores e build mais previsível.",
+  },
+  {
+    title: "Limpeza e performance do ThreeViewer",
+    description: "Dispose de texturas e anisotropy controlado.",
+    internals:
+      "Dispose seguro de mapas PBR e ajuste de anisotropy após carga.",
+    files: ["src/components/three/ThreeViewer.tsx"],
+    interactions: "Menos uso de memória sem alterar a UI.",
+  },
+  {
+    title: "Remoção do WeeklyRoadmap legado",
+    description: "Remoção de código morto do roadmap semanal.",
+    internals:
+      "Arquivo semanal removido após migração para ProjectRoadmap.",
+    files: ["src/pages/ProjectRoadmap.tsx", "src/core/docs/projectRoadmap.ts"],
+    interactions: "Mantém lint limpo sem impacto no fluxo atual.",
   },
   {
     title: "Semana 2 — Realismo 3D (Parte 2)",
@@ -546,6 +701,18 @@ export default function Documentation() {
           preparação PBR avançada. Semana 2 (Parte 3) aplica texturas PBR reais e HDRI por arquivo.
           Sistema de Materiais Profissional adiciona presets reais, painel de seleção e
           persistência de materiais. ThreeViewer recebeu grid suave, chão PBR e rotação manual.
+          Otimizações internas no build e no viewer mantêm a UI estável e leve.
+          Painel de materiais foi movido para o Admin (Materiais & Fabricação).
+          Resultados (preço total, cutlist, ferragens, preço por caixa) agora estão no BottomPanel.
+          Barra lateral Left-Left adicionada com ícones que apenas abrem o painel esquerdo.
+          Right-Tools Bar adicionada abaixo do painel direito com placeholders visuais.
+          Undo/Redo e Save/Load adicionados com modais e snapshot local.
+          ViewerSync preparado para notificar o ThreeViewer sem alterar a cena.
+          ViewerSnapshot agora integra Save/Load com estado real do Viewer.
+          Project Manager adiciona CRUD de projetos no modal PROJETO.
+          2D Viewer adiciona câmera ortográfica com seleção de ângulo.
+          Render de imagem adiciona captura estática via modal IMAGEM.
+          Remoção do WeeklyRoadmap legado mantém lint limpo sem alterar funcionalidades.
           {"\n"}Arquivos: src/index.css, src/App.tsx, src/hooks/useCadModels.ts,
           src/hooks/useTemplates.ts, src/hooks/useMaterials.ts, src/hooks/useStoredList.ts,
           src/components/layout/left-panel/LeftPanel.tsx,
@@ -559,7 +726,11 @@ export default function Documentation() {
           src/components/ui/Panel.tsx,
           src/core/materials/materialPresets.ts,
           src/context/materialContext.tsx,
+          src/context/materialContextInstance.ts,
+          src/context/materialUtils.ts,
+          src/context/useMaterial.ts,
           src/components/layout/right-panel/MaterialPanel.tsx,
+          vite.config.ts,
           src/components/admin/CADModelsManager.tsx,
           src/components/admin/TemplatesManager.tsx,
           src/components/admin/MaterialsManager.tsx

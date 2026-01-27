@@ -1,6 +1,8 @@
 import Header from "./components/layout/header/Header";
+import LeftToolbar from "./components/layout/left-toolbar/LeftToolbar";
 import LeftPanel from "./components/layout/left-panel/LeftPanel";
 import RightPanel from "./components/layout/right-panel/RightPanel";
+import RightToolsBar from "./components/layout/right-tools/RightToolsBar";
 import BottomPanel from "./components/layout/bottom-panel/BottomPanel";
 import Workspace from "./components/layout/workspace/Workspace";
 import Footer from "./components/layout/footer/Footer";
@@ -158,6 +160,11 @@ export default function App() {
             <SobreNos />
           ) : (
             <div className="app-panels">
+              <LeftToolbar
+                onSelect={() => {
+                  if (!leftOpen) setLeftOpen(true);
+                }}
+              />
               {/* LEFT PANEL */}
               <div
                 className="panel panel-shell panel-shell--side left-panel panel-shell-left"
@@ -195,7 +202,10 @@ export default function App() {
                   transition: "width 0.2s ease",
                 }}
               >
-                <RightPanel />
+                <div className="right-panel-stack">
+                  <RightPanel />
+                  <RightToolsBar />
+                </div>
               </div>
             </div>
           )}

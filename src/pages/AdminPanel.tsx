@@ -2,10 +2,12 @@ import { useState } from "react";
 import MaterialsManager from "../components/admin/MaterialsManager";
 import TemplatesManager from "../components/admin/TemplatesManager";
 import CADModelsManager from "../components/admin/CADModelsManager";
+import MaterialsManufacturing from "../components/admin/MaterialsManufacturing";
 
 const sidebarItems = [
   "Dashboard",
   "Materials",
+  "Materiais & Fabricação",
   "Ferragens",
   "Templates",
   "CAD Models",
@@ -92,6 +94,8 @@ export default function AdminPanel() {
 
           {active === "Materials" ? (
             <MaterialsManager />
+          ) : active === "Materiais & Fabricação" ? (
+            <MaterialsManufacturing />
           ) : active === "Templates" ? (
             <TemplatesManager />
           ) : active === "CAD Models" ? (

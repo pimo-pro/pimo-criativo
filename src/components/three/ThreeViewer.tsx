@@ -5,6 +5,13 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
 import type { MaterialSystemState, ModelPart } from "../../context/materialUtils";
+import type {
+  Viewer2DAngle,
+  ViewerApi,
+  ViewerRenderOptions,
+  ViewerRenderResult,
+  ViewerSnapshot,
+} from "../../context/projectTypes";
 import { getPresetById } from "../../core/materials/materialPresets";
 
 type ThreeViewerProps = {
@@ -17,11 +24,19 @@ type ThreeViewerProps = {
   wireframe?: boolean;
   cameraPreset?: "perspective" | "top" | "front" | "left";
   materialConfig?: MaterialSystemState;
+  notifyChangeSignal?: unknown;
+  registerViewerApi?: (api: ViewerApi | null) => void;
 };
 
 let sharedRenderer: THREE.WebGLRenderer | null = null;
 const textureLoader = new THREE.TextureLoader();
 const textureCache = new Map<string, THREE.Texture>();
+const ORTHO_FRUSTUM = 2.4;
+const RENDER_SIZES: Record<ViewerRenderOptions["quality"], { width: number; height: number }> = {
+  low: { width: 1280, height: 720 },
+  medium: { width: 1600, height: 900 },
+  high: { width: 1920, height: 1080 },
+};
 
 const getSharedRenderer = () => {
   if (!sharedRenderer) {
@@ -37,14 +52,24 @@ const buildPastelColor = (seed: number) => {
   return new THREE.Color().setHSL(hue, 0.35, 0.55);
 };
 
+const disposeMaterial = (material: THREE.Material) => {
+  const mat = material as THREE.MeshStandardMaterial;
+  if (mat.map instanceof THREE.Texture) mat.map.dispose();
+  if (mat.normalMap instanceof THREE.Texture) mat.normalMap.dispose();
+  if (mat.roughnessMap instanceof THREE.Texture) mat.roughnessMap.dispose();
+  if (mat.metalnessMap instanceof THREE.Texture) mat.metalnessMap.dispose();
+  if (mat.aoMap instanceof THREE.Texture) mat.aoMap.dispose();
+  material.dispose?.();
+};
+
 const disposeScene = (root: THREE.Object3D) => {
   root.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       child.geometry?.dispose?.();
       if (Array.isArray(child.material)) {
-        child.material.forEach((material) => material.dispose?.());
+        child.material.forEach((material) => disposeMaterial(material));
       } else {
-        child.material?.dispose?.();
+        disposeMaterial(child.material);
       }
     }
   });
@@ -243,6 +268,7 @@ function Model({
 
   const { coloredScene, finalBox } = useMemo(() => {
     const cloned = scene.clone(true);
+    cloned.name = "viewer-model";
     let index = 0;
     cloned.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -384,6 +410,7 @@ function SoftGrid() {
 
   return (
     <gridHelper
+      name="viewer-grid"
       ref={gridRef}
       args={[20, 40, "rgba(148,163,184,0.25)", "rgba(148,163,184,0.1)"]}
       position={[0, -0.01, 0]}
@@ -401,6 +428,8 @@ function ViewerScene({
   cameraPreset,
   backgroundColor,
   materialConfig,
+  onSceneReady,
+  onViewerModeReady,
   controlsRef,
   cameraRef,
   rendererRef,
@@ -414,6 +443,10 @@ function ViewerScene({
   cameraPreset: "perspective" | "top" | "front" | "left";
   backgroundColor: string;
   materialConfig?: MaterialSystemState;
+  onSceneReady?: (scene: THREE.Scene) => void;
+  onViewerModeReady?: (
+    api: { enable2DView: (angle: Viewer2DAngle) => void; disable2DView: () => void } | null
+  ) => void;
   controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
   cameraRef: React.MutableRefObject<THREE.Camera | null>;
   rendererRef: React.MutableRefObject<THREE.WebGLRenderer | null>;
@@ -423,23 +456,32 @@ function ViewerScene({
   const rafRef = useRef<number | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const internalRendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const perspectiveRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const orthographicRef = useRef<THREE.OrthographicCamera | null>(null);
+  const is2DRef = useRef(false);
 
   useEffect(() => {
     cameraRef.current = camera;
     rendererRef.current = gl as THREE.WebGLRenderer;
     internalRendererRef.current = gl as THREE.WebGLRenderer;
     sceneRef.current = scene;
-    camera.position.set(2, 2, 2);
-    camera.lookAt(0, 0, 0);
-    const controls = controlsRef.current as unknown as {
-      target?: THREE.Vector3;
-      update?: () => void;
-    } | null;
-    if (controls?.target) {
-      controls.target.set(0, 0, 0);
-      controls.update?.();
+    onSceneReady?.(scene);
+    if (camera instanceof THREE.PerspectiveCamera) {
+      perspectiveRef.current = camera;
     }
-  }, [camera, gl, scene, resetToken, controlsRef, cameraRef, rendererRef]);
+    if (!is2DRef.current) {
+      camera.position.set(2, 2, 2);
+      camera.lookAt(0, 0, 0);
+      const controls = controlsRef.current as unknown as {
+        target?: THREE.Vector3;
+        update?: () => void;
+      } | null;
+      if (controls?.target) {
+        controls.target.set(0, 0, 0);
+        controls.update?.();
+      }
+    }
+  }, [camera, gl, scene, resetToken, controlsRef, cameraRef, rendererRef, onSceneReady]);
 
   useEffect(() => {
     const renderer = internalRendererRef.current;
@@ -459,12 +501,48 @@ function ViewerScene({
     currentScene.background = new THREE.Color(backgroundColor);
   }, [backgroundColor]);
 
+  useEffect(() => {
+    const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        const mat = material as THREE.MeshStandardMaterial;
+        const maps = [
+          mat.map,
+          mat.normalMap,
+          mat.roughnessMap,
+          mat.metalnessMap,
+          mat.aoMap,
+        ];
+        maps.forEach((map) => {
+          if (map instanceof THREE.Texture) {
+            map.anisotropy = Math.min(4, maxAnisotropy);
+            map.needsUpdate = true;
+          }
+        });
+      });
+    });
+  }, [gl, scene, materialConfig]);
+
   useLayoutEffect(() => {
-    if (!(camera instanceof THREE.PerspectiveCamera)) return;
-    const nextCamera = camera.clone();
-    nextCamera.aspect = size.width / size.height;
-    nextCamera.updateProjectionMatrix();
-    set({ camera: nextCamera });
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const nextCamera = camera.clone();
+      nextCamera.aspect = size.width / size.height;
+      nextCamera.updateProjectionMatrix();
+      set({ camera: nextCamera });
+      return;
+    }
+    if (camera instanceof THREE.OrthographicCamera) {
+      const aspect = size.width / size.height;
+      const nextCamera = camera.clone();
+      nextCamera.left = -ORTHO_FRUSTUM * aspect;
+      nextCamera.right = ORTHO_FRUSTUM * aspect;
+      nextCamera.top = ORTHO_FRUSTUM;
+      nextCamera.bottom = -ORTHO_FRUSTUM;
+      nextCamera.updateProjectionMatrix();
+      set({ camera: nextCamera });
+    }
   }, [camera, size.width, size.height, set]);
 
   useEffect(() => {
@@ -481,8 +559,84 @@ function ViewerScene({
     };
   }, [controlsRef]);
 
+  const createOrthoCamera = useCallback(() => {
+    const aspect = size.width / size.height;
+    const camera = new THREE.OrthographicCamera(
+      -ORTHO_FRUSTUM * aspect,
+      ORTHO_FRUSTUM * aspect,
+      ORTHO_FRUSTUM,
+      -ORTHO_FRUSTUM,
+      0.1,
+      100
+    );
+    camera.zoom = 60;
+    camera.updateProjectionMatrix();
+    return camera;
+  }, [size.width, size.height]);
+
+  const enable2DView = useCallback(
+    (angle: Viewer2DAngle) => {
+      let ortho = orthographicRef.current;
+      if (!ortho) {
+        ortho = createOrthoCamera();
+        orthographicRef.current = ortho;
+      }
+      const target = new THREE.Vector3(0, 0, 0);
+      if (angle === "top") {
+        ortho.position.set(0, 5, 0);
+        ortho.up.set(0, 0, -1);
+      } else if (angle === "front") {
+        ortho.position.set(0, 0, 5);
+        ortho.up.set(0, 1, 0);
+      } else if (angle === "right") {
+        ortho.position.set(5, 0, 0);
+        ortho.up.set(0, 1, 0);
+      } else {
+        ortho.position.set(-5, 0, 0);
+        ortho.up.set(0, 1, 0);
+      }
+      ortho.lookAt(target);
+      ortho.updateProjectionMatrix();
+      set({ camera: ortho });
+      cameraRef.current = ortho;
+      is2DRef.current = true;
+      const controls = controlsRef.current as unknown as {
+        target?: THREE.Vector3;
+        update?: () => void;
+      } | null;
+      if (controls?.target) {
+        controls.target.copy(target);
+        controls.update?.();
+      }
+    },
+    [cameraRef, controlsRef, createOrthoCamera, set]
+  );
+
+  const disable2DView = useCallback(() => {
+    const perspective = perspectiveRef.current;
+    if (!perspective) return;
+    perspective.lookAt(0, 0, 0);
+    set({ camera: perspective });
+    cameraRef.current = perspective;
+    is2DRef.current = false;
+    const controls = controlsRef.current as unknown as {
+      target?: THREE.Vector3;
+      update?: () => void;
+    } | null;
+    if (controls?.target) {
+      controls.target.set(0, 0, 0);
+      controls.update?.();
+    }
+  }, [cameraRef, controlsRef, set]);
+
+  useEffect(() => {
+    onViewerModeReady?.({ enable2DView, disable2DView });
+    return () => onViewerModeReady?.(null);
+  }, [enable2DView, disable2DView, onViewerModeReady]);
+
   const applyPreset = useCallback(
     (preset: "perspective" | "top" | "front" | "left") => {
+      if (is2DRef.current) return;
       if (preset === "top") {
         camera.position.set(0, 5, 0);
       } else if (preset === "front") {
@@ -512,9 +666,10 @@ function ViewerScene({
   return (
     <>
       <HDRIEnvironment />
-      <hemisphereLight intensity={0.6} />
-      <ambientLight intensity={0.25} />
+      <hemisphereLight name="viewer-hemi" intensity={0.6} />
+      <ambientLight name="viewer-ambient" intensity={0.25} />
       <directionalLight
+        name="viewer-directional"
         position={[5, 6, 4]}
         intensity={1.0}
         castShadow
@@ -530,7 +685,12 @@ function ViewerScene({
       />
       {showGrid && <SoftGrid />}
       {showFloor && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <mesh
+          name="viewer-floor"
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, -0.02, 0]}
+          receiveShadow
+        >
           <planeGeometry args={[20, 20]} />
           <meshStandardMaterial
             color="#0f172a"
@@ -548,6 +708,7 @@ function ViewerScene({
             wireframe={wireframe}
             materialConfig={materialConfig}
             onCentered={(box) => {
+              if (is2DRef.current) return;
               const size = new THREE.Vector3();
               const center = new THREE.Vector3();
               box.getSize(size);
@@ -596,6 +757,8 @@ export default function ThreeViewer({
   wireframe = false,
   cameraPreset = "perspective",
   materialConfig,
+  notifyChangeSignal,
+  registerViewerApi,
 }: ThreeViewerProps) {
   const [resetToken, setResetToken] = useState(0);
   const [wireframeMode, setWireframeMode] = useState(wireframe);
@@ -603,6 +766,11 @@ export default function ThreeViewer({
   const cameraRef = useRef<THREE.Camera | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const viewerModeRef = useRef<{
+    enable2DView: (angle: Viewer2DAngle) => void;
+    disable2DView: () => void;
+  } | null>(null);
 
   useEffect(() => {
     setWireframeMode(wireframe);
@@ -611,6 +779,224 @@ export default function ThreeViewer({
   useEffect(() => {
     setActivePreset(cameraPreset);
   }, [cameraPreset]);
+
+  const saveSnapshot = useCallback((): ViewerSnapshot | null => {
+    const camera = cameraRef.current;
+    const scene = sceneRef.current;
+    if (!camera || !scene) return null;
+    const controls = controlsRef.current as unknown as { target?: THREE.Vector3 } | null;
+    const target = controls?.target ?? new THREE.Vector3(0, 0, 0);
+    const cameraType =
+      camera instanceof THREE.PerspectiveCamera
+        ? "perspective"
+        : camera instanceof THREE.OrthographicCamera
+        ? "orthographic"
+        : "unknown";
+    const cameraZoom =
+      camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera
+        ? camera.zoom
+        : 1;
+    const snapshot: ViewerSnapshot = {
+      camera: {
+        position: [camera.position.x, camera.position.y, camera.position.z],
+        target: [target.x, target.y, target.z],
+        zoom: cameraZoom,
+        type: cameraType,
+      },
+      objects: [],
+      materials: [],
+      scene: {
+        hasFloor: false,
+        hasGrid: false,
+        environment: Boolean(scene.environment),
+        lights: [],
+      },
+    };
+    const materialMap = new Map<string, ViewerSnapshot["materials"][number]>();
+    scene.traverse((child) => {
+      if (child.type === "GridHelper" || child.name === "viewer-grid") {
+        snapshot.scene.hasGrid = true;
+      }
+      if (child.name === "viewer-floor") {
+        snapshot.scene.hasFloor = true;
+      }
+      if (child instanceof THREE.Light) {
+        snapshot.scene.lights.push({
+          id: child.name || child.uuid,
+          type: child.type,
+          position: [child.position.x, child.position.y, child.position.z],
+          intensity: child.intensity,
+          color: "color" in child ? `#${child.color.getHexString()}` : undefined,
+        });
+      }
+      if (child instanceof THREE.Mesh) {
+        snapshot.objects.push({
+          id: child.uuid,
+          name: child.name || undefined,
+          position: [child.position.x, child.position.y, child.position.z],
+          rotation: [child.rotation.x, child.rotation.y, child.rotation.z],
+          scale: [child.scale.x, child.scale.y, child.scale.z],
+        });
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          const id = material.uuid;
+          if (materialMap.has(id)) return;
+          const entry: ViewerSnapshot["materials"][number] = {
+            id,
+            name: material.name || undefined,
+            preset: material.name || "custom",
+          };
+          if (material instanceof THREE.MeshStandardMaterial) {
+            entry.color = `#${material.color.getHexString()}`;
+            entry.roughness = material.roughness;
+            entry.metalness = material.metalness;
+            entry.envMapIntensity = material.envMapIntensity ?? 1;
+            entry.opacity = material.opacity;
+            entry.transparent = material.transparent;
+          }
+          materialMap.set(id, entry);
+        });
+      }
+    });
+    snapshot.materials = Array.from(materialMap.values());
+    return snapshot;
+  }, []);
+
+  const restoreSnapshot = useCallback((snapshot: ViewerSnapshot | null) => {
+    const camera = cameraRef.current;
+    const scene = sceneRef.current;
+    if (!camera || !scene || !snapshot) return;
+    camera.position.set(...snapshot.camera.position);
+    if (camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera) {
+      camera.zoom = snapshot.camera.zoom;
+      camera.updateProjectionMatrix();
+    }
+    const controls = controlsRef.current as unknown as {
+      target?: THREE.Vector3;
+      update?: () => void;
+    } | null;
+    if (controls?.target) {
+      controls.target.set(...snapshot.camera.target);
+      controls.update?.();
+    } else {
+      camera.lookAt(...snapshot.camera.target);
+    }
+    const byName = new Map<string, ViewerSnapshot["objects"][number]>();
+    const byId = new Map<string, ViewerSnapshot["objects"][number]>();
+    snapshot.objects.forEach((item) => {
+      byId.set(item.id, item);
+      if (item.name) byName.set(item.name, item);
+    });
+    const materialsByName = new Map<string, ViewerSnapshot["materials"][number]>();
+    const materialsById = new Map<string, ViewerSnapshot["materials"][number]>();
+    snapshot.materials.forEach((item) => {
+      materialsById.set(item.id, item);
+      if (item.name) materialsByName.set(item.name, item);
+    });
+    const lightsById = new Map<string, ViewerSnapshot["scene"]["lights"][number]>();
+    snapshot.scene.lights.forEach((item) => {
+      lightsById.set(item.id, item);
+    });
+    scene.traverse((child) => {
+      const snapshotObj = (child.name && byName.get(child.name)) ?? byId.get(child.uuid);
+      if (snapshotObj) {
+        child.position.set(...snapshotObj.position);
+        child.rotation.set(...snapshotObj.rotation);
+        child.scale.set(...snapshotObj.scale);
+      }
+      if (child instanceof THREE.Mesh) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          const snapshotMat =
+            materialsById.get(material.uuid) ||
+            (material.name ? materialsByName.get(material.name) : undefined);
+          if (snapshotMat && material instanceof THREE.MeshStandardMaterial) {
+            if (snapshotMat.color) material.color.set(snapshotMat.color);
+            if (snapshotMat.roughness !== undefined) material.roughness = snapshotMat.roughness;
+            if (snapshotMat.metalness !== undefined) material.metalness = snapshotMat.metalness;
+            if (snapshotMat.envMapIntensity !== undefined) {
+              material.envMapIntensity = snapshotMat.envMapIntensity;
+            }
+            if (snapshotMat.opacity !== undefined) material.opacity = snapshotMat.opacity;
+            if (snapshotMat.transparent !== undefined) material.transparent = snapshotMat.transparent;
+            material.needsUpdate = true;
+          }
+        });
+      }
+      if (child instanceof THREE.Light) {
+        const snapshotLight = lightsById.get(child.name || child.uuid);
+        if (snapshotLight) {
+          child.position.set(...snapshotLight.position);
+          child.intensity = snapshotLight.intensity;
+          if ("color" in child && snapshotLight.color) {
+            child.color.set(snapshotLight.color);
+          }
+        }
+      }
+    });
+  }, []);
+
+  const renderScene = useCallback(
+    (options: ViewerRenderOptions): ViewerRenderResult | null => {
+      const scene = sceneRef.current;
+      const camera = cameraRef.current;
+      if (!scene || !camera) return null;
+      const { width, height } = RENDER_SIZES[options.quality];
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: options.background === "transparent",
+        preserveDrawingBuffer: true,
+      });
+      renderer.setSize(width, height);
+      if (options.background === "transparent") {
+        renderer.setClearColor(0x000000, 0);
+      } else {
+        renderer.setClearColor(0xffffff, 1);
+      }
+
+      const exportScene = scene.clone(true);
+      if (options.background === "transparent") {
+        exportScene.background = null;
+      } else {
+        exportScene.background = new THREE.Color("#ffffff");
+      }
+      const exportCamera = camera.clone();
+      if (exportCamera instanceof THREE.PerspectiveCamera) {
+        exportCamera.aspect = width / height;
+        exportCamera.updateProjectionMatrix();
+      } else if (exportCamera instanceof THREE.OrthographicCamera) {
+        const aspect = width / height;
+        exportCamera.left = -ORTHO_FRUSTUM * aspect;
+        exportCamera.right = ORTHO_FRUSTUM * aspect;
+        exportCamera.top = ORTHO_FRUSTUM;
+        exportCamera.bottom = -ORTHO_FRUSTUM;
+        exportCamera.updateProjectionMatrix();
+      }
+
+      renderer.render(exportScene, exportCamera);
+      const dataUrl = renderer.domElement.toDataURL("image/png");
+      renderer.dispose();
+      return { dataUrl, width, height };
+    },
+    []
+  );
+
+  useEffect(() => {
+    const api: ViewerApi = {
+      saveSnapshot,
+      restoreSnapshot,
+      enable2DView: (angle) => viewerModeRef.current?.enable2DView(angle),
+      disable2DView: () => viewerModeRef.current?.disable2DView(),
+      renderScene,
+    };
+    registerViewerApi?.(api);
+    return () => registerViewerApi?.(null);
+  }, [registerViewerApi, saveSnapshot, restoreSnapshot, renderScene]);
+
+  useEffect(() => {
+    if (notifyChangeSignal === undefined) return;
+    // placeholder: sincronização com ProjectState será aplicada depois
+  }, [notifyChangeSignal]);
 
   const handleSnapshot = () => {
     const renderer = rendererRef.current;
@@ -644,6 +1030,12 @@ export default function ThreeViewer({
           cameraPreset={activePreset}
           backgroundColor={backgroundColor}
           materialConfig={materialConfig}
+          onSceneReady={(scene) => {
+            sceneRef.current = scene;
+          }}
+          onViewerModeReady={(api) => {
+            viewerModeRef.current = api;
+          }}
           controlsRef={controlsRef}
           cameraRef={cameraRef}
           rendererRef={rendererRef}

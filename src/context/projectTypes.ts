@@ -43,6 +43,94 @@ export interface ProjectState {
   changelog: ChangelogEntry[];
 }
 
+export type SavedProjectInfo = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ViewerSnapshot = {
+  camera: {
+    position: [number, number, number];
+    target: [number, number, number];
+    zoom: number;
+    type: "perspective" | "orthographic" | "unknown";
+  };
+  objects: {
+    id: string;
+    name?: string;
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  }[];
+  materials: {
+    id: string;
+    name?: string;
+    preset: string;
+    color?: string;
+    roughness?: number;
+    metalness?: number;
+    envMapIntensity?: number;
+    opacity?: number;
+    transparent?: boolean;
+  }[];
+  scene: {
+    hasFloor: boolean;
+    hasGrid: boolean;
+    environment: boolean;
+    lights: {
+      id: string;
+      type: string;
+      position: [number, number, number];
+      intensity: number;
+      color?: string;
+    }[];
+  };
+};
+
+export type Viewer2DAngle = "top" | "front" | "left" | "right";
+
+export type ViewerRenderQuality = "low" | "medium" | "high";
+
+export type ViewerRenderBackground = "white" | "transparent";
+
+export type ViewerRenderOptions = {
+  quality: ViewerRenderQuality;
+  background: ViewerRenderBackground;
+};
+
+export type ViewerRenderResult = {
+  dataUrl: string;
+  width: number;
+  height: number;
+};
+
+export type ViewerApi = {
+  saveSnapshot: () => ViewerSnapshot | null;
+  restoreSnapshot: (snapshot: ViewerSnapshot | null) => void;
+  enable2DView: (angle: Viewer2DAngle) => void;
+  disable2DView: () => void;
+  renderScene: (options: ViewerRenderOptions) => ViewerRenderResult | null;
+};
+
+export type ProjectSnapshot = {
+  projectState: unknown;
+  viewerSnapshot: ViewerSnapshot | null;
+};
+
+export type ViewerSync = {
+  notifyChangeSignal: unknown;
+  applyStateToViewer: () => void;
+  extractStateFromViewer: () => void;
+  saveViewerSnapshot: () => ViewerSnapshot | null;
+  restoreViewerSnapshot: (snapshot: ViewerSnapshot | null) => void;
+  registerViewerApi: (api: ViewerApi | null) => void;
+  enable2DView: (angle: Viewer2DAngle) => void;
+  disable2DView: () => void;
+  renderScene: (options: ViewerRenderOptions) => ViewerRenderResult | null;
+};
+
 export interface ProjectActions {
   setProjectName: (name: string) => void;
   setTipoProjeto: (tipo: string) => void;
@@ -68,9 +156,18 @@ export interface ProjectActions {
   gerarDesign: () => void;
   exportarPDF: () => void;
   logChangelog: (message: string) => void;
+  undo: () => void;
+  redo: () => void;
+  saveProjectSnapshot: () => void;
+  loadProjectSnapshot: (id: string) => void;
+  listSavedProjects: () => SavedProjectInfo[];
+  createNewProject: () => void;
+  renameProject: (id: string, name: string) => void;
+  deleteProject: (id: string) => void;
 }
 
 export interface ProjectContextProps {
   project: ProjectState;
   actions: ProjectActions;
+  viewerSync: ViewerSync;
 }

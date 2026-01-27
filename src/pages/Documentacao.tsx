@@ -78,12 +78,30 @@ export default function Documentacao() {
           {"\n"}- Roadmap semanal removido e substituído por Phases.
           {"\n"}- CRUD completo de Phases e tarefas com persistência.
           {"\n"}- Sistema de Materiais Profissional iniciado com presets reais.
-          {"\n"}- Painel lateral de materiais com preview e ajustes.
+          {"\n"}- Painel de materiais movido para Admin (Materiais & Fabricação).
+          {"\n"}- Módulos de resultados movidos para o painel inferior (Resultados Atuais).
+          {"\n"}- Novo painel lateral esquerdo (Left-Left) com ícones e nomes curtos.
+          {"\n"}- Novo painel Right-Tools com ícones e nomes abaixo do painel direito.
+          {"\n"}- Undo/Redo integrado ao estado global com stack interno.
+          {"\n"}- Save/Load de projetos via localStorage (snapshot JSON).
+          {"\n"}- Right-Tools com callbacks reais e modais de placeholder.
+          {"\n"}- Hook useViewerSync criado para sincronização do ProjectState com o Viewer.
+          {"\n"}- ThreeViewer recebe notifyChange quando o estado muda.
+          {"\n"}- ViewerSnapshot definido para preparar snapshots do Viewer.
+          {"\n"}- Undo/Redo chama restoreViewerSnapshot (placeholder).
+          {"\n"}- saveViewerSnapshot/restauração do Viewer implementados (estado real).
+          {"\n"}- Save/Load agora inclui snapshot do Viewer.
+          {"\n"}- Project Manager com lista de projetos, criar/renomear/excluir/carregar.
+          {"\n"}- 2D Viewer com câmera orthographic e seleção de ângulo.
+          {"\n"}- Render de imagem com captura estática do ThreeViewer.
           {"\n"}- Aplicação de materiais por partes (madeira, metal, vidro, etc.).
           {"\n"}- materialContext separado em Provider/Hook e utilitários dedicados.
+          {"\n"}- Otimizações internas de build (manualChunks, import.meta.glob raw).
+          {"\n"}- Melhorias internas no ThreeViewer (dispose e anisotropy).
           {"\n"}- Rotação automática removida no ThreeViewer.
           {"\n"}- Grid suave de referência adicionado ao fundo.
           {"\n"}- Ground plane PBR com sombras ativas.
+          {"\n"}- Roadmap semanal legado removido (código morto).
           {"\n\n"}Motivos técnicos:
           {"\n"}- Evitar variação de tamanho por conteúdo.
           {"\n"}- Evitar overflow escondido que impede renderização de listas.
@@ -104,7 +122,21 @@ export default function Documentacao() {
           {"\n"}- Aplicar texturas reais sem depender de edição de código.
           {"\n"}- Unificar o planeamento em fases sequenciais.
           {"\n"}- Permitir seleção e ajuste de materiais sem editar código.
+          {"\n"}- Restringir configuração de materiais ao Admin sem alterar a lógica.
+          {"\n"}- Centralizar módulos de resultado no painel inferior sem mudar cálculos.
+          {"\n"}- Criar navegação visual rápida sem alterar funcionalidades.
+          {"\n"}- Adicionar ferramentas visuais à direita sem lógica funcional.
+          {"\n"}- Permitir histórico básico de alterações sem alterar cálculos.
+          {"\n"}- Garantir persistência local de projetos sem backend.
+          {"\n"}- Preparar fluxo de sincronização sem alterar a cena.
+          {"\n"}- Preparar base para snapshots sem alterar a renderização.
+          {"\n"}- Persistir o estado real do Viewer sem alterar o visual atual.
+          {"\n"}- Permitir gestão completa de projetos locais.
+          {"\n"}- Adicionar visualização 2D sem alterar a lógica da cena.
+          {"\n"}- Exportar imagem sem alterar a renderização em tempo real.
           {"\n"}- Melhorar leitura espacial com grid leve e chão PBR.
+          {"\n"}- Reduzir o tamanho dos bundles com chunking controlado.
+          {"\n"}- Eliminar código morto para manter lint estável.
           {"\n\n"}Decisões de arquitetura:
           {"\n"}- Layout principal controlado por flex e limites fixos.
           {"\n"}- Scroll concentrado nos painéis, não no body.
@@ -128,6 +160,18 @@ export default function Documentacao() {
           {"\n"}- HDRI real passa a ser carregado via arquivo.
           {"\n"}- Roadmap baseado em Phases com progresso global e por fase.
           {"\n"}- Presets e ajustes de materiais persistidos no localStorage.
+          {"\n"}- Painel de materiais migrado para Admin Panel.
+          {"\n"}- Resultados concentrados no BottomPanel.
+          {"\n"}- Barra lateral rápida adicionada na extrema esquerda.
+          {"\n"}- Right-Tools Bar adicionada abaixo do painel direito.
+          {"\n"}- Undo/Redo e Save/Load acoplados ao ProjectState.
+          {"\n"}- ViewerSync integrado ao ProjectProvider.
+          {"\n"}- Camada de snapshots do Viewer adicionada (placeholder).
+          {"\n"}- Snapshot real do Viewer integrado ao Save/Load.
+          {"\n"}- Project Manager integrado ao ProjectProvider.
+          {"\n"}- Modo 2D integrado ao ThreeViewer.
+          {"\n"}- Render de imagem integrado ao Viewer via API.
+          {"\n"}- Contexto de materiais isolado para compatibilidade com fast refresh.
           {"\n\n"}Fluxos atualizados:
           {"\n"}- Lista de cadModels renderiza de forma estável em qualquer painel.
           {"\n"}- CadModels atualiza na UI após salvar no Admin.
@@ -137,6 +181,19 @@ export default function Documentacao() {
           {"\n"}- Admin reutiliza classes para inputs, botões e cards.
           {"\n"}- Painel esquerdo exibe 100% do conteúdo sem cortes.
           {"\n"}- Workspace e BottomPanel com tipografia consistente.
+          {"\n"}- Resultados (preço total, cutlist, ferragens, preço por caixa) agora no painel inferior.
+          {"\n"}- Itens do Left-Left apenas abrem visualmente o painel esquerdo atual.
+          {"\n"}- Itens do Right-Tools Bar disparam ações e modais rápidos.
+          {"\n"}- Modais de PROJETO/2D/IMAGEM/ENVIAR têm ações reais e placeholders de integração.
+          {"\n"}- Undo/Redo atua sobre o estado global do projeto.
+          {"\n"}- notifyChange preparado para integração com o ThreeViewer.
+          {"\n"}- Undo/Redo dispara restoreViewerSnapshot sem efeitos visuais.
+          {"\n"}- Save/Load restaura câmera, objetos e materiais no Viewer.
+          {"\n"}- Modal PROJETO permite criar, renomear, excluir e carregar projetos.
+          {"\n"}- Modal 2D permite alternar ângulo e retornar ao modo 3D.
+          {"\n"}- Modal IMAGEM permite gerar e baixar a captura da cena.
+          {"\n"}- Modal ENVIAR permite selecionar conteúdo e método de envio.
+          {"\n"}- Pacote de envio gera JSON composto com snapshots e dados do projeto.
           {"\n"}- Página inteira volta a rolar normalmente.
           {"\n"}- Modelo 3D responde melhor ao resize do painel.
           {"\n"}- Workspace mantém transições visuais sem inline.
@@ -151,7 +208,10 @@ export default function Documentacao() {
           {"\n"}- Sombras suaves mais naturais no contacto com o piso.
           {"\n"}- Phase atual e progresso global exibidos no Painel de Referência.
           {"\n"}- Materiais aplicados no ThreeViewer conforme o painel de materiais.
+          {"\n"}- Controles de materiais disponíveis apenas na área administrativa.
           {"\n"}- Câmara ajustada para enquadramento natural com chão.
+          {"\n"}- Build mais estável com chunks separados por vendor.
+          {"\n"}- Roadmap semanal removido sem impacto no fluxo atual.
           {"\n\n"}Exemplo de uso:
           {"\n"}- Alternar painel esquerdo sem perder a lista de modelos.
           {"\n"}- Adicionar modelo no Admin e ver atualização no painel esquerdo.
@@ -174,6 +234,7 @@ export default function Documentacao() {
           {"\n"}- Gerir Phases e tarefas diretamente no ProjectRoadmap.
           {"\n"}- Ajustar presets e parâmetros no painel de materiais.
           {"\n"}- Navegar a cena sem rotação automática.
+          {"\n"}- Evitar regressões no build com configuração Vite otimizada.
           {"\n\n"}Arquivos modificados:
           {"\n"}- src/hooks/useCadModels.ts
           {"\n"}- src/hooks/useTemplates.ts
@@ -198,6 +259,8 @@ export default function Documentacao() {
           {"\n"}- src/pages/Documentation.tsx
           {"\n"}- src/components/ui/Panel.tsx
           {"\n"}- src/index.css
+          {"\n"}- src/components/three/ThreeViewer.tsx
+          {"\n"}- vite.config.ts
           {"\n"}- public/hdr/studio_neutral.hdr
           {"\n"}- public/textures/wood/base.svg
           {"\n"}- public/textures/metal/base.svg
