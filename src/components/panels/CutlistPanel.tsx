@@ -112,13 +112,9 @@ export default function CutlistPanel() {
           </table>
         </div>
 
-        <div>
-          <div style={sectionTitleStyle}>Portas</div>
-          {modeloIndustrial.portas.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Sem portas para este caixote.
-            </div>
-          ) : (
+        {modeloIndustrial.portas.length > 0 && (
+          <div>
+            <div style={sectionTitleStyle}>Portas</div>
             <table style={tableStyle}>
               <thead>
                 <tr>
@@ -143,16 +139,12 @@ export default function CutlistPanel() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div>
-          <div style={sectionTitleStyle}>Gavetas</div>
-          {modeloIndustrial.gavetas.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Sem gavetas para este caixote.
-            </div>
-          ) : (
+        {modeloIndustrial.gavetas.length > 0 && (
+          <div>
+            <div style={sectionTitleStyle}>Gavetas</div>
             <table style={tableStyle}>
               <thead>
                 <tr>
@@ -177,11 +169,11 @@ export default function CutlistPanel() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
 
         <div>
-          <div style={sectionTitleStyle}>Ferragens</div>
+          <div style={sectionTitleStyle}>Ferragens Industriais</div>
           {modeloIndustrial.ferragens.length === 0 ? (
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
               Sem ferragens para este caixote.
@@ -190,8 +182,9 @@ export default function CutlistPanel() {
             <table style={tableStyle}>
               <thead>
                 <tr>
-                  <th style={headerCellStyle}>Tipo</th>
+                  <th style={headerCellStyle}>Ferragem</th>
                   <th style={{ ...headerCellStyle, textAlign: "center" }}>Quantidade</th>
+                  <th style={headerCellStyle}>Medidas</th>
                   <th style={headerCellStyle}>Aplicação</th>
                   <th style={{ ...headerCellStyle, textAlign: "right" }}>Custo (€)</th>
                 </tr>
@@ -203,6 +196,7 @@ export default function CutlistPanel() {
                     <td style={{ ...bodyCellStyle, textAlign: "center" }}>
                       {ferragem.quantidade}
                     </td>
+                    <td style={bodyCellStyle}>--</td>
                     <td style={bodyCellStyle}>
                       {aplicacaoFerragens[ferragem.tipo] ?? "Geral"}
                     </td>

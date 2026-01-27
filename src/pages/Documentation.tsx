@@ -291,15 +291,29 @@ const sections: DocSection[] = [
   },
   {
     title: "Resultados no BottomPanel",
-    description: "Preço total, cutlist, ferragens e preço por caixa no painel inferior.",
+    description: "Painel inferior com dois cartões (Cutlist e Resumo Financeiro).",
     internals:
-      "Módulos de resultado foram movidos do workspace para Resultados Atuais.",
+      "Resultados Atuais migrou para a Right-Tools Bar; o painel inferior ficou com dois cards.",
     files: [
       "src/components/layout/bottom-panel/BottomPanel.tsx",
       "src/components/layout/workspace/Workspace.tsx",
-      "src/components/layout/workspace/WorkspaceBottomPanel.tsx",
     ],
-    interactions: "Resultados consolidados no painel inferior sem mudar cálculos.",
+    interactions: "Layout em grid mantém conteúdo organizado sem alterar cálculos.",
+  },
+  {
+    title: "Resumo Financeiro do Projeto",
+    description: "Painel unificado de custos e preços do projeto.",
+    internals:
+      "Consolida materiais, peças, ferragens, montagem e totais em um único card.",
+    files: ["src/components/layout/bottom-panel/BottomPanel.tsx"],
+    interactions: "Evita duplicação de preços entre painéis.",
+  },
+  {
+    title: "Resultados Atuais na Right-Tools",
+    description: "Resumo de quantidades na barra lateral direita.",
+    internals: "Card mostra peças, ferragens e total de itens sem preços.",
+    files: ["src/components/layout/right-tools/RightToolsBar.tsx"],
+    interactions: "Resultados rápidos sem duplicar custos do projeto.",
   },
   {
     title: "Left-Left Panel",
@@ -317,13 +331,36 @@ const sections: DocSection[] = [
     title: "Right-Tools Bar",
     description: "Barra de ferramentas abaixo do painel direito.",
     internals:
-      "Itens acionam ações e modais do projeto, incluindo renderização e envio.",
+      "Itens acionam ações e modais do projeto; agora inclui card de Resultados Atuais.",
     files: [
       "src/components/layout/right-tools/RightToolsBar.tsx",
       "src/App.tsx",
       "src/index.css",
     ],
-    interactions: "Atalhos para ações rápidas e modais contextuais.",
+    interactions: "Atalhos para ações rápidas e resumo lateral de quantidades.",
+  },
+  {
+    title: "Right-Tools em grade",
+    description: "Layout da Right-Tools Bar organizado em grid.",
+    internals:
+      "Grid responsivo com três colunas no padrão e quatro colunas em telas grandes; botões ocupam 100% da célula.",
+    files: ["src/index.css"],
+    interactions: "Botões esticam por coluna e ajustam layout conforme a largura.",
+  },
+  {
+    title: "Painel Estado do Sistema removido",
+    description: "Painel do workspace com status de design foi removido.",
+    internals: "Remoção do componente e limpeza de referências no workspace.",
+    files: ["src/components/layout/workspace/Workspace.tsx"],
+    interactions: "Área abaixo do viewer fica livre para o conteúdo seguinte.",
+  },
+  {
+    title: "Painel de peças sem limite vertical",
+    description: "Resumo por caixa sem duplicar a cutlist detalhada.",
+    internals:
+      "Cutlist detalhado fica apenas no Cutlist Industrial; painel de caixa mostra dados gerais.",
+    files: ["src/components/ui/CutListView.tsx"],
+    interactions: "Evita repetição de peças e mantém scroll completo no painel industrial.",
   },
   {
     title: "Sistema de envio (ENVIAR)",
@@ -493,7 +530,14 @@ const sections: DocSection[] = [
     description: "Gera relatório de cut list por caixote.",
     internals: "Itera pelos caixotes e monta páginas.",
     files: ["src/context/ProjectProvider.tsx"],
-    interactions: "Usa jsPDF + autoTable.",
+    interactions: "Usa jsPDF + autoTable com seções condicionais.",
+  },
+  {
+    title: "PDF com seções condicionais",
+    description: "Portas, gavetas e ferragens só aparecem quando existem.",
+    internals: "Blocos do PDF são renderizados apenas se houver itens.",
+    files: ["src/core/export/pdfGenerator.ts"],
+    interactions: "Evita títulos vazios no relatório.",
   },
   {
     title: "Painel de Referência",

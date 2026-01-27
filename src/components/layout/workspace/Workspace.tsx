@@ -3,7 +3,6 @@ import { useProject } from "../../../context/useProject";
 import { Cube } from "../../ui/Cube";
 import { CUBE_BASE_SIZE, updateCubePreview } from "../../ui/cubeUtils";
 import ThreeViewer from "../../three/ThreeViewer";
-import WorkspaceBottomPanel from "./WorkspaceBottomPanel";
 import { useMaterial } from "../../../context/useMaterial";
 
 export default function Workspace() {
@@ -397,9 +396,6 @@ export default function Workspace() {
         )}
       </div>
 
-      <div className="w-full">
-        <WorkspaceBottomPanel />
-      </div>
     </main>
   );
 }

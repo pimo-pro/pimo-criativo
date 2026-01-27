@@ -32,6 +32,10 @@ const tools: RightToolsItem[] = [
 
 export default function RightToolsBar() {
   const { actions, viewerSync, project } = useProject();
+  const totalFerragens =
+    project.acessorios?.reduce((sum, item) => sum + item.quantidade, 0) ?? 0;
+  const totalPecas = project.resultados?.numeroPecas ?? 0;
+  const totalItens = totalPecas + totalFerragens;
   const [modal, setModal] = useState<ModalType>(null);
   const [savedProjects, setSavedProjects] = useState(actions.listSavedProjects());
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -226,6 +230,21 @@ export default function RightToolsBar() {
             <span className="right-tools-label">{item.label}</span>
           </button>
         ))}
+        <div className="right-tools-card">
+          <div className="right-tools-card-title">Resultados Atuais</div>
+          <div className="right-tools-card-row">
+            <span>Peças</span>
+            <strong>{totalPecas}</strong>
+          </div>
+          <div className="right-tools-card-row">
+            <span>Ferragens</span>
+            <strong>{totalFerragens}</strong>
+          </div>
+          <div className="right-tools-card-row">
+            <span>Total de itens</span>
+            <strong>{totalItens}</strong>
+          </div>
+        </div>
       </aside>
 
       {modal && (

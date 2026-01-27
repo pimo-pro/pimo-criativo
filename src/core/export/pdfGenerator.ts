@@ -100,71 +100,77 @@ export function gerarPdfIndustrial(boxes: BoxModule[]) {
       headStyles: { fillColor: [15, 23, 42] },
     });
 
-    cursorY = getLastY(doc, cursorY);
-    addSectionTitle(doc, "Lista de Portas", cursorY);
-    autoTable(doc, {
-      head: [[
-        "Tipo",
-        "Largura (mm)",
-        "Altura (mm)",
-        "Espessura (mm)",
-        "Nº dobradiças",
-        "Custo (€)",
-      ]],
-      body: modelo.portas.map((porta) => [
-        porta.tipo,
-        porta.largura_mm,
-        porta.altura_mm,
-        porta.espessura_mm,
-        porta.dobradicas,
-        formatCurrency(porta.custo),
-      ]),
-      startY: cursorY + 6,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [15, 23, 42] },
-    });
+    if (modelo.portas.length > 0) {
+      cursorY = getLastY(doc, cursorY);
+      addSectionTitle(doc, "Lista de Portas", cursorY);
+      autoTable(doc, {
+        head: [[
+          "Tipo",
+          "Largura (mm)",
+          "Altura (mm)",
+          "Espessura (mm)",
+          "Nº dobradiças",
+          "Custo (€)",
+        ]],
+        body: modelo.portas.map((porta) => [
+          porta.tipo,
+          porta.largura_mm,
+          porta.altura_mm,
+          porta.espessura_mm,
+          porta.dobradicas,
+          formatCurrency(porta.custo),
+        ]),
+        startY: cursorY + 6,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+    }
 
-    cursorY = getLastY(doc, cursorY);
-    addSectionTitle(doc, "Lista de Gavetas", cursorY);
-    autoTable(doc, {
-      head: [[
-        "Largura (mm)",
-        "Altura (mm)",
-        "Profundidade (mm)",
-        "Espessura (mm)",
-        "Corrediças",
-        "Custo (€)",
-      ]],
-      body: modelo.gavetas.map((gaveta) => [
-        gaveta.largura_mm,
-        gaveta.altura_mm,
-        gaveta.profundidade_mm,
-        gaveta.espessura_mm,
-        gaveta.corrediças,
-        formatCurrency(gaveta.custo),
-      ]),
-      startY: cursorY + 6,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [15, 23, 42] },
-    });
+    if (modelo.gavetas.length > 0) {
+      cursorY = getLastY(doc, cursorY);
+      addSectionTitle(doc, "Lista de Gavetas", cursorY);
+      autoTable(doc, {
+        head: [[
+          "Largura (mm)",
+          "Altura (mm)",
+          "Profundidade (mm)",
+          "Espessura (mm)",
+          "Corrediças",
+          "Custo (€)",
+        ]],
+        body: modelo.gavetas.map((gaveta) => [
+          gaveta.largura_mm,
+          gaveta.altura_mm,
+          gaveta.profundidade_mm,
+          gaveta.espessura_mm,
+          gaveta.corrediças,
+          formatCurrency(gaveta.custo),
+        ]),
+        startY: cursorY + 6,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+    }
 
-    cursorY = getLastY(doc, cursorY);
-    addSectionTitle(doc, "Ferragens", cursorY);
-    autoTable(doc, {
-      head: [[
-        "Tipo",
-        "Quantidade",
-        "Custo (€)",
-      ]],
-      body: modelo.ferragens.map((ferragem) => [
-        ferragem.tipo,
-        ferragem.quantidade,
-        formatCurrency(ferragem.custo),
-      ]),
-      startY: cursorY + 6,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [15, 23, 42] },
-    });
+    if (modelo.ferragens.length > 0) {
+      cursorY = getLastY(doc, cursorY);
+      addSectionTitle(doc, "Ferragens", cursorY);
+      autoTable(doc, {
+        head: [[
+          "Tipo",
+          "Quantidade",
+          "Custo (€)",
+        ]],
+        body: modelo.ferragens.map((ferragem) => [
+          ferragem.tipo,
+          ferragem.quantidade,
+          formatCurrency(ferragem.custo),
+        ]),
+        startY: cursorY + 6,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+    }
 
     cursorY = getLastY(doc, cursorY);
     addSectionTitle(doc, "Resumo Financeiro Final", cursorY);

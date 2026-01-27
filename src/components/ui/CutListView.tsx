@@ -24,7 +24,7 @@ export default function CutListView() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
       {project.boxes.map((box, index) => {
         const isSelected = box.id === project.selectedBoxId;
         const rows: CutListRow[] =
@@ -49,6 +49,7 @@ export default function CutListView() {
                 espessura: item.espessura,
                 quantidade: item.quantidade,
               }));
+        const totalPecas = rows.reduce((sum, item) => sum + item.quantidade, 0);
 
         const title = box.nome || `Caixa ${index + 1}`;
 
@@ -132,117 +133,32 @@ export default function CutListView() {
                 </div>
               </div>
 
-              {isSelected ? (
-                <>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div style={microTextStyle}>Ferragens</div>
-                    {box.ferragens.length === 0 ? (
-                      <div style={microTextStyle}>Sem ferragens associadas.</div>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        {box.ferragens.map((item) => (
-                          <div
-                            key={item.id}
-                            style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}
-                          >
-                            <span style={{ color: "var(--text-main)" }}>{item.nome}</span>
-                            <span style={{ color: "var(--text-muted)" }}>x{item.quantidade}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                <div>
+                  <div style={microTextStyle}>Dimensões</div>
+                  <div style={{ fontSize: 12, color: "var(--text-main)" }}>
+                    {box.dimensoes.largura}×{box.dimensoes.altura}×{box.dimensoes.profundidade} mm
                   </div>
-
-                  {rows.length === 0 ? (
-                    <div style={microTextStyle}>Nenhuma peça calculada para este caixote.</div>
-                  ) : (
-                    <div
-                      style={{
-                        maxHeight: 260,
-                        overflowY: "auto",
-                        border: "1px solid var(--border)",
-                        borderRadius: "var(--radius)",
-                      }}
-                    >
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                          fontSize: 12,
-                        }}
-                      >
-                        <thead
-                          style={{
-                            position: "sticky",
-                            top: 0,
-                            background: "rgba(15,23,42,0.98)",
-                            zIndex: 1,
-                          }}
-                        >
-                          <tr>
-                            <th style={{ padding: "6px 4px", textAlign: "left", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Peça
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Largura
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Altura
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Prof.
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Esp.
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "center", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Qtd
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Preço
-                            </th>
-                            <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-muted)", fontWeight: 600 }}>
-                              Total
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((item) => (
-                            <tr key={item.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                              <td style={{ padding: "6px 4px", color: "var(--text-main)", fontWeight: 600 }}>
-                                {item.nome}
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-main)" }}>
-                                {item.largura} mm
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-main)" }}>
-                                {item.altura} mm
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-main)" }}>
-                                {item.profundidade} mm
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-main)" }}>
-                                {item.espessura} mm
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "center", color: "var(--text-main)" }}>
-                                {item.quantidade}
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-main)" }}>
-                                {item.precoUnitario !== undefined ? `${item.precoUnitario.toFixed(2)} €` : "-"}
-                              </td>
-                              <td style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-main)" }}>
-                                {item.precoTotal !== undefined ? `${item.precoTotal.toFixed(2)} €` : "-"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={microTextStyle}>Clique para ver peças, ferragens e detalhes.</div>
-              )}
+                </div>
+                <div>
+                  <div style={microTextStyle}>Total de peças</div>
+                  <div style={{ fontSize: 12, color: "var(--text-main)" }}>
+                    {totalPecas > 0 ? totalPecas : "--"}
+                  </div>
+                </div>
+                <div>
+                  <div style={microTextStyle}>Preço estimado</div>
+                  <div style={{ fontSize: 12, color: "var(--text-main)" }}>
+                    {box.precoTotalPecas > 0 ? `${box.precoTotalPecas.toFixed(2)} €` : "--"}
+                  </div>
+                </div>
+              </div>
             </div>
           </Panel>
         );

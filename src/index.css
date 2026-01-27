@@ -108,11 +108,11 @@ body {
 .right-tools-bar {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(15, 23, 42, 0.92);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  padding: 12px 6px;
+  padding: 12px;
+  justify-items: stretch;
 }
 
 .right-tools-item {
@@ -120,7 +120,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 70px;
+  width: 100%;
   padding: 8px 4px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -128,6 +128,18 @@ body {
   color: var(--text-main);
   font-size: 10px;
   cursor: pointer;
+}
+
+@media (min-width: 1200px) {
+  .right-tools-bar {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .right-tools-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .right-tools-item:hover {
@@ -152,6 +164,36 @@ body {
   text-align: center;
   line-height: 1.1;
   color: var(--text-muted);
+}
+
+.right-tools-card {
+  grid-column: 1 / -1;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-main);
+}
+
+.right-tools-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.right-tools-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.right-tools-card-row strong {
+  color: var(--text-main);
 }
 
 .modal-overlay {
@@ -274,9 +316,9 @@ body {
 }
 
 .panel-shell--bottom {
-  height: 120px;
+  height: auto;
   min-height: 120px;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .bottom-panel-hidden {
@@ -527,7 +569,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .workspace-canvas {
@@ -643,25 +685,16 @@ body {
 }
 
 .bottom-panel-root {
-  height: 120px;
+  height: auto;
+  min-height: 120px;
   background: rgba(15,23,42,0.98);
   border-top: 1px solid var(--border);
   padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  align-items: start;
   box-sizing: border-box;
-}
-
-.bottom-panel-results {
-  max-width: 70%;
-}
-
-.bottom-panel-meta {
-  color: var(--text-muted);
-  font-size: 12px;
-  text-align: right;
-  min-width: 160px;
 }
 
 .text-muted {

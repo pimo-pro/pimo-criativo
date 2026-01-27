@@ -80,8 +80,13 @@ export default function Documentacao() {
           {"\n"}- Sistema de Materiais Profissional iniciado com presets reais.
           {"\n"}- Painel de materiais movido para Admin (Materiais & Fabricação).
           {"\n"}- Módulos de resultados movidos para o painel inferior (Resultados Atuais).
+          {"\n"}- Painel inferior redesenhado em 3 secções (Resultados, Cutlist Industrial, Preço por Caixa).
+          {"\n"}- Bloco “Última Atualização” removido do painel inferior.
+          {"\n"}- Ferragens Industriais restauradas dentro do Cutlist Industrial.
+          {"\n"}- Preços unificados no painel “Resumo Financeiro do Projeto”.
           {"\n"}- Novo painel lateral esquerdo (Left-Left) com ícones e nomes curtos.
           {"\n"}- Novo painel Right-Tools com ícones e nomes abaixo do painel direito.
+          {"\n"}- Right-Tools Bar convertida para layout em grade (3 colunas).
           {"\n"}- Undo/Redo integrado ao estado global com stack interno.
           {"\n"}- Save/Load de projetos via localStorage (snapshot JSON).
           {"\n"}- Right-Tools com callbacks reais e modais de placeholder.
@@ -164,6 +169,8 @@ export default function Documentacao() {
           {"\n"}- Resultados concentrados no BottomPanel.
           {"\n"}- Barra lateral rápida adicionada na extrema esquerda.
           {"\n"}- Right-Tools Bar adicionada abaixo do painel direito.
+          {"\n"}- Right-Tools Bar em grid responsivo (3 → 4 colunas).
+          {"\n"}- Botões da Right-Tools ocupam 100% da célula do grid.
           {"\n"}- Undo/Redo e Save/Load acoplados ao ProjectState.
           {"\n"}- ViewerSync integrado ao ProjectProvider.
           {"\n"}- Camada de snapshots do Viewer adicionada (placeholder).
@@ -181,9 +188,10 @@ export default function Documentacao() {
           {"\n"}- Admin reutiliza classes para inputs, botões e cards.
           {"\n"}- Painel esquerdo exibe 100% do conteúdo sem cortes.
           {"\n"}- Workspace e BottomPanel com tipografia consistente.
-          {"\n"}- Resultados (preço total, cutlist, ferragens, preço por caixa) agora no painel inferior.
+          {"\n"}- Resultados Atuais movidos para a Right-Tools Bar (card lateral).
           {"\n"}- Itens do Left-Left apenas abrem visualmente o painel esquerdo atual.
           {"\n"}- Itens do Right-Tools Bar disparam ações e modais rápidos.
+          {"\n"}- Right-Tools agora estica botões por coluna e ajusta colunas em telas grandes.
           {"\n"}- Modais de PROJETO/2D/IMAGEM/ENVIAR têm ações reais e placeholders de integração.
           {"\n"}- Undo/Redo atua sobre o estado global do projeto.
           {"\n"}- notifyChange preparado para integração com o ThreeViewer.
@@ -194,6 +202,14 @@ export default function Documentacao() {
           {"\n"}- Modal IMAGEM permite gerar e baixar a captura da cena.
           {"\n"}- Modal ENVIAR permite selecionar conteúdo e método de envio.
           {"\n"}- Pacote de envio gera JSON composto com snapshots e dados do projeto.
+          {"\n"}- Painel Estado do Sistema removido do workspace.
+          {"\n"}- Painel de peças (cutlist) expande sem limite vertical fixo e com scroll completo.
+          {"\n"}- Cutlist detalhado removido dos painéis de caixa para evitar duplicação.
+          {"\n"}- Resultados Atuais agora mostra apenas quantidades (sem preços).
+          {"\n"}- Cutlist Industrial exibe Ferragens Industriais com aplicação e medidas quando disponíveis.
+          {"\n"}- Portas e Gavetas aparecem apenas quando existem no projeto.
+          {"\n"}- PDF do cutlist agora oculta Portas, Gavetas e Ferragens quando vazios.
+          {"\n"}- Painel inferior agora tem apenas Cutlist Industrial e Resumo Financeiro (2 colunas).
           {"\n"}- Página inteira volta a rolar normalmente.
           {"\n"}- Modelo 3D responde melhor ao resize do painel.
           {"\n"}- Workspace mantém transições visuais sem inline.
