@@ -100,6 +100,23 @@ export default function Header({
           🧪
         </button>
         <button
+          onClick={() => {
+            window.history.pushState({}, "", "/dev-actions");
+            window.dispatchEvent(new PopStateEvent("popstate"));
+          }}
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "var(--text-main)",
+            padding: "6px 10px",
+            borderRadius: "var(--radius)",
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          Dev Actions
+        </button>
+        <button
           onClick={onToggleDocs}
           style={{
             background: "rgba(255,255,255,0.04)",

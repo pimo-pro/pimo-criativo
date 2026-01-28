@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import Panel from "../../ui/Panel";
 import { useCadModels } from "../../../hooks/useCadModels";
 
@@ -12,8 +13,10 @@ export default function LeftPanel() {
   const selectedPrateleiras = selectedBox?.prateleiras ?? 0;
   const tipoProjeto = project.tipoProjeto;
   const { models: cadModels, reload: reloadCadModels } = useCadModels();
+  const { viewerApi } = usePimoViewerContext();
   const [materialTipo, setMaterialTipo] = useState(project.material.tipo);
   const [espessuraUI, setEspessuraUI] = useState(selectedEspessura);
+
 
   useEffect(() => {
     setMaterialTipo(project.material.tipo);
@@ -77,12 +80,20 @@ export default function LeftPanel() {
       <Panel title="Modelo 3D (lista de cadModels)">
         <select
           value={selectedBox?.modelId ?? ""}
-          onChange={(e) =>
-            actions.updateCaixaModelId(
-              project.selectedCaixaId,
-              e.target.value === "" ? null : e.target.value
-            )
-          }
+          onChange={(e) => {
+            const nextValue = e.target.value === "" ? null : e.target.value;
+            actions.updateCaixaModelId(project.selectedCaixaId, nextValue);
+            const selectedId = project.selectedWorkspaceBoxId;
+            if (!selectedId) return;
+            if (!nextValue) {
+              viewerApi?.clearModelsFromBox(selectedId);
+              return;
+            }
+            const model = cadModels.find((item) => item.id === nextValue);
+            if (model?.arquivo) {
+              viewerApi?.addModelToBox(selectedId, model.arquivo);
+            }
+          }}
           className="select"
         >
           <option value="">Nenhum modelo</option>
@@ -93,7 +104,9 @@ export default function LeftPanel() {
           ))}
         </select>
         <button
-          onClick={reloadCadModels}
+          onClick={() => {
+            reloadCadModels();
+          }}
           className="panel-button"
           style={{ marginTop: 8 }}
         >
@@ -106,7 +119,17 @@ export default function LeftPanel() {
         <div style={{ marginBottom: 8 }}>
           <select
             value={materialTipo}
-            onChange={(e) => setMaterialTipo(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setMaterialTipo(value);
+              actions.setMaterial({
+                ...project.material,
+                tipo: value,
+              });
+              if (project.selectedWorkspaceBoxId) {
+                viewerApi?.updateBox(project.selectedWorkspaceBoxId, { materialName: value });
+              }
+            }}
             className="select"
           >
             <option value="MDF">MDF</option>
@@ -118,7 +141,11 @@ export default function LeftPanel() {
         </div>
         <select
           value={espessuraUI}
-          onChange={(e) => setEspessuraUI(Number(e.target.value))}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            setEspessuraUI(value);
+            actions.setEspessura(value);
+          }}
           className="select"
         >
           <option value={15}>15mm</option>
@@ -138,9 +165,13 @@ export default function LeftPanel() {
             <input
               type="number"
               value={project.dimensoes.largura}
-              onChange={(e) =>
-                actions.setDimensoes({ largura: Number(e.target.value) })
-              }
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                actions.setDimensoes({ largura: value });
+                if (project.selectedWorkspaceBoxId) {
+                  viewerApi?.updateBox(project.selectedWorkspaceBoxId, { width: value });
+                }
+              }}
               className="input input-xs"
             />
           </div>
@@ -151,9 +182,13 @@ export default function LeftPanel() {
             <input
               type="number"
               value={project.dimensoes.altura}
-              onChange={(e) =>
-                actions.setDimensoes({ altura: Number(e.target.value) })
-              }
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                actions.setDimensoes({ altura: value });
+                if (project.selectedWorkspaceBoxId) {
+                  viewerApi?.updateBox(project.selectedWorkspaceBoxId, { height: value });
+                }
+              }}
               className="input input-xs"
             />
           </div>
@@ -164,9 +199,13 @@ export default function LeftPanel() {
             <input
               type="number"
               value={project.dimensoes.profundidade}
-              onChange={(e) =>
-                actions.setDimensoes({ profundidade: Number(e.target.value) })
-              }
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                actions.setDimensoes({ profundidade: value });
+                if (project.selectedWorkspaceBoxId) {
+                  viewerApi?.updateBox(project.selectedWorkspaceBoxId, { depth: value });
+                }
+              }}
               className="input input-xs"
             />
           </div>
@@ -178,7 +217,24 @@ export default function LeftPanel() {
           type="number"
           min="0"
           value={selectedPrateleiras}
-          onChange={(e) => actions.setPrateleiras(Number(e.target.value))}
+          onChange={(e) => {
+            const nextValue = Number(e.target.value);
+            actions.setPrateleiras(nextValue);
+            const selectedId = project.selectedWorkspaceBoxId;
+            if (!selectedId) return;
+            const currentValue = selectedPrateleiras;
+            const diff = nextValue - currentValue;
+            if (diff > 0) {
+              for (let i = 0; i < diff; i += 1) {
+                viewerApi?.addModelToBox(selectedId, "/models/prateleira.glb");
+              }
+            } else if (diff < 0) {
+              const models = viewerApi?.listModels(selectedId) ?? [];
+              for (let i = 0; i < Math.min(models.length, Math.abs(diff)); i += 1) {
+                viewerApi?.removeModelFromBox(selectedId, models[i].id);
+              }
+            }
+          }}
           className="input input-sm"
         />
       </Panel>

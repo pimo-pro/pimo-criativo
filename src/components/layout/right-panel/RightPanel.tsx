@@ -1,7 +1,11 @@
 import { useProject } from "../../../context/useProject";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 
 export default function RightPanel() {
   const { project, actions } = useProject();
+  const { viewerApi } = usePimoViewerContext();
+  const selectedId = project.selectedWorkspaceBoxId;
+  const selectedBox = project.workspaceBoxes.find((box) => box.id === selectedId);
 
   return (
     <aside className="panel-content panel-content--side">
@@ -27,7 +31,17 @@ export default function RightPanel() {
         </button>
 
         <button
-          onClick={() => actions.addWorkspaceBox()}
+          onClick={() => {
+            const id = `modulo-${Date.now()}`;
+            actions.selectBox(id);
+            actions.addWorkspaceBox();
+            viewerApi?.addBox(id, {
+              width: project.dimensoes.largura,
+              height: project.dimensoes.altura,
+              depth: project.dimensoes.profundidade,
+              materialName: project.material.tipo,
+            });
+          }}
           className="button button-ghost"
         >
           Adicionar caixote
@@ -35,14 +49,30 @@ export default function RightPanel() {
 
         <div className="row row-gap-sm">
           <button
-            onClick={() => actions.duplicateWorkspaceBox()}
+            onClick={() => {
+              actions.duplicateWorkspaceBox();
+              if (!selectedId || !selectedBox) return;
+              const newId = `modulo-${Date.now()}`;
+              actions.selectBox(newId);
+              viewerApi?.addBox(newId, {
+                width: selectedBox.dimensoes.largura,
+                height: selectedBox.dimensoes.altura,
+                depth: selectedBox.dimensoes.profundidade,
+                materialName: project.material.tipo,
+              });
+            }}
             className="button button-ghost"
             style={{ flex: 1 }}
           >
             Duplicar
           </button>
           <button
-            onClick={() => actions.removeWorkspaceBox()}
+            onClick={() => {
+              actions.removeWorkspaceBox();
+              if (selectedId) {
+                viewerApi?.removeBox(selectedId);
+              }
+            }}
             disabled={project.workspaceBoxes.length <= 1}
             className="button button-ghost"
             style={{

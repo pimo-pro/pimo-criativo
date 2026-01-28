@@ -12,10 +12,13 @@ import Documentacao from "./pages/Documentacao";
 import AdminPanel from "./pages/AdminPanel";
 import ProjectRoadmap from "./pages/ProjectRoadmap";
 import TestViewer from "./pages/test-viewer";
+import DevPimoTest from "./components/DevPimoTest";
+import DevActionsTest from "./components/DevActionsTest";
 import { ThemeProvider } from "./theme/ThemeProvider";
+import { PimoViewerProvider } from "./context/PimoViewerContext";
 import { ProjectProvider } from "./context/ProjectProvider";
 import { MaterialProvider } from "./context/materialContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
@@ -55,6 +58,22 @@ export default function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showRoadmap, setShowRoadmap] = useState(false);
   const [showTestViewer, setShowTestViewer] = useState(false);
+  const [showDevTest, setShowDevTest] = useState(false);
+  const [showDevActions, setShowDevActions] = useState(false);
+  const viewerOptions = useMemo(
+    () => ({
+      enableControls: true,
+      controls: {
+        enableDamping: true,
+        dampingFactor: 0.08,
+        minDistance: 1.5,
+        maxDistance: 12,
+        minPolarAngle: Math.PI * 0.15,
+        maxPolarAngle: Math.PI * 0.45,
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     const syncRoute = () => {
@@ -63,11 +82,15 @@ export default function App() {
       const isAdmin = window.location.pathname === "/admin";
       const isRoadmap = window.location.pathname === "/roadmap";
       const isTestViewer = window.location.pathname === "/test-viewer";
+      const isDevTest = window.location.pathname === "/dev-test";
+      const isDevActions = window.location.pathname === "/dev-actions";
       setShowAbout(isAbout);
       setShowSystemDocs(isSystemDocs);
       setShowAdmin(isAdmin);
       setShowRoadmap(isRoadmap);
       setShowTestViewer(isTestViewer);
+      setShowDevTest(isDevTest);
+      setShowDevActions(isDevActions);
       if (isAbout) {
         setShowDocs(false);
       }
@@ -81,6 +104,12 @@ export default function App() {
         setShowDocs(false);
       }
       if (isTestViewer) {
+        setShowDocs(false);
+      }
+      if (isDevTest) {
+        setShowDocs(false);
+      }
+      if (isDevActions) {
         setShowDocs(false);
       }
     };
@@ -130,6 +159,7 @@ export default function App() {
     setShowSystemDocs(false);
     setShowAdmin(false);
     setShowRoadmap(false);
+    setShowDevTest(false);
   };
 
   const navigateToApp = () => {
@@ -139,13 +169,16 @@ export default function App() {
     setShowAdmin(false);
     setShowRoadmap(false);
     setShowTestViewer(false);
+    setShowDevTest(false);
+    setShowDevActions(false);
   };
 
   return (
     <ThemeProvider>
       <ProjectProvider>
         <MaterialProvider>
-          <div className="app-root">
+          <PimoViewerProvider>
+            <div className="app-root">
         <Header
           onToggleDocs={() => {
             if (showAbout || showSystemDocs || showAdmin || showRoadmap) {
@@ -183,6 +216,10 @@ export default function App() {
             <ProjectRoadmap />
           ) : showTestViewer ? (
             <TestViewer />
+          ) : showDevTest ? (
+            <DevPimoTest />
+          ) : showDevActions ? (
+            <DevActionsTest />
           ) : showAbout ? (
             <SobreNos />
           ) : (
@@ -217,7 +254,11 @@ export default function App() {
               </div>
 
               {/* WORKSPACE */}
-              <Workspace />
+              <Workspace
+                viewerBackground="#0f172a"
+                viewerHeight="100%"
+                viewerOptions={viewerOptions}
+              />
 
               {/* RIGHT PANEL */}
               <div
@@ -257,7 +298,8 @@ export default function App() {
           onShowAdmin={navigateToAdmin}
         />
 
-          </div>
+            </div>
+          </PimoViewerProvider>
         </MaterialProvider>
       </ProjectProvider>
     </ThemeProvider>

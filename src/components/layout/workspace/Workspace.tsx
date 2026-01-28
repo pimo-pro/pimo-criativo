@@ -1,22 +1,60 @@
-import { useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { useProject } from "../../../context/useProject";
-import ThreeViewer from "../../ThreeViewer";
+import { usePimoViewer } from "../../../hooks/usePimoViewer";
+import { useCalculadoraSync } from "../../../hooks/useCalculadoraSync";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
+import type { ViewerOptions } from "../../../3d/core/Viewer";
 
-export default function Workspace() {
-  const { project } = useProject();
-  const materialId = useMemo(() => "mdf-branco", []);
+type WorkspaceProps = {
+  viewerBackground?: string;
+  viewerHeight?: number | string;
+  viewerOptions?: Omit<ViewerOptions, "background">;
+};
+
+export default function Workspace({
+  viewerBackground,
+  viewerHeight = "100%",
+  viewerOptions,
+}: WorkspaceProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const { project, actions } = useProject();
+  const viewerApi = usePimoViewer(containerRef, {
+    background: viewerBackground,
+    ...viewerOptions,
+  });
+  const { registerViewerApi } = usePimoViewerContext();
+
+  useEffect(() => {
+    registerViewerApi(viewerApi);
+    return () => registerViewerApi(null);
+  }, [registerViewerApi, viewerApi]);
+
+  useEffect(() => {
+    viewerApi.setOnBoxSelected((boxId) => {
+      if (boxId) {
+        actions.selectBox(boxId);
+      }
+    });
+  }, [actions, viewerApi]);
+
+  useCalculadoraSync(project.boxes, viewerApi, undefined, project.material.tipo);
+
+  useEffect(() => {
+    if (project.selectedWorkspaceBoxId) {
+      viewerApi.selectBox?.(project.selectedWorkspaceBoxId);
+    }
+  }, [project.selectedWorkspaceBoxId, viewerApi]);
 
   return (
     <main className="workspace-root">
       <div className="workspace-canvas">
         <div className="workspace-viewer">
-          <ThreeViewer
-            cubeCount={2}
-            cubeSize={1}
-            animationEnabled={false}
-            backgroundColor="#0f172a"
-            modelUrl={project.selectedCaixaModelUrl ?? ""}
-            materialId={materialId}
+          <div
+            ref={containerRef}
+            style={{
+              width: "100%",
+              height: typeof viewerHeight === "number" ? `${viewerHeight}px` : viewerHeight,
+            }}
           />
         </div>
       </div>
