@@ -102,6 +102,12 @@ jobs:
       - name: Verify dist folder
         run: test -d dist
 
+      # 🔥 إضافة الإيميل الجديد هنا
+      - name: Configure Git identity
+        run: |
+          git config user.name "Khaled Arabi"
+          git config user.email "hotlet.pt@gmail.com"
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
