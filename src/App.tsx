@@ -19,9 +19,9 @@ import { useEffect, useRef, useState } from "react";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [rightOpen, _setRightOpen] = useState(true);
   const [leftWidth, setLeftWidth] = useState(260);
-  const [showBottom, setShowBottom] = useState(true);
+  const [showBottom, _setShowBottom] = useState(true);
   const resizeState = useRef({
     active: false,
     startX: 0,

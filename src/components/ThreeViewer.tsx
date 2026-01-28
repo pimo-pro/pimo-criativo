@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mdfLibrary } from "../materials/mdfLibrary";
@@ -103,7 +103,6 @@ export default function ThreeViewer({
   cubeSize = 1,
   gap = 0.2,
   animationEnabled: _animationEnabled = false,
-  loadingText = "A carregar modelo 3D...",
   pbrMaps,
   pbrRepeat,
   pbrColor = "#c9a27a",
@@ -122,9 +121,10 @@ export default function ThreeViewer({
   registerViewerApi: _registerViewerApi,
 }: ThreeViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const resizeRef = useRef<ResizeObserver | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const sceneRef = useRef<THREE.Scene | null>(null);
   const gridVisibleRef = useRef(true);
   const rootGroupRef = useRef<THREE.Group | null>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
@@ -138,6 +138,7 @@ export default function ThreeViewer({
     neutralAO: THREE.DataTexture;
   } | null>(null);
   const [gridVisible, setGridVisible] = useState(true);
+  const materialId = _materialId;
 
   const resolvedCubeCount = useMemo(() => Math.max(0, cubeCount), [cubeCount]);
   const resolvedModelUrls = useMemo(() => {
@@ -192,8 +193,39 @@ export default function ThreeViewer({
     };
   }, [pbrMaps, pbrColor, resolvedMdf]);
 
-  const buildPbrMaterial = () => {
-    const textureLoader = new THREE.TextureLoader();
+  const hasPbrMaps = useMemo(
+    () =>
+      Boolean(
+        resolveMaps.map ||
+          resolveMaps.normalMap ||
+          resolveMaps.roughnessMap ||
+          resolveMaps.metalnessMap ||
+          resolveMaps.aoMap
+      ),
+    [resolveMaps]
+  );
+
+  const showOverlay = useCallback(() => {
+    overlayRef.current?.classList.remove("hidden");
+  }, []);
+
+  const hideOverlay = useCallback(() => {
+    overlayRef.current?.classList.add("hidden");
+  }, []);
+
+  const createLoadingManager = useCallback(() => {
+    const manager = new THREE.LoadingManager();
+    manager.onLoad = () => {
+      hideOverlay();
+    };
+    manager.onError = () => {
+      hideOverlay();
+    };
+    return manager;
+  }, [hideOverlay]);
+
+  const buildPbrMaterial = useCallback((manager?: THREE.LoadingManager) => {
+    const textureLoader = new THREE.TextureLoader(manager);
     const baseMap = resolveMaps.map ? textureLoader.load(resolveMaps.map) : null;
     const normalMap = resolveMaps.normalMap ? textureLoader.load(resolveMaps.normalMap) : null;
     const roughnessMap = resolveMaps.roughnessMap
@@ -244,11 +276,20 @@ export default function ThreeViewer({
 
     return {
       material,
-      assets: { baseMap, normalMap, roughnessMap, metalnessMap, aoMap, neutralNormal, neutralAO },
+      assets: {
+        baseMap,
+        normalMap,
+        roughnessMap,
+        metalnessMap,
+        aoMap,
+        neutralNormal,
+        neutralAO,
+      },
     };
-  };
+  }, [resolveMaps, resolveRepeat]);
 
-  const applyMaterialToMeshes = (
+  const applyMaterialToMeshes = useCallback(
+    (
     material: THREE.MeshStandardMaterial,
     forceOverride: boolean,
     previousMaterial: THREE.Material | null
@@ -270,17 +311,25 @@ export default function ThreeViewer({
         }
       }
     });
-  };
+  },
+  []
+  );
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     let active = true;
-    const hasGlb = resolvedModelUrls.length > 0;
-    setIsLoading(hasGlb);
+    const shouldShowOverlay = resolvedModelUrls.length > 0 || hasPbrMaps;
+    if (shouldShowOverlay) {
+      showOverlay();
+    } else {
+      hideOverlay();
+    }
+    const loadingManager = shouldShowOverlay ? createLoadingManager() : undefined;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(backgroundColor);
+    sceneRef.current = scene;
 
     // Camera + renderer bootstrap
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
@@ -306,7 +355,7 @@ export default function ThreeViewer({
     rootGroup.position.set(0, 0, 0);
     scene.add(rootGroup);
     rootGroupRef.current = rootGroup;
-    const { material: pbrMaterial, assets } = buildPbrMaterial();
+    const { material: pbrMaterial, assets } = buildPbrMaterial(loadingManager);
     materialRef.current = pbrMaterial;
     materialAssetsRef.current = assets;
 
@@ -321,7 +370,7 @@ export default function ThreeViewer({
     };
 
     const loadGLB = async (url: string) => {
-      const loader = new GLTFLoader();
+      const loader = new GLTFLoader(loadingManager);
       const gltf = await loader.loadAsync(url);
       const model = gltf.scene;
       model.traverse((child) => {
@@ -375,9 +424,6 @@ export default function ThreeViewer({
       rootGroup.updateMatrixWorld(true);
       // Auto-fit inicial da câmara
       fitCameraToObject(rootGroup, camera, 1.12);
-      if (hasGlb) {
-        setIsLoading(false);
-      }
     };
     void buildScene();
 
@@ -404,7 +450,7 @@ export default function ThreeViewer({
       applyGridOpacity(gridMaterial);
     }
     grid.position.y = 0.001;
-    grid.visible = gridVisible;
+    grid.visible = gridVisibleRef.current;
     scene.add(grid);
 
     const wallGrid = new THREE.GridHelper(10, 20, "#94a3b8", "#94a3b8");
@@ -416,7 +462,7 @@ export default function ThreeViewer({
     }
     wallGrid.rotation.x = Math.PI / 2;
     wallGrid.position.set(0, 5, -5);
-    wallGrid.visible = gridVisible;
+    wallGrid.visible = gridVisibleRef.current;
     scene.add(wallGrid);
 
     // Iluminação soft studio
@@ -464,7 +510,6 @@ export default function ThreeViewer({
 
     return () => {
       active = false;
-      setIsLoading(false);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
@@ -494,17 +539,28 @@ export default function ThreeViewer({
       container.removeChild(renderer.domElement);
     };
   }, [
-    animationEnabled,
     backgroundColor,
+    buildPbrMaterial,
+    createLoadingManager,
     cubeSize,
     gap,
+    hasPbrMaps,
+    hideOverlay,
+    materialId,
     resolvedCubeCount,
     resolvedModelUrls,
+    showOverlay,
   ]);
 
   useEffect(() => {
     if (!rootGroupRef.current) return;
-    const { material: nextMaterial, assets } = buildPbrMaterial();
+    if (hasPbrMaps) {
+      showOverlay();
+    } else {
+      hideOverlay();
+    }
+    const loadingManager = hasPbrMaps ? createLoadingManager() : undefined;
+    const { material: nextMaterial, assets } = buildPbrMaterial(loadingManager);
     const previousMaterial = materialRef.current;
     const previousAssets = materialAssetsRef.current;
     materialRef.current = nextMaterial;
@@ -523,7 +579,15 @@ export default function ThreeViewer({
       previousAssets.neutralNormal.dispose();
       previousAssets.neutralAO.dispose();
     }
-  }, [materialId, resolveMaps, resolveRepeat]);
+  }, [
+    applyMaterialToMeshes,
+    buildPbrMaterial,
+    createLoadingManager,
+    hasPbrMaps,
+    hideOverlay,
+    materialId,
+    showOverlay,
+  ]);
 
   return (
     <div
@@ -557,23 +621,42 @@ export default function ThreeViewer({
       >
         grid
       </button>
-      {isLoading && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#64748b",
-            fontSize: 12,
-            letterSpacing: 0.3,
-            pointerEvents: "none",
-          }}
-        >
-          {loadingText}
-        </div>
-      )}
+      <div ref={overlayRef} className="viewer-loading-overlay hidden">
+        <div className="spinner"></div>
+      </div>
+      <style>{`
+        .viewer-loading-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 20;
+          opacity: 1;
+          transition: opacity 0.3s ease;
+        }
+
+        .viewer-loading-overlay.hidden {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #fff;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
