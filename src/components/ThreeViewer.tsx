@@ -102,23 +102,12 @@ export default function ThreeViewer({
   cubeCount = 2,
   cubeSize = 1,
   gap = 0.2,
-  animationEnabled: _animationEnabled = false,
   pbrMaps,
   pbrRepeat,
   pbrColor = "#c9a27a",
   materialId: _materialId,
   modelUrl: _modelUrl,
   modelUrls: _modelUrls,
-  showFloor: _showFloor,
-  colorize: _colorize,
-  wireframe: _wireframe,
-  cameraPreset: _cameraPreset,
-  materialConfig: _materialConfig,
-  modelSpacing: _modelSpacing,
-  enableIdleMotion: _enableIdleMotion,
-  idleMotionAmplitudeDeg: _idleMotionAmplitudeDeg,
-  notifyChangeSignal: _notifyChangeSignal,
-  registerViewerApi: _registerViewerApi,
 }: ThreeViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
