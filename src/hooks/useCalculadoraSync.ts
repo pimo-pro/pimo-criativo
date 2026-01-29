@@ -63,7 +63,7 @@ export const useCalculadoraSync = (
     });
 
     stateRef.current = nextState;
-  }, [viewerApi]);
+  }, [viewerApi, materialName]);
 
   useEffect(() => {
     syncFromCalculator();

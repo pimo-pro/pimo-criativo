@@ -51,15 +51,7 @@ export const usePimoViewer = (
       viewerRef.current?.dispose();
       viewerRef.current = null;
     };
-  }, [containerRef]); // Removido 'options' das dependências para evitar recriação
-
-  // Efeito separado para lidar com mudanças nas opções
-  useEffect(() => {
-    if (viewerRef.current && options) {
-      // Atualizar opções do viewer existente se necessário
-      // Neste caso, vamos apenas garantir que o viewer não seja recriado
-    }
-  }, [options]);
+  }, [containerRef, options]);
 
   const setOnBoxSelected = useCallback((callback: (id: string | null) => void) => {
     onBoxSelectedRef.current = callback;

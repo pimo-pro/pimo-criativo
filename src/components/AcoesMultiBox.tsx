@@ -1,12 +1,13 @@
 import { useCallback, useRef, useState } from "react";
+import type { BoxOptions } from "../3d/objects/BoxBuilder";
 
 type BoxDimensions = { width?: number; height?: number; depth?: number; index?: number };
 
 type AcoesMultiBoxProps = {
   selectedBoxId: string | null;
-  addBox: (id: string, options?: any) => boolean;
+  addBox: (id: string, options?: BoxOptions) => boolean;
   removeBox: (id: string) => boolean;
-  updateBox: (id: string, options: any) => boolean;
+  updateBox: (id: string, options: Partial<BoxOptions>) => boolean;
   setBoxIndex: (id: string, index: number) => boolean;
   setBoxGap: (gap: number) => void;
   addModelToBox: (boxId: string, path: string) => boolean;

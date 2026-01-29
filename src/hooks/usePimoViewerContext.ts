@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { PimoViewerContext } from "../context/PimoViewerContext";
+import { PimoViewerContext } from "../context/PimoViewerContextCore";
 
 export const usePimoViewerContext = () => {
   const context = useContext(PimoViewerContext);
