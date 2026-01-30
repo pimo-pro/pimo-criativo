@@ -113,8 +113,8 @@ jobs:
         with:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
           port: 65002
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           local_path: "dist/*"
           remote_path: "/public_html/"
           delete_remote_files: false
