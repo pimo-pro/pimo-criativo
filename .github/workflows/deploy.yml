@@ -116,5 +116,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           local-dir: dist/
-          server-dir: /
+          server-dir: public_html/
           timeout: 60000
