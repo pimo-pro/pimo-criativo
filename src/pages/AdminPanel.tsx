@@ -3,6 +3,7 @@ import MaterialsManager from "../components/admin/MaterialsManager";
 import TemplatesManager from "../components/admin/TemplatesManager";
 import CADModelsManager from "../components/admin/CADModelsManager";
 import MaterialsManufacturing from "../components/admin/MaterialsManufacturing";
+import RulesManager from "../components/admin/RulesManager";
 
 const sidebarItems = [
   "Dashboard",
@@ -11,6 +12,7 @@ const sidebarItems = [
   "Ferragens",
   "Templates",
   "CAD Models",
+  "Regras",
   "Pricing",
   "System Settings",
   "Users",
@@ -100,6 +102,8 @@ export default function AdminPanel() {
             <TemplatesManager />
           ) : active === "CAD Models" ? (
             <CADModelsManager />
+          ) : active === "Regras" ? (
+            <RulesManager />
           ) : (
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
               Módulo em construção.

@@ -9,8 +9,12 @@ import type {
   Estrutura3D,
   Material,
   ResultadosCalculo,
+  TipoBorda,
+  TipoFundo,
   WorkspaceBox,
 } from "../core/types";
+import type { RuleViolation } from "../core/rules/types";
+import type { LayoutWarnings } from "../core/layout/layoutWarnings";
 
 export interface ProjectState {
   projectName: string;
@@ -23,7 +27,10 @@ export interface ProjectState {
   workspaceBoxes: WorkspaceBox[];
   selectedWorkspaceBoxId: string;
   selectedCaixaId: string;
+  /** URL do modelo CAD selecionado (para preview). */
   selectedCaixaModelUrl: string | null;
+  /** ID da instância do modelo selecionada na caixa (para edição). */
+  selectedModelInstanceId: string | null;
 
   resultados: ResultadosCalculo | null;
   ultimaAtualizacao: Date | null;
@@ -31,6 +38,14 @@ export interface ProjectState {
   design: Design | null;
   cutList: CutListItem[] | null;
   cutListComPreco: CutListItemComPreco[] | null;
+  /** Peças extraídas por caixa e por modelo: boxId → modelInstanceId → itens com preço. */
+  extractedPartsByBoxId: Record<string, Record<string, CutListItemComPreco[]>>;
+  /** Violações de regras dinâmicas por modelo (dimensão, material, compatibilidade). */
+  ruleViolations: RuleViolation[];
+  /** Posições dos modelos em espaço local da caixa (m): boxId → modelInstanceId → { x, y, z }. */
+  modelPositionsByBoxId: Record<string, Record<string, { x: number; y: number; z: number }>>;
+  /** Colisões e modelos fora dos limites da caixa. */
+  layoutWarnings: LayoutWarnings;
   estrutura3D: Estrutura3D | null;
   acessorios: AcessorioComPreco[] | null;
 
@@ -146,12 +161,37 @@ export interface ProjectActions {
   removeWorkspaceBox: () => void;
   removeWorkspaceBoxById: (boxId: string) => void;
   selectBox: (boxId: string) => void;
+  /** Adiciona um modelo CAD (por id do catálogo) à caixa. */
+  addModelToBox: (caixaId: string, cadModelId: string) => void;
+  /** Cria uma nova caixa no workspace com o modelo CAD (modelo = Box completo). */
+  addCadModelAsNewBox: (cadModelId: string) => void;
+  /** Remove uma instância de modelo da caixa. */
+  removeModelFromBox: (caixaId: string, modelInstanceId: string) => void;
+  /** Atualiza nome, material ou categoria de uma instância de modelo na caixa. */
+  updateModelInBox: (caixaId: string, modelInstanceId: string, updates: { nome?: string; material?: string; categoria?: string }) => void;
+  /** (Legado) Atualiza o único modelo da caixa; migra para models[]. */
   updateCaixaModelId: (caixaId: string, modelId: string | null) => void;
+  selectModelInstance: (boxId: string, modelInstanceId: string | null) => void;
   renameBox: (nome: string) => void;
   setPrateleiras: (quantidade: number) => void;
   setPortaTipo: (portaTipo: BoxModule["portaTipo"]) => void;
+  setTipoBorda: (tipoBorda: TipoBorda) => void;
+  setTipoFundo: (tipoFundo: TipoFundo) => void;
+  setExtractedPartsForBox: (boxId: string, modelInstanceId: string, parts: CutListItemComPreco[]) => void;
+  clearExtractedPartsForBox: (boxId: string, modelInstanceId?: string) => void;
+  setModelPositionInBox: (boxId: string, modelInstanceId: string, position: { x: number; y: number; z: number }) => void;
+  setLayoutWarnings: (warnings: LayoutWarnings) => void;
   updateWorkspacePosition: (boxId: string, posicaoX_mm: number) => void;
   updateWorkspaceBoxPosition: (boxId: string, posicaoX_mm: number) => void;
+  /** Atualiza posição/rotação/manual da caixa no viewer (manipulação visual; não altera cut list). */
+  updateWorkspaceBoxTransform: (
+    boxId: string,
+    partial: { x_mm?: number; y_mm?: number; z_mm?: number; rotacaoY_rad?: number; manualPosition?: boolean }
+  ) => void;
+  /** Atualiza dimensões da caixa a partir do bbox do GLB (caixas CAD-only). */
+  setWorkspaceBoxDimensoes: (boxId: string, dimensoes: { largura: number; altura: number; profundidade: number }) => void;
+  /** Atualiza o nome da caixa (ex.: nome do modelo CAD). */
+  setWorkspaceBoxNome: (boxId: string, nome: string) => void;
   toggleWorkspaceRotation: (boxId: string) => void;
   rotateWorkspaceBox: (boxId: string) => void;
   gerarDesign: () => void;

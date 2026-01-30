@@ -10,8 +10,11 @@ export function cutlistComPrecoFromBox(box: BoxModule): CutListItemComPreco[] {
   const material = box.material ?? "MDF Branco";
   const items: CutListItemComPreco[] = [];
 
+  const baseItem = { sourceType: "parametric" as const, boxId: box.id };
+
   modelo.paineis.forEach((p) => {
     items.push({
+      ...baseItem,
       id: `${box.id}-${p.id}`,
       nome: p.tipo,
       quantidade: p.quantidade,
@@ -30,6 +33,7 @@ export function cutlistComPrecoFromBox(box: BoxModule): CutListItemComPreco[] {
 
   modelo.portas.forEach((p) => {
     items.push({
+      ...baseItem,
       id: `${box.id}-${p.id}`,
       nome: "porta",
       quantidade: 1,
@@ -48,6 +52,7 @@ export function cutlistComPrecoFromBox(box: BoxModule): CutListItemComPreco[] {
 
   modelo.gavetas.forEach((p) => {
     items.push({
+      ...baseItem,
       id: `${box.id}-${p.id}`,
       nome: "gaveta",
       quantidade: 1,

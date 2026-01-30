@@ -113,6 +113,70 @@ const basePhases: Phase[] = [
     ],
   },
   {
+    id: "phase_3b_glb_integration",
+    title: "Integração GLB → Sistema Multi-Box",
+    description: "Pipeline unificado: carregar modelos GLB no viewer, extrair peças (meshes), integrar à Lista de Peças e ao Calculator.",
+    status: "in_progress",
+    tasks: [
+      {
+        id: "phase3b_extract_parts",
+        title: "Extração de peças a partir de GLB",
+        description: "extractPartsFromGLB(gltfScene), bounding box, posição, rotação e material hint em mm.",
+        status: "done",
+      },
+      {
+        id: "phase3b_cutlist_adapter",
+        title: "Adaptador peças GLB → CutListItem",
+        description: "glbPartsToCutListItems integrado ao sistema de lista de peças e preços.",
+        status: "done",
+      },
+      {
+        id: "phase3b_viewer_callback",
+        title: "Callback onModelLoaded no Viewer",
+        description: "Viewer notifica quando GLB é carregado; app extrai peças e atualiza estado.",
+        status: "done",
+      },
+      {
+        id: "phase3b_merge_calculator",
+        title: "Merge na Lista de Peças e Calculator",
+        description: "Peças paramétricas + peças extraídas de GLB; preço total atualizado automaticamente.",
+        status: "done",
+      },
+    ],
+  },
+  {
+    id: "phase_3c_multi_model",
+    title: "Multi-Model & Multi-Box Expansion",
+    description: "Múltiplos modelos GLB por caixa, categorias CAD, gestão completa (add/remove/rename/material/categoria), lista de peças e preço por modelo.",
+    status: "in_progress",
+    tasks: [
+      {
+        id: "phase3c_models_array",
+        title: "Array models[] por caixa",
+        description: "WorkspaceBox e BoxModule com models: BoxModelInstance[]; extractedPartsByBoxId aninhado por modelInstanceId.",
+        status: "done",
+      },
+      {
+        id: "phase3c_cad_categories",
+        title: "Categorias de modelos CAD",
+        description: "Sistema de categorias: portas, gavetas, acessórios, estrutura, decoração; filtro na UI.",
+        status: "done",
+      },
+      {
+        id: "phase3c_ui_models",
+        title: "UI gestão de modelos por caixa",
+        description: "Listar, adicionar, remover, renomear, material e categoria por instância; sync com viewer.",
+        status: "done",
+      },
+      {
+        id: "phase3c_cutlist_origin",
+        title: "Lista de peças: paramétrico vs GLB",
+        description: "sourceType e modelInstanceId em CutListItem; coluna Origem e totais com múltiplos modelos.",
+        status: "done",
+      },
+    ],
+  },
+  {
     id: "phase_4_material_system",
     title: "Phase 4: Sistema de Materiais Profissional",
     description: "Gestão avançada de materiais e presets reutilizáveis.",
@@ -133,8 +197,78 @@ const basePhases: Phase[] = [
     ],
   },
   {
+    id: "phase_4b_dynamic_rules",
+    title: "Fase 4: Dynamic Rules & Smart Behaviors",
+    description: "Regras dinâmicas por modelo GLB, auto-positioning, constraints e UI de gestão de regras.",
+    status: "in_progress",
+    tasks: [
+      {
+        id: "phase4b_rules_module",
+        title: "Módulo core/rules (tipos, validação, regras por modelo)",
+        description: "Estrutura para regras de dimensão, material, compatibilidade e comportamento; validação e armazenamento.",
+        status: "done",
+      },
+      {
+        id: "phase4b_auto_positioning",
+        title: "Auto-positioning e snapping",
+        description: "Posicionamento automático, evitar sobreposição, snapping e alinhamento inteligente.",
+        status: "done",
+      },
+      {
+        id: "phase4b_smart_constraints",
+        title: "Smart constraints e validação em tempo real",
+        description: "Impedir combinações inválidas; validar posições e dimensões; integrar com estado.",
+        status: "done",
+      },
+      {
+        id: "phase4b_ui_rules",
+        title: "UI para gestão de regras e avisos de violação",
+        description: "Painel de regras (Admin), avisos no LeftPanel e ativar/desativar regras.",
+        status: "done",
+      },
+      {
+        id: "phase4b_docs",
+        title: "Documentação e referência Fase 4",
+        description: "docs/dynamic-rules-reference.md, Roadmap e Documentation Page.",
+        status: "done",
+      },
+    ],
+  },
+  {
+    id: "phase_5_smart_layout",
+    title: "Fase 5: Smart Layout Engine & Auto-Placement",
+    description: "Auto-positioning no viewer, deteção de colisões e limites, Smart Arrangement e UI de controlo de layout (painel Modelos).",
+    status: "in_progress",
+    tasks: [
+      {
+        id: "phase5_layout_viewer",
+        title: "Auto-positioning e API de layout no Viewer",
+        description: "getBoxDimensions, getModelPosition, getModelBoundingBoxSize, setModelPosition; aplicar posição ao adicionar modelo.",
+        status: "done",
+      },
+      {
+        id: "phase5_layout_collisions",
+        title: "Deteção de colisões e limites",
+        description: "computeLayoutWarnings, layoutWarnings no estado; LayoutWarningsAlert no painel Modelos.",
+        status: "done",
+      },
+      {
+        id: "phase5_layout_ui",
+        title: "Sidebar Modelos e LeftPanel por tab",
+        description: "Ícone Modelos na sidebar; painel Modelos com lista de modelos, regras, layout (Auto-Organizar, Snap, Reset).",
+        status: "done",
+      },
+      {
+        id: "phase5_layout_docs",
+        title: "Documentação Fase 5",
+        description: "docs/smart-layout-reference.md, Documentation Page e Painel de Referência.",
+        status: "done",
+      },
+    ],
+  },
+  {
     id: "phase_5_ui_ux",
-    title: "Phase 5: UI/UX Avançado",
+    title: "Phase 5b: UI/UX Avançado",
     description: "Melhorias visuais e fluxo de interação.",
     status: "todo",
     tasks: [

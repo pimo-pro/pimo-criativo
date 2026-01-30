@@ -1,10 +1,10 @@
 import { listaInicialDeModelos, type CadModel } from "../core/cad/cadModels";
-import { useStoredList } from "./useStoredList";
+import { useStorageList } from "./useStorageList";
 
 const STORAGE_KEY = "pimo_admin_cad_models";
 
 export const useCadModels = () => {
-  const { items, setItems, reload } = useStoredList<CadModel>({
+  const { items, setItems, reload } = useStorageList<CadModel>({
     storageKey: STORAGE_KEY,
     defaultValue: listaInicialDeModelos,
   });

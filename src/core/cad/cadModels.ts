@@ -1,11 +1,19 @@
 import { safeGetItem, safeParseJson, safeSetItem } from "../../utils/storage";
 
+export type CadModelDimensions = {
+  largura: number;
+  altura: number;
+  profundidade: number;
+};
+
 export type CadModel = {
   id: string;
   nome: string;
   categoria: string;
   descricao: string;
   arquivo: string;
+  /** Dimensões em mm (L×A×P). Opcional; pode vir do Admin ou bbox ao carregar GLB. */
+  dimensions?: CadModelDimensions;
 };
 
 const STORAGE_KEY = "pimo_admin_cad_models";

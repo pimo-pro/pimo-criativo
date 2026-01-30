@@ -27,7 +27,10 @@ export default function CutListView() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
       {(project.boxes ?? []).map((box, index) => {
-        const cutlistComPreco = cutlistComPrecoFromBox(box);
+        const parametricList = cutlistComPrecoFromBox(box);
+        const extractedByModel = project.extractedPartsByBoxId?.[box.id];
+        const extractedList = extractedByModel ? Object.values(extractedByModel).flat() : [];
+        const cutlistComPreco = [...parametricList, ...extractedList];
         const isSelected = box.id === project.selectedBoxId || box.id === project.selectedWorkspaceBoxId;
         const rows: CutListRow[] = cutlistComPreco.map((item) => ({
           id: item.id,
@@ -115,13 +118,11 @@ export default function CutListView() {
                       border: "1px solid rgba(255,255,255,0.12)",
                       background: "rgba(255,255,255,0.05)",
                       color: "var(--text-main)",
-                      cursor: project.boxes.length <= 1 ? "not-allowed" : "pointer",
-                      opacity: project.boxes.length <= 1 ? 0.5 : 1,
+                      cursor: "pointer",
                       fontSize: 12,
                     }}
                     aria-label="Remover caixote"
                     title="Remover"
-                    disabled={project.boxes.length <= 1}
                   >
                     🗑
                   </button>

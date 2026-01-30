@@ -4,7 +4,6 @@ import { useProject } from "../context/useProject";
 import type { Phase, PhaseTask, RoadmapStats } from "../core/docs/projectRoadmap";
 import {
   getCurrentPhase,
-  getGlobalProgress,
   getPhaseProgress,
   getRoadmap,
   getRoadmapStats,
@@ -12,15 +11,6 @@ import {
   statusLabel,
   statusColor,
 } from "../core/docs/projectRoadmap";
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "Sem data definida";
-  try {
-    return new Date(value).toLocaleDateString("pt-PT");
-  } catch {
-    return value;
-  }
-};
 
 export default function ProjectRoadmap() {
   const { actions } = useProject();
@@ -31,16 +21,11 @@ export default function ProjectRoadmap() {
 
   const stats = useMemo<RoadmapStats>(() => getRoadmapStats(phases), [phases]);
   const currentPhase = useMemo(() => getCurrentPhase(phases), [phases]);
-  const globalProgress = useMemo(() => getGlobalProgress(phases), [phases]);
 
   const persist = (next: Phase[], message: string) => {
     setPhases(next);
     saveStoredPhases(next);
     actions.logChangelog(message);
-  };
-
-  const updatePhase = (phaseId: string, updater: (phase: Phase) => Phase) => {
-    setPhases((prev) => prev.map((phase) => (phase.id === phaseId ? updater(phase) : phase)));
   };
 
   const updateTask = (
@@ -66,17 +51,6 @@ export default function ProjectRoadmap() {
     persist(phases, `Phase atualizada: ${phaseId}`);
   };
 
-  const handlePhaseStatusChange = (phaseId: string, status: Phase["status"]) => {
-    const next = phases.map((phase) =>
-      phase.id === phaseId ? { ...phase, status } : phase
-    );
-    persist(next, `Status da phase atualizado: ${phaseId} → ${statusLabel[status]}`);
-  };
-
-  const handleSaveTask = (taskId: string) => {
-    persist(phases, `Tarefa atualizada: ${taskId}`);
-  };
-
   const handleAddPhase = () => {
     const title = newPhaseTitle.trim();
     const description = newPhaseDescription.trim();
@@ -94,21 +68,6 @@ export default function ProjectRoadmap() {
     setNewPhaseTitle("");
     setNewPhaseDescription("");
     setNewPhaseNotes("");
-  };
-
-  const handleDeletePhase = (phaseId: string) => {
-    const next = phases.filter((phase) => phase.id !== phaseId);
-    persist(next, `Phase removida: ${phaseId}`);
-  };
-
-  const handleMovePhase = (index: number, direction: "up" | "down") => {
-    const next = [...phases];
-    const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= next.length) return;
-    const temp = next[index];
-    next[index] = next[target];
-    next[target] = temp;
-    persist(next, `Phase reordenada: ${temp.id}`);
   };
 
   const handleAddTask = (phaseId: string) => {
@@ -133,29 +92,6 @@ export default function ProjectRoadmap() {
     persist(next, `Tarefa removida: ${taskId}`);
   };
 
-  const handleMoveTask = (fromPhaseId: string, toPhaseId: string, taskId: string) => {
-    if (fromPhaseId === toPhaseId) return;
-    let moved: PhaseTask | null = null;
-    const next = phases.map((phase) => {
-      if (phase.id === fromPhaseId) {
-        const remaining = phase.tasks.filter((task) => {
-          if (task.id === taskId) {
-            moved = task;
-            return false;
-          }
-          return true;
-        });
-        return { ...phase, tasks: remaining };
-      }
-      return phase;
-    });
-    if (!moved) return;
-    const final = next.map((phase) =>
-      phase.id === toPhaseId ? { ...phase, tasks: [...phase.tasks, moved as PhaseTask] } : phase
-    );
-    persist(final, `Tarefa movida: ${taskId} → ${toPhaseId}`);
-  };
-
   const handleStatusChange = (phaseId: string, taskId: string, status: PhaseTask["status"]) => {
     updateTask(phaseId, taskId, (task) => ({ ...task, status }));
     persist(
@@ -175,276 +111,419 @@ export default function ProjectRoadmap() {
 
   return (
     <main className="page-root">
-      <Panel title="Project Roadmap (Phases)">
-        <div className="muted-text">
-          Roadmap sequencial e expansível com Phases. Alterações são persistidas e registradas.
-        </div>
-      </Panel>
+      <style dangerouslySetInnerHTML={{ __html: roadmapStyles }} />
+      <div className="roadmap-container">
+        {/* Left Sidebar - Fixed Stats Panel */}
+        <aside className="sidebar-esquerda">
+          <Panel title="Estatísticas Rápidas">
+            <div className="stats-container">
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                    <path d="M2 17L12 22L22 17"/>
+                    <path d="M2 12L12 17L22 12"/>
+                  </svg>
+                </div>
+                <div className="stat-content">
+                  <div className="stat-value">{stats.totalPhases}</div>
+                  <div className="stat-label">Fases Concluídas</div>
+                </div>
+              </div>
 
-      <Panel title="Estatísticas do Projeto">
-        <div className="roadmap-stats">
-          <div className="stat-card">
-            <div className="muted-text">Total de Phases</div>
-            <div className="stat-value">{stats.totalPhases}</div>
-          </div>
-          <div className="stat-card">
-            <div className="muted-text">Total de tarefas</div>
-            <div className="stat-value">{stats.totalTasks}</div>
-          </div>
-          <div className="stat-card">
-            <div className="muted-text">Concluídas</div>
-            <div className="stat-value">{stats.doneTasks}</div>
-          </div>
-          <div className="stat-card">
-            <div className="muted-text">Pendentes</div>
-            <div className="stat-value">{stats.pendingTasks}</div>
-          </div>
-          <div className="stat-card">
-            <div className="muted-text">Progresso global</div>
-            <div className="stat-value">{stats.progress}%</div>
-          </div>
-          <div className="stat-card">
-            <div className="muted-text">Última atualização</div>
-            <div className="stat-value">{formatDate(stats.lastUpdated)}</div>
-          </div>
-        </div>
-      </Panel>
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                    <path d="M2 17L12 22L22 17"/>
+                    <path d="M2 12L12 17L22 12"/>
+                  </svg>
+                </div>
+                <div className="stat-content">
+                  <div className="stat-value">{stats.progress}%</div>
+                  <div className="stat-label">Progresso Global</div>
+                </div>
+              </div>
 
-      <Panel title="Progresso Global">
-        <div className="progress-track">
-          <div className="progress-bar" style={{ width: `${globalProgress}%` }} />
-        </div>
-        <div className="muted-text">Progresso total do projeto: {globalProgress}%</div>
-      </Panel>
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                    <path d="M2 17L12 22L22 17"/>
+                    <path d="M2 12L12 17L22 12"/>
+                  </svg>
+                </div>
+                <div className="stat-content">
+                  <div className="stat-value">{stats.pendingTasks}</div>
+                  <div className="stat-label">Tarefas Pendentes</div>
+                </div>
+              </div>
 
-      <Panel title="Phase Atual">
-        <div className="phase-current">
-          <div className="card-title">{currentPhase.title}</div>
-          <div className="muted-text">{currentPhase.description}</div>
-          <div className="progress-track">
-            <div
-              className="progress-bar"
-              style={{ width: `${getPhaseProgress(currentPhase)}%` }}
-            />
-          </div>
-          <div className="muted-text">
-            Progresso da phase atual: {getPhaseProgress(currentPhase)}%
-          </div>
-        </div>
-      </Panel>
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                    <path d="M2 17L12 22L22 17"/>
+                    <path d="M2 12L12 17L22 12"/>
+                  </svg>
+                </div>
+                <div className="stat-content">
+                  <div className="stat-value">{stats.totalTasks}</div>
+                  <div className="stat-label">Total de Tarefas</div>
+                </div>
+              </div>
 
-      <Panel title="Criar nova Phase">
-        <div className="stack">
-          <input
-            className="input"
-            placeholder="Título da Phase"
-            value={newPhaseTitle}
-            onChange={(event) => setNewPhaseTitle(event.target.value)}
-          />
-          <input
-            className="input"
-            placeholder="Descrição da Phase"
-            value={newPhaseDescription}
-            onChange={(event) => setNewPhaseDescription(event.target.value)}
-          />
-          <textarea
-            className="textarea"
-            placeholder="Notas (opcional)"
-            value={newPhaseNotes}
-            onChange={(event) => setNewPhaseNotes(event.target.value)}
-          />
-          <button className="button button-primary" onClick={handleAddPhase}>
-            Adicionar Phase
-          </button>
-        </div>
-      </Panel>
-
-      <Panel title="Timeline das Phases">
-        <div className="timeline">
-          {phases.map((phase) => (
-            <div key={phase.id} className="timeline-item">
-              <div className="timeline-title">{phase.title}</div>
-              <div className="muted-text">{formatDate(phase.date)}</div>
-              <div className="progress-track">
-                <div
-                  className="progress-bar"
-                  style={{ width: `${getPhaseProgress(phase)}%` }}
-                />
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                    <path d="M2 17L12 22L22 17"/>
+                    <path d="M2 12L12 17L22 12"/>
+                  </svg>
+                </div>
+                <div className="stat-content">
+                  <div className="stat-value">{stats.doneTasks}</div>
+                  <div className="stat-label">Tarefas Concluídas</div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </Panel>
+          </Panel>
+        </aside>
 
-      {phases.map((phase, index) => (
-        <Panel key={phase.id} title={phase.title}>
-          <div className="phase-header">
-            <div className="phase-meta">
-              <div className="task-status">
-                <span className={`status-badge ${statusColor[phase.status]}`}>
-                  {statusLabel[phase.status]}
-                </span>
-                <select
-                  className="select select-xs"
-                  value={phase.status}
-                  onChange={(event) =>
-                    handlePhaseStatusChange(phase.id, event.target.value as Phase["status"])
-                  }
-                >
-                  <option value="todo">A Fazer</option>
-                  <option value="in_progress">Em Progresso</option>
-                  <option value="done">Concluído</option>
-                </select>
+        {/* Center Column - Main Timeline */}
+        <main className="coluna-central">
+          <Panel title="Timeline das Phases">
+            <div className="timeline">
+              {phases.map((phase) => (
+                <div key={phase.id} className="timeline-item">
+                  <div className="timeline-header">
+                    <div className="timeline-title">{phase.title}</div>
+                    <div className="timeline-status">
+                      <span className={`status-badge ${statusColor[phase.status]}`}>
+                        {statusLabel[phase.status]}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="timeline-description">{phase.description}</div>
+                  <div className="timeline-progress">
+                    <div className="progress-track">
+                      <div
+                        className="progress-bar"
+                        style={{ width: `${getPhaseProgress(phase)}%` }}
+                      />
+                    </div>
+                    <div className="muted-text">
+                      Progresso: {getPhaseProgress(phase)}%
+                    </div>
+                  </div>
+                  <div className="timeline-tasks">
+                    {phase.tasks.map((task) => (
+                      <div key={task.id} className="task-item">
+                        <div className="task-status">
+                          <span className={`status-badge ${statusColor[task.status]}`}>
+                            {statusLabel[task.status]}
+                          </span>
+                        </div>
+                        <div className="task-title">{task.title}</div>
+                        <div className="task-actions">
+                          <select
+                            className="select select-xs"
+                            value={task.status}
+                            onChange={(event) =>
+                              handleStatusChange(
+                                phase.id,
+                                task.id,
+                                event.target.value as PhaseTask["status"]
+                              )
+                            }
+                          >
+                            <option value="todo">A Fazer</option>
+                            <option value="in_progress">Em Progresso</option>
+                            <option value="done">Concluído</option>
+                          </select>
+                          <button
+                            className="button button-ghost"
+                            onClick={() => handleDeleteTask(phase.id, task.id)}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </main>
+
+        {/* Right Column - Phase Details */}
+        <section className="coluna-direita">
+          <Panel title="Phase Atual">
+            {currentPhase ? (
+              <div className="phase-details">
+                <div className="phase-title">{currentPhase.title}</div>
+                <div className="phase-description">{currentPhase.description}</div>
+                <div className="phase-progress">
+                  <div className="progress-track">
+                    <div
+                      className="progress-bar"
+                      style={{ width: `${getPhaseProgress(currentPhase)}%` }}
+                    />
+                  </div>
+                  <div className="muted-text">
+                    Progresso: {getPhaseProgress(currentPhase)}%
+                  </div>
+                </div>
+                <div className="phase-actions">
+                  <button className="button button-primary" onClick={() => handleAddTask(currentPhase.id)}>
+                    Adicionar Tarefa
+                  </button>
+                  <button className="button button-secondary" onClick={() => handleSavePhase(currentPhase.id)}>
+                    Guardar Phase
+                  </button>
+                </div>
               </div>
+            ) : (
+              <div className="phase-details">
+                <div className="muted-text">Nenhuma phase disponível. Crie uma nova phase.</div>
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Criar Nova Phase">
+            <div className="new-phase-form">
               <input
                 className="input"
-                value={phase.title}
-                onChange={(event) =>
-                  updatePhase(phase.id, (item) => ({ ...item, title: event.target.value }))
-                }
+                placeholder="Título da Phase"
+                value={newPhaseTitle}
+                onChange={(event) => setNewPhaseTitle(event.target.value)}
               />
               <input
                 className="input"
-                value={phase.description}
-                onChange={(event) =>
-                  updatePhase(phase.id, (item) => ({
-                    ...item,
-                    description: event.target.value,
-                  }))
-                }
+                placeholder="Descrição da Phase"
+                value={newPhaseDescription}
+                onChange={(event) => setNewPhaseDescription(event.target.value)}
               />
               <textarea
                 className="textarea"
-                placeholder="Notas da phase"
-                value={phase.notes ?? ""}
-                onChange={(event) =>
-                  updatePhase(phase.id, (item) => ({ ...item, notes: event.target.value }))
-                }
+                placeholder="Notas (opcional)"
+                value={newPhaseNotes}
+                onChange={(event) => setNewPhaseNotes(event.target.value)}
               />
-              <input
-                type="date"
-                className="input"
-                value={phase.date ?? ""}
-                onChange={(event) =>
-                  updatePhase(phase.id, (item) => ({ ...item, date: event.target.value }))
-                }
-              />
-            </div>
-            <div className="phase-actions">
-              <button className="button button-ghost" onClick={() => handleMovePhase(index, "up")}>
-                ↑
-              </button>
-              <button
-                className="button button-ghost"
-                onClick={() => handleMovePhase(index, "down")}
-              >
-                ↓
-              </button>
-              <button className="button button-primary" onClick={() => handleSavePhase(phase.id)}>
-                Guardar
-              </button>
-              <button className="button button-ghost" onClick={() => handleAddTask(phase.id)}>
-                Adicionar tarefa
-              </button>
-              <button className="button button-ghost" onClick={() => handleDeletePhase(phase.id)}>
-                Excluir
+              <button className="button button-primary" onClick={handleAddPhase}>
+                Criar Phase
               </button>
             </div>
-          </div>
-
-          <div className="progress-track">
-            <div
-              className="progress-bar"
-              style={{ width: `${getPhaseProgress(phase)}%` }}
-            />
-          </div>
-          <div className="muted-text">
-            Progresso da phase: {getPhaseProgress(phase)}%
-          </div>
-
-          <div className="phase-tasks">
-            {phase.tasks.map((task) => (
-              <div key={task.id} className="task-row">
-                <div className="task-status">
-                  <span className={`status-badge ${statusColor[task.status]}`}>
-                    {statusLabel[task.status]}
-                  </span>
-                  <select
-                    className="select select-xs"
-                    value={task.status}
-                    onChange={(event) =>
-                      handleStatusChange(
-                        phase.id,
-                        task.id,
-                        event.target.value as PhaseTask["status"]
-                      )
-                    }
-                  >
-                    <option value="todo">A Fazer</option>
-                    <option value="in_progress">Em Progresso</option>
-                    <option value="done">Concluído</option>
-                  </select>
-                </div>
-                <input
-                  className="input"
-                  value={task.title}
-                  onChange={(event) =>
-                    updateTask(phase.id, task.id, (item) => ({
-                      ...item,
-                      title: event.target.value,
-                    }))
-                  }
-                />
-                <input
-                  className="input"
-                  value={task.description}
-                  onChange={(event) =>
-                    updateTask(phase.id, task.id, (item) => ({
-                      ...item,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-                <textarea
-                  className="textarea"
-                  placeholder="Notas"
-                  value={task.notes ?? ""}
-                  onChange={(event) =>
-                    updateTask(phase.id, task.id, (item) => ({
-                      ...item,
-                      notes: event.target.value,
-                    }))
-                  }
-                />
-                <div className="task-actions">
-                  <select
-                    className="select select-xs"
-                    value={phase.id}
-                    onChange={(event) =>
-                      handleMoveTask(phase.id, event.target.value, task.id)
-                    }
-                  >
-                    {phases.map((phaseOption) => (
-                      <option key={phaseOption.id} value={phaseOption.id}>
-                        {phaseOption.title}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="button button-primary" onClick={() => handleSaveTask(task.id)}>
-                    Guardar
-                  </button>
-                  <button
-                    className="button button-ghost"
-                    onClick={() => handleDeleteTask(phase.id, task.id)}
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      ))}
+          </Panel>
+        </section>
+      </div>
     </main>
   );
 }
+
+export const roadmapInstructions = [
+  "As alterações devem ser feitas diretamente no ProjectRoadmap.",
+  "Cada edição/adição/exclusão é registada automaticamente no Painel de Referência.",
+];
+
+const roadmapStyles = `
+.roadmap-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar-esquerda {
+  width: 220px;
+  flex-shrink: 0;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+}
+
+.coluna-central {
+  flex: 1;
+  max-width: 50%;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.coluna-direita {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  border-left: 1px solid #1e293b;
+}
+
+.stats-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.stat-item {
+  flex: 1;
+  min-width: 150px;
+  background: #1e293b;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-icon {
+  width: 24px;
+  height: 24px;
+  color: #64748b;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.timeline {
+  margin-top: 1rem;
+}
+
+.timeline-item {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.timeline-title {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.timeline-status {
+  margin-left: 1rem;
+}
+
+.timeline-description {
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+.timeline-progress {
+  margin-bottom: 1rem;
+}
+
+.progress-track {
+  background: #334155;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  background: #3b82f6;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.muted-text {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #334155;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.task-status {
+  flex-shrink: 0;
+}
+
+.task-title {
+  flex: 1;
+  color: #f1f5f9;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.phase-details {
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.phase-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+
+.phase-description {
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+.phase-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.new-phase-form {
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.new-phase-form input,
+.new-phase-form textarea {
+  display: block;
+  width: 100%;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 0.75rem;
+  color: #f1f5f9;
+  margin-bottom: 1rem;
+  font-family: inherit;
+}
+
+.new-phase-form input:focus,
+.new-phase-form textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.new-phase-form button {
+  width: 100%;
+}
+`;

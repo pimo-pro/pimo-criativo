@@ -17,10 +17,16 @@ const addSectionTitle = (doc: jsPDF, title: string, y: number) => {
   doc.text(title, 14, y);
 };
 
+/**
+ * Gera PDF com TODAS as caixas de project.boxes (mesma fonte que Cutlist Industrial e Resumo Financeiro).
+ * Percorre todos os boxes; cada caixa numa página (ou secção) própria.
+ */
 export function gerarPdfIndustrial(boxes: BoxModule[]) {
   const doc = new jsPDF();
+  const allBoxes = Array.isArray(boxes) ? boxes : [];
 
-  boxes.forEach((box, index) => {
+  for (let index = 0; index < allBoxes.length; index++) {
+    const box = allBoxes[index];
     const modelo = gerarModeloIndustrial(box);
     if (index > 0) doc.addPage();
 
@@ -193,7 +199,7 @@ export function gerarPdfIndustrial(boxes: BoxModule[]) {
       styles: { fontSize: 9 },
       headStyles: { fillColor: [15, 23, 42] },
     });
-  });
+  }
 
   return doc;
 }

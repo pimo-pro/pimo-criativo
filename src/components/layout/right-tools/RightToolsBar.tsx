@@ -43,10 +43,13 @@ export default function RightToolsBar() {
   // Single Source of Truth: Resultados Atuais derivados de project.boxes (não project.resultados/acessorios)
   // boxes em useMemo para referência estável e evitar reexecução dos useMemo abaixo a cada render
   const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
-  const cutlistFromBoxes = useMemo(
-    () => cutlistComPrecoFromBoxes(boxes),
-    [boxes]
-  );
+  const cutlistFromBoxes = useMemo(() => {
+    const parametric = cutlistComPrecoFromBoxes(boxes);
+    const extracted = boxes.flatMap((box) =>
+      Object.values(project.extractedPartsByBoxId?.[box.id] ?? {}).flat()
+    );
+    return [...parametric, ...extracted];
+  }, [boxes, project.extractedPartsByBoxId]);
   const ferragensFromBoxesList = useMemo(
     () => ferragensFromBoxes(boxes),
     [boxes]

@@ -17,6 +17,12 @@ export type BoxOptions = {
   castShadow?: boolean;
   receiveShadow?: boolean;
   thickness?: number;
+  /** Se true, não cria geometria paramétrica; o grupo serve apenas para o(s) modelo(s) GLB (caixa = GLB). */
+  cadOnly?: boolean;
+  /** Rotação Y em radianos (manipulação visual). */
+  rotationY?: number;
+  /** Se true, o viewer não reposiciona esta caixa no reflow. */
+  manualPosition?: boolean;
 };
 
 export type BoxModel = {

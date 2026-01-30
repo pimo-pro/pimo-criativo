@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
+  const [leftPanelTab, setLeftPanelTab] = useState("home");
   const [rightOpen] = useState(true);
   const [leftWidth, setLeftWidth] = useState(260);
   const [showBottom] = useState(true);
@@ -225,7 +226,9 @@ export default function App() {
           ) : (
             <div className="app-panels">
               <LeftToolbar
-                onSelect={() => {
+                selectedId={leftPanelTab}
+                onSelect={(id) => {
+                  setLeftPanelTab(id);
                   if (!leftOpen) setLeftOpen(true);
                 }}
               />
@@ -241,7 +244,7 @@ export default function App() {
                   position: "relative",
                 }}
               >
-                <LeftPanel />
+                <LeftPanel activeTab={leftPanelTab} />
                 {leftOpen && (
                   <div
                     className="panel-resizer"

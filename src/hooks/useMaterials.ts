@@ -1,10 +1,10 @@
 import { MATERIAIS_INDUSTRIAIS, type MaterialIndustrial } from "../core/manufacturing/materials";
-import { useStoredList } from "./useStoredList";
+import { useStorageList } from "./useStorageList";
 
 const STORAGE_KEY = "pimo_admin_materials";
 
 export const useMaterials = () => {
-  const { items, setItems, reload } = useStoredList<MaterialIndustrial>({
+  const { items, setItems, reload } = useStorageList<MaterialIndustrial>({
     storageKey: STORAGE_KEY,
     defaultValue: MATERIAIS_INDUSTRIAIS,
     validate: (value): value is MaterialIndustrial[] =>

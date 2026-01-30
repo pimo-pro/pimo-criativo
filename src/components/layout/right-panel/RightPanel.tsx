@@ -1,4 +1,5 @@
 import { useProject } from "../../../context/useProject";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 
 const cardStyle: React.CSSProperties = {
   padding: "10px 12px",
@@ -29,6 +30,7 @@ const rowStyle: React.CSSProperties = {
 
 export default function RightPanel() {
   const { project, actions } = useProject();
+  const { viewerApi } = usePimoViewerContext();
   const selectedId = project.selectedWorkspaceBoxId;
   const boxes = project.workspaceBoxes;
 
@@ -93,7 +95,10 @@ export default function RightPanel() {
                   <div style={rowStyle}>
                     <button
                       type="button"
-                      onClick={() => actions.selectBox(box.id)}
+                      onClick={() => {
+                        actions.selectBox(box.id);
+                        viewerApi?.highlightBox?.(box.id);
+                      }}
                       className="button button-ghost"
                       style={{
                         flex: 1,
@@ -103,16 +108,36 @@ export default function RightPanel() {
                     >
                       Selecionar
                     </button>
+                    {isSelected && viewerApi && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => viewerApi.setTransformMode("translate")}
+                          className="button button-ghost"
+                          style={{ fontSize: 11, padding: "4px 8px" }}
+                          title="Mover caixa no viewer (arrastar)"
+                        >
+                          Mover
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => viewerApi.setTransformMode("rotate")}
+                          className="button button-ghost"
+                          style={{ fontSize: 11, padding: "4px 8px" }}
+                          title="Rodar caixa no viewer"
+                        >
+                          Rodar
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => actions.removeWorkspaceBoxById(box.id)}
-                      disabled={boxes.length <= 1}
                       className="button button-ghost"
                       style={{
                         flex: 1,
                         fontSize: 11,
                         padding: "4px 8px",
-                        opacity: boxes.length <= 1 ? 0.5 : 1,
                       }}
                     >
                       Remover

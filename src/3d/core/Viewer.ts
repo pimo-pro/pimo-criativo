@@ -16,6 +16,7 @@ import type { ControlsOptions } from "./Controls";
 import { createWoodMaterial } from "../materials/WoodMaterial";
 import { defaultMaterialSet, mergeMaterialSet } from "../materials/MaterialLibrary";
 import type { MaterialPreset, MaterialSet } from "../materials/MaterialLibrary";
+import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { updateBoxGeometry, updateBoxGroup, buildBoxLegacy } from "../objects/BoxBuilder";
 import type { BoxOptions } from "../objects/BoxBuilder";
 import type { EnvironmentOptions } from "./Environment";
@@ -52,6 +53,8 @@ export class Viewer {
       height: number;
       depth: number;
       index: number;
+      cadOnly?: boolean;
+      manualPosition?: boolean;
       cadModels: Array<{
         id: string;
         object: THREE.Object3D;
@@ -73,8 +76,15 @@ export class Viewer {
   private pointer = new THREE.Vector2();
   private selectedBoxId: string | null = null;
   private onBoxSelected: ((id: string | null) => void) | null = null;
+  private onModelLoaded: ((boxId: string, modelId: string, object: THREE.Object3D) => void) | null = null;
+  private onBoxTransform: ((boxId: string, position: { x: number; y: number; z: number }, rotationY: number) => void) | null = null;
+  private transformControls: TransformControls | null = null;
+  /** Helper (Object3D) retornado por getHelper(); é o que é adicionado à cena e tem .visible. */
+  private transformControlsHelper: THREE.Object3D | null = null;
+  private transformMode: "translate" | "rotate" | null = null;
   private readonly _boundingBox = new THREE.Box3();
   private readonly _center = new THREE.Vector3();
+  private readonly _size = new THREE.Vector3();
   private _initialCanvasSizeDone = false;
 
   constructor(container: HTMLElement, options: ViewerOptions = {}) {
@@ -102,6 +112,24 @@ export class Viewer {
     this.controls = options.enableControls === false
       ? null
       : new Controls(this.cameraManager.camera, this.rendererManager.renderer.domElement, options.controls);
+
+    this.transformControls = new TransformControls(
+      this.cameraManager.camera,
+      this.rendererManager.renderer.domElement
+    );
+    this.transformControls.setSpace("world");
+    this.transformControls.addEventListener("dragging-changed", (event) => {
+      if (this.controls?.controls) {
+        this.controls.controls.enabled = !event.value;
+      }
+      if (!event.value) this.notifyBoxTransform();
+    });
+    this.transformControls.addEventListener("objectChange", () => {
+      this.clampTransform();
+    });
+    this.transformControlsHelper = this.transformControls.getHelper();
+    this.transformControlsHelper.visible = false;
+    this.sceneManager.scene.add(this.transformControlsHelper);
 
     this.updateCameraTarget();
 
@@ -189,19 +217,48 @@ export class Viewer {
   addBox(id: string, options: BoxOptions = {}): boolean {
     if (this.boxes.has(id)) return false;
     const opts = options ?? {};
-    const materialName = opts.materialName ?? this.defaultMaterialName;
-    const material = this.loadMaterial(materialName);
-    const boxOptions: BoxOptions = { ...opts };
-    if (material?.material != null) {
-      boxOptions.material = material.material;
-    }
-    const box = buildBoxLegacy(boxOptions);
-    box.frustumCulled = false;
-    const { width, height, depth } = this.getBoxDimensions(opts);
+    const cadOnly = opts.cadOnly === true;
+    const { width, height, depth } = this.getBoxDimensionsFromOptions(opts);
     const index = opts.index ?? this.getNextBoxIndex();
-    const position = opts.position ?? { x: 0, y: height / 2, z: 0 };
+
+    let box: THREE.Object3D;
+    let material: { material: THREE.MeshStandardMaterial; textures: THREE.Texture[] } | null = null;
+
+    if (cadOnly) {
+      // Caixa só CAD: grupo vazio; o GLB é a própria caixa (sem geometria paramétrica)
+      box = new THREE.Group();
+      box.name = id;
+    } else {
+      const materialName = opts.materialName ?? this.defaultMaterialName;
+      material = this.loadMaterial(materialName);
+      const boxOptions: BoxOptions = {
+        ...opts,
+        width: opts.width ?? 1,
+        height: opts.height ?? 1,
+        depth: opts.depth ?? 1,
+        thickness: opts.thickness ?? 0.019,
+        index: opts.index,
+        materialName,
+      };
+      if (material?.material != null) {
+        boxOptions.material = material.material;
+      }
+      box = buildBoxLegacy(boxOptions);
+    }
+
+    box.frustumCulled = false;
+    box.userData.boxId = id;
+    const baseY = cadOnly ? 0 : height / 2;
+    // CAD-only sem manualPosition: (0,0,0); reflowBoxes() abaixo define X/Z. Paramétricas/idem.
+    const useReflowPosition = !(opts.manualPosition === true && opts.position);
+    const position =
+      useReflowPosition && cadOnly
+        ? { x: 0, y: 0, z: 0 }
+        : (opts.position ?? { x: 0, y: baseY, z: 0 });
     box.position.set(position.x, position.y, position.z);
-    box.name = id;
+    if (opts.rotationY != null && Number.isFinite(opts.rotationY)) {
+      box.rotation.y = opts.rotationY;
+    }
     this.sceneManager.add(box);
     this.boxes.set(id, {
       mesh: box,
@@ -209,6 +266,8 @@ export class Viewer {
       height,
       depth,
       index,
+      cadOnly: cadOnly || undefined,
+      manualPosition: opts.manualPosition ?? false,
       cadModels: [],
       highlight: null,
       material,
@@ -244,49 +303,70 @@ export class Viewer {
     let width = entry.width;
     let height = entry.height;
     let depth = entry.depth;
-    let widthChanged = false;
     let heightChanged = false;
     let indexChanged = false;
-    if (
+    const dimensionsChanged =
       opts.width !== undefined ||
       opts.height !== undefined ||
       opts.depth !== undefined ||
-      opts.size !== undefined
-    ) {
-      const updated =
-        entry.mesh instanceof THREE.Group
-          ? updateBoxGroup(entry.mesh, opts)
-          : updateBoxGeometry(entry.mesh as THREE.Mesh, opts);
-      width = updated.width;
-      height = updated.height;
-      depth = updated.depth;
-      widthChanged = width !== entry.width;
+      opts.size !== undefined ||
+      opts.thickness !== undefined;
+
+    if (dimensionsChanged) {
+      width = Math.max(0.001, opts.width ?? opts.size ?? width);
+      height = Math.max(0.001, opts.height ?? opts.size ?? height);
+      depth = Math.max(0.001, opts.depth ?? opts.size ?? depth);
       heightChanged = height !== entry.height;
+      // Caixa CAD-only: não tem geometria paramétrica para atualizar; só atualizamos dimensões para reflow
+      if (!entry.cadOnly) {
+        const fullOpts: Partial<BoxOptions> = {
+          width: opts.width ?? width,
+          height: opts.height ?? height,
+          depth: opts.depth ?? depth,
+          thickness: opts.thickness,
+        };
+        const updated =
+          entry.mesh instanceof THREE.Group
+            ? updateBoxGroup(entry.mesh, fullOpts)
+            : updateBoxGeometry(entry.mesh as THREE.Mesh, fullOpts);
+        width = updated.width;
+        height = updated.height;
+        depth = updated.depth;
+      } else {
+        entry.mesh.position.y = 0;
+      }
     }
     if (opts.index !== undefined && opts.index !== entry.index) {
       entry.index = opts.index;
       indexChanged = true;
     }
-    if (opts.materialName) {
+    if (opts.materialName && !entry.cadOnly) {
       this.updateBoxMaterial(id, opts.materialName);
     }
     if (opts.position) {
       entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
     } else {
-      entry.mesh.position.y = height / 2;
+      // Não alterar X/Z: vêm do reflow (ou já estão corretos). Só corrigir Y (base no chão).
+      entry.mesh.position.y = entry.cadOnly ? 0 : height / 2;
+    }
+    if (opts.rotationY != null && Number.isFinite(opts.rotationY)) {
+      entry.mesh.rotation.y = opts.rotationY;
+    }
+    if (opts.manualPosition !== undefined) {
+      entry.manualPosition = opts.manualPosition;
     }
     entry.mesh.updateMatrixWorld();
     entry.width = width;
     entry.height = height;
     entry.depth = depth;
-    if (widthChanged || indexChanged) {
+    const reflowNeeded =
+      indexChanged || (dimensionsChanged && entry.cadOnly);
+    if (reflowNeeded) {
       this.reflowBoxes();
-    }
-    if (heightChanged) {
-      this.updateModelsVerticalPosition(entry);
-    }
-    if (widthChanged || indexChanged) {
       this.updateCameraTarget();
+    }
+    if (heightChanged && !entry.cadOnly) {
+      this.updateModelsVerticalPosition(entry);
     }
     return true;
   }
@@ -356,7 +436,37 @@ export class Viewer {
     this.onBoxSelected = callback;
   }
 
+  setOnModelLoaded(callback: ((boxId: string, modelId: string, object: THREE.Object3D) => void) | null): void {
+    this.onModelLoaded = callback;
+  }
+
+  setOnBoxTransform(callback: ((boxId: string, position: { x: number; y: number; z: number }, rotationY: number) => void) | null): void {
+    this.onBoxTransform = callback;
+  }
+
+  setTransformMode(mode: "translate" | "rotate" | null): void {
+    this.transformMode = mode;
+    if (this.transformControls) {
+      if (this.selectedBoxId && mode) {
+        const entry = this.boxes.get(this.selectedBoxId);
+        if (entry) {
+          this.transformControls.attach(entry.mesh);
+          this.transformControls.setMode(mode);
+          if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
+        }
+      } else {
+        this.transformControls.detach();
+        if (this.transformControlsHelper) this.transformControlsHelper.visible = false;
+      }
+    }
+  }
+
   selectBox(id: string | null): void {
+    this.setSelectedBox(id);
+  }
+
+  /** Aplica highlight na caixa (igual a selectBox; exposto para sincronização RightPanel ↔ Viewer). */
+  highlightBox(id: string | null): void {
     this.setSelectedBox(id);
   }
 
@@ -371,15 +481,34 @@ export class Viewer {
 
     this.loadModelObject(modelPath, extension)
       .then((object) => {
-        object.position.set(0, entry.height / 2, 0);
         entry.mesh.add(object);
+        object.traverse((child) => {
+          child.userData.boxId = boxId;
+        });
+        if (entry.cadOnly) {
+          // Caixa só CAD: o GLB é a própria caixa; centrar bbox na origem do grupo para reflow correto
+          this.centerObjectInGroup(object);
+        } else {
+          object.position.set(0, entry.height / 2, 0);
+        }
         entry.cadModels.push({ id, object, path: modelPath });
+        this.onModelLoaded?.(boxId, id, object);
       })
       .catch(() => {
         // Falha silenciosa conforme especificado
       });
 
     return true;
+  }
+
+  /** Coloca o GLB com base no chão: centra em X e Z; em Y coloca a base em y=0 no grupo. */
+  private centerObjectInGroup(object: THREE.Object3D): void {
+    object.updateMatrixWorld(true);
+    this._boundingBox.setFromObject(object);
+    this._boundingBox.getCenter(this._center);
+    object.position.x = -this._center.x;
+    object.position.z = -this._center.z;
+    object.position.y = -this._boundingBox.min.y;
   }
 
   removeModelFromBox(boxId: string, modelId: string): boolean {
@@ -413,20 +542,84 @@ export class Viewer {
     return entry.cadModels.map((model) => ({ id: model.id, path: model.path }));
   }
 
+  /** Dimensões da caixa em metros (para layout e auto-posicionamento). */
+  getBoxDimensions(boxId: string): { width: number; height: number; depth: number } | null {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return null;
+    return { width: entry.width, height: entry.height, depth: entry.depth };
+  }
+
+  /** Posição do modelo em espaço local da caixa (metros; origem no centro da caixa). */
+  getModelPosition(boxId: string, modelId: string): { x: number; y: number; z: number } | null {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return null;
+    const model = entry.cadModels.find((m) => m.id === modelId);
+    if (!model) return null;
+    const p = model.object.position;
+    return { x: p.x, y: p.y, z: p.z };
+  }
+
+  /** Tamanho do bounding box do modelo em metros (largura, altura, profundidade). */
+  getModelBoundingBoxSize(boxId: string, modelId: string): { width: number; height: number; depth: number } | null {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return null;
+    const model = entry.cadModels.find((m) => m.id === modelId);
+    if (!model) return null;
+    entry.mesh.updateMatrixWorld(true);
+    model.object.updateMatrixWorld(true);
+    this._boundingBox.setFromObject(model.object);
+    const size = new THREE.Vector3();
+    this._boundingBox.getSize(size);
+    return { width: size.x, height: size.y, depth: size.z };
+  }
+
+  /** Define a posição do modelo em espaço local da caixa (metros; origem no centro da caixa). */
+  setModelPosition(boxId: string, modelId: string, position: { x: number; y: number; z: number }): boolean {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return false;
+    const model = entry.cadModels.find((m) => m.id === modelId);
+    if (!model) return false;
+    if (
+      !Number.isFinite(position.x) ||
+      !Number.isFinite(position.y) ||
+      !Number.isFinite(position.z)
+    ) {
+      return false;
+    }
+    model.object.position.set(position.x, position.y, position.z);
+    return true;
+  }
+
   setBoxGap(gap: number) {
     this.boxGap = Math.max(0, gap);
     this.reflowBoxes();
     this.updateCameraTarget();
   }
 
+  /**
+   * Posiciona todas as caixas (paramétricas e CAD-only) lado a lado em X/Z; não altera Y.
+   * CAD-only e paramétricas são tratadas da mesma forma; só manualPosition mantém X/Z.
+   */
   reflowBoxes() {
     let cursorX = 0;
     const ordered = Array.from(this.boxes.values()).sort((a, b) => a.index - b.index);
     ordered.forEach((entry) => {
+      let w: number;
+      if (!entry.cadOnly && entry.mesh) {
+        entry.mesh.updateMatrixWorld(true);
+        this._boundingBox.setFromObject(entry.mesh);
+        this._boundingBox.getSize(this._size);
+        w = Math.max(this._size.x, 0.001);
+      } else {
+        w = Math.max(Number(entry.width) || 0.001, 0.001);
+      }
       entry.mesh.frustumCulled = false;
-      entry.mesh.position.set(cursorX + entry.width / 2, entry.height / 2, 0);
+      if (!entry.manualPosition) {
+        entry.mesh.position.x = cursorX + w / 2;
+        entry.mesh.position.z = 0;
+      }
       entry.mesh.updateMatrixWorld();
-      cursorX += entry.width + this.boxGap;
+      cursorX += w + this.boxGap;
     });
   }
 
@@ -453,7 +646,7 @@ export class Viewer {
     }
   }
 
-  private getBoxDimensions(options?: BoxOptions) {
+  private getBoxDimensionsFromOptions(options?: BoxOptions) {
     const width = Math.max(0.001, options?.width ?? options?.size ?? 1);
     const height = Math.max(0.001, options?.height ?? options?.size ?? 1);
     const depth = Math.max(0.001, options?.depth ?? options?.size ?? 1);
@@ -477,7 +670,14 @@ export class Viewer {
   }
 
   private getModelExtension(path: string) {
-    const match = path.toLowerCase().match(/\.(glb|gltf|obj|stl)$/);
+    const lower = path.toLowerCase();
+    // Data URLs (ex.: upload GLB em base64) não têm extensão no fim
+    if (lower.startsWith("data:")) {
+      if (lower.includes("gltf-binary") || lower.includes("model/gltf") || lower.includes("model/gltf-binary")) return "glb";
+      if (lower.includes("model/gltf+json")) return "gltf";
+      return null;
+    }
+    const match = lower.match(/\.(glb|gltf|obj|stl)$/);
     return match ? match[1] : null;
   }
 
@@ -529,8 +729,13 @@ export class Viewer {
     const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.pointer.set(x, y);
     this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
-    const targets = Array.from(this.boxes.values()).map((entry) => entry.mesh);
-    const hits = this.raycaster.intersectObjects(targets, false);
+    const allMeshes: THREE.Object3D[] = [];
+    this.boxes.forEach((entry) => {
+      entry.mesh.traverse((child) => {
+        if (child instanceof THREE.Mesh) allMeshes.push(child);
+      });
+    });
+    const hits = this.raycaster.intersectObjects(allMeshes, false);
     if (!hits.length) {
       this.setSelectedBox(null);
       return;
@@ -540,9 +745,16 @@ export class Viewer {
     this.setSelectedBox(id);
   };
 
-  private getBoxIdByMesh(mesh: THREE.Object3D) {
-    for (const [id, entry] of this.boxes.entries()) {
-      if (entry.mesh === mesh) return id;
+  /** Obtém boxId a partir de um mesh (grupo ou filho/GLB); sobe na hierarquia até encontrar userData.boxId ou o grupo da caixa. */
+  private getBoxIdByMesh(mesh: THREE.Object3D): string | null {
+    let current: THREE.Object3D | null = mesh;
+    while (current) {
+      const boxId = current.userData?.boxId as string | undefined;
+      if (boxId && this.boxes.has(boxId)) return boxId;
+      for (const [id, entry] of this.boxes.entries()) {
+        if (entry.mesh === current) return id;
+      }
+      current = current.parent;
     }
     return null;
   }
@@ -559,6 +771,19 @@ export class Viewer {
       }
     }
     this.selectedBoxId = id;
+    if (this.transformControls) {
+      this.transformControls.detach();
+      if (id && this.transformMode) {
+        const entry = this.boxes.get(id);
+        if (entry) {
+          this.transformControls.attach(entry.mesh);
+          this.transformControls.setMode(this.transformMode);
+          (this.transformControls as unknown as THREE.Object3D).visible = true;
+        }
+      } else {
+        (this.transformControls as unknown as THREE.Object3D).visible = false;
+      }
+    }
     if (id) {
       const entry = this.boxes.get(id);
       if (entry) {
@@ -566,6 +791,28 @@ export class Viewer {
       }
     }
     this.onBoxSelected?.(id);
+  }
+
+  private clampTransform() {
+    if (!this.transformControls || !this.selectedBoxId) return;
+    const obj = this.transformControls.object;
+    if (!obj || !this.boxes.has(this.selectedBoxId)) return;
+    const entry = this.boxes.get(this.selectedBoxId)!;
+    if (obj !== entry.mesh) return;
+    if (this.transformMode === "translate") {
+      obj.position.y = entry.cadOnly ? 0 : entry.height / 2;
+    } else if (this.transformMode === "rotate") {
+      obj.rotation.x = 0;
+      obj.rotation.z = 0;
+    }
+  }
+
+  private notifyBoxTransform() {
+    if (!this.selectedBoxId) return;
+    const entry = this.boxes.get(this.selectedBoxId);
+    if (!entry) return;
+    const { x, y, z } = entry.mesh.position;
+    this.onBoxTransform?.(this.selectedBoxId, { x, y, z }, entry.mesh.rotation.y);
   }
 
   private applyHighlight(entry: {
@@ -687,6 +934,14 @@ export class Viewer {
     window.removeEventListener("resize", this.updateCanvasSize);
     this.resizeObserver?.disconnect();
     this.controls?.dispose();
+    if (this.transformControls) {
+      this.transformControls.detach();
+      if (this.transformControlsHelper) {
+        this.sceneManager.scene.remove(this.transformControlsHelper);
+        this.transformControlsHelper = null;
+      }
+      this.transformControls.dispose();
+    }
     this.rendererManager.renderer.domElement.removeEventListener("click", this.handleCanvasClick);
     if (this.envMap) {
       this.envMap.dispose();

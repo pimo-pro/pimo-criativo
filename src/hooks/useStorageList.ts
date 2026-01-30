@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { safeGetItem, safeParseJson, safeSetItem } from "../utils/storage";
 
-type StoredListOptions<T> = {
+type StorageListOptions<T> = {
   storageKey: string;
   defaultValue: T[];
   validate?: (value: unknown) => value is T[];
@@ -9,11 +9,11 @@ type StoredListOptions<T> = {
 
 const defaultValidate = <T,>(value: unknown): value is T[] => Array.isArray(value);
 
-export const useStoredList = <T,>({
+export const useStorageList = <T,>({
   storageKey,
   defaultValue,
   validate = defaultValidate,
-}: StoredListOptions<T>) => {
+}: StorageListOptions<T>) => {
   const readList = useCallback((): T[] => {
     const raw = safeGetItem(storageKey);
     const parsed = safeParseJson<unknown>(raw);

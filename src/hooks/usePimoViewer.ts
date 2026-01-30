@@ -6,6 +6,7 @@ import type { BoxOptions } from "../3d/objects/BoxBuilder";
 
 type PimoViewerAPI = {
   viewerRef: React.MutableRefObject<Viewer | null>;
+  viewerReady: boolean;
   selectedBoxId: string | null;
   onBoxSelected: (callback: (id: string | null) => void) => void;
   setOnBoxSelected: (callback: (id: string | null) => void) => void;
@@ -20,6 +21,14 @@ type PimoViewerAPI = {
   removeModelFromBox: (boxId: string, modelId: string) => boolean;
   clearModelsFromBox: (boxId: string) => void;
   listModels: (boxId: string) => Array<{ id: string; path: string }> | null;
+  getBoxDimensions: (boxId: string) => { width: number; height: number; depth: number } | null;
+  getModelPosition: (boxId: string, modelId: string) => { x: number; y: number; z: number } | null;
+  getModelBoundingBoxSize: (boxId: string, modelId: string) => { width: number; height: number; depth: number } | null;
+  setModelPosition: (boxId: string, modelId: string, position: { x: number; y: number; z: number }) => boolean;
+  setOnModelLoaded: (callback: ((boxId: string, modelId: string, object: unknown) => void) | null) => void;
+  setOnBoxTransform: (callback: ((boxId: string, position: { x: number; y: number; z: number }, rotationY: number) => void) | null) => void;
+  setTransformMode: (mode: "translate" | "rotate" | null) => void;
+  highlightBox: (id: string | null) => void;
 };
 
 export const usePimoViewer = (
@@ -28,6 +37,7 @@ export const usePimoViewer = (
 ): PimoViewerAPI => {
   const viewerRef = useRef<Viewer | null>(null);
   const optionsRef = useRef(options);
+  const [viewerReady, setViewerReady] = useState(false);
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const onBoxSelectedRef = useRef<((id: string | null) => void) | null>(null);
 
@@ -37,19 +47,31 @@ export const usePimoViewer = (
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      setViewerReady(false);
+      return;
+    }
 
-    if (viewerRef.current) return;
+    if (viewerRef.current) {
+      setViewerReady(true);
+      return;
+    }
 
     viewerRef.current = new Viewer(container, optionsRef.current ?? {});
     viewerRef.current.setOnBoxSelected((id) => {
       setSelectedBoxId(id);
       onBoxSelectedRef.current?.(id);
     });
+    // Marcar viewer como pronto após um frame para garantir que o canvas foi dimensionado
+    const raf = requestAnimationFrame(() => {
+      setViewerReady(true);
+    });
 
     return () => {
+      cancelAnimationFrame(raf);
       viewerRef.current?.dispose();
       viewerRef.current = null;
+      setViewerReady(false);
     };
   }, [containerRef]);
 
@@ -109,6 +131,51 @@ export const usePimoViewer = (
     []
   );
 
+  const getBoxDimensions = useCallback(
+    (boxId: string) => viewerRef.current?.getBoxDimensions(boxId) ?? null,
+    []
+  );
+
+  const getModelPosition = useCallback(
+    (boxId: string, modelId: string) =>
+      viewerRef.current?.getModelPosition(boxId, modelId) ?? null,
+    []
+  );
+
+  const getModelBoundingBoxSize = useCallback(
+    (boxId: string, modelId: string) =>
+      viewerRef.current?.getModelBoundingBoxSize(boxId, modelId) ?? null,
+    []
+  );
+
+  const setModelPosition = useCallback(
+    (boxId: string, modelId: string, position: { x: number; y: number; z: number }) =>
+      viewerRef.current?.setModelPosition(boxId, modelId, position) ?? false,
+    []
+  );
+
+  const setOnModelLoaded = useCallback(
+    (callback: ((boxId: string, modelId: string, object: unknown) => void) | null) => {
+      viewerRef.current?.setOnModelLoaded(callback ?? null);
+    },
+    []
+  );
+
+  const setOnBoxTransform = useCallback(
+    (callback: ((boxId: string, position: { x: number; y: number; z: number }, rotationY: number) => void) | null) => {
+      viewerRef.current?.setOnBoxTransform(callback ?? null);
+    },
+    []
+  );
+
+  const setTransformMode = useCallback((mode: "translate" | "rotate" | null) => {
+    viewerRef.current?.setTransformMode(mode);
+  }, []);
+
+  const highlightBox = useCallback((id: string | null) => {
+    viewerRef.current?.highlightBox(id);
+  }, []);
+
   const selectBox = useCallback((id: string | null) => {
     viewerRef.current?.selectBox(id);
   }, []);
@@ -116,6 +183,7 @@ export const usePimoViewer = (
   return useMemo(
     () => ({
       viewerRef,
+      viewerReady,
       selectedBoxId,
       onBoxSelected: setOnBoxSelected,
       setOnBoxSelected,
@@ -130,8 +198,17 @@ export const usePimoViewer = (
       removeModelFromBox,
       clearModelsFromBox,
       listModels,
+      getBoxDimensions,
+      getModelPosition,
+      getModelBoundingBoxSize,
+      setModelPosition,
+      setOnModelLoaded,
+      setOnBoxTransform,
+      setTransformMode,
+      highlightBox,
     }),
     [
+      viewerReady,
       selectedBoxId,
       setOnBoxSelected,
       selectBox,
@@ -145,6 +222,14 @@ export const usePimoViewer = (
       removeModelFromBox,
       clearModelsFromBox,
       listModels,
+      getBoxDimensions,
+      getModelPosition,
+      getModelBoundingBoxSize,
+      setModelPosition,
+      setOnModelLoaded,
+      setOnBoxTransform,
+      setTransformMode,
+      highlightBox,
     ]
   );
 };

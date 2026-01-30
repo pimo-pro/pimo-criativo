@@ -10,6 +10,15 @@ export interface Dimensoes {
   profundidade: number;
 }
 
+/** Tipos de acabamento de borda (corte da chapa). */
+export type TipoBorda = "reta" | "biselada" | "arredondada";
+
+/** Tipos de fundo da caixa (montagem). */
+export type TipoFundo = "integrado" | "recuado" | "sem_fundo";
+
+/** Origem da peça na lista de corte (paramétrica da caixa ou importada de GLB). */
+export type CutListSourceType = "parametric" | "glb_importado";
+
 export interface CutListItem {
   id: string;
   nome: string;
@@ -22,6 +31,26 @@ export interface CutListItem {
   espessura: number;
   material: string;
   tipo: string;
+  /** Permite distinguir peças paramétricas de peças importadas na UI. */
+  sourceType?: CutListSourceType;
+  /** ID da instância do modelo na caixa (quando sourceType === "glb_importado"). */
+  modelInstanceId?: string;
+  /** ID da caixa (para agrupamento). */
+  boxId?: string;
+}
+
+/** Instância de um modelo CAD (GLB) associada a uma caixa. */
+export interface BoxModelInstance {
+  /** ID único da instância (ex.: box-1-model-abc). */
+  id: string;
+  /** Referência ao CadModel (catálogo). */
+  modelId: string;
+  /** Nome de exibição (override do catálogo). */
+  nome?: string;
+  /** Material aplicado a esta instância. */
+  material?: string;
+  /** Categoria (override do catálogo). */
+  categoria?: string;
 }
 
 export interface CutListItemComPreco extends CutListItem {
@@ -81,7 +110,7 @@ export interface AcessorioComPreco extends Acessorio {
 
 export interface Design {
   cutList: CutListItem[];
-  estrutura3D: Estrutura3D;
+  estrutura3D: Estrutura3D | null;
   acessorios: Acessorio[];
   timestamp: Date;
 }
@@ -106,7 +135,10 @@ export interface BoxModule {
   dimensoes: Dimensoes;
   espessura: number;
   material?: string;
-  modelId: string | null;
+  tipoBorda: TipoBorda;
+  tipoFundo: TipoFundo;
+  /** Instâncias de modelos GLB associadas a esta caixa. */
+  models: BoxModelInstance[];
   prateleiras: number;
   portaTipo: "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr";
   gavetas: number;
@@ -114,7 +146,7 @@ export interface BoxModule {
   ferragens: Acessorio[];
   cutList: CutListItem[];
   cutListComPreco: CutListItemComPreco[];
-  estrutura3D: Estrutura3D;
+  estrutura3D: Estrutura3D | null;
   precoTotalPecas: number;
 }
 
@@ -123,14 +155,23 @@ export interface WorkspaceBox {
   nome: string;
   dimensoes: Dimensoes;
   espessura: number;
-  modelId: string | null;
+  tipoBorda: TipoBorda;
+  tipoFundo: TipoFundo;
+  /** Instâncias de modelos GLB associadas a esta caixa (multi-model por box). */
+  models: BoxModelInstance[];
   prateleiras: number;
   portaTipo: "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr";
   gavetas: number;
   alturaGaveta: number;
   posicaoX_mm: number;
   posicaoY_mm: number;
+  /** Posição Z em mm (para manipulação 3D no viewer). */
+  posicaoZ_mm?: number;
   rotacaoY_90: boolean;
+  /** Rotação Y em radianos (manipulação visual no viewer; não altera cut list). */
+  rotacaoY?: number;
+  /** Se true, o viewer não reposiciona esta caixa no reflow (posição manual). */
+  manualPosition?: boolean;
 }
 
 export interface ProjetoConfig {

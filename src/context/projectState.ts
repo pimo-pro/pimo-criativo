@@ -8,16 +8,25 @@ import {
 } from "../core/pricing/pricing";
 import { calcularPrecosAcessorios } from "../core/acessorios/acessorios";
 import type {
+  BoxModelInstance,
   BoxModule,
   ChangelogEntry,
   Dimensoes,
   Material,
   ProjetoConfig,
   ResultadosCalculo,
+  TipoBorda,
+  TipoFundo,
   WorkspaceBox,
 } from "../core/types";
 import type { ProjectState } from "./projectTypes";
 import { safeGetItem, safeParseJson } from "../utils/storage";
+import { validateBoxModels } from "../core/rules/validation";
+import {
+  computeLayoutWarnings,
+  type LayoutWarnings,
+} from "../core/layout/layoutWarnings";
+import { mmToM } from "../utils/units";
 
 const defaultMaterial: Material = {
   tipo: "MDF",
@@ -31,18 +40,25 @@ const defaultDimensoes: Dimensoes = {
   profundidade: 400,
 };
 
+const defaultTipoBorda: TipoBorda = "reta";
+const defaultTipoFundo: TipoFundo = "recuado";
+
 const createBox = (
   id: string,
   nome: string,
   dimensoes: Dimensoes,
   espessura: number,
-  modelId: string | null
+  models: BoxModelInstance[],
+  tipoBorda: TipoBorda = defaultTipoBorda,
+  tipoFundo: TipoFundo = defaultTipoFundo
 ): BoxModule => ({
   id,
   nome,
   dimensoes,
   espessura,
-  modelId,
+  tipoBorda,
+  tipoFundo,
+  models: models ?? [],
   prateleiras: 0,
   portaTipo: "porta_simples",
   gavetas: 1,
@@ -72,31 +88,31 @@ export const createWorkspaceBox = (
   dimensoes: Dimensoes,
   espessura: number,
   posicaoX_mm: number,
-  modelId: string | null
+  models: BoxModelInstance[] = [],
+  tipoBorda: TipoBorda = defaultTipoBorda,
+  tipoFundo: TipoFundo = defaultTipoFundo
 ): WorkspaceBox => ({
   id,
   nome,
   dimensoes,
   espessura,
-  modelId,
+  tipoBorda,
+  tipoFundo,
+  models: models ?? [],
   prateleiras: 0,
   portaTipo: "sem_porta",
   gavetas: 0,
   alturaGaveta: 200,
   posicaoX_mm,
   posicaoY_mm: 0,
+  posicaoZ_mm: 0,
   rotacaoY_90: false,
+  rotacaoY: 0,
+  manualPosition: false,
 });
 
 const defaultWorkspaceBoxes: WorkspaceBox[] = [
-  createWorkspaceBox(
-    "box-1",
-    "Caixa 1",
-    defaultDimensoes,
-    defaultMaterial.espessura,
-    0,
-    null
-  ),
+  createWorkspaceBox("box-1", "Caixa 1", defaultDimensoes, defaultMaterial.espessura, 0, []),
 ];
 
 export const defaultState: ProjectState = {
@@ -111,11 +127,16 @@ export const defaultState: ProjectState = {
   selectedWorkspaceBoxId: defaultWorkspaceBoxes[0].id,
   selectedCaixaId: defaultWorkspaceBoxes[0].id,
   selectedCaixaModelUrl: null,
+  selectedModelInstanceId: null,
   resultados: null,
   ultimaAtualizacao: null,
   design: null,
   cutList: null,
   cutListComPreco: null,
+  extractedPartsByBoxId: {},
+  ruleViolations: [],
+  modelPositionsByBoxId: {},
+  layoutWarnings: { collisions: [], outOfBounds: [] },
   estrutura3D: null,
   acessorios: null,
   precoTotalPecas: null,
@@ -174,12 +195,15 @@ const calcularResultadosBoxes = (state: ProjectState): ResultadosCalculo | null 
 
 export const applyResultados = (state: ProjectState): ProjectState => {
   try {
+    // Sincroniza boxes com workspaceBoxes (single source of truth para o viewer e cálculo).
+    const boxes = buildBoxesFromWorkspace(state);
+    const stateWithBoxes = { ...state, boxes };
     const resultados =
-      state.boxes && state.boxes.length > 0
-        ? calcularResultadosBoxes(state)
-        : calcularProjeto(buildConfig(state));
+      boxes.length > 0
+        ? calcularResultadosBoxes(stateWithBoxes)
+        : calcularProjeto(buildConfig(stateWithBoxes));
     return {
-      ...state,
+      ...stateWithBoxes,
       resultados,
       ultimaAtualizacao: new Date(),
       estaCarregando: false,
@@ -188,6 +212,7 @@ export const applyResultados = (state: ProjectState): ProjectState => {
   } catch (error) {
     return {
       ...state,
+      boxes: buildBoxesFromWorkspace(state),
       resultados: null,
       estaCarregando: false,
       erro: error instanceof Error ? error.message : "Erro ao calcular projeto",
@@ -223,6 +248,21 @@ export const recomputeState = (
 };
 
 const buildBoxDesign = (prev: ProjectState, box: BoxModule): BoxModule => {
+  // Caixa só com modelo(s) CAD (módulo completo): não gerar peças paramétricas; só contam as peças extraídas do GLB
+  const isCadOnlyBox =
+    (box.models?.length ?? 0) > 0 && box.prateleiras === 0 && box.gavetas === 0;
+  if (isCadOnlyBox) {
+    const ferragens = buildFerragens(0, box.portaTipo, 0);
+    return {
+      ...box,
+      ferragens,
+      cutList: [],
+      cutListComPreco: [],
+      estrutura3D: null,
+      precoTotalPecas: 0,
+    };
+  }
+
   const design = generateDesign(
     prev.tipoProjeto,
     prev.material,
@@ -260,17 +300,43 @@ export const getSelectedWorkspaceBox = (state: ProjectState): WorkspaceBox | und
   );
 };
 
+/** Base URL para resolver caminhos relativos (ex.: /models/x.glb). */
+function getBaseUrl(): string {
+  if (typeof import.meta !== "undefined" && import.meta.env?.BASE_URL) {
+    const base = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+    return base ? `${window.location.origin}${base}` : window.location.origin;
+  }
+  return window.location.origin;
+}
+
 export const getModelUrlFromStorage = (modelId?: string | null): string | null => {
   if (!modelId) return null;
   const stored = safeGetItem("pimo_admin_cad_models");
   const parsed = safeParseJson<{ id?: string; arquivo?: string }[]>(stored);
   if (!Array.isArray(parsed)) return null;
   const found = parsed.find((item) => item.id === modelId);
-  return found?.arquivo ?? null;
+  const arquivo = found?.arquivo ?? null;
+  if (!arquivo) return null;
+  // Data URLs (base64) e URLs absolutas ficam como estão
+  if (arquivo.startsWith("data:") || arquivo.startsWith("http://") || arquivo.startsWith("https://")) {
+    return arquivo;
+  }
+  // Caminho relativo: garantir URL absoluta
+  const base = getBaseUrl();
+  const path = arquivo.startsWith("/") ? arquivo : `/${arquivo}`;
+  return `${base}${path}`;
 };
 
 const convertWorkspaceToBox = (box: WorkspaceBox): BoxModule => ({
-  ...createBox(box.id, box.nome, box.dimensoes, box.espessura, box.modelId),
+  ...createBox(
+    box.id,
+    box.nome,
+    box.dimensoes,
+    box.espessura,
+    box.models ?? [],
+    box.tipoBorda,
+    box.tipoFundo
+  ),
   prateleiras: box.prateleiras,
   portaTipo: box.portaTipo,
   gavetas: box.gavetas,
@@ -281,14 +347,96 @@ export const buildBoxesFromWorkspace = (state: ProjectState): BoxModule[] => {
   return state.workspaceBoxes.map((box) => convertWorkspaceToBox(box));
 };
 
+/** Deriva dimensões aproximadas do modelo a partir das peças extraídas (bbox máximo). */
+function getModelDimensoesFromExtracted(
+  extractedByBoxId: ProjectState["extractedPartsByBoxId"]
+): Record<string, Record<string, import("../core/types").Dimensoes>> {
+  const out: Record<string, Record<string, import("../core/types").Dimensoes>> = {};
+  for (const [boxId, byInstance] of Object.entries(extractedByBoxId ?? {})) {
+    if (!byInstance || typeof byInstance !== "object") continue;
+    out[boxId] = {};
+    for (const [instanceId, parts] of Object.entries(byInstance)) {
+      if (!Array.isArray(parts) || parts.length === 0) continue;
+      const largura = Math.max(...parts.map((p) => p.dimensoes.largura));
+      const altura = Math.max(...parts.map((p) => p.dimensoes.altura));
+      const profundidade = Math.max(...parts.map((p) => p.dimensoes.profundidade));
+      out[boxId][instanceId] = { largura, altura, profundidade };
+    }
+  }
+  return out;
+}
+
+/** Agrega avisos de layout (colisões e fora dos limites) para todo o estado. */
+function computeLayoutWarningsFromState(prev: ProjectState): LayoutWarnings {
+  const collisions: LayoutWarnings["collisions"] = [];
+  const outOfBounds: LayoutWarnings["outOfBounds"] = [];
+  const dimsByBox = getModelDimensoesFromExtracted(prev.extractedPartsByBoxId);
+  const positionsByBox = prev.modelPositionsByBoxId ?? {};
+
+  for (const box of prev.workspaceBoxes ?? []) {
+    const boxDims = prev.boxes?.find((b) => b.id === box.id)?.dimensoes ?? box.dimensoes;
+    const boxDimsM = {
+      width: mmToM(boxDims.largura),
+      height: mmToM(boxDims.altura),
+      depth: mmToM(boxDims.profundidade),
+    };
+    const modelDims = dimsByBox[box.id];
+    const modelPositions = positionsByBox[box.id];
+    const models = box.models ?? [];
+    if (models.length === 0) continue;
+
+    const positionsAndSizes = models
+      .map((m) => {
+        const pos = modelPositions?.[m.id] ?? { x: 0, y: boxDimsM.height / 2, z: 0 };
+        const dims = modelDims?.[m.id];
+        const sizeM = dims
+          ? { width: mmToM(dims.largura), height: mmToM(dims.altura), depth: mmToM(dims.profundidade) }
+          : { width: 0.1, height: 0.1, depth: 0.1 };
+        return { modelInstanceId: m.id, position: pos, size: sizeM };
+      })
+      .filter((m) => m.size.width > 0 && m.size.height > 0 && m.size.depth > 0);
+
+    const warnings = computeLayoutWarnings(box.id, boxDimsM, positionsAndSizes);
+    collisions.push(...warnings.collisions);
+    outOfBounds.push(...warnings.outOfBounds);
+  }
+  return { collisions, outOfBounds };
+}
+
+/** Calcula violações de regras dinâmicas para todas as caixas e modelos. */
+export function computeRuleViolations(prev: ProjectState): import("../core/rules/types").RuleViolation[] {
+  const dimsByBox = getModelDimensoesFromExtracted(prev.extractedPartsByBoxId);
+  const all: import("../core/rules/types").RuleViolation[] = [];
+  for (const box of prev.workspaceBoxes ?? []) {
+    const modelDimensoes = dimsByBox[box.id];
+    all.push(
+      ...validateBoxModels(
+        box.id,
+        box.dimensoes,
+        (box.models ?? []).map((m) => ({
+          id: m.id,
+          modelId: m.modelId,
+          material: m.material,
+          categoria: m.categoria,
+        })),
+        modelDimensoes
+      )
+    );
+  }
+  return all;
+}
+
 export const buildDesignState = (prev: ProjectState): Partial<ProjectState> => {
   const boxes = prev.boxes.map((box) => buildBoxDesign(prev, box));
   const selectedBox = getSelectedBox(prev);
   if (!selectedBox) {
     return {
+      boxes: prev.boxes,
       design: null,
       cutList: null,
       cutListComPreco: null,
+      ruleViolations: computeRuleViolations(prev),
+      layoutWarnings: computeLayoutWarningsFromState(prev),
       estrutura3D: null,
       acessorios: null,
       precoTotalPecas: null,
@@ -310,22 +458,34 @@ export const buildDesignState = (prev: ProjectState): Partial<ProjectState> => {
     0
   );
 
-  const precoProjetoBase = selectedDesign.precoTotalPecas + precoTotalAcessorios;
+  // Incluir peças paramétricas de TODAS as caixas e peças extraídas (modelos CAD) de TODAS as caixas
+  const allParametric = boxes.flatMap((b) => b.cutListComPreco ?? []);
+  const allExtracted = (prev.boxes ?? []).flatMap((box) =>
+    Object.values(prev.extractedPartsByBoxId?.[box.id] ?? {}).flat()
+  );
+  const cutListComPreco = [...allParametric, ...allExtracted];
+  const precoTotalPecas = calcularPrecoTotalPecas(cutListComPreco);
+  const precoProjetoBase = precoTotalPecas + precoTotalAcessorios;
   const precoTotalProjeto = calcularPrecoTotalProjeto(precoProjetoBase);
+
+  const ruleViolations = computeRuleViolations(prev);
+  const layoutWarnings = computeLayoutWarningsFromState(prev);
 
   return {
     boxes,
     design: {
-      cutList: selectedDesign.cutList,
+      cutList: cutListComPreco,
       estrutura3D: selectedDesign.estrutura3D,
       acessorios: selectedDesign.ferragens,
       timestamp: new Date(),
     },
-    cutList: selectedDesign.cutList,
-    cutListComPreco: selectedDesign.cutListComPreco,
+    cutList: cutListComPreco,
+    cutListComPreco,
+    ruleViolations,
+    layoutWarnings,
     estrutura3D: selectedDesign.estrutura3D,
     acessorios: acessoriosComPreco,
-    precoTotalPecas: selectedDesign.precoTotalPecas,
+    precoTotalPecas,
     precoTotalAcessorios,
     precoTotalProjeto,
     resultados,

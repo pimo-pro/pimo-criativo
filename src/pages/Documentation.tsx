@@ -141,9 +141,9 @@ const sections: DocSection[] = [
     title: "Hooks useTemplates e useMaterials",
     description: "Centralizam estado de templates e materiais do Admin.",
     internals:
-      "Hooks reutilizam useStoredList e expõem estado/setters com persistência automática.",
+      "Hooks reutilizam useStorageList e expõem estado/setters com persistência automática.",
     files: [
-      "src/hooks/useStoredList.ts",
+      "src/hooks/useStorageList.ts",
       "src/hooks/useTemplates.ts",
       "src/hooks/useMaterials.ts",
       "src/components/admin/TemplatesManager.tsx",
@@ -152,11 +152,11 @@ const sections: DocSection[] = [
     interactions: "Admin mantém listas sincronizadas sem acoplamento direto ao storage.",
   },
   {
-    title: "Hook useStoredList",
+    title: "Hook useStorageList",
     description: "Base genérica de listas persistidas.",
     internals:
       "Centraliza leitura/validação/persistência e padroniza o comportamento dos hooks.",
-    files: ["src/hooks/useStoredList.ts"],
+    files: ["src/hooks/useStorageList.ts"],
     interactions: "Usado por cadModels, templates e materiais.",
   },
   {
@@ -276,6 +276,60 @@ const sections: DocSection[] = [
       "src/components/three/ThreeViewer.tsx",
     ],
     interactions: "Materiais aplicados ao modelo por categoria e parte.",
+  },
+  {
+    title: "Fase 4: Dynamic Rules & Smart Behaviors",
+    description:
+      "Regras dinâmicas por modelo GLB (dimensão, material, compatibilidade), auto-positioning, snapping e UI de gestão de regras.",
+    internals:
+      "Módulo core/rules com tipos, validação e armazenamento (localStorage). Validação em buildDesignState; avisos no painel Modelos (tab da sidebar); Admin → Regras para editar regras por modelo.",
+    files: [
+      "src/core/rules/types.ts",
+      "src/core/rules/modelRules.ts",
+      "src/core/rules/validation.ts",
+      "src/core/rules/positioning.ts",
+      "src/context/projectState.ts",
+      "src/components/ui/RuleViolationsAlert.tsx",
+      "src/components/panels/RulesPanel.tsx",
+      "src/components/admin/RulesManager.tsx",
+      "docs/dynamic-rules-reference.md",
+    ],
+    interactions:
+      "Regras definidas no Admin → Regras; violações aparecem no painel Modelos (ícone na sidebar esquerda) e no RulesPanel; validação em tempo real ao adicionar/atualizar modelos.",
+    notes: "Ver docs/dynamic-rules-reference.md para referência completa.",
+  },
+  {
+    title: "Sidebar Modelos e LeftPanel por tab",
+    description:
+      "Ícone «Modelos» na sidebar esquerda; o LeftPanel muda de conteúdo conforme o tab selecionado (HOME vs Modelos).",
+    internals:
+      "LeftToolbar expõe selectedId e onSelect(id). App mantém leftPanelTab; quando activeTab === 'modelos', LeftPanel mostra apenas o painel de modelos GLB (lista, adicionar, regras, layout). Caso contrário mostra NOME, Tipo de Projeto, Material, Dimensões, etc., sem o painel «Modelos GLB na caixa».",
+    files: [
+      "src/components/layout/left-toolbar/LeftToolbar.tsx",
+      "src/components/layout/left-panel/LeftPanel.tsx",
+      "src/App.tsx",
+      "src/index.css",
+    ],
+    interactions: "Clique no ícone Modelos abre o painel com gestão de modelos; outros ícones mostram o painel principal.",
+  },
+  {
+    title: "Fase 5: Smart Layout Engine & Auto-Placement",
+    description:
+      "Auto-positioning no viewer ao adicionar modelo, deteção de colisões e limites, Smart Arrangement e controlo de layout (Auto-Organizar, Snap to Grid, Reset Position).",
+    internals:
+      "Módulo core/layout (viewerLayoutAdapter, layoutWarnings, smartArrange). Viewer: getBoxDimensions, getModelPosition, getModelBoundingBoxSize, setModelPosition. Estado: modelPositionsByBoxId, layoutWarnings. Controlos no painel Modelos.",
+    files: [
+      "src/core/layout/viewerLayoutAdapter.ts",
+      "src/core/layout/layoutWarnings.ts",
+      "src/core/layout/smartArrange.ts",
+      "src/3d/core/Viewer.ts",
+      "src/components/ui/LayoutWarningsAlert.tsx",
+      "src/components/layout/workspace/Workspace.tsx",
+      "docs/smart-layout-reference.md",
+    ],
+    interactions:
+      "Ao adicionar modelo, posição é calculada e aplicada no viewer; avisos de colisão/limites no painel Modelos; botões Auto-Organizar, Snap to Grid e Reset Position no painel Modelos.",
+    notes: "Ver docs/smart-layout-reference.md para referência completa.",
   },
   {
     title: "Materiais & Fabricação no Admin",
@@ -758,7 +812,7 @@ export default function Documentation() {
           Render de imagem adiciona captura estática via modal IMAGEM.
           Remoção do WeeklyRoadmap legado mantém lint limpo sem alterar funcionalidades.
           {"\n"}Arquivos: src/index.css, src/App.tsx, src/hooks/useCadModels.ts,
-          src/hooks/useTemplates.ts, src/hooks/useMaterials.ts, src/hooks/useStoredList.ts,
+          src/hooks/useTemplates.ts, src/hooks/useMaterials.ts, src/hooks/useStorageList.ts,
           src/components/layout/left-panel/LeftPanel.tsx,
           src/components/layout/right-panel/RightPanel.tsx,
           src/components/layout/workspace/Workspace.tsx,

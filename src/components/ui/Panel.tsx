@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 interface PanelProps {
   title?: string;
   description?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export default function Panel({ title, description, children }: PanelProps) {
