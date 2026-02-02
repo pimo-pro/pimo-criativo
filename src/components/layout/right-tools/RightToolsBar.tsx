@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
+import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import {
   cutlistComPrecoFromBoxes,
   ferragensFromBoxes,
@@ -8,14 +9,6 @@ import {
   calcularPrecoTotalPecas,
   calcularPrecoTotalProjeto,
 } from "../../../core/pricing/pricing";
-
-type RightToolsItem = {
-  id: string;
-  label: string;
-  icon: string;
-};
-
-type ModalType = "projects" | "2d" | "image" | "send" | "integration" | null;
 
 type SendMethod = "whatsapp" | "email" | "download";
 
@@ -28,38 +21,28 @@ type SendSelections = {
   precos: boolean;
 };
 
-const tools: RightToolsItem[] = [
-  { id: "projeto", label: "PROJETO", icon: "P" },
-  { id: "salvar", label: "SALVAR", icon: "S" },
-  { id: "desfazer", label: "DESFAZER", icon: "⟲" },
-  { id: "refazer", label: "REFAZER", icon: "⟳" },
-  { id: "2d", label: "2D", icon: "2D" },
-  { id: "imagem", label: "IMAGEM", icon: "🖼" },
-  { id: "enviar", label: "ENVIAR", icon: "↗" },
-];
-
 export default function RightToolsBar() {
   const { actions, viewerSync, project } = useProject();
+  const { modal, openModal, closeModal } = useToolbarModal();
   // Single Source of Truth: Resultados Atuais derivados de project.boxes (não project.resultados/acessorios)
   // boxes em useMemo para referência estável e evitar reexecução dos useMemo abaixo a cada render
   const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
   const cutlistFromBoxes = useMemo(() => {
-    const parametric = cutlistComPrecoFromBoxes(boxes);
+    const parametric = cutlistComPrecoFromBoxes(boxes, project.rules);
     const extracted = boxes.flatMap((box) =>
       Object.values(project.extractedPartsByBoxId?.[box.id] ?? {}).flat()
     );
     return [...parametric, ...extracted];
-  }, [boxes, project.extractedPartsByBoxId]);
+  }, [boxes, project.extractedPartsByBoxId, project.rules]);
   const ferragensFromBoxesList = useMemo(
-    () => ferragensFromBoxes(boxes),
-    [boxes]
+    () => ferragensFromBoxes(boxes, project.rules),
+    [boxes, project.rules]
   );
   const totalPecas =
     cutlistFromBoxes.reduce((sum, item) => sum + item.quantidade, 0);
   const totalFerragens =
     ferragensFromBoxesList.reduce((sum, a) => sum + a.quantidade, 0);
   const totalItens = totalPecas + totalFerragens;
-  const [modal, setModal] = useState<ModalType>(null);
   const [savedProjects, setSavedProjects] = useState(actions.listSavedProjects());
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -89,41 +72,16 @@ export default function RightToolsBar() {
     return "";
   }, [modal]);
 
-  const openProjectsModal = () => {
-    setSavedProjects(actions.listSavedProjects());
-    setRenamingId(null);
-    setRenameValue("");
-    setModal("projects");
-  };
-
-  const handleSelect = (id: string) => {
-    if (id === "projeto") {
-      openProjectsModal();
-      return;
-    }
-    if (id === "salvar") {
-      actions.saveProjectSnapshot();
+  useEffect(() => {
+    if (modal === "projects") {
       setSavedProjects(actions.listSavedProjects());
-      return;
+      setRenamingId(null);
+      setRenameValue("");
     }
-    if (id === "desfazer") {
-      actions.undo();
-      return;
-    }
-    if (id === "refazer") {
-      actions.redo();
-      return;
-    }
-    if (id === "2d") {
-      setModal("2d");
-      return;
-    }
-    if (id === "imagem") {
-      setRenderResult(null);
-      setModal("image");
-      return;
-    }
-    if (id === "enviar") {
+  }, [modal, actions]);
+
+  useEffect(() => {
+    if (modal === "send") {
       setSendMethod("download");
       setSendSelections({
         image: true,
@@ -134,9 +92,12 @@ export default function RightToolsBar() {
         precos: true,
       });
       setIntegrationMessage("");
-      setModal("send");
     }
-  };
+  }, [modal]);
+
+  useEffect(() => {
+    if (modal === "image") setRenderResult(null);
+  }, [modal]);
 
   const toggleSendSelection = (key: keyof SendSelections) => {
     setSendSelections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -185,8 +146,8 @@ export default function RightToolsBar() {
 
     // Single Source of Truth: cutlist, ferragens e precos derivados de project.boxes
     const boxes = project.boxes ?? [];
-    const cutlistFromBoxes = cutlistComPrecoFromBoxes(boxes);
-    const ferragensFromBoxesList = ferragensFromBoxes(boxes);
+    const cutlistFromBoxes = cutlistComPrecoFromBoxes(boxes, project.rules);
+    const ferragensFromBoxesList = ferragensFromBoxes(boxes, project.rules);
     const totalPecasFromBoxes =
       cutlistFromBoxes.length > 0
         ? calcularPrecoTotalPecas(cutlistFromBoxes)
@@ -252,25 +213,14 @@ export default function RightToolsBar() {
     }
     const channelLabel = sendMethod === "whatsapp" ? "WhatsApp" : "Email";
     setIntegrationMessage(`Integração ${channelLabel} em desenvolvimento.`);
-    setModal("integration");
+    openModal("integration");
   };
+
+  const handleCloseModal = () => closeModal();
 
   return (
     <>
-      <aside className="right-tools-bar" aria-label="Ferramentas rápidas">
-        {tools.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="right-tools-item"
-            onClick={() => handleSelect(item.id)}
-          >
-            <span className="right-tools-icon" aria-hidden="true">
-              {item.icon}
-            </span>
-            <span className="right-tools-label">{item.label}</span>
-          </button>
-        ))}
+      <aside className="right-tools-bar" aria-label="Resultados e modais">
         <div className="right-tools-card">
           <div className="right-tools-card-title">Resultados Atuais</div>
           <div className="right-tools-card-row">
@@ -293,7 +243,7 @@ export default function RightToolsBar() {
           <div className="modal-card">
             <div className="modal-header">
               <div className="modal-title">{modalTitle}</div>
-              <button type="button" className="modal-close" onClick={() => setModal(null)}>
+              <button type="button" className="modal-close" onClick={handleCloseModal}>
                 Fechar
               </button>
             </div>
@@ -369,7 +319,7 @@ export default function RightToolsBar() {
                             onClick={() => {
                               actions.loadProjectSnapshot(project.id);
                               setSavedProjects(actions.listSavedProjects());
-                              setModal(null);
+                              closeModal();
                             }}
                           >
                             Carregar

@@ -5,9 +5,11 @@ import { glbPartsToCutListItems } from "../../../core/glb";
 import { calcularPrecoCutList } from "../../../core/pricing/pricing";
 import { useProject } from "../../../context/useProject";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
-import { useCalculadoraSync } from "../../../hooks/useCalculadoraSync";
-import { useCadModelsSync } from "../../../hooks/useCadModelsSync";
+import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
+import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
+import ViewerToolbar from "../viewer-toolbar/ViewerToolbar";
+import Tools3DToolbar from "../viewer-toolbar/Tools3DToolbar";
 import type { ViewerOptions } from "../../../3d/core/Viewer";
 import {
   toPlacedModelMm,
@@ -29,7 +31,7 @@ export default function Workspace({
   viewerOptions,
 }: WorkspaceProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const { project, actions } = useProject();
+  const { project, actions, viewerSync } = useProject();
   const viewerOptionsStable = useMemo(
     () => ({
       background: viewerBackground,
@@ -43,8 +45,20 @@ export default function Workspace({
 
   useEffect(() => {
     registerViewerApi(viewerApi);
-    return () => registerViewerApi(null);
-  }, [registerViewerApi, viewerApi]);
+    const adapter = createViewerApiAdapter(viewerApi);
+    viewerSync.registerViewerApi(adapter);
+    return () => {
+      registerViewerApi(null);
+      viewerSync.registerViewerApi(null);
+    };
+  }, [registerViewerApi, viewerSync, viewerApi]);
+
+  // MultiBoxManager: sincroniza workspaceBoxes ↔ viewer; addBox/removeBox delegam a actions
+  useMultiBoxManager({
+    viewerApi,
+    project,
+    actions,
+  });
 
   useEffect(() => {
     viewerApi.setOnBoxSelected((boxId) => {
@@ -53,16 +67,6 @@ export default function Workspace({
       }
     });
   }, [actions, viewerApi]);
-
-  useCalculadoraSync(
-    project.boxes,
-    project.workspaceBoxes,
-    viewerApi,
-    0,
-    project.material.tipo,
-    viewerApi.viewerReady
-  );
-  useCadModelsSync(project.workspaceBoxes, viewerApi, viewerApi.viewerReady);
 
   useEffect(() => {
     if (project.selectedWorkspaceBoxId) {
@@ -81,6 +85,12 @@ export default function Workspace({
       });
     });
   }, [actions, viewerApi]);
+
+  // Aplicar ferramenta 3D ativa ao Viewer (select/move/rotate) e reaplicar quando o adapter ou a ferramenta mudar
+  useEffect(() => {
+    const mode = project.activeViewerTool ?? "select";
+    viewerSync.setActiveTool(mode);
+  }, [project.activeViewerTool, viewerSync]);
 
   const projectRef = useRef(project);
   useEffect(() => {
@@ -153,34 +163,29 @@ export default function Workspace({
   return (
     <main className="workspace-root">
       <div className="workspace-canvas">
-        <div className="workspace-viewer">
+        <div className="workspace-toolbars" style={{ display: "flex", flexDirection: "column" }}>
+          <ViewerToolbar />
+          <Tools3DToolbar
+            activeTool={project.activeViewerTool ?? "select"}
+            onToolSelect={(toolId) => {
+              if (toolId === "select" || toolId === "move" || toolId === "rotate") {
+                actions.setActiveTool(toolId);
+              }
+            }}
+          />
+        </div>
+        <div className="workspace-viewer" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           <div
             ref={containerRef}
             style={{
+              flex: 1,
+              minHeight: 0,
               width: "100%",
-              height: typeof viewerHeight === "number" ? `${viewerHeight}px` : viewerHeight,
+              height: typeof viewerHeight === "number" ? `${viewerHeight}px` : "100%",
             }}
           />
         </div>
       </div>
-      <a
-        href="/test-viewer"
-        style={{
-          position: "fixed",
-          right: 16,
-          bottom: 16,
-          zIndex: 5,
-          background: "rgba(15, 23, 42, 0.85)",
-          border: "1px solid rgba(148, 163, 184, 0.35)",
-          color: "#e2e8f0",
-          padding: "8px 12px",
-          borderRadius: 8,
-          fontSize: 12,
-          textDecoration: "none",
-        }}
-      >
-        Abrir test-viewer
-      </a>
     </main>
   );
 }

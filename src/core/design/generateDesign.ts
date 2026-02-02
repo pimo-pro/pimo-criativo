@@ -7,6 +7,7 @@ import type {
   Material,
   Peca,
 } from "../types";
+import type { RulesConfig } from "../rules/rulesConfig";
 
 /**
  * Gera acessórios básicos (placeholder)
@@ -28,7 +29,7 @@ function gerarAcessorios(
 }
 
 /**
- * Gera o design completo baseado nos parâmetros do projeto
+ * Gera o design completo baseado nos parâmetros do projeto e regras dinâmicas.
  */
 export function generateDesign(
   tipoProjeto: string,
@@ -39,13 +40,14 @@ export function generateDesign(
   prateleiras: number,
   portaTipo: "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr",
   gavetas: number,
-  alturaGaveta: number
+  alturaGaveta: number,
+  rules: RulesConfig
 ): Design {
   const largura = Number(dimensoes.largura);
   const altura = Number(dimensoes.altura);
   const profundidade = Number(dimensoes.profundidade);
   const espessuraBase = Number(espessura);
-  const espessuraCosta = 10;
+  const espessuraCosta = rules.madeira.espessuraCosta;
   const folgaPorta = 2;
   const sobreposicaoPorta = 30;
   const folgaCorredicas = 25;
@@ -85,29 +87,31 @@ export function generateDesign(
   // (هنا يبقى كل الكود الذي أرسلته كما هو بدون أي تغيير)
   // ---------------------------------------------------
 
-  // Criar estrutura 3D
-  const alturaLateral = Math.max(0, altura - espessuraBase * 2);
+  // Criar estrutura 3D: CIMA + FUNDO base estrutural; lateral.altura = altura_total - (espessura_cima + espessura_fundo) se rules.madeira.calcularAlturaLaterais
+  const alturaLateral = rules.madeira.calcularAlturaLaterais
+    ? Math.max(0, altura - espessuraBase * 2)
+    : Math.max(0, altura);
   adicionarAoCutList(
-    "Lateral Esquerda",
-    "lateral",
+    "Lateral esquerda",
+    "lateral_esquerda",
     profundidade,
     alturaLateral,
     espessuraBase,
     espessuraBase
   );
   adicionarAoCutList(
-    "Lateral Direita",
-    "lateral",
+    "Lateral direita",
+    "lateral_direita",
     profundidade,
     alturaLateral,
     espessuraBase,
     espessuraBase
   );
 
-  adicionarAoCutList("Cima", "tampo", largura, profundidade, espessuraBase, espessuraBase);
+  adicionarAoCutList("Cima", "cima", largura, profundidade, espessuraBase, espessuraBase);
   adicionarAoCutList("Fundo", "fundo", largura, profundidade, espessuraBase, espessuraBase);
 
-  adicionarAoCutList("Costa", "costa", largura, altura, espessuraCosta, espessuraCosta);
+  adicionarAoCutList("COSTA", "COSTA", largura, altura, espessuraCosta, espessuraCosta);
 
   const larguraInterna = Math.max(0, largura - espessuraBase * 2);
   const alturaInterna = Math.max(0, profundidade - espessuraBase * 2);

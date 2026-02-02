@@ -1,5 +1,7 @@
 import type { BoxModule } from "../types";
 import { getMaterial } from "./materials";
+import type { RulesConfig } from "../rules/rulesConfig";
+import { getNumDobradicas } from "../rules/rulesConfig";
 
 type PainelIndustrial = {
   id: string;
@@ -65,6 +67,7 @@ type ModeloIndustrial = {
     itens: CutlistItemIndustrial[];
     areaTotal_mm2: number;
   };
+  rules: RulesConfig;
 };
 
 const clampPositive = (value: number) => Math.max(0, Math.round(value));
@@ -74,6 +77,18 @@ const buildId = (prefix: string, index: number) => `${prefix}-${index + 1}`;
 const getEspessura = (box: BoxModule) => (box.espessura > 0 ? box.espessura : 18);
 const getNomeMaterial = (box: BoxModule) => box.material ?? "MDF Branco";
 
+/** Nomes finais e fixos para exibição (UI, PDF). COSTA sem espessura ao lado do nome. */
+export const PIECE_LABELS: Record<string, string> = {
+  cima: "Cima",
+  fundo: "Fundo",
+  lateral_esquerda: "Lateral esquerda",
+  lateral_direita: "Lateral direita",
+  COSTA: "COSTA",
+};
+export function getPieceLabel(tipo: string): string {
+  return PIECE_LABELS[tipo] ?? tipo;
+}
+
 const getDimensoesInternas = (box: BoxModule, espessura: number) => {
   const larguraInterna = clampPositive(Number(box.dimensoes.largura) - espessura * 2);
   const alturaInterna = clampPositive(Number(box.dimensoes.altura) - espessura * 2);
@@ -81,11 +96,11 @@ const getDimensoesInternas = (box: BoxModule, espessura: number) => {
   return { larguraInterna, alturaInterna, profundidadeInterna };
 };
 
-export function gerarModeloIndustrial(box: BoxModule): ModeloIndustrial {
-  const paineis = gerarPaineis(box);
-  const ferragens = gerarFerragens(box);
-  const portas = gerarPortas(box);
-  const gavetas = gerarGavetas(box);
+export function gerarModeloIndustrial(box: BoxModule, rules: RulesConfig): ModeloIndustrial {
+  const paineis = gerarPaineis(box, rules);
+  const ferragens = gerarFerragens(box, rules);
+  const portas = gerarPortas(box, rules);
+  const gavetas = gerarGavetas(box, rules);
   const custoTotalPaineis = paineis.reduce((total, painel) => total + painel.custo, 0);
   const custoTotalFerragens = calcularCustoFerragens(ferragens);
   const custoTotalPortas = portas.reduce((total, porta) => total + porta.custo, 0);
@@ -102,11 +117,12 @@ export function gerarModeloIndustrial(box: BoxModule): ModeloIndustrial {
     custoTotalPortas,
     custoTotalGavetas,
     custoTotal: custoTotalPaineis + custoTotalFerragens + custoTotalPortas + custoTotalGavetas,
-    cutlist: gerarCutlist(box),
+    cutlist: gerarCutlist(box, rules),
+    rules,
   };
 }
 
-export function gerarPaineis(box: BoxModule): PainelIndustrial[] {
+export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustrial[] {
   const largura = Number(box.dimensoes.largura) || 0;
   const altura = Number(box.dimensoes.altura) || 0;
   const profundidade = Number(box.dimensoes.profundidade) || 0;
@@ -118,14 +134,17 @@ export function gerarPaineis(box: BoxModule): PainelIndustrial[] {
   const paineis: PainelIndustrial[] = [];
   const material = getNomeMaterial(box);
 
-  const larguraTopoBase = clampPositive(largura - espessura * 2);
-  const alturaLateral = clampPositive(altura);
+  const espessuraCosta = rules.madeira.espessuraCosta;
+  const larguraCimaFundo = clampPositive(largura - espessura * 2);
+  const alturaLateral = rules.madeira.calcularAlturaLaterais
+    ? clampPositive(altura - espessura * 2)
+    : clampPositive(altura);
   const larguraLateral = clampPositive(profundidade);
 
   paineis.push({
-    id: buildId("topo", paineis.length),
-    tipo: "topo",
-    largura_mm: larguraTopoBase,
+    id: buildId("cima", paineis.length),
+    tipo: "cima",
+    largura_mm: larguraCimaFundo,
     altura_mm: clampPositive(profundidade),
     espessura_mm: espessura,
     material,
@@ -135,9 +154,9 @@ export function gerarPaineis(box: BoxModule): PainelIndustrial[] {
   });
 
   paineis.push({
-    id: buildId("base", paineis.length),
-    tipo: "base",
-    largura_mm: larguraTopoBase,
+    id: buildId("fundo", paineis.length),
+    tipo: "fundo",
+    largura_mm: larguraCimaFundo,
     altura_mm: clampPositive(profundidade),
     espessura_mm: espessura,
     material,
@@ -171,11 +190,11 @@ export function gerarPaineis(box: BoxModule): PainelIndustrial[] {
   });
 
   paineis.push({
-    id: buildId("fundo", paineis.length),
-    tipo: "fundo_recuado_10mm",
+    id: buildId("costa", paineis.length),
+    tipo: "COSTA",
     largura_mm: clampPositive(largura),
     altura_mm: clampPositive(altura),
-    espessura_mm: espessura,
+    espessura_mm: espessuraCosta,
     material,
     orientacaoFibra: "vertical",
     quantidade: 1,
@@ -252,7 +271,7 @@ export function gerarPaineis(box: BoxModule): PainelIndustrial[] {
   }));
 }
 
-export function gerarFerragens(box: BoxModule): FerragemIndustrial[] {
+export function gerarFerragens(box: BoxModule, rules: RulesConfig): FerragemIndustrial[] {
   const ferragens: FerragemIndustrial[] = [];
   const tabela: Record<string, number> = {
     dobradicas: 2.5,
@@ -279,7 +298,8 @@ export function gerarFerragens(box: BoxModule): FerragemIndustrial[] {
   }
 
   if (box.prateleiras > 0) {
-    addFerragem("suportes_prateleira", Math.max(0, Math.floor(box.prateleiras)) * 4);
+    const suportes = rules.prateleiras.suportesPorPrateleira;
+    addFerragem("suportes_prateleira", Math.max(0, Math.floor(box.prateleiras)) * suportes);
   }
 
   return ferragens;
@@ -305,7 +325,7 @@ export function calcularCustoFerragens(ferragens: FerragemIndustrial[]) {
   }, 0);
 }
 
-export function gerarPortas(box: BoxModule): PortaIndustrial[] {
+export function gerarPortas(box: BoxModule, rules: RulesConfig): PortaIndustrial[] {
   if (box.portaTipo === "sem_porta") return [];
   const espessura = getEspessura(box);
   const folga = 2;
@@ -322,7 +342,8 @@ export function gerarPortas(box: BoxModule): PortaIndustrial[] {
       : alturaInterna - folga * 2;
   const alturaPorta = clampPositive(alturaBase);
   const larguraPorta = clampPositive(larguraBase);
-  const dobradicas = alturaPorta > 900 ? 3 : 2;
+  const alturaPortaCm = alturaPorta / 10;
+  const dobradicas = getNumDobradicas(alturaPortaCm, rules);
 
   if (box.portaTipo === "porta_dupla") {
     const metade = clampPositive(larguraPorta / 2);
@@ -370,7 +391,7 @@ export function gerarPortas(box: BoxModule): PortaIndustrial[] {
   ];
 }
 
-export function gerarGavetas(box: BoxModule): GavetaIndustrial[] {
+export function gerarGavetas(box: BoxModule, _rules: RulesConfig): GavetaIndustrial[] {
   if (box.gavetas <= 0) return [];
   const espessura = getEspessura(box);
   const recuoLateral = 13;
@@ -407,8 +428,8 @@ export function gerarGavetas(box: BoxModule): GavetaIndustrial[] {
   }));
 }
 
-export function gerarCutlist(box: BoxModule) {
-  const paineis = gerarPaineis(box);
+export function gerarCutlist(box: BoxModule, rules: RulesConfig) {
+  const paineis = gerarPaineis(box, rules);
   const agrupado = new Map<string, CutlistItemIndustrial>();
 
   paineis.forEach((painel) => {

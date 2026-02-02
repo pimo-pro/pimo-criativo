@@ -1,8 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { usePimoViewer } from "../hooks/usePimoViewer";
+import {
+  DEFAULT_VIEWER_OPTIONS,
+  VIEWER_BACKGROUND,
+} from "../constants/viewerOptions";
 
 export default function DevPimoTest() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewerOptions = useMemo(
+    () => ({
+      ...DEFAULT_VIEWER_OPTIONS,
+      background: VIEWER_BACKGROUND,
+      skipInitialBox: true as const,
+    }),
+    []
+  );
   const {
     addBox,
     removeBox,
@@ -12,7 +24,7 @@ export default function DevPimoTest() {
     addModelToBox,
     removeModelFromBox,
     listModels,
-  } = usePimoViewer(containerRef);
+  } = usePimoViewer(containerRef, viewerOptions);
 
   useEffect(() => {
     // 1) Criar duas caixas

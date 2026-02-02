@@ -27,6 +27,15 @@ import {
   type LayoutWarnings,
 } from "../core/layout/layoutWarnings";
 import { mmToM } from "../utils/units";
+import { loadProfiles } from "../core/rules/rulesProfilesStorage";
+import { defaultRulesConfig } from "../core/rules/rulesConfig";
+import type { RulesProfilesConfig } from "../core/rules/rulesProfiles";
+
+/** Extrai rules do perfil ativo; fallback para default se não existir. */
+function getRulesFromProfiles(config: RulesProfilesConfig) {
+  const perfil = config.perfis.find((p) => p.id === config.perfilAtivoId);
+  return perfil?.rules ?? defaultRulesConfig;
+}
 
 const defaultMaterial: Material = {
   tipo: "MDF",
@@ -142,6 +151,10 @@ export const defaultState: ProjectState = {
   precoTotalPecas: null,
   precoTotalAcessorios: null,
   precoTotalProjeto: null,
+  activeViewerTool: "select",
+  rulesProfiles: loadProfiles(),
+  rules: getRulesFromProfiles(loadProfiles()),
+  rulesProfileId: undefined,
   estaCarregando: false,
   erro: null,
   changelog: [],
@@ -272,7 +285,8 @@ const buildBoxDesign = (prev: ProjectState, box: BoxModule): BoxModule => {
     box.prateleiras,
     box.portaTipo,
     box.gavetas,
-    box.alturaGaveta
+    box.alturaGaveta,
+    prev.rules
   );
 
   const cutListComPreco = calcularPrecoCutList(design.cutList);

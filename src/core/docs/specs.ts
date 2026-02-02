@@ -9,7 +9,7 @@ Manufacturing Model:
 Modelo industrial que transforma cada caixote em painéis, portas, gavetas e ferragens com regras específicas.
 
 Painéis:
-Topo, base, laterais, fundo recuado e prateleiras. Dimensões respeitam espessuras e folgas industriais.
+Cima, fundo, laterais (lateral_esquerda, lateral_direita), COSTA (10 mm fixo) e prateleiras. Altura das laterais = altura_total - (espessura_cima + espessura_fundo). Dimensões respeitam espessuras e folgas industriais.
 
 Portas:
 Geradas com folgas e critérios de dobradiças. Suporta regras de overlay e inset.

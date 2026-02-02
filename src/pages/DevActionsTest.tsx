@@ -1,9 +1,21 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { usePimoViewer } from "../hooks/usePimoViewer";
-import AcoesMultiBox from "./AcoesMultiBox";
+import AcoesMultiBox from "../components/AcoesMultiBox";
+import {
+  DEFAULT_VIEWER_OPTIONS,
+  VIEWER_BACKGROUND,
+} from "../constants/viewerOptions";
 
 export default function DevActionsTest() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewerOptions = useMemo(
+    () => ({
+      ...DEFAULT_VIEWER_OPTIONS,
+      background: VIEWER_BACKGROUND,
+      skipInitialBox: true as const,
+    }),
+    []
+  );
   const {
     viewerRef,
     selectedBoxId,
@@ -16,7 +28,7 @@ export default function DevActionsTest() {
     removeModelFromBox,
     clearModelsFromBox,
     listModels,
-  } = usePimoViewer(containerRef as React.RefObject<HTMLDivElement>);
+  } = usePimoViewer(containerRef as React.RefObject<HTMLDivElement>, viewerOptions);
 
   useEffect(() => {
     addBox("modulo-1", { width: 60, height: 80, depth: 50 });
@@ -77,32 +89,8 @@ export default function DevActionsTest() {
                       >
                         <span className="icon-button">🗑️</span> Limpar Modelos
                       </button>
-                      <button
-                        type="button"
-                        className="panel-button"
-                        onClick={() => {
-                          // setBoxPosition("modulo-1", { x: 0, y: 40, z: 0 });
-                        }}
-                        title="Reposicionar Box"
-                      >
-                        <span className="icon-button">📍</span> Reposicionar Box
-                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-              <div className="right-tools-bar">
-                <div className="right-tools-item">
-                  <span className="right-tools-icon">👁️</span>
-                  <span className="right-tools-label">Vista Frontal</span>
-                </div>
-                <div className="right-tools-item">
-                  <span className="right-tools-icon">🗑️</span>
-                  <span className="right-tools-label">Limpar Modelos</span>
-                </div>
-                <div className="right-tools-item">
-                  <span className="right-tools-icon">📍</span>
-                  <span className="right-tools-label">Reposicionar Box</span>
                 </div>
               </div>
             </div>

@@ -177,6 +177,50 @@ const basePhases: Phase[] = [
     ],
   },
   {
+    id: "phase_3d_multibox",
+    title: "Phase 3d: MultiBoxManager & Arquitetura Viewer",
+    description: "Interface multi-box no Viewer, módulo core/multibox, integração ao Workspace e documentação.",
+    status: "done",
+    tasks: [
+      {
+        id: "phase3d_interface_multibox",
+        title: "Interface multi-box no Viewer",
+        description: "Implementação completa: addBox, removeBox, updateBox, setBoxIndex, setBoxGap, addModelToBox, selectBox.",
+        status: "done",
+      },
+      {
+        id: "phase3d_modulo_multibox",
+        title: "Módulo src/core/multibox/",
+        description: "Tipos (MultiBoxViewerApi, MultiBoxManagerApi), multiBoxManager.ts, index.ts com re-exports.",
+        status: "done",
+      },
+      {
+        id: "phase3d_integracao_workspace",
+        title: "Integração MultiBoxManager ao Workspace",
+        description: "Workspace inicializa useMultiBoxManager; sincronização via useCalculadoraSync e useCadModelsSync.",
+        status: "done",
+      },
+      {
+        id: "phase3d_docs_multibox",
+        title: "Documentação multibox-architecture.md",
+        description: "docs/multibox-architecture.md com visão geral, diagrama, convenções e checklist.",
+        status: "done",
+      },
+      {
+        id: "phase3d_build_estavel",
+        title: "Build estável e funcionalidades existentes",
+        description: "Garantia de build estável e manutenção das funcionalidades existentes.",
+        status: "done",
+      },
+      {
+        id: "phase3d_painel_referencia",
+        title: "Página dedicada Painel de Referência",
+        description: "PainelReferencia.tsx em /painel-referencia com secções modulares.",
+        status: "done",
+      },
+    ],
+  },
+  {
     id: "phase_4_material_system",
     title: "Phase 4: Sistema de Materiais Profissional",
     description: "Gestão avançada de materiais e presets reutilizáveis.",
@@ -229,7 +273,7 @@ const basePhases: Phase[] = [
       {
         id: "phase4b_docs",
         title: "Documentação e referência Fase 4",
-        description: "docs/dynamic-rules-reference.md, Roadmap e Documentation Page.",
+        description: "docs/dynamic-rules-reference.md, Roadmap e Painel de Referência.",
         status: "done",
       },
     ],
@@ -261,7 +305,7 @@ const basePhases: Phase[] = [
       {
         id: "phase5_layout_docs",
         title: "Documentação Fase 5",
-        description: "docs/smart-layout-reference.md, Documentation Page e Painel de Referência.",
+        description: "docs/smart-layout-reference.md, Painel de Referência (página dedicada).",
         status: "done",
       },
     ],
@@ -269,9 +313,15 @@ const basePhases: Phase[] = [
   {
     id: "phase_5_ui_ux",
     title: "Phase 5b: UI/UX Avançado",
-    description: "Melhorias visuais e fluxo de interação.",
-    status: "todo",
+    description: "Melhorias visuais e fluxo de interação. Parcialmente concluída.",
+    status: "in_progress",
     tasks: [
+      {
+        id: "phase5_task_painel_referencia",
+        title: "Página dedicada Painel de Referência",
+        description: "PainelReferencia.tsx em /painel-referencia; secções modulares em painelReferenciaSections.ts; botão no Header redireciona.",
+        status: "done",
+      },
       {
         id: "phase5_task_consistency",
         title: "Consistência visual total",
@@ -284,22 +334,63 @@ const basePhases: Phase[] = [
         description: "Estados visuais, atalhos e mensagens claras.",
         status: "todo",
       },
+      {
+        id: "phase5_task_viewer_stubs",
+        title: "Expansão viewer: snapshot, 2D e renderização",
+        description: "Implementar stubs documentados no viewerApiAdapter (snapshot, vistas 2D, render).",
+        status: "in_progress",
+      },
     ],
   },
   {
-    id: "phase_6_performance",
-    title: "Phase 6: Performance & Otimização",
+    id: "phase_6_configurador",
+    title: "Phase 6: Integração Completa do Configurador 3D",
+    description:
+      "Integração do configurador 3D com MultiBoxManager, UI multi-box, PIMO Calculator e unificação de padrões. " +
+      "Depende de Phase 3d (MultiBoxManager) e Phase 5 (Smart Layout) concluídas. " +
+      "Fases 7–11 (Performance, Export, AI, Marketplace, Launch) dependem da conclusão desta phase para integração total do configurador.",
+    status: "todo",
+    tasks: [
+      {
+        id: "phase6_config_integracao",
+        title: "Integração configurador 3D com MultiBoxManager",
+        description: "Preparar e integrar o configurador 3D com o MultiBoxManager.",
+        status: "todo",
+      },
+      {
+        id: "phase6_config_ui_multibox",
+        title: "UI para manipulação de múltiplos boxes",
+        description: "Seleção, reorder e propriedades de múltiplos boxes na interface.",
+        status: "todo",
+      },
+      {
+        id: "phase6_config_calculator",
+        title: "Integrar MultiBoxManager ao PIMO Calculator",
+        description: "Conexão entre MultiBoxManager e módulo de cálculo/precificação.",
+        status: "todo",
+      },
+      {
+        id: "phase6_config_unificar",
+        title: "Unificar padrões de viewer e sincronização",
+        description: "Padrões consistentes em Workspace, DevActions e demais módulos.",
+        status: "todo",
+      },
+    ],
+  },
+  {
+    id: "phase_7_performance",
+    title: "Phase 7: Performance & Otimização",
     description: "Otimização de renderização e uso de memória.",
     status: "todo",
     tasks: [
       {
-        id: "phase6_task_3d",
+        id: "phase7_task_3d",
         title: "Otimização 3D",
         description: "LOD, instancing e caching de assets.",
         status: "todo",
       },
       {
-        id: "phase6_task_ui",
+        id: "phase7_task_ui",
         title: "Otimização UI",
         description: "Re-render controlado e redução de cálculos.",
         status: "todo",
@@ -307,19 +398,19 @@ const basePhases: Phase[] = [
     ],
   },
   {
-    id: "phase_7_export",
-    title: "Phase 7: Exportação (Imagem, PDF, JSON)",
+    id: "phase_8_export",
+    title: "Phase 8: Exportação (Imagem, PDF, JSON)",
     description: "Exportações profissionais e integradas.",
     status: "todo",
     tasks: [
       {
-        id: "phase7_task_image",
+        id: "phase8_task_image",
         title: "Exportação de imagem",
         description: "Snapshot com qualidade e configurações.",
         status: "todo",
       },
       {
-        id: "phase7_task_json",
+        id: "phase8_task_json",
         title: "Exportação JSON",
         description: "Formato estruturado do projeto.",
         status: "todo",
@@ -327,19 +418,19 @@ const basePhases: Phase[] = [
     ],
   },
   {
-    id: "phase_8_ai",
-    title: "Phase 8: Integração com AI",
+    id: "phase_9_ai",
+    title: "Phase 9: Integração com AI",
     description: "Sugestões automáticas e assistência inteligente.",
     status: "todo",
     tasks: [
       {
-        id: "phase8_task_prompt",
+        id: "phase9_task_prompt",
         title: "Prompting e recomendações",
         description: "Base de dados para sugestões inteligentes.",
         status: "todo",
       },
       {
-        id: "phase8_task_autodesign",
+        id: "phase9_task_autodesign",
         title: "Auto-design assistido",
         description: "Geração de propostas com AI.",
         status: "todo",
@@ -347,19 +438,19 @@ const basePhases: Phase[] = [
     ],
   },
   {
-    id: "phase_9_marketplace",
-    title: "Phase 9: Marketplace de Módulos",
+    id: "phase_10_marketplace",
+    title: "Phase 10: Marketplace de Módulos",
     description: "Biblioteca e partilha de módulos.",
     status: "todo",
     tasks: [
       {
-        id: "phase9_task_catalog",
+        id: "phase10_task_catalog",
         title: "Catálogo de módulos",
         description: "Upload e gestão de módulos.",
         status: "todo",
       },
       {
-        id: "phase9_task_distribution",
+        id: "phase10_task_distribution",
         title: "Distribuição e licenças",
         description: "Planos e permissões.",
         status: "todo",
@@ -367,19 +458,19 @@ const basePhases: Phase[] = [
     ],
   },
   {
-    id: "phase_10_launch",
-    title: "Phase 10: Lançamento Global",
+    id: "phase_11_launch",
+    title: "Phase 11: Lançamento Global",
     description: "Preparação final e go‑to‑market.",
     status: "todo",
     tasks: [
       {
-        id: "phase10_task_polish",
+        id: "phase11_task_polish",
         title: "Polimento final",
         description: "Correções finais e qualidade.",
         status: "todo",
       },
       {
-        id: "phase10_task_release",
+        id: "phase11_task_release",
         title: "Release global",
         description: "Deploy e comunicação.",
         status: "todo",
@@ -488,7 +579,36 @@ export const getRoadmapStats = (phases: Phase[]): RoadmapStats => {
   };
 };
 
+/**
+ * Dependências entre fases. Todas as fases devem constar.
+ * Sem pré-requisitos: []. Com dependências: ["phase_X", "phase_Y"].
+ * Formato: { phase_id: ["phase_X", ...] }
+ */
+export const PHASE_DEPENDENCIES: Record<string, string[]> = {
+  phase_1_core_layout: [],
+  phase_2_3d_foundation: [],
+  phase_3_3d_realism: [],
+  phase_3b_glb_integration: [],
+  phase_3c_multi_model: [],
+  phase_3d_multibox: [],
+  phase_4_material_system: [],
+  phase_4b_dynamic_rules: [],
+  phase_5_smart_layout: [],
+  phase_5_ui_ux: [],
+  phase_6_configurador: ["phase_3d_multibox", "phase_5_smart_layout"],
+  phase_7_performance: ["phase_6_configurador"],
+  phase_8_export: ["phase_6_configurador"],
+  phase_9_ai: ["phase_6_configurador"],
+  phase_10_marketplace: ["phase_6_configurador"],
+  phase_11_launch: ["phase_6_configurador", "phase_7_performance", "phase_8_export"],
+};
+
 export const roadmapInstructions = [
   "As alterações devem ser feitas diretamente no ProjectRoadmap.",
   "Cada edição/adição/exclusão é registada automaticamente no Painel de Referência.",
+  "Resumo de progresso em core/docs/progressoResumo.ts.",
+  "Índice de arquitetura (módulos, fluxos, docs) em core/docs/architectureIndex.ts.",
+  "Phase 6 depende de Phase 3d e Phase 5; Phases 7–11 dependem de Phase 6. Ver PHASE_DEPENDENCIES.",
+  "OBRIGATÓRIO: Novas fases devem declarar dependências em PHASE_DEPENDENCIES: { phase_id: [\"phase_X\", ...] }.",
+  "Fases sem dependências: usar array vazio []; fases dependentes: listar IDs exatos das fases pré-requisito.",
 ];

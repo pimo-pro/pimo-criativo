@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useProject } from "../../../context/useProject";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
+import GerarArquivoModal from "./GerarArquivoModal";
 
 const cardStyle: React.CSSProperties = {
   padding: "10px 12px",
@@ -34,40 +35,31 @@ export default function RightPanel() {
   const { viewerApi } = usePimoViewerContext();
   const selectedId = project.selectedWorkspaceBoxId;
   const boxes = project.workspaceBoxes;
-  const [expanded, setExpanded] = useState(false);
+  const [showGerarArquivoModal, setShowGerarArquivoModal] = useState(false);
+
+  const handleGerarArquivoConfirm = (opcoes: {
+    tipoPdf: boolean;
+    tipoExcel: boolean;
+    cutlist: boolean;
+    pdfTecnico: boolean;
+    download: boolean;
+    email: boolean;
+    whatsapp: boolean;
+  }) => {
+    if (opcoes.tipoExcel) {
+      alert("Exportação para Excel estará disponível em breve.");
+    }
+    if (opcoes.tipoPdf && opcoes.download) {
+      if (opcoes.cutlist) actions.exportarPDF();
+      if (opcoes.pdfTecnico) actions.exportarPdfTecnico();
+    }
+  };
 
   return (
-    <aside
-      className="panel-content panel-content--side right-panel-scrollable"
-      style={{
-        maxHeight: 300,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        flexShrink: 0,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div className="section-title" style={{ margin: 0 }}>Ações</div>
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          className="button button-ghost"
-          style={{ padding: "4px 8px", fontSize: 12 }}
-          title={expanded ? "Recolher" : "Expandir"}
-        >
-          {expanded ? "▲" : "▼"}
-        </button>
-      </div>
+    <aside className="panel-content panel-content--side">
+      <div className="section-title" style={{ marginBottom: 8 }}>Ações</div>
 
-      <div
-        className="stack-tight"
-        style={{
-          flex: "1 1 0",
-          overflowY: expanded ? "auto" : "hidden",
-          minHeight: 0,
-        }}
-      >
+      <div className="stack-tight">
         {/* Gerar Design 3D */}
         <button
           onClick={() => actions.gerarDesign()}
@@ -91,11 +83,46 @@ export default function RightPanel() {
           Adicionar caixote
         </button>
 
+        <div className="row row-gap-sm" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button
+            onClick={() => actions.duplicateWorkspaceBox()}
+            disabled={!selectedId || boxes.length === 0}
+            className="button button-ghost"
+            style={{ flex: 1, opacity: selectedId ? 1 : 0.6 }}
+          >
+            Duplicar
+          </button>
+          <button
+            onClick={() => setShowGerarArquivoModal(true)}
+            className="button button-ghost"
+            style={{ flex: 1 }}
+          >
+            Gerar Arquivo
+          </button>
+        </div>
+
+        {showGerarArquivoModal && (
+          <GerarArquivoModal
+            onClose={() => setShowGerarArquivoModal(false)}
+            onConfirm={handleGerarArquivoConfirm}
+            hasBoxes={(project.boxes?.length ?? 0) > 0}
+          />
+        )}
+
         {/* Lista de Caixas */}
         <div className="section-title" style={{ marginTop: 16, marginBottom: 8 }}>
           Lista de Caixas
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <div
+          className="boxes-list"
+          style={{
+            maxHeight: 300,
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
+          }}
+        >
           {boxes.length === 0 ? (
             <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 0" }}>
               Nenhuma caixa. Clique em &quot;Adicionar caixote&quot; ou &quot;Gerar Design 3D&quot;.
@@ -154,26 +181,6 @@ export default function RightPanel() {
           )}
         </div>
 
-        {/* Resultados Atuais */}
-        <div className="section-title" style={{ marginTop: 20, marginBottom: 8 }}>
-          Resultados Atuais
-        </div>
-        <div className="row row-gap-sm">
-          <button
-            onClick={() => actions.duplicateWorkspaceBox()}
-            disabled={!selectedId || boxes.length === 0}
-            className="button button-ghost"
-            style={{ flex: 1, opacity: selectedId ? 1 : 0.6 }}
-          >
-            Duplicar
-          </button>
-        </div>
-        <button
-          onClick={() => actions.exportarPDF()}
-          className="button button-ghost"
-        >
-          Exportar Cut List (PDF)
-        </button>
       </div>
     </aside>
   );

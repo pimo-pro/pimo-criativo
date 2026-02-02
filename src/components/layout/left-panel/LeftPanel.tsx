@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useProject } from "../../../context/useProject";
+import UnifiedPopover, { StepperPopover } from "../../ui/UnifiedPopover";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import Panel from "../../ui/Panel";
 import { mmToM } from "../../../utils/units";
@@ -11,31 +12,111 @@ export type LeftPanelProps = {
   activeTab?: string;
 };
 
+/** Tab interno da página Info: "geral" | "tecnica" */
+const INFO_INNER_TABS = ["geral", "tecnica"] as const;
+
+function InfoPanelContent({ footer }: { footer: React.ReactNode }) {
+  const [infoInnerTab, setInfoInnerTab] = useState<"geral" | "tecnica">("geral");
+
+  return (
+    <div className="left-panel-content">
+      <div className="left-panel-scroll">
+        <aside className="panel-content panel-content--side">
+          <div className="section-title">Info</div>
+          {/* Tabs internas: preparadas para futura Info Técnica */}
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              marginBottom: 12,
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            {INFO_INNER_TABS.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setInfoInnerTab(tab)}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: 12,
+                  background: infoInnerTab === tab ? "rgba(59,130,246,0.2)" : "transparent",
+                  border: "none",
+                  borderBottom: infoInnerTab === tab ? "2px solid var(--primary)" : "2px solid transparent",
+                  color: "var(--text-main)",
+                  cursor: "pointer",
+                }}
+              >
+                {tab === "geral" ? "Geral" : "Técnica"}
+              </button>
+            ))}
+          </div>
+
+          {infoInnerTab === "geral" && (
+            <>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+                Como funciona o PIMO.
+              </p>
+              <Panel title="Fluxo básico" description="Criar projeto e ver resultado 3D.">
+                <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, lineHeight: 1.6, color: "var(--text-muted)" }}>
+                  <li>Use <strong>Página inicial</strong> para definir nome, tipo, material e dimensões.</li>
+                  <li>Use <strong>Calculadora</strong> para adicionar caixas e gerar design.</li>
+                  <li>Use <strong>Móveis</strong> ou <strong>Modelos</strong> para adicionar modelos 3D (GLB) às caixas.</li>
+                  <li>O painel direito permite gerar design, adicionar/remover caixas e exportar PDF.</li>
+                </ol>
+              </Panel>
+              <Panel title="Modelos CAD" description="Admin → Modelos CAD para registar ficheiros GLB.">
+                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+                  Em Admin pode carregar ficheiros .glb; depois aparecem em Móveis/Modelos para adicionar à caixa.
+                </p>
+              </Panel>
+            </>
+          )}
+
+          {infoInnerTab === "tecnica" && (
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+              Documentação técnica em breve.
+            </p>
+          )}
+        </aside>
+      </div>
+      {footer}
+    </div>
+  );
+}
+
 export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   const { project, actions } = useProject();
   const selectedBox = project.workspaceBoxes.find(
     (box) => box.id === project.selectedWorkspaceBoxId
   );
-  const selectedEspessura = selectedBox?.espessura ?? project.material.espessura;
   const selectedPrateleiras = selectedBox?.prateleiras ?? 0;
-  const tipoProjeto = project.tipoProjeto;
+  const selectedGavetas = selectedBox?.gavetas ?? 0;
+  const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
+  const [editingBoxName, setEditingBoxName] = useState("");
   const { viewerApi } = usePimoViewerContext();
-  const [materialTipo, setMaterialTipo] = useState(project.material.tipo);
-  const [espessuraUI, setEspessuraUI] = useState(selectedEspessura);
 
-  useEffect(() => {
-    setMaterialTipo(project.material.tipo);
-  }, [project.material.tipo]);
-
-  useEffect(() => {
-    setEspessuraUI(selectedEspessura);
-  }, [selectedEspessura]);
+  const footer = (
+    <div className="left-panel-footer">
+      <button
+        type="button"
+        onClick={() => actions.addWorkspaceBox()}
+        className="button button-ghost"
+        style={{ width: "100%" }}
+      >
+        Criar Caixa
+      </button>
+    </div>
+  );
 
   // Móveis = Catálogo CAD (biblioteca) — sempre dentro do LeftPanel
   if (activeTab === LEFT_TOOLBAR_IDS.MOVEIS) {
     return (
       <div className="left-panel-content">
-        <PainelMoveis />
+        <div className="left-panel-scroll">
+          <PainelMoveis />
+        </div>
+        {footer}
       </div>
     );
   }
@@ -44,7 +125,10 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   if (activeTab === LEFT_TOOLBAR_IDS.MODELOS) {
     return (
       <div className="left-panel-content">
-        <PainelModelosDaCaixa />
+        <div className="left-panel-scroll">
+          <PainelModelosDaCaixa />
+        </div>
+        {footer}
       </div>
     );
   }
@@ -53,6 +137,7 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   if (activeTab === LEFT_TOOLBAR_IDS.CALCULADORA) {
     return (
       <div className="left-panel-content">
+        <div className="left-panel-scroll">
       <aside className="panel-content panel-content--side">
         <div className="section-title">Calculadora</div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
@@ -75,6 +160,7 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
             ) : (
               project.workspaceBoxes.map((box) => {
                 const isSelected = box.id === project.selectedWorkspaceBoxId;
+                const isEditing = editingBoxId === box.id;
                 return (
                   <div
                     key={box.id}
@@ -88,29 +174,54 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
                       borderRadius: 6,
                     }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => actions.selectBox(box.id)}
-                      className="panel-button"
-                      style={{
-                        flex: 1,
-                        textAlign: "left",
-                        padding: "6px 8px",
-                        background: "transparent",
-                        border: "none",
-                      }}
-                    >
-                      {box.nome} — {box.dimensoes.largura}×{box.dimensoes.altura}×{box.dimensoes.profundidade} mm
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => actions.removeWorkspaceBoxById(box.id)}
-                      className="panel-button"
-                      style={{ padding: "4px 8px", fontSize: 11 }}
-                      title="Apagar caixa"
-                    >
-                      Apagar
-                    </button>
+                    {isEditing ? (
+                      <div style={{ flex: 1, display: "flex", gap: 4 }}>
+                        <input
+                          type="text"
+                          value={editingBoxName}
+                          onChange={(e) => setEditingBoxName(e.target.value)}
+                          className="input input-xs"
+                          style={{ flex: 1 }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              actions.setWorkspaceBoxNome(box.id, editingBoxName.trim() || box.nome);
+                              setEditingBoxId(null);
+                            } else if (e.key === "Escape") setEditingBoxId(null);
+                          }}
+                          autoFocus
+                        />
+                        <button type="button" className="panel-button" style={{ fontSize: 11 }} onClick={() => { actions.setWorkspaceBoxNome(box.id, editingBoxName.trim() || box.nome); setEditingBoxId(null); }}>OK</button>
+                        <button type="button" className="panel-button" style={{ fontSize: 11 }} onClick={() => setEditingBoxId(null)}>✕</button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => actions.selectBox(box.id)}
+                        onDoubleClick={() => { setEditingBoxId(box.id); setEditingBoxName(box.nome); }}
+                        className="panel-button"
+                        title="Duplo-clique para editar nome"
+                        style={{
+                          flex: 1,
+                          textAlign: "left",
+                          padding: "6px 8px",
+                          background: "transparent",
+                          border: "none",
+                        }}
+                      >
+                        {box.nome} — {box.dimensoes.largura}×{box.dimensoes.altura}×{box.dimensoes.profundidade} mm
+                      </button>
+                    )}
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => actions.removeWorkspaceBoxById(box.id)}
+                        className="panel-button"
+                        style={{ padding: "4px 8px", fontSize: 11 }}
+                        title="Apagar caixa"
+                      >
+                        Apagar
+                      </button>
+                    )}
                   </div>
                 );
               })
@@ -127,6 +238,8 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
           {project.estaCarregando ? "A calcular…" : "Gerar Design 3D"}
         </button>
       </aside>
+        </div>
+        {footer}
       </div>
     );
   }
@@ -135,12 +248,15 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   if (activeTab === LEFT_TOOLBAR_IDS.LAYOUT) {
     return (
       <div className="left-panel-content">
+        <div className="left-panel-scroll">
         <aside className="panel-content panel-content--side">
           <div className="section-title">Layout</div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
             Cores de chão e parede (em breve).
           </p>
         </aside>
+        </div>
+        {footer}
       </div>
     );
   }
@@ -149,12 +265,15 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   if (activeTab === LEFT_TOOLBAR_IDS.ELETRO) {
     return (
       <div className="left-panel-content">
+        <div className="left-panel-scroll">
         <aside className="panel-content panel-content--side">
           <div className="section-title">Eletrodomésticos</div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
             Modelos 3D de eletrodomésticos (em breve).
           </p>
         </aside>
+        </div>
+        {footer}
       </div>
     );
   }
@@ -163,46 +282,30 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   if (activeTab === LEFT_TOOLBAR_IDS.ACESSORIOS) {
     return (
       <div className="left-panel-content">
+        <div className="left-panel-scroll">
         <aside className="panel-content panel-content--side">
           <div className="section-title">Acessórios</div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
             Acessórios (em breve).
           </p>
         </aside>
+        </div>
+        {footer}
       </div>
     );
   }
 
-  // Info — ajuda / como funciona
+  // Info — ajuda / como funciona (estrutura com tabs para futura Info Técnica)
   if (activeTab === LEFT_TOOLBAR_IDS.INFO) {
     return (
-      <div className="left-panel-content">
-      <aside className="panel-content panel-content--side">
-        <div className="section-title">Info</div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Como funciona o PIMO.
-        </p>
-        <Panel title="Fluxo básico" description="Criar projeto e ver resultado 3D.">
-          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, lineHeight: 1.6, color: "var(--text-muted)" }}>
-            <li>Use <strong>Página inicial</strong> para definir nome, tipo, material e dimensões.</li>
-            <li>Use <strong>Calculadora</strong> para adicionar caixas e gerar design.</li>
-            <li>Use <strong>Móveis</strong> ou <strong>Modelos</strong> para adicionar modelos 3D (GLB) às caixas.</li>
-            <li>O painel direito permite gerar design, adicionar/remover caixas e exportar PDF.</li>
-          </ol>
-        </Panel>
-        <Panel title="Modelos CAD" description="Admin → Modelos CAD para registar ficheiros GLB.">
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-            Em Admin pode carregar ficheiros .glb; depois aparecem em Móveis/Modelos para adicionar à caixa.
-          </p>
-        </Panel>
-      </aside>
-      </div>
+      <InfoPanelContent footer={footer} />
     );
   }
 
   // Página inicial (HOME)
   return (
     <div className="left-panel-content">
+      <div className="left-panel-scroll">
     <aside className="panel-content panel-content--side">
       <div className="section-title">
         {selectedBox
@@ -225,114 +328,6 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         />
       </Panel>
 
-      <Panel title="Tipo de Projeto">
-        <select
-          value={tipoProjeto}
-          onChange={(e) => {
-            const value = e.target.value;
-            actions.setTipoProjeto(value);
-            if (value === "Caixa com porta") {
-              actions.setPortaTipo("porta_simples");
-            } else if (value === "Guarda-roupa com porta de correr") {
-              actions.setPortaTipo("porta_correr");
-            } else if (value === "Caixa sem porta") {
-              actions.setPortaTipo("sem_porta");
-            }
-          }}
-          className="select"
-        >
-          {[
-            "Caixa sem porta",
-            "Caixa com porta",
-            "Guarda-roupa com porta de correr",
-            "Caixa de canto esquerda",
-            "Caixa de canto direita",
-          ].map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </Panel>
-
-      {/* Material */}
-      <Panel title="Material">
-        <div style={{ marginBottom: 8 }}>
-          <select
-            value={materialTipo}
-            onChange={(e) => {
-              const value = e.target.value;
-              setMaterialTipo(value);
-              actions.setMaterial({
-                ...project.material,
-                tipo: value,
-              });
-              if (project.selectedWorkspaceBoxId) {
-                viewerApi?.updateBox(project.selectedWorkspaceBoxId, { materialName: value });
-              }
-            }}
-            className="select"
-          >
-            <option value="MDF">MDF</option>
-            <option value="Contraplacado">Contraplacado</option>
-            <option value="Carvalho">Carvalho</option>
-            <option value="Faia">Faia</option>
-            <option value="Pinho">Pinho</option>
-          </select>
-        </div>
-        <select
-          value={espessuraUI}
-          onChange={(e) => {
-            const value = Number(e.target.value);
-            setEspessuraUI(value);
-            actions.setEspessura(value);
-            if (project.selectedWorkspaceBoxId) {
-              viewerApi?.updateBox(project.selectedWorkspaceBoxId, {
-                thickness: mmToM(value),
-              });
-            }
-          }}
-          className="select"
-        >
-          <option value={15}>15mm</option>
-          <option value={18}>18mm</option>
-          <option value={19}>19mm</option>
-          <option value={25}>25mm</option>
-        </select>
-      </Panel>
-
-      {/* Tipo de borda e fundo */}
-      <Panel title="Tipo de borda" description="Acabamento da borda da chapa">
-        <select
-          value={selectedBox?.tipoBorda ?? "reta"}
-          onChange={(e) => {
-            const value = e.target.value as "reta" | "biselada" | "arredondada";
-            actions.setTipoBorda(value);
-          }}
-          className="select"
-        >
-          <option value="reta">Reta</option>
-          <option value="biselada">Biselada</option>
-          <option value="arredondada">Arredondada</option>
-        </select>
-      </Panel>
-
-      <Panel title="Tipo de fundo" description="Montagem do fundo da caixa">
-        <select
-          value={selectedBox?.tipoFundo ?? "recuado"}
-          onChange={(e) => {
-            const value = e.target.value as "integrado" | "recuado" | "sem_fundo";
-            actions.setTipoFundo(value);
-          }}
-          className="select"
-        >
-          <option value="integrado">Integrado</option>
-          <option value="recuado">Recuado</option>
-          <option value="sem_fundo">Sem fundo</option>
-        </select>
-      </Panel>
-
-      {/* Dimensões */}
       <Panel title="Dimensões" description="Valores em milímetros">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div className="panel-field-row">
@@ -389,17 +384,37 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         </div>
       </Panel>
 
-      <Panel title="Prateleiras" description="Quantidade (paramétrico); use modelos GLB para representação 3D.">
-        <input
-          type="number"
-          min="0"
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <StepperPopover
+          id="prateleiras-popover"
+          label="Prateleiras"
           value={selectedPrateleiras}
-          onChange={(e) => actions.setPrateleiras(Number(e.target.value))}
-          className="input input-sm"
+          onChange={(v) => actions.setPrateleiras(v)}
         />
-      </Panel>
+        <StepperPopover
+          id="gavetas-popover"
+          label="Gavetas"
+          value={selectedGavetas}
+          onChange={(v) => actions.setGavetas(v)}
+        />
+        <UnifiedPopover trigger={<span>Tipo de porta: <strong>{selectedBox?.portaTipo === "sem_porta" ? "Sem" : selectedBox?.portaTipo === "porta_simples" ? "Simples" : selectedBox?.portaTipo === "porta_correr" ? "Correr" : "Dupla"}</strong></span>}>
+          <select
+            value={selectedBox?.portaTipo ?? "sem_porta"}
+            onChange={(e) => actions.setPortaTipo(e.target.value as "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr")}
+            className="select"
+            style={{ width: "100%" }}
+          >
+            <option value="sem_porta">Sem porta</option>
+            <option value="porta_simples">Porta simples</option>
+            <option value="porta_dupla">Porta dupla</option>
+            <option value="porta_correr">Porta de correr</option>
+          </select>
+        </UnifiedPopover>
+      </div>
 
     </aside>
+      </div>
+      {footer}
     </div>
   );
 }

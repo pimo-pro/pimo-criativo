@@ -6,12 +6,12 @@ export default function CutListTable() {
   const { project } = useProject();
   const cutList = useMemo(() => {
     const boxes = project.boxes ?? [];
-    const parametric = boxes.flatMap((box) => cutlistComPrecoFromBox(box));
+    const parametric = boxes.flatMap((box) => cutlistComPrecoFromBox(box, project.rules));
     const extracted = boxes.flatMap((box) =>
       Object.values(project.extractedPartsByBoxId?.[box.id] ?? {}).flat()
     );
     return [...parametric, ...extracted];
-  }, [project.boxes, project.extractedPartsByBoxId]);
+  }, [project.boxes, project.extractedPartsByBoxId, project.rules]);
 
   if (!cutList || cutList.length === 0) {
     return <p>Nenhuma peça. Adicione caixas e/ou modelos GLB.</p>;

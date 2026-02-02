@@ -6,19 +6,20 @@ import RightToolsBar from "./components/layout/right-tools/RightToolsBar";
 import BottomPanel from "./components/layout/bottom-panel/BottomPanel";
 import Workspace from "./components/layout/workspace/Workspace";
 import Footer from "./components/layout/footer/Footer";
-import Documentation from "./pages/Documentation";
+import WhatsAppButton from "./components/layout/WhatsAppButton";
+import PainelReferencia from "./pages/PainelReferencia";
 import SobreNos from "./pages/SobreNos";
 import Documentacao from "./pages/Documentacao";
 import AdminPanel from "./pages/AdminPanel";
 import ProjectRoadmap from "./pages/ProjectRoadmap";
-import TestViewer from "./pages/test-viewer";
-import DevPimoTest from "./components/DevPimoTest";
-import DevActionsTest from "./components/DevActionsTest";
-import { ThemeProvider } from "./theme/ThemeProvider";
+import DevPimoTest from "./pages/DevPimoTest";
+import DevActionsTest from "./pages/DevActionsTest";
 import { PimoViewerProvider } from "./context/PimoViewerContext";
 import { ProjectProvider } from "./context/ProjectProvider";
 import { MaterialProvider } from "./context/materialContext";
+import { ToolbarModalProvider } from "./context/ToolbarModalContext";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "./constants/viewerOptions";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
@@ -53,28 +54,14 @@ export default function App() {
   const handleResizeEnd = () => {
     resizeState.current.active = false;
   };
-  const [showDocs, setShowDocs] = useState(false);
+  const [showPainelReferencia, setShowPainelReferencia] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSystemDocs, setShowSystemDocs] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showRoadmap, setShowRoadmap] = useState(false);
-  const [showTestViewer, setShowTestViewer] = useState(false);
   const [showDevTest, setShowDevTest] = useState(false);
   const [showDevActions, setShowDevActions] = useState(false);
-  const viewerOptions = useMemo(
-    () => ({
-      enableControls: true,
-      controls: {
-        enableDamping: true,
-        dampingFactor: 0.08,
-        minDistance: 1.5,
-        maxDistance: 12,
-        minPolarAngle: Math.PI * 0.15,
-        maxPolarAngle: Math.PI * 0.45,
-      },
-    }),
-    []
-  );
+  const viewerOptions = useMemo(() => DEFAULT_VIEWER_OPTIONS, []);
 
   useEffect(() => {
     const syncRoute = () => {
@@ -82,37 +69,16 @@ export default function App() {
       const isSystemDocs = window.location.pathname === "/documentacao";
       const isAdmin = window.location.pathname === "/admin";
       const isRoadmap = window.location.pathname === "/roadmap";
-      const isTestViewer = window.location.pathname === "/test-viewer";
       const isDevTest = window.location.pathname === "/dev-test";
       const isDevActions = window.location.pathname === "/dev-actions";
+      const isPainelReferencia = window.location.pathname === "/painel-referencia";
       setShowAbout(isAbout);
       setShowSystemDocs(isSystemDocs);
       setShowAdmin(isAdmin);
       setShowRoadmap(isRoadmap);
-      setShowTestViewer(isTestViewer);
       setShowDevTest(isDevTest);
       setShowDevActions(isDevActions);
-      if (isAbout) {
-        setShowDocs(false);
-      }
-      if (isSystemDocs) {
-        setShowDocs(false);
-      }
-      if (isAdmin) {
-        setShowDocs(false);
-      }
-      if (isRoadmap) {
-        setShowDocs(false);
-      }
-      if (isTestViewer) {
-        setShowDocs(false);
-      }
-      if (isDevTest) {
-        setShowDocs(false);
-      }
-      if (isDevActions) {
-        setShowDocs(false);
-      }
+      setShowPainelReferencia(isPainelReferencia);
     };
     syncRoute();
     window.addEventListener("popstate", syncRoute);
@@ -122,14 +88,12 @@ export default function App() {
   const navigateToAbout = () => {
     window.history.pushState({}, "", "/sobre-nos");
     setShowAbout(true);
-    setShowDocs(false);
     setShowSystemDocs(false);
   };
 
   const navigateToSystemDocs = () => {
     window.history.pushState({}, "", "/documentacao");
     setShowSystemDocs(true);
-    setShowDocs(false);
     setShowAbout(false);
     setShowAdmin(false);
   };
@@ -137,7 +101,6 @@ export default function App() {
   const navigateToAdmin = () => {
     window.history.pushState({}, "", "/admin");
     setShowAdmin(true);
-    setShowDocs(false);
     setShowAbout(false);
     setShowSystemDocs(false);
     setShowRoadmap(false);
@@ -146,21 +109,18 @@ export default function App() {
   const navigateToRoadmap = () => {
     window.history.pushState({}, "", "/roadmap");
     setShowRoadmap(true);
-    setShowDocs(false);
     setShowAbout(false);
     setShowSystemDocs(false);
     setShowAdmin(false);
   };
 
-  const navigateToTestViewer = () => {
-    window.history.pushState({}, "", "/test-viewer");
-    setShowTestViewer(true);
-    setShowDocs(false);
+  const navigateToPainelReferencia = () => {
+    window.history.pushState({}, "", "/painel-referencia");
+    setShowPainelReferencia(true);
     setShowAbout(false);
     setShowSystemDocs(false);
     setShowAdmin(false);
     setShowRoadmap(false);
-    setShowDevTest(false);
   };
 
   const navigateToApp = () => {
@@ -169,25 +129,25 @@ export default function App() {
     setShowSystemDocs(false);
     setShowAdmin(false);
     setShowRoadmap(false);
-    setShowTestViewer(false);
     setShowDevTest(false);
     setShowDevActions(false);
+    setShowPainelReferencia(false);
   };
 
   return (
-    <ThemeProvider>
-      <ProjectProvider>
+    <ProjectProvider>
         <MaterialProvider>
           <PimoViewerProvider>
             <div className="app-root">
         <Header
-          onToggleDocs={() => {
-            if (showAbout || showSystemDocs || showAdmin || showRoadmap) {
+          onTogglePainelReferencia={() => {
+            if (showPainelReferencia) {
               navigateToApp();
+            } else {
+              navigateToPainelReferencia();
             }
-            setShowDocs((prev) => !prev);
           }}
-          docsOpen={showDocs}
+          painelReferenciaOpen={showPainelReferencia}
           onShowRoadmap={() => {
             if (showRoadmap) {
               navigateToApp();
@@ -196,27 +156,18 @@ export default function App() {
             navigateToRoadmap();
           }}
           roadmapOpen={showRoadmap}
-          onShowTestViewer={() => {
-            if (showTestViewer) {
-              navigateToApp();
-              return;
-            }
-            navigateToTestViewer();
-          }}
         />
 
         {/* MAIN AREA */}
         <div className="app-main">
-          {showDocs ? (
-            <Documentation />
+          {showPainelReferencia ? (
+            <PainelReferencia />
           ) : showSystemDocs ? (
             <Documentacao />
           ) : showAdmin ? (
             <AdminPanel />
           ) : showRoadmap ? (
             <ProjectRoadmap />
-          ) : showTestViewer ? (
-            <TestViewer />
           ) : showDevTest ? (
             <DevPimoTest />
           ) : showDevActions ? (
@@ -224,6 +175,7 @@ export default function App() {
           ) : showAbout ? (
             <SobreNos />
           ) : (
+            <ToolbarModalProvider>
             <div className="app-panels">
               <LeftToolbar
                 selectedId={leftPanelTab}
@@ -258,7 +210,7 @@ export default function App() {
 
               {/* WORKSPACE */}
               <Workspace
-                viewerBackground="#0f172a"
+                viewerBackground={VIEWER_BACKGROUND}
                 viewerHeight="100%"
                 viewerOptions={viewerOptions}
               />
@@ -279,11 +231,12 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </ToolbarModalProvider>
           )}
         </div>
 
         {/* BOTTOM PANEL */}
-        {!showDocs && !showAbout && !showSystemDocs && !showAdmin && !showRoadmap && (
+        {!showPainelReferencia && !showAbout && !showSystemDocs && !showAdmin && !showRoadmap && (
           <div
             className={
               showBottom
@@ -301,10 +254,11 @@ export default function App() {
           onShowAdmin={navigateToAdmin}
         />
 
+        <WhatsAppButton />
+
             </div>
           </PimoViewerProvider>
         </MaterialProvider>
-      </ProjectProvider>
-    </ThemeProvider>
+    </ProjectProvider>
   );
 }

@@ -27,7 +27,7 @@ export default function CutListView() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
       {(project.boxes ?? []).map((box, index) => {
-        const parametricList = cutlistComPrecoFromBox(box);
+        const parametricList = cutlistComPrecoFromBox(box, project.rules);
         const extractedByModel = project.extractedPartsByBoxId?.[box.id];
         const extractedList = extractedByModel ? Object.values(extractedByModel).flat() : [];
         const cutlistComPreco = [...parametricList, ...extractedList];

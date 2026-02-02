@@ -15,6 +15,8 @@ import type {
 } from "../core/types";
 import type { RuleViolation } from "../core/rules/types";
 import type { LayoutWarnings } from "../core/layout/layoutWarnings";
+import type { RulesConfig } from "../core/rules/rulesConfig";
+import type { RulesProfilesConfig } from "../core/rules/rulesProfiles";
 
 export interface ProjectState {
   projectName: string;
@@ -52,6 +54,16 @@ export interface ProjectState {
   precoTotalPecas: number | null;
   precoTotalAcessorios: number | null;
   precoTotalProjeto: number | null;
+
+  /** Ferramenta 3D ativa no Viewer: select, move, rotate. Opcional para compatibilidade com snapshots antigos. */
+  activeViewerTool?: "select" | "move" | "rotate";
+
+  /** Perfis de regras: lista de perfis + perfil ativo. */
+  rulesProfiles: RulesProfilesConfig;
+  /** Regras dinâmicas ativas (= perfil ativo); usadas em todo o projeto. */
+  rules: RulesConfig;
+  /** ID do perfil de regras associado ao projeto (opcional; futuro project-level profile). */
+  rulesProfileId?: string;
 
   estaCarregando: boolean;
   erro: string | null;
@@ -121,12 +133,16 @@ export type ViewerRenderResult = {
   height: number;
 };
 
+export type ViewerToolMode = "select" | "move" | "rotate";
+
 export type ViewerApi = {
   saveSnapshot: () => ViewerSnapshot | null;
   restoreSnapshot: (_snapshot: ViewerSnapshot | null) => void;
   enable2DView: (_angle: Viewer2DAngle) => void;
   disable2DView: () => void;
   renderScene: (_options: ViewerRenderOptions) => ViewerRenderResult | null;
+  /** Define a ferramenta ativa no Viewer (select = sem gizmo, move = translate, rotate = rotate). */
+  setTool: (_mode: ViewerToolMode) => void;
 };
 
 export type ProjectSnapshot = {
@@ -144,6 +160,8 @@ export type ViewerSync = {
   enable2DView: (_angle: Viewer2DAngle) => void;
   disable2DView: () => void;
   renderScene: (_options: ViewerRenderOptions) => ViewerRenderResult | null;
+  /** Define a ferramenta 3D ativa (select, move, rotate); aplica à caixa selecionada. */
+  setActiveTool: (_mode: ViewerToolMode) => void;
 };
 
 export interface ProjectActions {
@@ -174,6 +192,7 @@ export interface ProjectActions {
   selectModelInstance: (_boxId: string, _modelInstanceId: string | null) => void;
   renameBox: (_nome: string) => void;
   setPrateleiras: (_quantidade: number) => void;
+  setGavetas: (_quantidade: number) => void;
   setPortaTipo: (_portaTipo: BoxModule["portaTipo"]) => void;
   setTipoBorda: (_tipoBorda: TipoBorda) => void;
   setTipoFundo: (_tipoFundo: TipoFundo) => void;
@@ -196,7 +215,26 @@ export interface ProjectActions {
   rotateWorkspaceBox: (_boxId: string) => void;
   gerarDesign: () => void;
   exportarPDF: () => void;
+  exportarPdfTecnico: () => void;
   logChangelog: (_message: string) => void;
+  /** Define a ferramenta 3D ativa (select, move, rotate) e aplica ao viewerApiAdapter. */
+  setActiveTool: (_mode: "select" | "move" | "rotate") => void;
+  /** Atualiza regras dinâmicas; guarda no LocalStorage e força recalcular caixas. */
+  updateRules: (_rules: RulesConfig) => void;
+  /** Define o perfil de regras ativo; recalcula todas as caixas. */
+  setActiveRulesProfile: (_id: string) => void;
+  /** Atualiza as regras de um perfil; se for o ativo, recalcula caixas. */
+  updateRulesInProfile: (_profileId: string, _rules: RulesConfig) => void;
+  /** Adiciona um novo perfil de regras. */
+  addRulesProfile: (_profile: { nome: string; descricao?: string; rules?: RulesConfig }) => void;
+  /** Remove um perfil de regras (exceto o padrão). */
+  removeRulesProfile: (_id: string) => void;
+  /** Substitui toda a configuração de perfis (ex.: após reset). */
+  setRulesProfilesConfig: (_config: RulesProfilesConfig) => void;
+  /** Define o perfil de regras do projeto (futuro; não ativado na UI ainda). */
+  setProjectRulesProfile: (_id: string) => void;
+  /** Recalcula todas as caixas com as regras atuais (após updateRules). */
+  recalculateAllBoxes: () => void;
   undo: () => void;
   redo: () => void;
   saveProjectSnapshot: () => void;

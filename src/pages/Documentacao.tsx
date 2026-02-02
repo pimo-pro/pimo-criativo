@@ -272,7 +272,7 @@ export default function Documentacao() {
           {"\n"}- src/context/materialUtils.ts
           {"\n"}- src/context/useMaterial.ts
           {"\n"}- src/components/layout/right-panel/MaterialPanel.tsx
-          {"\n"}- src/pages/Documentation.tsx
+          {"\n"}- src/pages/PainelReferencia.tsx
           {"\n"}- src/components/ui/Panel.tsx
           {"\n"}- src/index.css
           {"\n"}- src/components/three/ThreeViewer.tsx
@@ -372,6 +372,149 @@ const { materials, setMaterials } = useMaterials();
   defaultValue: [],
 });`}
         </pre>
+      </Panel>
+
+      <Panel title="Novas Funcionalidades e Módulos (2025)">
+        <div style={bodyTextStyle}>
+          Novas funcionalidades implementadas:
+          {"\n\n"}====================================================
+          Ferragens — Base do Sistema
+          ====================================================
+          {"\n"}- Implementação completa do módulo de Ferragens.
+          {"\n"}- Interface Ferragem com: id, nome, categoria, medidas, descrição.
+          {"\n"}- Persistência via useFerragens (localStorage: pimo_ferragens).
+          {"\n"}- Página Admin para gestão completa de ferragens (criar, editar, remover).
+          {"\n"}- Integração total com Component Types (dropdown de ferragens).
+          {"\n"}- Validação automática de ferragem_id.
+          {"\n\n"}====================================================
+          Ferragens Default por Tipo de Componente
+          ====================================================
+          {"\n"}- Regras automáticas aplicadas a: CIMA, FUNDO, LATERAIS, PRATELEIRA, PORTA, GAVETA, COSTA.
+          {"\n"}- Quantidades padrão para cada ferragem.
+          {"\n"}- Estrutura centralizada em componentTypes.ts.
+          {"\n\n"}====================================================
+          Regras de Furação (Drilling Rules)
+          ====================================================
+          {"\n"}- Nova propriedade: componentType.regras_de_furo.
+          {"\n"}- Interface completa com: tipo, diâmetro, profundidade, quantidade_por_lado, aplicar_em.
+          {"\n"}- Regras industriais para:
+          {"\n"}  • Cavilhas (Ø8mm)
+          {"\n"}  • Parafusos (Ø3mm / Ø5mm)
+          {"\n"}  • Dobradiças (Ø35mm + furos auxiliares)
+          {"\n"}  • Corrediças
+          {"\n"}  • Suportes de prateleira
+          {"\n"}  • Pregos de costa
+          {"\n"}- Editor completo no Admin para adicionar/remover/editar regras de furo.
+          {"\n\n"}====================================================
+          Ferragens Industriais (todas as caixas)
+          ====================================================
+          {"\n"}- Novo módulo: src/core/industriais/ferragensIndustriais.ts.
+          {"\n"}- Funções:
+          {"\n"}  • gerarFerragensIndustriais()
+          {"\n"}  • agruparPorComponente()
+          {"\n"}- Combinação automática de ferragens_default + regras_de_furo.
+          {"\n"}- Quantidades calculadas por lado ou quantidade fixa.
+          {"\n"}- Preview automático na página Component Types.
+          {"\n\n"}====================================================
+          Integração com Cutlist Industrial
+          ====================================================
+          {"\n"}- Nova secção "Ferragens Industriais (detalhado)" no CutlistPanel.
+          {"\n"}- Tabelas por componente com:
+          {"\n"}  ferragem_id, quantidade, aplicar_em, tipo_furo, profundidade.
+          {"\n"}- Dados atualizados dinamicamente conforme Component Types.
+          {"\n\n"}====================================================
+          Estrutura do PDF Técnico (Fase 6)
+          ====================================================
+          {"\n"}- PDF em modo landscape.
+          {"\n"}- Módulo: src/core/pdf/gerarPdfTecnico.ts.
+          {"\n"}- Funções principais:
+          {"\n"}  • gerarPdfTecnico()
+          {"\n"}  • gerarPdfTecnicoCompleto()
+          {"\n"}  • calcularDadosResumoFinanceiro()
+          {"\n"}- Funções auxiliares:
+          {"\n"}  • adicionarTabelaComponentes
+          {"\n"}  • adicionarTabelaFerragens
+          {"\n"}  • adicionarTabelaFuros
+          {"\n"}  • adicionarTabelaMontagem
+          {"\n"}  • adicionarResumoFinanceiro
+          {"\n\n"}====================================================
+          Página 1 — Lista Industrial (sem preços)
+          ====================================================
+          {"\n"}- Cabeçalho:
+          {"\n"}  PIMO Studio
+          {"\n"}  PROJETO/MÓVEL
+          {"\n"}  Acabamento (um ou dois materiais)
+          {"\n"}- Tabela única estilo Excel contendo TODAS as peças do projeto:
+          {"\n"}  REF PEÇA, MATERIAL, QTD, COMP, LARG, ESP,
+          {"\n"}  NESTING, CNC, Drill,
+          {"\n"}  O2, O3, O4, O5,
+          {"\n"}  F2, F3, F4, F5,
+          {"\n"}  OBSERVAÇÕES, N QR.
+          {"\n"}- Ordenação por caixa → espessura → peça.
+          {"\n\n"}====================================================
+          Página 2 — Preços e Detalhes Técnicos
+          ====================================================
+          {"\n"}- Resumo financeiro completo:
+          {"\n"}  custos de peças, ferragens, materiais, montagem, totais.
+          {"\n"}- Observações técnicas.
+          {"\n"}- Estrutura pronta para expansão futura.
+          {"\n\n"}====================================================
+          Dados carregados automaticamente
+          ====================================================
+          {"\n"}- Component Types (pimo_component_types)
+          {"\n"}- Ferragens (pimo_ferragens)
+          {"\n"}- Materiais (pimo_admin_materials)
+          {"\n"}- Regras de furo e ferragens industriais combinadas.
+          {"\n\n"}====================================================
+          Arquitetura e Fluxos (novos pontos)
+          ====================================================
+          {"\n"}- Sistema agora possui pipeline industrial completo:
+          {"\n"}  Ferragens → Regras de Furo → Ferragens Industriais → Cutlist → PDF.
+          {"\n"}- Todos os módulos centralizados e sincronizados via hooks.
+          {"\n"}- Atualizações no Admin refletem imediatamente no Cutlist e PDF.
+          {"\n\n"}====================================================
+          Exemplos de Código
+          ====================================================
+          {"\n"}- Ferragens:
+          {"\n  const { items: ferragens, setItems: setFerragens } = useFerragens();"}
+          {"\n"}  // Estado centralizado + persistência automática
+          {"\n\n"}- Regras de Furação:
+          {"\n"}  const regras = componentType.regras_de_furo;
+          {"\n"}  // Interface: tipo, diâmetro, profundidade, quantidade_por_lado, aplicar_em
+          {"\n\n"}- Ferragens Industriais:
+          {"\n"}  const ferragensIndustriais = gerarFerragensIndustriais(componentTypes, ferragens);
+          {"\n"}  // Combinação automática de defaults + regras
+          {"\n\n"}- PDF Técnico:
+          {"\n"}  const pdf = gerarPdfTecnicoCompleto(projectState, componentTypes, ferragens);
+          {"\n"}  // Gera PDF em landscape com todas as tabelas industriais
+          {"\n\n"}====================================================
+          Arquivos Principais
+          ====================================================
+          {"\n"}- src/core/industriais/ferragensIndustriais.ts
+          {"\n"}- src/core/pdf/gerarPdfTecnico.ts
+          {"\n"}- src/hooks/useFerragens.ts
+          {"\n"}- src/components/admin/FerragensManager.tsx
+          {"\n"}- src/components/admin/ComponentTypesManager.tsx
+          {"\n"}- src/components/panels/CutlistPanel.tsx
+          {"\n"}- src/core/types/ferragens.ts
+          {"\n"}- src/core/types/componentTypes.ts
+          {"\n\n"}====================================================
+          Decisões de Arquitetura
+          ====================================================
+          {"\n"}- Ferragens como entidade independente com persistência própria.
+          {"\n"}- Regras de furação integradas ao Component Types.
+          {"\n"}- Pipeline industrial sequencial e previsível.
+          {"\n"}- PDF técnico com estrutura fixa para produção industrial.
+          {"\n"}- Integração completa entre Admin, Cutlist e PDF.
+          {"\n\n"}====================================================
+          Benefícios
+          ====================================================
+          {"\n"}- Sistema industrial completo integrado.
+          {"\n"}- Dados consistentes entre todas as etapas.
+          {"\n"}- PDF técnico pronto para produção.
+          {"\n"}- Admin centralizado para todas as configurações.
+          {"\n"}- Fluxo de trabalho otimizado para produção industrial.
+        </div>
       </Panel>
 
       <Panel>

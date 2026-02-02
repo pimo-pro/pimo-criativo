@@ -1,6 +1,11 @@
+import { useMemo } from "react";
 import Panel from "../ui/Panel";
 import { useProject } from "../../context/useProject";
 import { gerarModeloIndustrial } from "../../core/manufacturing/boxManufacturing";
+import type { FerragemIndustrial } from "../../core/industriais/ferragensIndustriais";
+import { gerarFerragensIndustriais, agruparPorComponente } from "../../core/industriais/ferragensIndustriais";
+import { useComponentTypes } from "../../hooks/useComponentTypes";
+import { useFerragens } from "../../hooks/useFerragens";
 
 const tableStyle = {
   width: "100%",
@@ -49,8 +54,19 @@ const aplicacaoFerragens: Record<string, string> = {
 
 export default function CutlistPanel() {
   const { project } = useProject();
+  const { componentTypes } = useComponentTypes();
+  const { ferragens } = useFerragens();
   // Single Source of Truth: TODAS as caixas de project.boxes (não apenas a selecionada)
   const boxes = project.boxes ?? [];
+
+  const ferragensIndustriaisDetalhado = useMemo(
+    () => gerarFerragensIndustriais(componentTypes, ferragens),
+    [componentTypes, ferragens]
+  );
+  const ferragensPorComponente = useMemo(
+    () => agruparPorComponente(ferragensIndustriaisDetalhado),
+    [ferragensIndustriaisDetalhado]
+  );
 
   if (boxes.length === 0) {
     return (
@@ -78,7 +94,7 @@ export default function CutlistPanel() {
   const allFerragens: Array<{ key: string; boxNome: string; tipo: string; quantidade: number; custo: number }> = [];
 
   boxes.forEach((box) => {
-    const modelo = gerarModeloIndustrial(box);
+    const modelo = gerarModeloIndustrial(box, project.rules);
     const boxNome = box.nome || box.id;
     totalAreaMm2 += modelo.cutlist.areaTotal_mm2;
     modelo.paineis.forEach((p) => {
@@ -242,6 +258,72 @@ export default function CutlistPanel() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        <div>
+          <div style={sectionTitleStyle}>Ferragens Industriais (detalhado)</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>
+            Por tipo de componente — ferragens e furos (Component Types + regras de furação).
+          </div>
+          {ferragensIndustriaisDetalhado.length === 0 ? (
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Nenhuma ferragem industrial configurada.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {(Array.from(ferragensPorComponente.entries()) as [string, FerragemIndustrial[]][]).map(
+                ([componenteId, itens]) => (
+                  <div
+                    key={componenteId}
+                    style={{
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      borderRadius: "var(--radius)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "6px 10px",
+                        background: "rgba(255,255,255,0.04)",
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                    >
+                      {componenteId}
+                    </div>
+                    <table style={tableStyle}>
+                      <thead>
+                        <tr>
+                          <th style={headerCellStyle}>ferragem_id</th>
+                          <th style={{ ...headerCellStyle, textAlign: "center" }}>Quantidade</th>
+                          <th style={headerCellStyle}>aplicar_em</th>
+                          <th style={headerCellStyle}>tipo_furo</th>
+                          <th style={headerCellStyle}>profundidade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itens.map((item, idx) => (
+                          <tr key={`${componenteId}-${idx}`}>
+                            <td style={bodyCellStyle}>{item.ferragem_id}</td>
+                            <td style={{ ...bodyCellStyle, textAlign: "center" }}>
+                              {item.quantidade}
+                            </td>
+                            <td style={bodyCellStyle}>
+                              {item.aplicar_em.length > 0 ? item.aplicar_em.join(", ") : "—"}
+                            </td>
+                            <td style={bodyCellStyle}>{item.tipo_furo ?? "—"}</td>
+                            <td style={bodyCellStyle}>
+                              {item.profundidade != null ? `${item.profundidade} mm` : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              )}
+            </div>
           )}
         </div>
 

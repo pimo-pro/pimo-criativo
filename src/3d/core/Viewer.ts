@@ -21,6 +21,16 @@ import { updateBoxGeometry, updateBoxGroup, buildBoxLegacy } from "../objects/Bo
 import type { BoxOptions } from "../objects/BoxBuilder";
 import type { EnvironmentOptions } from "./Environment";
 
+/**
+ * Interface multi-box do Viewer:
+ * - addBox(id, options): registra caixa (paramétrica ou CAD-only)
+ * - removeBox(id): remove caixa e libera recursos
+ * - updateBox(id, options): atualiza dimensões, posição, rotação
+ * - setBoxIndex(id, index): reordena (reflow automático)
+ * - addModelToBox/removeModelFromBox/listModels: modelos GLB por caixa
+ * - selectBox(id): caixa ativa (highlight)
+ */
+
 export type ViewerOptions = {
   background?: string;
   scene?: SceneOptions;

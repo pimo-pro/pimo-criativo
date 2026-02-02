@@ -1,12 +1,13 @@
 import type { AcessorioComPreco, BoxModule, CutListItemComPreco } from "../types";
-import { gerarModeloIndustrial } from "./boxManufacturing";
+import { gerarModeloIndustrial, getPieceLabel } from "./boxManufacturing";
+import type { RulesConfig } from "../rules/rulesConfig";
 
 /**
  * Gera cutlist com preço para uma caixa a partir de project.boxes (Single Source of Truth).
- * Usa gerarModeloIndustrial, não o design antigo.
+ * Usa gerarModeloIndustrial com rules do projeto.
  */
-export function cutlistComPrecoFromBox(box: BoxModule): CutListItemComPreco[] {
-  const modelo = gerarModeloIndustrial(box);
+export function cutlistComPrecoFromBox(box: BoxModule, rules: RulesConfig): CutListItemComPreco[] {
+  const modelo = gerarModeloIndustrial(box, rules);
   const material = box.material ?? "MDF Branco";
   const items: CutListItemComPreco[] = [];
 
@@ -16,7 +17,7 @@ export function cutlistComPrecoFromBox(box: BoxModule): CutListItemComPreco[] {
     items.push({
       ...baseItem,
       id: `${box.id}-${p.id}`,
-      nome: p.tipo,
+      nome: getPieceLabel(p.tipo),
       quantidade: p.quantidade,
       dimensoes: {
         largura: p.largura_mm,
@@ -75,8 +76,8 @@ export function cutlistComPrecoFromBox(box: BoxModule): CutListItemComPreco[] {
 /**
  * Cutlist com preço agregada de todas as caixas (project.boxes).
  */
-export function cutlistComPrecoFromBoxes(boxes: BoxModule[]): CutListItemComPreco[] {
-  return boxes.flatMap((box) => cutlistComPrecoFromBox(box));
+export function cutlistComPrecoFromBoxes(boxes: BoxModule[], rules: RulesConfig): CutListItemComPreco[] {
+  return boxes.flatMap((box) => cutlistComPrecoFromBox(box, rules));
 }
 
 /**
@@ -84,10 +85,10 @@ export function cutlistComPrecoFromBoxes(boxes: BoxModule[]): CutListItemComPrec
  * Cada ferragem já tem id único por caixa (f.id em boxManufacturing); a posição
  * no array modelo.ferragens não é usada — apenas mapeamos f → AcessorioComPreco.
  */
-export function ferragensFromBoxes(boxes: BoxModule[]): AcessorioComPreco[] {
+export function ferragensFromBoxes(boxes: BoxModule[], rules: RulesConfig): AcessorioComPreco[] {
   const acc: AcessorioComPreco[] = [];
   for (const box of boxes) {
-    const modelo = gerarModeloIndustrial(box);
+    const modelo = gerarModeloIndustrial(box, rules);
     for (const f of modelo.ferragens) {
       acc.push({
         id: `${box.id}-${f.id}`,

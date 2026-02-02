@@ -4,6 +4,12 @@ import TemplatesManager from "../components/admin/TemplatesManager";
 import CADModelsManager from "../components/admin/CADModelsManager";
 import MaterialsManufacturing from "../components/admin/MaterialsManufacturing";
 import RulesManager from "../components/admin/RulesManager";
+import FileManager from "../components/admin/FileManager";
+import RulesAdminPage from "../components/admin/RulesAdminPage";
+import RulesProfilesPage from "../components/admin/RulesProfilesPage";
+import DeployAdminPage from "../components/admin/DeployAdminPage";
+import ComponentTypesAdminPage from "../components/admin/ComponentTypesAdminPage";
+import FerragensAdminPage from "../components/admin/FerragensAdminPage";
 
 const sidebarItems = [
   "Dashboard",
@@ -13,6 +19,10 @@ const sidebarItems = [
   "Templates",
   "CAD Models",
   "Regras",
+  "Regras Dinâmicas",
+  "Perfis de Regras",
+  "Component Types",
+  "Gestor de Ficheiros",
   "Pricing",
   "System Settings",
   "Users",
@@ -27,13 +37,13 @@ export default function AdminPanel() {
         flex: 1,
         display: "flex",
         height: "100%",
-        background: "radial-gradient(circle at top, #1e293b, #0b0f17 60%)",
+        background: "radial-gradient(circle at top, var(--blue-dark), var(--black) 60%)",
       }}
     >
       <aside
         style={{
           width: 220,
-          background: "rgba(15,23,42,0.92)",
+          background: "color-mix(in srgb, var(--navy) 92%, transparent)",
           borderRight: "1px solid rgba(255,255,255,0.08)",
           padding: "18px 14px",
           display: "flex",
@@ -98,12 +108,24 @@ export default function AdminPanel() {
             <MaterialsManager />
           ) : active === "Materiais & Fabricação" ? (
             <MaterialsManufacturing />
+          ) : active === "Ferragens" ? (
+            <FerragensAdminPage />
           ) : active === "Templates" ? (
             <TemplatesManager />
           ) : active === "CAD Models" ? (
             <CADModelsManager />
           ) : active === "Regras" ? (
             <RulesManager />
+          ) : active === "Regras Dinâmicas" ? (
+            <RulesAdminPage />
+          ) : active === "Perfis de Regras" ? (
+            <RulesProfilesPage />
+          ) : active === "Component Types" ? (
+            <ComponentTypesAdminPage />
+          ) : active === "Gestor de Ficheiros" ? (
+            <FileManager />
+          ) : active === "Deploy" ? (
+            <DeployAdminPage />
           ) : (
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
               Módulo em construção.

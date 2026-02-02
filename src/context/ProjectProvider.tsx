@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { gerarPdfIndustrial } from "../core/export/pdfGenerator";
+import { gerarPdfTecnicoCompleto } from "../core/pdf/gerarPdfTecnico";
 import type { BoxModelInstance, WorkspaceBox } from "../core/types";
+import { saveProfiles } from "../core/rules/rulesProfilesStorage";
+import { DEFAULT_PROFILE_ID } from "../core/rules/rulesProfilesStorage";
+import { defaultRulesConfig, type RulesConfig } from "../core/rules/rulesConfig";
+import type { RulesProfile, RulesProfilesConfig } from "../core/rules/rulesProfiles";
 import { ProjectContext } from "./projectContext";
 import type {
   ProjectActions,
@@ -95,8 +99,22 @@ const reviveState = (snapshot: unknown): ProjectState | null => {
       Array.isArray(restored.layoutWarnings.outOfBounds)
         ? restored.layoutWarnings
         : { collisions: [], outOfBounds: [] },
+    rulesProfiles:
+      restored.rulesProfiles &&
+      typeof restored.rulesProfiles === "object" &&
+      Array.isArray(restored.rulesProfiles.perfis) &&
+      restored.rulesProfiles.perfis.length > 0
+        ? restored.rulesProfiles
+        : defaultState.rulesProfiles,
+    rules: getRulesFromRestored(restored),
   };
 };
+
+function getRulesFromRestored(restored: Partial<ProjectState> & { rules?: RulesConfig }): RulesConfig {
+  const config = restored.rulesProfiles ?? defaultState.rulesProfiles;
+  const perfil = config.perfis.find((p) => p.id === config.perfilAtivoId);
+  return perfil?.rules ?? (restored.rules as RulesConfig | undefined) ?? defaultState.rules;
+}
 
 /** Converte formato antigo (boxId → items[]) para boxId → modelInstanceId → items[]. */
 function normalizeExtractedParts(
@@ -550,6 +568,27 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       });
     },
 
+    setGavetas: (quantidade) => {
+      const valor = Math.max(0, Math.floor(quantidade));
+      updateProject((prev) => {
+        const workspaceBoxes = prev.workspaceBoxes.map((box) =>
+          box.id === prev.selectedWorkspaceBoxId ? { ...box, gavetas: valor } : box
+        );
+        return recomputeState(
+          prev,
+          {
+            workspaceBoxes,
+            changelog: appendChangelog(prev.changelog, {
+              timestamp: new Date(),
+              type: "box",
+              message: `Gavetas ajustadas para ${valor}`,
+            }),
+          },
+          true
+        );
+      });
+    },
+
     setPortaTipo: (portaTipo) => {
       updateProject((prev) => {
         const workspaceBoxes = prev.workspaceBoxes.map((box) =>
@@ -749,8 +788,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         alert("Nenhuma cut list disponível para exportar.");
         return;
       }
-      const doc = gerarPdfIndustrial(boxesToExport);
-      doc.save("cutlist-industrial.pdf");
+      const projectName = currentProject.projectName?.trim() || "Projeto";
+      const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "Projeto";
+      const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName);
+      doc.save(`${safeName}_CutList.pdf`);
+    },
+
+    exportarPdfTecnico: () => {
+      const currentProject = projectRef.current;
+      const boxesToExport = currentProject.boxes ?? [];
+      const projectName = currentProject.projectName?.trim() || "Projeto";
+      const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName);
+      doc.save("documento-tecnico-industrial.pdf");
     },
 
     logChangelog: (message) => {
@@ -765,6 +814,105 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         }),
         false
       );
+    },
+    setActiveTool: (mode) => {
+      updateProject((prev) => ({ ...prev, activeViewerTool: mode }), false);
+      viewerSync.setActiveTool(mode);
+    },
+    updateRules: (rules: RulesConfig) => {
+      updateProject((prev) => {
+        const profiles = prev.rulesProfiles;
+        const idx = profiles.perfis.findIndex((p) => p.id === profiles.perfilAtivoId);
+        if (idx < 0) return { ...prev, rules };
+        const nextPerfis = [...profiles.perfis];
+        nextPerfis[idx] = { ...nextPerfis[idx], rules };
+        const nextConfig = { ...profiles, perfis: nextPerfis };
+        saveProfiles(nextConfig);
+        return applyResultados({ ...prev, rulesProfiles: nextConfig, rules });
+      }, false);
+    },
+    setActiveRulesProfile: (id: string) => {
+      updateProject((prev) => {
+        const profiles = prev.rulesProfiles;
+        if (!profiles.perfis.some((p) => p.id === id)) return prev;
+        const nextConfig = { ...profiles, perfilAtivoId: id };
+        const perfil = nextConfig.perfis.find((p) => p.id === id);
+        const rules = perfil?.rules ?? prev.rules;
+        saveProfiles(nextConfig);
+        return applyResultados({ ...prev, rulesProfiles: nextConfig, rules });
+      }, false);
+    },
+    updateRulesInProfile: (profileId: string, rules: RulesConfig) => {
+      updateProject((prev) => {
+        const profiles = prev.rulesProfiles;
+        const idx = profiles.perfis.findIndex((p) => p.id === profileId);
+        if (idx < 0) return prev;
+        const nextPerfis = [...profiles.perfis];
+        nextPerfis[idx] = { ...nextPerfis[idx], rules };
+        const nextConfig = { ...profiles, perfis: nextPerfis };
+        const isActive = profiles.perfilAtivoId === profileId;
+        const nextRules = isActive ? rules : prev.rules;
+        saveProfiles(nextConfig);
+        return applyResultados({ ...prev, rulesProfiles: nextConfig, rules: nextRules });
+      }, false);
+    },
+    addRulesProfile: (profile: { nome: string; descricao?: string; rules?: RulesConfig }) => {
+      updateProject((prev) => {
+        const id = `profile-${Date.now()}`;
+        const newProfile: RulesProfile = {
+          id,
+          nome: profile.nome,
+          descricao: profile.descricao,
+          rules: profile.rules ?? JSON.parse(JSON.stringify(defaultRulesConfig)),
+        };
+        const nextConfig = {
+          ...prev.rulesProfiles,
+          perfis: [...prev.rulesProfiles.perfis, newProfile],
+        };
+        saveProfiles(nextConfig);
+        return { ...prev, rulesProfiles: nextConfig };
+      }, false);
+    },
+    setRulesProfilesConfig: (config: RulesProfilesConfig) => {
+      updateProject((prev) => {
+        const perfil = config.perfis.find((p) => p.id === config.perfilAtivoId);
+        const rules = perfil?.rules ?? prev.rules;
+        return applyResultados({ ...prev, rulesProfiles: config, rules });
+      }, false);
+    },
+    setProjectRulesProfile: (id: string) => {
+      updateProject((prev) => {
+        const perfil = prev.rulesProfiles.perfis.find((p) => p.id === id);
+        if (!perfil) return prev;
+        return applyResultados({
+          ...prev,
+          rulesProfileId: id,
+          rules: perfil.rules,
+        });
+      }, false);
+    },
+    removeRulesProfile: (id: string) => {
+      if (id === DEFAULT_PROFILE_ID) return;
+      updateProject((prev) => {
+        const profiles = prev.rulesProfiles;
+        const nextPerfis = profiles.perfis.filter((p) => p.id !== id);
+        if (nextPerfis.length === 0) return prev;
+        const newActiveId =
+          profiles.perfilAtivoId === id ? nextPerfis[0].id : profiles.perfilAtivoId;
+        const nextConfig = {
+          perfis: nextPerfis,
+          perfilAtivoId: newActiveId,
+        };
+        const perfil = nextPerfis.find((p) => p.id === newActiveId);
+        const rules = perfil?.rules ?? prev.rules;
+        saveProfiles(nextConfig);
+        return applyResultados({ ...prev, rulesProfiles: nextConfig, rules });
+      }, false);
+    },
+    recalculateAllBoxes: () => {
+      updateProject((prev) => {
+        return applyResultados(prev);
+      });
     },
     undo: () => {
       updateProject(

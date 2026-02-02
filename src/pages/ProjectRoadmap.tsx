@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import Panel from "../components/ui/Panel";
 import { useProject } from "../context/useProject";
 import type { Phase, PhaseTask, RoadmapStats } from "../core/docs/projectRoadmap";
 import {
@@ -114,210 +113,289 @@ export default function ProjectRoadmap() {
     <main className="page-root">
       <style dangerouslySetInnerHTML={{ __html: roadmapStyles }} />
       <div className="roadmap-container">
-        {/* Left Sidebar - Fixed Stats Panel */}
-        <aside className="sidebar-esquerda">
-          <Panel title="Estatísticas Rápidas">
-            <div className="stats-container">
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-                    <path d="M2 17L12 22L22 17"/>
-                    <path d="M2 12L12 17L22 12"/>
-                  </svg>
-                </div>
-                <div className="stat-content">
-                  <div className="stat-value">{stats.totalPhases}</div>
-                  <div className="stat-label">Fases Concluídas</div>
-                </div>
-              </div>
+        {/* Header Section */}
+        <header className="roadmap-header">
+          <div className="header-content">
+            <h1 className="page-title">Roadmap do Projeto</h1>
+            <p className="page-subtitle">Visão geral do progresso e planejamento do desenvolvimento</p>
+          </div>
+        </header>
 
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-                    <path d="M2 17L12 22L22 17"/>
-                    <path d="M2 12L12 17L22 12"/>
-                  </svg>
-                </div>
-                <div className="stat-content">
-                  <div className="stat-value">{stats.progress}%</div>
-                  <div className="stat-label">Progresso Global</div>
-                </div>
+        {/* Statistics Section */}
+        <section className="stats-section">
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                  <path d="M2 17L12 22L22 17"/>
+                  <path d="M2 12L12 17L22 12"/>
+                </svg>
               </div>
-
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-                    <path d="M2 17L12 22L22 17"/>
-                    <path d="M2 12L12 17L22 12"/>
-                  </svg>
-                </div>
-                <div className="stat-content">
-                  <div className="stat-value">{stats.pendingTasks}</div>
-                  <div className="stat-label">Tarefas Pendentes</div>
-                </div>
-              </div>
-
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-                    <path d="M2 17L12 22L22 17"/>
-                    <path d="M2 12L12 17L22 12"/>
-                  </svg>
-                </div>
-                <div className="stat-content">
-                  <div className="stat-value">{stats.totalTasks}</div>
-                  <div className="stat-label">Total de Tarefas</div>
-                </div>
-              </div>
-
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-                    <path d="M2 17L12 22L22 17"/>
-                    <path d="M2 12L12 17L22 12"/>
-                  </svg>
-                </div>
-                <div className="stat-content">
-                  <div className="stat-value">{stats.doneTasks}</div>
-                  <div className="stat-label">Tarefas Concluídas</div>
-                </div>
+              <div className="stat-info">
+                <div className="stat-value">{stats.totalPhases}</div>
+                <div className="stat-label">Fases Concluídas</div>
               </div>
             </div>
-          </Panel>
-        </aside>
 
-        {/* Center Column - Main Timeline */}
-        <main className="coluna-central">
-          <Panel title="Timeline das Phases">
-            <div className="timeline">
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <div className="stat-info">
+                <div className="stat-value">{stats.progress}%</div>
+                <div className="stat-label">Progresso Global</div>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 8v4l3 3"/>
+                </svg>
+              </div>
+              <div className="stat-info">
+                <div className="stat-value">{stats.pendingTasks}</div>
+                <div className="stat-label">Tarefas Pendentes</div>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                </svg>
+              </div>
+              <div className="stat-info">
+                <div className="stat-value">{stats.totalTasks}</div>
+                <div className="stat-label">Total de Tarefas</div>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+              <div className="stat-info">
+                <div className="stat-value">{stats.doneTasks}</div>
+                <div className="stat-label">Tarefas Concluídas</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Main Content Area */}
+        <div className="main-content">
+          {/* Timeline Section */}
+          <main className="timeline-section">
+            <div className="section-header">
+              <h2 className="section-title">Fases do Projeto</h2>
+              <p className="section-subtitle">Visão detalhada de cada fase e seu progresso</p>
+            </div>
+            
+            <div className="timeline-list">
               {phases.map((phase) => (
-                <div key={phase.id} className="timeline-item">
-                  <div className="timeline-header">
-                    <div className="timeline-title">{phase.title}</div>
-                    <div className="timeline-status">
+                <div key={phase.id} className="phase-card">
+                  <div className="phase-header">
+                    <div className="phase-main">
+                      <h3 className="phase-title">{phase.title}</h3>
+                      <p className="phase-description">{phase.description}</p>
+                    </div>
+                    <div className="phase-meta">
                       <span className={`status-badge ${statusColor[phase.status]}`}>
                         {statusLabel[phase.status]}
                       </span>
+                      <span className="phase-progress-text">
+                        {getPhaseProgress(phase)}%
+                      </span>
                     </div>
                   </div>
-                  <div className="timeline-description">{phase.description}</div>
-                  <div className="timeline-progress">
-                    <div className="progress-track">
+                  
+                  <div className="phase-progress">
+                    <div className="progress-info">
+                      <span className="progress-label">Progresso da Fase</span>
+                      <span className="progress-value">{getPhaseProgress(phase)}%</span>
+                    </div>
+                    <div className="progress-bar">
                       <div
-                        className="progress-bar"
+                        className="progress-fill"
                         style={{ width: `${getPhaseProgress(phase)}%` }}
                       />
                     </div>
-                    <div className="muted-text">
-                      Progresso: {getPhaseProgress(phase)}%
-                    </div>
                   </div>
-                  <div className="timeline-tasks">
-                    {phase.tasks.map((task) => (
-                      <div key={task.id} className="task-item">
-                        <div className="task-status">
-                          <span className={`status-badge ${statusColor[task.status]}`}>
+
+                  <div className="phase-tasks">
+                    <div className="tasks-header">
+                      <h4 className="tasks-title">Tarefas</h4>
+                      <div className="tasks-actions">
+                        <button 
+                          className="add-task-btn"
+                          onClick={() => handleAddTask(phase.id)}
+                        >
+                          + Adicionar Tarefa
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="tasks-list">
+                      {phase.tasks.map((task) => (
+                        <div key={task.id} className="task-row">
+                          <input
+                            type="checkbox"
+                            className="task-checkbox"
+                            checked={false}
+                            onChange={() => {}}
+                          />
+                          <span className={`task-status ${statusColor[task.status]}`}>
                             {statusLabel[task.status]}
                           </span>
+                          <span className="task-title">{task.title}</span>
+                          <div className="task-actions">
+                            <select
+                              className="task-select"
+                              value={task.status}
+                              onChange={(event) =>
+                                handleStatusChange(
+                                  phase.id,
+                                  task.id,
+                                  event.target.value as PhaseTask["status"]
+                                )
+                              }
+                            >
+                              <option value="todo">A Fazer</option>
+                              <option value="in_progress">Em Progresso</option>
+                              <option value="done">Concluído</option>
+                            </select>
+                            <button
+                              className="task-delete-btn"
+                              onClick={() => handleDeleteTask(phase.id, task.id)}
+                              title="Excluir tarefa"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
-                        <div className="task-title">{task.title}</div>
-                        <div className="task-actions">
-                          <select
-                            className="select select-xs"
-                            value={task.status}
-                            onChange={(event) =>
-                              handleStatusChange(
-                                phase.id,
-                                task.id,
-                                event.target.value as PhaseTask["status"]
-                              )
-                            }
-                          >
-                            <option value="todo">A Fazer</option>
-                            <option value="in_progress">Em Progresso</option>
-                            <option value="done">Concluído</option>
-                          </select>
-                          <button
-                            className="button button-ghost"
-                            onClick={() => handleDeleteTask(phase.id, task.id)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </Panel>
-        </main>
+          </main>
 
-        {/* Right Column - Phase Details */}
-        <section className="coluna-direita">
-          <Panel title="Phase Atual">
-            {currentPhase ? (
-              <div className="phase-details">
-                <div className="phase-title">{currentPhase.title}</div>
-                <div className="phase-description">{currentPhase.description}</div>
-                <div className="phase-progress">
-                  <div className="progress-track">
-                    <div
-                      className="progress-bar"
-                      style={{ width: `${getPhaseProgress(currentPhase)}%` }}
+          {/* Sidebar */}
+          <aside className="sidebar-section">
+            {/* Current Phase */}
+            <div className="sidebar-card">
+              <div className="card-header">
+                <h3 className="card-title">Phase Atual</h3>
+              </div>
+              <div className="card-content">
+                {currentPhase ? (
+                  <div className="current-phase">
+                    <h4 className="current-phase-title">{currentPhase.title}</h4>
+                    <p className="current-phase-desc">{currentPhase.description}</p>
+                    <div className="current-phase-progress">
+                      <div className="progress-info">
+                        <span className="progress-label">Progresso</span>
+                        <span className="progress-value">{getPhaseProgress(currentPhase)}%</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div
+                          className="progress-fill"
+                          style={{ width: `${getPhaseProgress(currentPhase)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="phase-actions">
+                      <button className="action-btn primary" onClick={() => handleAddTask(currentPhase.id)}>
+                        + Adicionar Tarefa
+                      </button>
+                      <button className="action-btn secondary" onClick={() => handleSavePhase(currentPhase.id)}>
+                        Guardar Alterações
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-icon">📋</div>
+                    <div className="empty-text">Nenhuma phase disponível</div>
+                    <div className="empty-subtext">Crie uma nova phase para começar a organizar seu projeto</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Task Actions */}
+            <div className="sidebar-card">
+              <div className="card-header">
+                <h3 className="card-title">Ações de Tarefa</h3>
+              </div>
+              <div className="card-content">
+                <div className="task-actions-panel">
+                  <div className="action-group">
+                    <button className="action-btn danger" onClick={() => {}}>
+                      🗑️ Excluir Selecionada
+                    </button>
+                    <button className="action-btn secondary" onClick={() => {}}>
+                      ✏️ Editar Estado
+                    </button>
+                  </div>
+                  <div className="action-info">
+                    <div className="info-text">Selecione uma tarefa para realizar ações</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Create New Phase */}
+            <div className="sidebar-card">
+              <div className="card-header">
+                <h3 className="card-title">Criar Nova Phase</h3>
+              </div>
+              <div className="card-content">
+                <div className="new-phase-form">
+                  <div className="form-group">
+                    <label className="form-label">Título da Phase</label>
+                    <input
+                      className="form-input"
+                      placeholder="Ex: Desenvolvimento Frontend"
+                      value={newPhaseTitle}
+                      onChange={(event) => setNewPhaseTitle(event.target.value)}
                     />
                   </div>
-                  <div className="muted-text">
-                    Progresso: {getPhaseProgress(currentPhase)}%
+                  <div className="form-group">
+                    <label className="form-label">Descrição</label>
+                    <input
+                      className="form-input"
+                      placeholder="Descreva o objetivo desta phase"
+                      value={newPhaseDescription}
+                      onChange={(event) => setNewPhaseDescription(event.target.value)}
+                    />
                   </div>
-                </div>
-                <div className="phase-actions">
-                  <button className="button button-primary" onClick={() => handleAddTask(currentPhase.id)}>
-                    Adicionar Tarefa
-                  </button>
-                  <button className="button button-secondary" onClick={() => handleSavePhase(currentPhase.id)}>
-                    Guardar Phase
+                  <div className="form-group">
+                    <label className="form-label">Notas (opcional)</label>
+                    <textarea
+                      className="form-textarea"
+                      placeholder="Detalhes adicionais sobre esta phase"
+                      value={newPhaseNotes}
+                      onChange={(event) => setNewPhaseNotes(event.target.value)}
+                    />
+                  </div>
+                  <button className="create-phase-btn" onClick={handleAddPhase}>
+                    🚀 Criar Nova Phase
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="phase-details">
-                <div className="muted-text">Nenhuma phase disponível. Crie uma nova phase.</div>
-              </div>
-            )}
-          </Panel>
-
-          <Panel title="Criar Nova Phase">
-            <div className="new-phase-form">
-              <input
-                className="input"
-                placeholder="Título da Phase"
-                value={newPhaseTitle}
-                onChange={(event) => setNewPhaseTitle(event.target.value)}
-              />
-              <input
-                className="input"
-                placeholder="Descrição da Phase"
-                value={newPhaseDescription}
-                onChange={(event) => setNewPhaseDescription(event.target.value)}
-              />
-              <textarea
-                className="textarea"
-                placeholder="Notas (opcional)"
-                value={newPhaseNotes}
-                onChange={(event) => setNewPhaseNotes(event.target.value)}
-              />
-              <button className="button button-primary" onClick={handleAddPhase}>
-                Criar Phase
-              </button>
             </div>
-          </Panel>
-        </section>
+          </aside>
+        </div>
       </div>
     </main>
   );

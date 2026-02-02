@@ -19,253 +19,188 @@ const addSectionTitle = (doc: jsPDF, title: string, y: number) => {
 };
 
 /**
- * Gera PDF com todas as peças do projeto numa única sequência contínua.
- * Quebra de página apenas quando necessário (overflow natural).
+ * Gera PDF com TODAS as caixas de project.boxes (mesma fonte que Cutlist Industrial e Resumo Financeiro).
+ * Percorre todos os boxes; cada caixa numa página (ou secção) própria.
  */
 export function gerarPdfIndustrial(boxes: BoxModule[], rules: RulesConfig) {
   const doc = new jsPDF();
   const allBoxes = Array.isArray(boxes) ? boxes : [];
 
-  if (allBoxes.length === 0) {
+  for (let index = 0; index < allBoxes.length; index++) {
+    const box = allBoxes[index];
+    const modelo = gerarModeloIndustrial(box, rules);
+    if (index > 0) doc.addPage();
+
     doc.setFontSize(16);
     doc.text("PIMO Studio - Cutlist Industrial", 14, 15);
-    doc.setFontSize(12);
-    doc.text("Nenhuma caixa no projeto.", 14, 25);
-    return doc;
-  }
+    doc.setFontSize(13);
+    doc.text(box.nome || `Caixa ${index + 1}`, 14, 24);
 
-  // Agregar dados de todas as caixas
-  const allPaineis: Array<{ caixa: string; tipo: string; largura_mm: number; altura_mm: number; espessura_mm: number; material: string; orientacaoFibra: string; quantidade: number; custo: number }> = [];
-  const allPortas: Array<{ caixa: string; tipo: string; largura_mm: number; altura_mm: number; espessura_mm: number; dobradicas: number; custo: number }> = [];
-  const allGavetas: Array<{ caixa: string; largura_mm: number; altura_mm: number; profundidade_mm: number; espessura_mm: number; corrediças: number; custo: number }> = [];
-  const ferragensMap: Record<string, { quantidade: number; custo: number }> = {};
+    let cursorY = 30;
 
-  let totalAreaMm2 = 0;
-  let custoTotalPaineis = 0;
-  let custoTotalPortas = 0;
-  let custoTotalGavetas = 0;
-  let custoTotalFerragens = 0;
+    addSectionTitle(doc, "Resumo Industrial", cursorY);
+    cursorY += 6;
 
-  for (const box of allBoxes) {
-    const modelo = gerarModeloIndustrial(box, rules);
-    const caixaNome = box.nome || box.id;
+    const totalPecas =
+      modelo.paineis.reduce((sum, item) => sum + item.quantidade, 0) +
+      modelo.portas.length +
+      modelo.gavetas.length;
+    const totalFerragens = modelo.ferragens.reduce(
+      (sum, item) => sum + item.quantidade,
+      0
+    );
 
-    totalAreaMm2 += modelo.cutlist.areaTotal_mm2;
-    custoTotalPaineis += modelo.custoTotalPaineis;
-    custoTotalPortas += modelo.custoTotalPortas;
-    custoTotalGavetas += modelo.custoTotalGavetas;
-    custoTotalFerragens += modelo.custoTotalFerragens;
-
-    modelo.paineis.forEach((p) => {
-      allPaineis.push({
-        caixa: caixaNome,
-        tipo: getPieceLabel(p.tipo),
-        largura_mm: p.largura_mm,
-        altura_mm: p.altura_mm,
-        espessura_mm: p.espessura_mm,
-        material: p.material,
-        orientacaoFibra: p.orientacaoFibra,
-        quantidade: p.quantidade,
-        custo: p.custo,
-      });
-    });
-
-    modelo.portas.forEach((p) => {
-      allPortas.push({
-        caixa: caixaNome,
-        tipo: p.tipo,
-        largura_mm: p.largura_mm,
-        altura_mm: p.altura_mm,
-        espessura_mm: p.espessura_mm,
-        dobradicas: p.dobradicas,
-        custo: p.custo,
-      });
-    });
-
-    modelo.gavetas.forEach((g) => {
-      allGavetas.push({
-        caixa: caixaNome,
-        largura_mm: g.largura_mm,
-        altura_mm: g.altura_mm,
-        profundidade_mm: g.profundidade_mm,
-        espessura_mm: g.espessura_mm,
-        corrediças: g.corrediças,
-        custo: g.custo,
-      });
-    });
-
-    modelo.ferragens.forEach((f) => {
-      if (!ferragensMap[f.tipo]) ferragensMap[f.tipo] = { quantidade: 0, custo: 0 };
-      ferragensMap[f.tipo].quantidade += f.quantidade;
-      ferragensMap[f.tipo].custo += f.custo;
-    });
-  }
-
-  const custoTotal = custoTotalPaineis + custoTotalPortas + custoTotalGavetas + custoTotalFerragens;
-
-  let cursorY = 20;
-
-  doc.setFontSize(16);
-  doc.text("PIMO Studio - Cutlist Industrial", 14, 15);
-  doc.setFontSize(12);
-  doc.text(`Projeto: ${allBoxes.length} caixa(s)`, 14, 24);
-  cursorY = 30;
-
-  addSectionTitle(doc, "Resumo do Projeto", cursorY);
-  cursorY += 6;
-
-  autoTable(doc, {
-    head: [[
-      "Área total",
-      "Total painéis",
-      "Total portas",
-      "Total gavetas",
-      "Custo painéis",
-      "Custo portas",
-      "Custo gavetas",
-      "Custo ferragens",
-      "Custo total",
-    ]],
-    body: [[
-      formatArea(totalAreaMm2),
-      allPaineis.reduce((s, p) => s + p.quantidade, 0),
-      allPortas.length,
-      allGavetas.length,
-      formatCurrency(custoTotalPaineis),
-      formatCurrency(custoTotalPortas),
-      formatCurrency(custoTotalGavetas),
-      formatCurrency(custoTotalFerragens),
-      formatCurrency(custoTotal),
-    ]],
-    startY: cursorY,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [15, 23, 42] },
-  });
-
-  cursorY = getLastY(doc, cursorY);
-
-  addSectionTitle(doc, "Lista de Painéis", cursorY);
-  autoTable(doc, {
-    head: [[
-      "Caixa",
-      "Tipo",
-      "Largura (mm)",
-      "Altura (mm)",
-      "Espessura (mm)",
-      "Material",
-      "Orientação",
-      "Qtd",
-      "Custo (€)",
-    ]],
-    body: allPaineis.map((p) => [
-      p.caixa,
-      p.tipo,
-      p.largura_mm,
-      p.altura_mm,
-      p.espessura_mm,
-      p.material,
-      p.orientacaoFibra,
-      p.quantidade,
-      formatCurrency(p.custo),
-    ]),
-    startY: cursorY + 6,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [15, 23, 42] },
-    margin: { left: 14, right: 14 },
-  });
-
-  cursorY = getLastY(doc, cursorY);
-
-  if (allPortas.length > 0) {
-    addSectionTitle(doc, "Lista de Portas", cursorY);
     autoTable(doc, {
       head: [[
-        "Caixa",
+        "Material",
+        "Área total",
+        "Total peças",
+        "Total ferragens",
+        "Custo painéis",
+        "Custo portas",
+        "Custo gavetas",
+        "Custo ferragens",
+        "Custo total",
+      ]],
+      body: [[
+        box.material ?? "MDF Branco",
+        formatArea(modelo.cutlist.areaTotal_mm2),
+        totalPecas,
+        totalFerragens,
+        formatCurrency(modelo.custoTotalPaineis),
+        formatCurrency(modelo.custoTotalPortas),
+        formatCurrency(modelo.custoTotalGavetas),
+        formatCurrency(modelo.custoTotalFerragens),
+        formatCurrency(modelo.custoTotal),
+      ]],
+      startY: cursorY,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [15, 23, 42] },
+    });
+
+    cursorY = getLastY(doc, cursorY);
+
+    addSectionTitle(doc, "Lista de Painéis", cursorY);
+    autoTable(doc, {
+      head: [[
         "Tipo",
         "Largura (mm)",
         "Altura (mm)",
         "Espessura (mm)",
-        "Nº dobradiças",
+        "Material",
+        "Orientação",
+        "Qtd",
         "Custo (€)",
       ]],
-      body: allPortas.map((p) => [
-        p.caixa,
-        p.tipo,
-        p.largura_mm,
-        p.altura_mm,
-        p.espessura_mm,
-        p.dobradicas,
-        formatCurrency(p.custo),
+      body: modelo.paineis.map((painel) => [
+        getPieceLabel(painel.tipo),
+        painel.largura_mm,
+        painel.altura_mm,
+        painel.espessura_mm,
+        painel.material,
+        painel.orientacaoFibra,
+        painel.quantidade,
+        formatCurrency(painel.custo),
       ]),
       startY: cursorY + 6,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [15, 23, 42] },
-      margin: { left: 14, right: 14 },
     });
-    cursorY = getLastY(doc, cursorY);
-  }
 
-  if (allGavetas.length > 0) {
-    addSectionTitle(doc, "Lista de Gavetas", cursorY);
+    if (modelo.portas.length > 0) {
+      cursorY = getLastY(doc, cursorY);
+      addSectionTitle(doc, "Lista de Portas", cursorY);
+      autoTable(doc, {
+        head: [[
+          "Tipo",
+          "Largura (mm)",
+          "Altura (mm)",
+          "Espessura (mm)",
+          "Nº dobradiças",
+          "Custo (€)",
+        ]],
+        body: modelo.portas.map((porta) => [
+          porta.tipo,
+          porta.largura_mm,
+          porta.altura_mm,
+          porta.espessura_mm,
+          porta.dobradicas,
+          formatCurrency(porta.custo),
+        ]),
+        startY: cursorY + 6,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+    }
+
+    if (modelo.gavetas.length > 0) {
+      cursorY = getLastY(doc, cursorY);
+      addSectionTitle(doc, "Lista de Gavetas", cursorY);
+      autoTable(doc, {
+        head: [[
+          "Largura (mm)",
+          "Altura (mm)",
+          "Profundidade (mm)",
+          "Espessura (mm)",
+          "Corrediças",
+          "Custo (€)",
+        ]],
+        body: modelo.gavetas.map((gaveta) => [
+          gaveta.largura_mm,
+          gaveta.altura_mm,
+          gaveta.profundidade_mm,
+          gaveta.espessura_mm,
+          gaveta.corrediças,
+          formatCurrency(gaveta.custo),
+        ]),
+        startY: cursorY + 6,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+    }
+
+    if (modelo.ferragens.length > 0) {
+      cursorY = getLastY(doc, cursorY);
+      addSectionTitle(doc, "Ferragens", cursorY);
+      autoTable(doc, {
+        head: [[
+          "Tipo",
+          "Quantidade",
+          "Custo (€)",
+        ]],
+        body: modelo.ferragens.map((ferragem) => [
+          ferragem.tipo,
+          ferragem.quantidade,
+          formatCurrency(ferragem.custo),
+        ]),
+        startY: cursorY + 6,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+    }
+
+    cursorY = getLastY(doc, cursorY);
+    addSectionTitle(doc, "Resumo Financeiro Final", cursorY);
     autoTable(doc, {
       head: [[
-        "Caixa",
-        "Largura (mm)",
-        "Altura (mm)",
-        "Profundidade (mm)",
-        "Espessura (mm)",
-        "Corrediças",
-        "Custo (€)",
+        "Custo painéis",
+        "Custo portas",
+        "Custo gavetas",
+        "Custo ferragens",
+        "Custo total",
       ]],
-      body: allGavetas.map((g) => [
-        g.caixa,
-        g.largura_mm,
-        g.altura_mm,
-        g.profundidade_mm,
-        g.espessura_mm,
-        g.corrediças,
-        formatCurrency(g.custo),
-      ]),
+      body: [[
+        formatCurrency(modelo.custoTotalPaineis),
+        formatCurrency(modelo.custoTotalPortas),
+        formatCurrency(modelo.custoTotalGavetas),
+        formatCurrency(modelo.custoTotalFerragens),
+        formatCurrency(modelo.custoTotal),
+      ]],
       startY: cursorY + 6,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [15, 23, 42] },
-      margin: { left: 14, right: 14 },
     });
-    cursorY = getLastY(doc, cursorY);
   }
-
-  if (Object.keys(ferragensMap).length > 0) {
-    addSectionTitle(doc, "Ferragens", cursorY);
-    autoTable(doc, {
-      head: [["Tipo", "Quantidade", "Custo (€)"]],
-      body: Object.entries(ferragensMap).map(([tipo, v]) => [
-        tipo,
-        v.quantidade,
-        formatCurrency(v.custo),
-      ]),
-      startY: cursorY + 6,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [15, 23, 42] },
-      margin: { left: 14, right: 14 },
-    });
-    cursorY = getLastY(doc, cursorY);
-  }
-
-  addSectionTitle(doc, "Resumo Financeiro Final", cursorY);
-  autoTable(doc, {
-    head: [["Custo painéis", "Custo portas", "Custo gavetas", "Custo ferragens", "Custo total"]],
-    body: [[
-      formatCurrency(custoTotalPaineis),
-      formatCurrency(custoTotalPortas),
-      formatCurrency(custoTotalGavetas),
-      formatCurrency(custoTotalFerragens),
-      formatCurrency(custoTotal),
-    ]],
-    startY: cursorY + 6,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [15, 23, 42] },
-    margin: { left: 14, right: 14 },
-  });
 
   return doc;
 }
