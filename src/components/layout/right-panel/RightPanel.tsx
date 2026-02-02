@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useProject } from "../../../context/useProject";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 
@@ -33,14 +34,40 @@ export default function RightPanel() {
   const { viewerApi } = usePimoViewerContext();
   const selectedId = project.selectedWorkspaceBoxId;
   const boxes = project.workspaceBoxes;
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <aside className="panel-content panel-content--side">
-      <div className="section-title">
-        Ações
+    <aside
+      className="panel-content panel-content--side right-panel-scrollable"
+      style={{
+        maxHeight: 300,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div className="section-title" style={{ margin: 0 }}>Ações</div>
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="button button-ghost"
+          style={{ padding: "4px 8px", fontSize: 12 }}
+          title={expanded ? "Recolher" : "Expandir"}
+        >
+          {expanded ? "▲" : "▼"}
+        </button>
       </div>
 
-      <div className="stack-tight">
+      <div
+        className="stack-tight"
+        style={{
+          flex: "1 1 0",
+          overflowY: expanded ? "auto" : "hidden",
+          minHeight: 0,
+        }}
+      >
         {/* Gerar Design 3D */}
         <button
           onClick={() => actions.gerarDesign()}
@@ -108,28 +135,6 @@ export default function RightPanel() {
                     >
                       Selecionar
                     </button>
-                    {isSelected && viewerApi && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => viewerApi.setTransformMode("translate")}
-                          className="button button-ghost"
-                          style={{ fontSize: 11, padding: "4px 8px" }}
-                          title="Mover caixa no viewer (arrastar)"
-                        >
-                          Mover
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => viewerApi.setTransformMode("rotate")}
-                          className="button button-ghost"
-                          style={{ fontSize: 11, padding: "4px 8px" }}
-                          title="Rodar caixa no viewer"
-                        >
-                          Rodar
-                        </button>
-                      </>
-                    )}
                     <button
                       type="button"
                       onClick={() => actions.removeWorkspaceBoxById(box.id)}
