@@ -8,6 +8,8 @@ export type LeftToolbarItem = {
 /** IDs da sidebar: nova ordem e significado. */
 export const LEFT_TOOLBAR_IDS = {
   HOME: "home",
+  TEMPLATES: "templates",
+  CATALOGO: "catalogo",
   MOVEIS: "moveis",
   MODELOS: "modelos",
   CALCULADORA: "calculadora",
@@ -19,6 +21,8 @@ export const LEFT_TOOLBAR_IDS = {
 
 const toolbarItems: LeftToolbarItem[] = [
   { id: LEFT_TOOLBAR_IDS.HOME, label: "Início", icon: "π", isHome: true },
+  { id: LEFT_TOOLBAR_IDS.TEMPLATES, label: "Modelos Prontos", icon: "◉" },
+  { id: LEFT_TOOLBAR_IDS.CATALOGO, label: "Catálogo 3D", icon: "◈" },
   { id: LEFT_TOOLBAR_IDS.MOVEIS, label: "Móveis", icon: "M" },
   { id: LEFT_TOOLBAR_IDS.MODELOS, label: "Modelos", icon: "◫" },
   { id: LEFT_TOOLBAR_IDS.CALCULADORA, label: "Calculadora", icon: "⊕" },

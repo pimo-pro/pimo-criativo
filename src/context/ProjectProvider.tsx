@@ -24,6 +24,9 @@ import {
   getSelectedWorkspaceBox,
   recomputeState,
 } from "./projectState";
+import { getTemplateById } from "../templates/templatesIndex";
+import { getCatalogGlbPath } from "../core/glb/glbRegistry";
+import { getCatalogItemById } from "../catalog/catalogIndex";
 import { safeGetItem, safeParseJson, safeSetItem } from "../utils/storage";
 import { useViewerSync } from "../hooks/useViewerSync";
 
@@ -274,6 +277,76 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
     addWorkspaceBox: () => {
       actions.addBox();
+    },
+
+    addWorkspaceBoxFromCatalog: (catalogItemId) => {
+      const catalogItem = getCatalogItemById(catalogItemId);
+      if (!catalogItem) return;
+
+      updateProject((prev) => {
+        const nextIndex = prev.workspaceBoxes.length + 1;
+        const baseEspessura =
+          prev.workspaceBoxes.find((box) => box.id === prev.selectedWorkspaceBoxId)
+            ?.espessura ?? prev.material.espessura;
+        
+        // Usar dimensões do catálogo
+        const dimensoes = {
+          largura: catalogItem.dimensoesDefault.largura_mm,
+          altura: catalogItem.dimensoesDefault.altura_mm,
+          profundidade: catalogItem.dimensoesDefault.profundidade_mm,
+        };
+
+        // Calcular posição centralizada no workspace
+        // Posicionar no centro X (0) e Z (0), Y no chão (0)
+        const posicaoX_mm = 0;
+        
+        const glbPath = getCatalogGlbPath(catalogItemId);
+        const models = glbPath
+          ? [
+              {
+                id: `box-${nextIndex}-model-catalog`,
+                modelId: `catalog:${catalogItemId}`,
+              },
+            ]
+          : [];
+
+        const newBox = createWorkspaceBox(
+          `box-${nextIndex}`,
+          catalogItem.nome,
+          dimensoes,
+          baseEspessura,
+          posicaoX_mm,
+          models,
+          "reta",
+          "recuado",
+          catalogItemId
+        );
+        
+        // Marcar como posição manual para não ser reposicionada no reflow
+        newBox.manualPosition = true;
+        newBox.posicaoZ_mm = 0;
+
+        const nextWorkspaceBoxes = [...prev.workspaceBoxes, newBox];
+        const nextPrev = { ...prev, workspaceBoxes: nextWorkspaceBoxes };
+        const boxes = buildBoxesFromWorkspace(nextPrev);
+        return recomputeState(
+          prev,
+          {
+            workspaceBoxes: nextWorkspaceBoxes,
+            boxes,
+            selectedWorkspaceBoxId: newBox.id,
+            selectedCaixaId: newBox.id,
+            selectedCaixaModelUrl: null,
+            changelog: appendChangelog(prev.changelog, {
+              timestamp: new Date(),
+              type: "box",
+              message: `Módulo do catálogo adicionado: ${catalogItem.nome}`,
+            }),
+            selectedModelInstanceId: null,
+          },
+          true
+        );
+      });
     },
 
     duplicateBox: () => {
@@ -985,6 +1058,52 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const restored = reviveState(projectState);
       if (!restored) return;
       updateProject(() => applyResultados(restored));
+    },
+    loadProjectFromTemplate: (templateId) => {
+      const template = getTemplateById(templateId);
+      if (!template || !template.boxes.length) return;
+      viewerSync.removeRoom();
+      const espessura = template.materialPadrao?.espessura ?? 19;
+      const workspaceBoxes = template.boxes.map((b) => ({
+        id: b.id,
+        nome: b.nome,
+        dimensoes: b.dimensoes,
+        espessura: b.espessura ?? espessura,
+        tipoBorda: "reta" as const,
+        tipoFundo: "recuado" as const,
+        models: [],
+        prateleiras: b.prateleiras ?? 0,
+        portaTipo: b.portaTipo ?? "porta_simples",
+        gavetas: b.gavetas ?? 0,
+        alturaGaveta: 200,
+        posicaoX_mm: b.posicaoX_mm,
+        posicaoY_mm: b.posicaoY_mm ?? 0,
+        posicaoZ_mm: b.posicaoZ_mm ?? 0,
+        rotacaoY_90: false,
+        rotacaoY: 0,
+        manualPosition: true,
+      }));
+      const firstId = workspaceBoxes[0].id;
+      const nextState = {
+        ...defaultState,
+        projectName: template.nome,
+        material: template.materialPadrao
+          ? { tipo: "MDF Branco", espessura: 19, precoPorM2: 25, ...template.materialPadrao }
+          : defaultState.material,
+        workspaceBoxes,
+        selectedWorkspaceBoxId: firstId,
+        selectedCaixaId: firstId,
+        selectedBoxId: "",
+        selectedCaixaModelUrl: null,
+        selectedModelInstanceId: null,
+        extractedPartsByBoxId: {},
+        modelPositionsByBoxId: {},
+        layoutWarnings: { collisions: [], outOfBounds: [] },
+      };
+      const applied = applyResultados(nextState);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      updateProject(() => applied, false);
     },
     listSavedProjects: (): SavedProjectInfo[] => {
       return readStoredProjects().map(({ id, name, createdAt, updatedAt }) => ({

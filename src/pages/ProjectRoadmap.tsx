@@ -9,6 +9,7 @@ import {
   saveStoredPhases,
   statusLabel,
   statusColor,
+  isNewTask,
 } from "../core/docs/projectRoadmap";
 import { roadmapStyles } from "./ProjectRoadmapStyles";
 
@@ -70,6 +71,66 @@ export default function ProjectRoadmap() {
     setNewPhaseNotes("");
   };
 
+  // Adicionar tarefas específicas do roadmap
+  const addSpecificTasks = () => {
+    const phaseIndex = phases.findIndex(p => p.title === "Desenvolvimento Frontend");
+    if (phaseIndex === -1) return;
+
+    const tasksToAdd = [
+      {
+        id: `task_${Date.now()}_1`,
+        title: "Melhorar UX de seleção das caixas",
+        description: "Outline mais suave e responsivo, feedback visual imediato, sem alterar materiais PBR",
+        status: "todo" as const
+      },
+      {
+        id: `task_${Date.now()}_2`,
+        title: "Implementar lazy loading para texturas e HDRI",
+        description: "Carregar apenas o essencial no início, HDRI carregado somente no modo Showcase, texturas PBR carregadas sob demanda",
+        status: "todo" as const
+      },
+      {
+        id: `task_${Date.now()}_3`,
+        title: "Criar Photo Mode integrado",
+        description: "Botão de câmera no topo, popup 'Renderização' com opções de tamanho e fundo, modo Realista + Modo Linhas para impressão, exportação de imagem em alta qualidade",
+        status: "todo" as const
+      },
+      {
+        id: `task_${Date.now()}_4`,
+        title: "Ultra Performance Mode",
+        description: "Botão no RightToolsBar, desativa normal/roughness, reduz resolução interna, simplifica luzes",
+        status: "todo" as const
+      },
+      {
+        id: `task_${Date.now()}_5`,
+        title: "Novos presets do Photo Mode",
+        description: "Frontal, Superior, Isométrico 1, Isométrico 2",
+        status: "todo" as const
+      },
+      {
+        id: `task_${Date.now()}_6`,
+        title: "Ajustes finais do Refino",
+        description: "Outline suave, sombras mais leves, brilho equilibrado",
+        status: "todo" as const
+      }
+    ];
+
+    const next = [...phases];
+    next[phaseIndex] = {
+      ...next[phaseIndex],
+      tasks: [...next[phaseIndex].tasks, ...tasksToAdd]
+    };
+    
+    persist(next, "Tarefas do roadmap adicionadas");
+  };
+
+  const addTaskToPhase = (phaseId: string, task: PhaseTask) => {
+    const next = phases.map((phase) =>
+      phase.id === phaseId ? { ...phase, tasks: [...phase.tasks, task] } : phase
+    );
+    persist(next, `Tarefa criada em ${phaseId}`);
+  };
+
   const handleAddTask = (phaseId: string) => {
     const task: PhaseTask = {
       id: `task_${Date.now()}`,
@@ -77,10 +138,7 @@ export default function ProjectRoadmap() {
       description: "Descreva a tarefa",
       status: "todo",
     };
-    const next = phases.map((phase) =>
-      phase.id === phaseId ? { ...phase, tasks: [...phase.tasks, task] } : phase
-    );
-    persist(next, `Tarefa criada em ${phaseId}`);
+    addTaskToPhase(phaseId, task);
   };
 
   const handleDeleteTask = (phaseId: string, taskId: string) => {
@@ -256,6 +314,11 @@ export default function ProjectRoadmap() {
                             {statusLabel[task.status]}
                           </span>
                           <span className="task-title">{task.title}</span>
+                          {isNewTask(task) && (
+                            <span className="task-new-badge" title="Novo">
+                              novo
+                            </span>
+                          )}
                           <div className="task-actions">
                             <select
                               className="task-select"
@@ -390,6 +453,29 @@ export default function ProjectRoadmap() {
                   </div>
                   <button className="create-phase-btn" onClick={handleAddPhase}>
                     🚀 Criar Nova Phase
+                  </button>
+                  <button className="add-tasks-btn" onClick={addSpecificTasks}>
+                    📋 Adicionar Tarefas do Roadmap
+                  </button>
+                  <button className="add-task-btn" onClick={() => {
+                    const phaseIndex = phases.findIndex(p => p.title === "Desenvolvimento Frontend");
+                    if (phaseIndex === -1) return;
+                    const task: PhaseTask = {
+                      id: `task_${Date.now()}`,
+                      title: "Tarefa de teste com etiqueta novo",
+                      description: "Esta tarefa deve exibir a etiqueta 'novo' por 48 horas.",
+                      status: "todo",
+                      isNew: true,
+                      createdAt: Date.now(),
+                    };
+                    const next = [...phases];
+                    next[phaseIndex] = {
+                      ...next[phaseIndex],
+                      tasks: [...next[phaseIndex].tasks, task]
+                    };
+                    persist(next, "Tarefa de teste adicionada");
+                  }}>
+                    🧪 Adicionar Tarefa de Teste (novo)
                   </button>
                 </div>
               </div>

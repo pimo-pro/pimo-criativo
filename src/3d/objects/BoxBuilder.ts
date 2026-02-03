@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { createWoodMaterial } from "../materials/WoodMaterial";
+import { defaultMaterialSet, getMaterialPreset } from "../materials/MaterialLibrary";
 
 /**
  * Dimensões em unidades de cena (Three.js).
@@ -88,76 +90,36 @@ function getPanelSpecs(width: number, height: number, depth: number, thickness: 
 
 type PanelType = "left" | "right" | "top" | "bottom" | "back";
 
-const MDF_BASE_COLOR = "#c8b79a";
-const MDF_EDGE_COLOR = "#b89f7a";
-const MDF_ROUGHNESS = 0.7;
-const MDF_METALNESS = 0;
-const MDF_BUMP_SCALE = 0.015;
+let cachedFallbackMaterial: THREE.MeshStandardMaterial | null = null;
 
-let cachedBumpTexture: THREE.DataTexture | null = null;
-
-function createProceduralBumpTexture(): THREE.DataTexture {
-  if (cachedBumpTexture) return cachedBumpTexture;
-  const size = 64;
-  const data = new Uint8Array(size * size);
-  for (let i = 0; i < data.length; i++) {
-    const x = (i % size) / size;
-    const y = Math.floor(i / size) / size;
-    const n = Math.sin(x * Math.PI * 4) * Math.cos(y * Math.PI * 3) * 0.5 + 0.5;
-    data[i] = Math.floor(128 + n * 64 + (Math.random() - 0.5) * 20) & 0xff;
+/** Material PBR de fallback (MDF Branco) — nunca cor sólida. */
+function getFallbackPBRMaterial(): THREE.MeshStandardMaterial {
+  if (cachedFallbackMaterial) return cachedFallbackMaterial;
+  const preset = getMaterialPreset(defaultMaterialSet, "mdf_branco");
+  if (!preset?.maps?.colorMap) {
+    throw new Error("MaterialLibrary: mdf_branco preset required");
   }
-  const texture = new THREE.DataTexture(data, size, size);
-  texture.format = THREE.RedFormat;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.needsUpdate = true;
-  cachedBumpTexture = texture;
-  return texture;
-}
-
-/** Rotação do bumpMap por tipo de painel (grain direction): CIMA/FUNDO/COSTA → X; LAT → Y. */
-function getBumpRotationForPanel(panelType: PanelType): number {
-  return panelType === "left" || panelType === "right" ? Math.PI / 2 : 0;
-}
-
-function getBumpTextureForPanel(panelType: PanelType): THREE.DataTexture {
-  const base = createProceduralBumpTexture();
-  const rotation = getBumpRotationForPanel(panelType);
-  if (rotation === 0) return base;
-  const clone = base.clone();
-  clone.center.set(0.5, 0.5);
-  clone.rotation = rotation;
-  return clone;
-}
-
-function createDefaultMDFMaterial(panelType: PanelType): THREE.MeshStandardMaterial {
-  const color = new THREE.Color(MDF_BASE_COLOR);
-  const h = 0.08 + (panelType.charCodeAt(0) % 5) * 0.002;
-  const s = 0.18 + (panelType.length * 0.01);
-  const l = 0.72 + (panelType.charCodeAt(0) % 3) * 0.02;
-  color.setHSL(h, s, l);
-  const mat = new THREE.MeshStandardMaterial({
-    color,
-    roughness: MDF_ROUGHNESS,
-    metalness: MDF_METALNESS,
-    bumpMap: getBumpTextureForPanel(panelType),
-    bumpScale: MDF_BUMP_SCALE,
-  });
-  return mat;
+  const loader = new THREE.TextureLoader();
+  const { material } = createWoodMaterial(preset.maps, { ...preset.options, anisotropy: 4 }, loader);
+  cachedFallbackMaterial = material;
+  return material;
 }
 
 let cachedEdgeMaterial: THREE.MeshStandardMaterial | null = null;
 
-/** Material para arestas (corte MDF) — cor de madeira mais escura; partilhado entre painéis. */
+/** Material para arestas (corte) — PBR com textura, cor ligeiramente mais escura. */
 function getEdgeMaterial(): THREE.MeshStandardMaterial {
-  if (!cachedEdgeMaterial) {
-    cachedEdgeMaterial = new THREE.MeshStandardMaterial({
-      color: MDF_EDGE_COLOR,
-      roughness: MDF_ROUGHNESS,
-      metalness: MDF_METALNESS,
-    });
-  }
-  return cachedEdgeMaterial;
+  if (cachedEdgeMaterial) return cachedEdgeMaterial;
+  const preset = getMaterialPreset(defaultMaterialSet, "mdf_branco");
+  if (!preset?.maps?.colorMap) throw new Error("MaterialLibrary: mdf_branco required");
+  const loader = new THREE.TextureLoader();
+  const { material } = createWoodMaterial(preset.maps, {
+    ...preset.options,
+    color: "#b8a898",
+    anisotropy: 4,
+  }, loader);
+  cachedEdgeMaterial = material;
+  return material;
 }
 
 /**
@@ -193,7 +155,7 @@ export const buildBox = (options: BoxOptions = {}): BoxModel => {
   const opts = options ?? {};
   const { width, height, depth, thickness } = resolveDimensions(opts);
   const useDefaultMDF = opts.material == null;
-  const baseMaterial: THREE.Material = opts.material ?? createDefaultMDFMaterial("left");
+  const baseMaterial: THREE.Material = opts.material ?? getFallbackPBRMaterial();
 
   const root = new THREE.Group();
   root.name = "box-model";
@@ -201,8 +163,7 @@ export const buildBox = (options: BoxOptions = {}): BoxModel => {
   const specs = getPanelSpecs(width, height, depth, thickness);
   const panelTypes = ["left", "top", "bottom", "right", "back"] as const;
 
-  const getMaterial = (panelType: PanelType) =>
-    useDefaultMDF ? createDefaultMDFMaterial(panelType) : baseMaterial;
+  const getMaterial = (_panelType: PanelType) => baseMaterial;
 
   const panelOptions = (panelType: PanelType): PanelMaterialOptions =>
     useDefaultMDF
@@ -265,7 +226,7 @@ type PanelMaterialOptions =
 /** Garante que options tem sempre material/edgeMaterial válidos; nunca usa 'in' em undefined. */
 function resolvePanelMaterialOptions(
   options: PanelMaterialOptions | null | undefined,
-  panelType: PanelType
+  _panelType: PanelType
 ): PanelMaterialOptions {
   if (options != null && typeof options === "object") {
     const hasEdge = "edgeMaterial" in options && options.edgeMaterial != null && options.faceMaterial != null;
@@ -275,7 +236,7 @@ function resolvePanelMaterialOptions(
   }
   return {
     edgeMaterial: getEdgeMaterial(),
-    faceMaterial: createDefaultMDFMaterial(panelType),
+    faceMaterial: getFallbackPBRMaterial(),
   };
 }
 

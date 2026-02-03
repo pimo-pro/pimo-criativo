@@ -118,13 +118,25 @@ export type ViewerSnapshot = {
 
 export type Viewer2DAngle = "top" | "front" | "left" | "right";
 
-export type ViewerRenderQuality = "low" | "medium" | "high";
+export type ViewerRenderSize = "small" | "medium" | "large" | "4k";
 
 export type ViewerRenderBackground = "white" | "transparent";
 
+export type ViewerRenderMode = "pbr" | "lines";
+
+export type ViewerCameraPreset = "current" | "front" | "top" | "iso1" | "iso2";
+
+export type ViewerRenderFormat = "png" | "jpg";
+
 export type ViewerRenderOptions = {
-  quality: ViewerRenderQuality;
+  size: ViewerRenderSize;
   background: ViewerRenderBackground;
+  mode: ViewerRenderMode;
+  preset?: ViewerCameraPreset;
+  watermark?: boolean;
+  shadowIntensity?: number;
+  format?: ViewerRenderFormat;
+  quality?: number;
 };
 
 export type ViewerRenderResult = {
@@ -135,14 +147,43 @@ export type ViewerRenderResult = {
 
 export type ViewerToolMode = "select" | "move" | "rotate";
 
+export type RoomConfig = {
+  numWalls: 1 | 2 | 3 | 4;
+  walls: Array<{ lengthMm: number; heightMm: number }>;
+  thicknessMm?: number;
+};
+
+export type DoorWindowConfig = {
+  widthMm: number;
+  heightMm: number;
+  floorOffsetMm: number;
+  horizontalOffsetMm: number;
+};
+
 export type ViewerApi = {
   saveSnapshot: () => ViewerSnapshot | null;
   restoreSnapshot: (_snapshot: ViewerSnapshot | null) => void;
   enable2DView: (_angle: Viewer2DAngle) => void;
   disable2DView: () => void;
-  renderScene: (_options: ViewerRenderOptions) => ViewerRenderResult | null;
+  renderScene: (_options: ViewerRenderOptions) => Promise<ViewerRenderResult | null>;
   /** Define a ferramenta ativa no Viewer (select = sem gizmo, move = translate, rotate = rotate). */
   setTool: (_mode: ViewerToolMode) => void;
+  setUltraPerformanceMode: (_active: boolean) => void;
+  getUltraPerformanceMode: () => boolean;
+  createRoom: (_config: RoomConfig) => void;
+  removeRoom: () => void;
+  setPlacementMode: (_mode: "door" | "window" | null) => void;
+  addDoorToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
+  addWindowToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
+  setOnRoomElementPlaced: (
+    _cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+  ) => void;
+  setOnRoomElementSelected: (
+    _cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+  ) => void;
+  updateRoomElementConfig: (_elementId: string, _config: DoorWindowConfig) => boolean;
+  setExplodedView: (_enabled: boolean) => void;
+  getExplodedView: () => boolean;
 };
 
 export type ProjectSnapshot = {
@@ -159,9 +200,25 @@ export type ViewerSync = {
   registerViewerApi: (_api: ViewerApi | null) => void;
   enable2DView: (_angle: Viewer2DAngle) => void;
   disable2DView: () => void;
-  renderScene: (_options: ViewerRenderOptions) => ViewerRenderResult | null;
+  renderScene: (_options: ViewerRenderOptions) => Promise<ViewerRenderResult | null>;
   /** Define a ferramenta 3D ativa (select, move, rotate); aplica à caixa selecionada. */
   setActiveTool: (_mode: ViewerToolMode) => void;
+  setUltraPerformanceMode: (_active: boolean) => void;
+  getUltraPerformanceMode: () => boolean;
+  createRoom: (_config: RoomConfig) => void;
+  removeRoom: () => void;
+  setPlacementMode: (_mode: "door" | "window" | null) => void;
+  addDoorToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
+  addWindowToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
+  setOnRoomElementPlaced: (
+    _cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+  ) => void;
+  setOnRoomElementSelected: (
+    _cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+  ) => void;
+  updateRoomElementConfig: (_elementId: string, _config: DoorWindowConfig) => boolean;
+  setExplodedView: (_enabled: boolean) => void;
+  getExplodedView: () => boolean;
 };
 
 export interface ProjectActions {
@@ -173,6 +230,7 @@ export interface ProjectActions {
   setQuantidade: (_quantidade: number) => void;
   addBox: () => void;
   addWorkspaceBox: () => void;
+  addWorkspaceBoxFromCatalog: (_catalogItemId: string) => void;
   duplicateBox: () => void;
   duplicateWorkspaceBox: () => void;
   removeBox: () => void;
@@ -239,6 +297,8 @@ export interface ProjectActions {
   redo: () => void;
   saveProjectSnapshot: () => void;
   loadProjectSnapshot: (_id: string) => void;
+  /** Carrega projeto a partir de um template (limpa sala, caixas e substitui pelo layout do modelo). */
+  loadProjectFromTemplate: (_templateId: string) => void;
   listSavedProjects: () => SavedProjectInfo[];
   createNewProject: () => void;
   renameProject: (_id: string, _name: string) => void;

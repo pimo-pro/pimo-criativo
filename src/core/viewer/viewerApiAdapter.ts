@@ -1,4 +1,6 @@
 import type {
+  DoorWindowConfig,
+  RoomConfig,
   ViewerApi,
   ViewerRenderOptions,
   ViewerRenderResult,
@@ -43,13 +45,65 @@ export function createViewerApiAdapter(
       // TODO: implementar no Viewer — restaurar controle orbit
     },
 
-    renderScene: (_options: ViewerRenderOptions): ViewerRenderResult | null => {
-      // TODO: implementar no Viewer — renderizar cena offscreen e retornar dataUrl
-      return null;
+    renderScene: (options: ViewerRenderOptions): Promise<ViewerRenderResult | null> => {
+      if (pimoApi.renderScene) {
+        return pimoApi.renderScene(options);
+      }
+      return Promise.resolve(null);
     },
 
     setTool: (mode: ViewerToolMode): void => {
       pimoApi.setTransformMode(toolModeToTransformMode(mode));
+    },
+
+    setUltraPerformanceMode: (active: boolean): void => {
+      pimoApi.setUltraPerformanceMode?.(active);
+    },
+
+    getUltraPerformanceMode: (): boolean => {
+      return pimoApi.getUltraPerformanceMode?.() ?? false;
+    },
+
+    createRoom: (config: RoomConfig): void => {
+      pimoApi.createRoom?.(config);
+    },
+
+    removeRoom: (): void => {
+      pimoApi.removeRoom?.();
+    },
+
+    setPlacementMode: (mode: "door" | "window" | null): void => {
+      pimoApi.setPlacementMode?.(mode);
+    },
+
+    addDoorToRoom: (wallId: number, config: DoorWindowConfig): string => {
+      return pimoApi.addDoorToRoom?.(wallId, config) ?? "";
+    },
+
+    addWindowToRoom: (wallId: number, config: DoorWindowConfig): string => {
+      return pimoApi.addWindowToRoom?.(wallId, config) ?? "";
+    },
+
+    setOnRoomElementPlaced: (
+      cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+    ): void => {
+      pimoApi.setOnRoomElementPlaced?.(cb);
+    },
+
+    setOnRoomElementSelected: (
+      cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+    ): void => {
+      pimoApi.setOnRoomElementSelected?.(cb);
+    },
+
+    updateRoomElementConfig: (elementId: string, config: DoorWindowConfig): boolean => {
+      return pimoApi.updateRoomElementConfig?.(elementId, config) ?? false;
+    },
+    setExplodedView: (enabled: boolean): void => {
+      pimoApi.setExplodedView?.(enabled);
+    },
+    getExplodedView: (): boolean => {
+      return pimoApi.getExplodedView?.() ?? false;
     },
   };
 }

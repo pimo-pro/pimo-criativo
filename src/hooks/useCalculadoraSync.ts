@@ -87,7 +87,7 @@ export const useCalculadoraSync = (
       const depth = depthMm !== undefined ? mmToM(depthMm) : undefined;
       const thicknessMm = Number.isFinite(box.espessura) ? box.espessura : undefined;
       const thickness = thicknessMm !== undefined ? mmToM(thicknessMm) : undefined;
-      const resolvedMaterialName = box.material ?? materialName ?? "mdf";
+      const resolvedMaterialName = box.material ?? materialName ?? "MDF Branco";
       const cadOnly =
         (box.models?.length ?? 0) > 0 && box.prateleiras === 0 && box.gavetas === 0;
 

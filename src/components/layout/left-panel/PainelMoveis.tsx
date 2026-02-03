@@ -4,7 +4,7 @@
  * Sem position absolute / center / z-index alto.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import Panel from "../../ui/Panel";
 import { useCadModels } from "../../../hooks/useCadModels";
@@ -48,19 +48,53 @@ function formatFileStatus(arquivo: string): string {
 export default function PainelMoveis() {
   const { project, actions } = useProject();
   const { models: cadModels, reload: reloadCadModels } = useCadModels();
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string>("");
+  const [termoBusca, setTermoBusca] = useState("");
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<
+    "todos" | "cozinha" | "roupeiro" | "banheiro" | "quarto-infantil"
+  >("todos");
+  const [modeloSelecionado, setModeloSelecionado] = useState<string>("");
 
   useEffect(() => {
     reloadCadModels();
   }, [reloadCadModels]);
 
-  const cadModelsFiltrados = categoriaFiltro
-    ? cadModels.filter(
-        (m) =>
-          m.categoria === categoriaFiltro ||
-          m.categoria === getCategoriaNome(categoriaFiltro)
-      )
-    : cadModels;
+  const filtrarPorCategoriaBase = (
+    modelCategoria: string,
+    categoriaBase: typeof categoriaSelecionada
+  ) => {
+    if (categoriaBase === "todos") return true;
+    const cat = modelCategoria.toLowerCase();
+    if (categoriaBase === "cozinha") return cat.includes("cozinha");
+    if (categoriaBase === "roupeiro") return cat.includes("roupeiro") || cat.includes("guarda-roupa");
+    if (categoriaBase === "banheiro") return cat.includes("banheiro") || cat.includes("wc");
+    if (categoriaBase === "quarto-infantil")
+      return cat.includes("quarto infantil") || cat.includes("quarto-infantil") || cat.includes("quarto");
+    return true;
+  };
+
+  const modelosPorCategoria = useMemo(
+    () =>
+      cadModels.filter((m) =>
+        filtrarPorCategoriaBase(m.categoria ?? "", categoriaSelecionada)
+      ),
+    [cadModels, categoriaSelecionada]
+  );
+
+  const modelosFiltrados = useMemo(() => {
+    const termo = termoBusca.trim().toLowerCase();
+    let base = modelosPorCategoria;
+    if (termo) {
+      base = base.filter((m) => m.nome.toLowerCase().includes(termo));
+    }
+    if (modeloSelecionado) {
+      base = base.filter((m) => m.id === modeloSelecionado);
+    }
+    return base;
+  }, [modelosPorCategoria, termoBusca, modeloSelecionado]);
+
+  const handleAdicionarModelo = (modelId: string) => {
+    actions.addCadModelAsNewBox(modelId);
+  };
 
   return (
     <div className="panel-content panel-content--side">
@@ -71,71 +105,168 @@ export default function PainelMoveis() {
 
       <Panel title="Catálogo CAD" description="Modelos disponíveis (incluindo uploads do Admin).">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div>
-            <label style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              Filtrar por categoria
+          {/* Campo de busca */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label
+              style={{
+                fontSize: 11,
+                color: "var(--text-muted)",
+              }}
+            >
+              Buscar modelo
+            </label>
+            <input
+              type="text"
+              value={termoBusca}
+              onChange={(e) => setTermoBusca(e.target.value)}
+              placeholder="Pesquisar por nome…"
+              className="input input-sm"
+            />
+          </div>
+
+          {/* Dropdown de categorias base */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label
+              style={{
+                fontSize: 11,
+                color: "var(--text-muted)",
+              }}
+            >
+              Categoria
             </label>
             <select
-              value={categoriaFiltro}
-              onChange={(e) => setCategoriaFiltro(e.target.value)}
+              value={categoriaSelecionada}
+              onChange={(e) => {
+                const value = e.target.value as typeof categoriaSelecionada;
+                setCategoriaSelecionada(value);
+                setModeloSelecionado("");
+              }}
               className="select"
-              style={{ marginTop: 4, width: "100%" }}
+              style={{ width: "100%" }}
             >
-              <option value="">Todas</option>
-              {CATEGORIAS_CAD.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
+              <option value="todos">Todos</option>
+              <option value="cozinha">Cozinha</option>
+              <option value="roupeiro">Roupeiro</option>
+              <option value="banheiro">Banheiro</option>
+              <option value="quarto-infantil">Quarto Infantil</option>
+            </select>
+          </div>
+
+          {/* Dropdown de modelos dependente da categoria */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label
+              style={{
+                fontSize: 11,
+                color: "var(--text-muted)",
+              }}
+            >
+              Modelo
+            </label>
+            <select
+              value={modeloSelecionado}
+              onChange={(e) => setModeloSelecionado(e.target.value)}
+              className="select"
+              style={{ width: "100%" }}
+            >
+              <option value="">Todos os modelos da categoria</option>
+              {modelosPorCategoria.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome}
                 </option>
               ))}
             </select>
           </div>
 
-          {cadModelsFiltrados.length === 0 ? (
+          {/* Lista de chips de modelos */}
+          {modelosFiltrados.length === 0 ? (
             <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
               Nenhum modelo no catálogo. Registe modelos em Admin → Modelos CAD.
             </p>
           ) : (
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-              {cadModelsFiltrados.map((model) => {
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                marginTop: 4,
+              }}
+            >
+              {modelosFiltrados.map((model) => {
                 const dims = getModelDimensions(model, project);
+                const isSelectedChip = modeloSelecionado === model.id;
                 return (
-                  <li
+                  <button
                     key={model.id}
+                    type="button"
+                    onClick={() => handleAdicionarModelo(model.id)}
                     style={{
-                      padding: 10,
-                      background: "var(--surface)",
-                      borderRadius: 8,
-                      border: "1px solid var(--border)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: 4,
+                      padding: "6px 8px",
+                      minWidth: 0,
+                      maxWidth: "100%",
+                      borderRadius: 999,
+                      border: isSelectedChip
+                        ? "1px solid var(--primary)"
+                        : "1px solid var(--border)",
+                      backgroundColor: isSelectedChip
+                        ? "rgba(59, 130, 246, 0.12)"
+                        : "var(--surface)",
+                      cursor: "pointer",
                     }}
                   >
-                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-                      {model.nome}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-                      {model.categoria}
-                      {model.descricao ? ` · ${model.descricao}` : ""}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-                      Dimensões (L × A × P):{" "}
-                      {dims
-                        ? `${dims.largura} × ${dims.altura} × ${dims.profundidade} mm`
-                        : "—"}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>
-                      Ficheiro: {formatFileStatus(model.arquivo ?? "")}
-                    </div>
-                    <button
-                      type="button"
-                      className="panel-button"
-                      onClick={() => actions.addCadModelAsNewBox(model.id)}
-                      style={{ width: "100%", fontSize: 12 }}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
                     >
-                      Adicionar como nova caixa
-                    </button>
-                  </li>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 4,
+                          background: "var(--bg)",
+                          border: "1px solid var(--border-subtle)",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "var(--text-main)",
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                          overflow: "hidden",
+                          maxWidth: 160,
+                        }}
+                      >
+                        {model.nome}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--text-muted)",
+                        whiteSpace: "nowrap",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        maxWidth: 200,
+                      }}
+                    >
+                      {getCategoriaNome(model.categoria)}
+                      {dims
+                        ? ` · ${dims.largura}×${dims.altura}×${dims.profundidade} mm`
+                        : ""}
+                    </div>
+                  </button>
                 );
               })}
-            </ul>
+            </div>
           )}
         </div>
         <button

@@ -3,6 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Viewer } from "../3d/core/Viewer";
 import type { ViewerOptions } from "../3d/core/Viewer";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
+import type {
+  DoorWindowConfig,
+  RoomConfig,
+  ViewerRenderOptions,
+  ViewerRenderResult,
+} from "../context/projectTypes";
 
 type PimoViewerAPI = {
   viewerRef: React.MutableRefObject<Viewer | null>;
@@ -29,6 +35,13 @@ type PimoViewerAPI = {
   setOnBoxTransform: (_callback: ((_boxId: string, _position: { x: number; y: number; z: number }, _rotationY: number) => void) | null) => void;
   setTransformMode: (_mode: "translate" | "rotate" | null) => void;
   highlightBox: (_id: string | null) => void;
+  setShowcaseMode: (_active: boolean, _turntable?: boolean) => void;
+  getShowcaseMode: () => boolean;
+  getCurrentMode: () => "performance" | "showcase";
+  setMode: (_mode: "performance" | "showcase", _turntable?: boolean) => void;
+  renderScene: (_options: ViewerRenderOptions) => Promise<ViewerRenderResult | null>;
+  setUltraPerformanceMode: (_active: boolean) => void;
+  getUltraPerformanceMode: () => boolean;
 };
 
 export const usePimoViewer = (
@@ -175,6 +188,94 @@ export const usePimoViewer = (
     viewerRef.current?.highlightBox(id);
   }, []);
 
+  const setShowcaseMode = useCallback((active: boolean, turntable?: boolean) => {
+    viewerRef.current?.setShowcaseMode?.(active, turntable);
+  }, []);
+
+  const getShowcaseMode = useCallback(() => {
+    return viewerRef.current?.getShowcaseMode?.() ?? false;
+  }, []);
+
+  const getCurrentMode = useCallback(() => {
+    return viewerRef.current?.getCurrentMode?.() ?? "performance";
+  }, []);
+
+  const setMode = useCallback((mode: "performance" | "showcase", turntable?: boolean) => {
+    viewerRef.current?.setMode?.(mode, turntable);
+  }, []);
+
+  const renderScene = useCallback(
+    (options: ViewerRenderOptions): Promise<ViewerRenderResult | null> =>
+      viewerRef.current?.renderScene?.(options) ?? Promise.resolve(null),
+    []
+  );
+
+  const setUltraPerformanceMode = useCallback((active: boolean) => {
+    viewerRef.current?.setUltraPerformanceMode?.(active);
+  }, []);
+
+  const getUltraPerformanceMode = useCallback(
+    () => viewerRef.current?.getUltraPerformanceMode?.() ?? false,
+    []
+  );
+
+  const createRoom = useCallback((config: RoomConfig) => {
+    viewerRef.current?.createRoom(config);
+  }, []);
+
+  const removeRoom = useCallback(() => {
+    viewerRef.current?.removeRoom();
+  }, []);
+
+  const setPlacementMode = useCallback((mode: "door" | "window" | null) => {
+    viewerRef.current?.setPlacementMode?.(mode);
+  }, []);
+
+  const addDoorToRoom = useCallback(
+    (wallId: number, config: DoorWindowConfig) =>
+      viewerRef.current?.addDoorToRoom?.(wallId, config) ?? "",
+    []
+  );
+
+  const addWindowToRoom = useCallback(
+    (wallId: number, config: DoorWindowConfig) =>
+      viewerRef.current?.addWindowToRoom?.(wallId, config) ?? "",
+    []
+  );
+
+  const setOnRoomElementPlaced = useCallback(
+    (
+      cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+    ) => {
+      viewerRef.current?.setOnRoomElementPlaced?.(cb);
+    },
+    []
+  );
+
+  const setOnRoomElementSelected = useCallback(
+    (
+      cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+    ) => {
+      viewerRef.current?.setOnRoomElementSelected?.(cb);
+    },
+    []
+  );
+
+  const setExplodedView = useCallback((enabled: boolean) => {
+    viewerRef.current?.setExplodedView?.(enabled);
+  }, []);
+
+  const getExplodedView = useCallback(
+    () => viewerRef.current?.getExplodedView?.() ?? false,
+    []
+  );
+
+  const updateRoomElementConfig = useCallback(
+    (elementId: string, config: DoorWindowConfig) =>
+      viewerRef.current?.updateRoomElementConfig?.(elementId, config) ?? false,
+    []
+  );
+
   const selectBox = useCallback((id: string | null) => {
     viewerRef.current?.selectBox(id);
   }, []);
@@ -205,6 +306,21 @@ export const usePimoViewer = (
       setOnBoxTransform,
       setTransformMode,
       highlightBox,
+      setShowcaseMode,
+      getShowcaseMode,
+      getCurrentMode,
+      setMode,
+      renderScene,
+      setUltraPerformanceMode,
+      getUltraPerformanceMode,
+      createRoom,
+      removeRoom,
+      setPlacementMode,
+      addDoorToRoom,
+      addWindowToRoom,
+      setOnRoomElementPlaced,
+      setOnRoomElementSelected,
+      updateRoomElementConfig,
     }),
     [
       viewerReady,
@@ -229,6 +345,23 @@ export const usePimoViewer = (
       setOnBoxTransform,
       setTransformMode,
       highlightBox,
+      setShowcaseMode,
+      getShowcaseMode,
+      getCurrentMode,
+      setMode,
+      renderScene,
+      setUltraPerformanceMode,
+      getUltraPerformanceMode,
+      createRoom,
+      removeRoom,
+      setPlacementMode,
+      addDoorToRoom,
+      addWindowToRoom,
+      setOnRoomElementPlaced,
+      setOnRoomElementSelected,
+      updateRoomElementConfig,
+      setExplodedView,
+      getExplodedView,
     ]
   );
 };

@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import Panel from "../ui/Panel";
 import type { MaterialIndustrial, IndustrialTool } from "../../core/manufacturing/materials";
-import { CHAPA_PADRAO_LARGURA, CHAPA_PADRAO_ALTURA, DENSIDADE_PADRAO } from "../../core/manufacturing/materials";
+import {
+  CHAPA_PADRAO_LARGURA,
+  CHAPA_PADRAO_ALTURA,
+  DENSIDADE_PADRAO,
+  MATERIAIS_PBR_OPCOES,
+} from "../../core/manufacturing/materials";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useIndustrialTools } from "../../hooks/useIndustrialTools";
 
@@ -14,7 +19,7 @@ export default function MaterialsManager() {
     nome: "",
     espessuraPadrao: 18,
     custo_m2: 0,
-    cor: "",
+    materialPbrId: "mdf_branco",
     larguraChapa: CHAPA_PADRAO_LARGURA,
     alturaChapa: CHAPA_PADRAO_ALTURA,
     densidade: DENSIDADE_PADRAO,
@@ -55,7 +60,7 @@ export default function MaterialsManager() {
       nome: "",
       espessuraPadrao: 18,
       custo_m2: 0,
-      cor: "",
+      materialPbrId: "mdf_branco",
       larguraChapa: CHAPA_PADRAO_LARGURA,
       alturaChapa: CHAPA_PADRAO_ALTURA,
       densidade: DENSIDADE_PADRAO,
@@ -68,7 +73,7 @@ export default function MaterialsManager() {
       nome: form.nome.trim(),
       espessuraPadrao: Math.max(0, Number(form.espessuraPadrao)),
       custo_m2: Math.max(0, Number(form.custo_m2)),
-      cor: form.cor?.trim() || undefined,
+      materialPbrId: form.materialPbrId ?? "mdf_branco",
       larguraChapa: Number(form.larguraChapa) || CHAPA_PADRAO_LARGURA,
       alturaChapa: Number(form.alturaChapa) || CHAPA_PADRAO_ALTURA,
       densidade: Number(form.densidade) || DENSIDADE_PADRAO,
@@ -121,17 +126,12 @@ export default function MaterialsManager() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div className="card-title">{material.nome}</div>
-                  {material.cor && (
-                    <div
-                      title={material.cor}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: material.cor,
-                        border: "1px solid rgba(255,255,255,0.2)",
-                      }}
-                    />
+                  {(material.materialPbrId || material.cor) && (
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {material.materialPbrId
+                        ? MATERIAIS_PBR_OPCOES.find((p) => p.id === material.materialPbrId)?.label ?? material.materialPbrId
+                        : material.cor}
+                    </span>
                   )}
                 </div>
                 <div className="muted-text" style={{ fontSize: 11, lineHeight: 1.6 }}>
@@ -166,13 +166,23 @@ export default function MaterialsManager() {
               />
             </div>
             <div>
-              <div style={labelStyle}>Cor (opcional)</div>
-              <input
+              <div style={labelStyle}>Acabamento (PBR)</div>
+              <select
                 className="input"
-                placeholder="Cor"
-                value={form.cor ?? ""}
-                onChange={(e) => setForm((prev) => ({ ...prev, cor: e.target.value }))}
-              />
+                value={form.materialPbrId ?? "mdf_branco"}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    materialPbrId: e.target.value as MaterialIndustrial["materialPbrId"],
+                  }))
+                }
+              >
+                {MATERIAIS_PBR_OPCOES.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <div style={labelStyle}>Espessura padrão (mm)</div>

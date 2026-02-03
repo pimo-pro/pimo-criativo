@@ -18,6 +18,7 @@ import { PimoViewerProvider } from "./context/PimoViewerContext";
 import { ProjectProvider } from "./context/ProjectProvider";
 import { MaterialProvider } from "./context/materialContext";
 import { ToolbarModalProvider } from "./context/ToolbarModalContext";
+import { ToastProvider } from "./context/ToastContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "./constants/viewerOptions";
 
@@ -137,7 +138,8 @@ export default function App() {
   return (
     <ProjectProvider>
         <MaterialProvider>
-          <PimoViewerProvider>
+          <ToastProvider>
+            <PimoViewerProvider>
             <div className="app-root">
         <Header
           onTogglePainelReferencia={() => {
@@ -257,7 +259,8 @@ export default function App() {
         <WhatsAppButton />
 
             </div>
-          </PimoViewerProvider>
+            </PimoViewerProvider>
+          </ToastProvider>
         </MaterialProvider>
     </ProjectProvider>
   );

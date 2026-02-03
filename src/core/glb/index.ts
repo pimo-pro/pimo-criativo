@@ -6,3 +6,5 @@
 export type { ExtractedPart } from "./types";
 export { extractPartsFromGLB } from "./extractPartsFromGLB";
 export { glbPartsToCutListItems } from "./glbPartsToCutList";
+export { loadGLB } from "./glbLoader";
+export { GLB_REGISTRY, getCatalogGlbPath } from "./glbRegistry";

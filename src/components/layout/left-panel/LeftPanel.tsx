@@ -7,6 +7,9 @@ import { mmToM } from "../../../utils/units";
 import { LEFT_TOOLBAR_IDS } from "../left-toolbar/LeftToolbar";
 import PainelMoveis from "./PainelMoveis";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
+import PainelModelosProntos from "./PainelModelosProntos";
+import PainelCatalogo3D from "./PainelCatalogo3D";
+import { getCatalogItemById } from "../../../catalog/catalogIndex";
 
 export type LeftPanelProps = {
   activeTab?: string;
@@ -108,6 +111,28 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
       </button>
     </div>
   );
+
+  // Modelos Prontos = Biblioteca de templates
+  if (activeTab === LEFT_TOOLBAR_IDS.TEMPLATES) {
+    return (
+      <div className="left-panel-content">
+        <div className="left-panel-scroll">
+          <PainelModelosProntos />
+        </div>
+      </div>
+    );
+  }
+
+  // Catálogo 3D = Biblioteca de módulos padrão
+  if (activeTab === LEFT_TOOLBAR_IDS.CATALOGO) {
+    return (
+      <div className="left-panel-content">
+        <div className="left-panel-scroll">
+          <PainelCatalogo3D />
+        </div>
+      </div>
+    );
+  }
 
   // Móveis = Catálogo CAD (biblioteca) — sempre dentro do LeftPanel
   if (activeTab === LEFT_TOOLBAR_IDS.MOVEIS) {
@@ -334,52 +359,61 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
             <span className="panel-label">
               Largura:
             </span>
-            <input
-              type="number"
-              value={project.dimensoes.largura}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                actions.setDimensoes({ largura: value });
-                if (project.selectedWorkspaceBoxId) {
-                  viewerApi?.updateBox(project.selectedWorkspaceBoxId, { width: mmToM(value) });
-                }
-              }}
-              className="input input-xs"
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="number"
+                value={selectedBox?.dimensoes.largura ?? project.dimensoes.largura}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  actions.setDimensoes({ largura: value });
+                  if (project.selectedWorkspaceBoxId) {
+                    viewerApi?.updateBox(project.selectedWorkspaceBoxId, { width: mmToM(value) });
+                  }
+                }}
+                className="input input-xs"
+              />
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>mm</span>
+            </div>
           </div>
           <div className="panel-field-row">
             <span className="panel-label">
               Altura:
             </span>
-            <input
-              type="number"
-              value={project.dimensoes.altura}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                actions.setDimensoes({ altura: value });
-                if (project.selectedWorkspaceBoxId) {
-                  viewerApi?.updateBox(project.selectedWorkspaceBoxId, { height: mmToM(value) });
-                }
-              }}
-              className="input input-xs"
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="number"
+                value={selectedBox?.dimensoes.altura ?? project.dimensoes.altura}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  actions.setDimensoes({ altura: value });
+                  if (project.selectedWorkspaceBoxId) {
+                    viewerApi?.updateBox(project.selectedWorkspaceBoxId, { height: mmToM(value) });
+                  }
+                }}
+                className="input input-xs"
+              />
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>mm</span>
+            </div>
           </div>
           <div className="panel-field-row">
             <span className="panel-label">
               Profundidade:
             </span>
-            <input
-              type="number"
-              value={project.dimensoes.profundidade}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                actions.setDimensoes({ profundidade: value });
-                if (project.selectedWorkspaceBoxId) {
-                  viewerApi?.updateBox(project.selectedWorkspaceBoxId, { depth: mmToM(value) });
-                }
-              }}
-              className="input input-xs"
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="number"
+                value={selectedBox?.dimensoes.profundidade ?? project.dimensoes.profundidade}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  actions.setDimensoes({ profundidade: value });
+                  if (project.selectedWorkspaceBoxId) {
+                    viewerApi?.updateBox(project.selectedWorkspaceBoxId, { depth: mmToM(value) });
+                  }
+                }}
+                className="input input-xs"
+              />
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>mm</span>
+            </div>
           </div>
         </div>
       </Panel>

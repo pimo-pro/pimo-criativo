@@ -1,5 +1,11 @@
 import { createContext } from "react";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
+import type {
+  DoorWindowConfig,
+  RoomConfig,
+  ViewerRenderOptions,
+  ViewerRenderResult,
+} from "./projectTypes";
 import type { Viewer } from "../3d/core/Viewer";
 
 export type PimoViewerApi = {
@@ -24,6 +30,28 @@ export type PimoViewerApi = {
   setTransformMode: (_mode: "translate" | "rotate" | null) => void;
   selectBox?: (_id: string | null) => void;
   highlightBox?: (_id: string | null) => void;
+  /** Ativa/desativa modo Apresentação Realista (DOF, bloom, foco automático). turntable = rotação lenta opcional. */
+  setShowcaseMode?: (_active: boolean, _turntable?: boolean) => void;
+  getShowcaseMode?: () => boolean;
+  getCurrentMode?: () => "performance" | "showcase";
+  setMode?: (_mode: "performance" | "showcase", _turntable?: boolean) => void;
+  renderScene?: (_options: ViewerRenderOptions) => Promise<ViewerRenderResult | null>;
+  setUltraPerformanceMode?: (_active: boolean) => void;
+  getUltraPerformanceMode?: () => boolean;
+  createRoom?: (_config: RoomConfig) => void;
+  removeRoom?: () => void;
+  setPlacementMode?: (_mode: "door" | "window" | null) => void;
+  addDoorToRoom?: (_wallId: number, _config: DoorWindowConfig) => string;
+  addWindowToRoom?: (_wallId: number, _config: DoorWindowConfig) => string;
+  setOnRoomElementPlaced?: (
+    _cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+  ) => void;
+  setOnRoomElementSelected?: (
+    _cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+  ) => void;
+  updateRoomElementConfig?: (_elementId: string, _config: DoorWindowConfig) => boolean;
+  setExplodedView?: (_enabled: boolean) => void;
+  getExplodedView?: () => boolean;
 };
 
 export type PimoViewerContextValue = {

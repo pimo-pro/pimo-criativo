@@ -208,11 +208,12 @@ export default function PainelModelosDaCaixa() {
                 className="select"
                 style={{ width: "100%" }}
               >
-                <option value="MDF">MDF</option>
-                <option value="Contraplacado">Contraplacado</option>
-                <option value="Carvalho">Carvalho</option>
-                <option value="Faia">Faia</option>
-                <option value="Pinho">Pinho</option>
+                <option value="Carvalho Natural">Carvalho Natural</option>
+                <option value="Carvalho Escuro">Carvalho Escuro</option>
+                <option value="Nogueira">Nogueira</option>
+                <option value="MDF Branco">MDF Branco</option>
+                <option value="MDF Cinza">MDF Cinza</option>
+                <option value="MDF Preto">MDF Preto</option>
               </select>
               <select
                 value={selectedBox?.espessura ?? project.material.espessura}

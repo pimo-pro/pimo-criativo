@@ -1,3 +1,5 @@
+import type { Group } from "three";
+
 export interface Material {
   tipo: string;
   espessura: number;
@@ -159,6 +161,8 @@ export interface WorkspaceBox {
   tipoFundo: TipoFundo;
   /** Instâncias de modelos GLB associadas a esta caixa (multi-model por box). */
   models: BoxModelInstance[];
+  /** Modelo GLB carregado diretamente (uso interno no Viewer). */
+  glbModel?: Group;
   prateleiras: number;
   portaTipo: "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr";
   gavetas: number;
@@ -172,6 +176,8 @@ export interface WorkspaceBox {
   rotacaoY?: number;
   /** Se true, o viewer não reposiciona esta caixa no reflow (posição manual). */
   manualPosition?: boolean;
+  /** ID do item do catálogo que originou esta caixa (opcional). */
+  catalogItemId?: string;
 }
 
 export interface ProjetoConfig {

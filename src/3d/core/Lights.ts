@@ -9,6 +9,8 @@ export type LightsOptions = {
   fillLightIntensity?: number;
   /** Luz de contorno (rim) — atrás do módulo, destaca bordas. */
   rimLightIntensity?: number;
+  /** Resolução do shadow map (2048 para performance, 4096 para apresentação). */
+  shadowMapSize?: number;
 };
 
 export class Lights {
@@ -25,7 +27,7 @@ export class Lights {
     // Ambient reduzido para não “lavar” as cores do MDF
     this.ambient = new THREE.AmbientLight(
       0xffffff,
-      options.ambientIntensity ?? 0.22
+      options.ambientIntensity ?? 0.46
     );
 
     this.hemisphere = new THREE.HemisphereLight(
@@ -37,46 +39,46 @@ export class Lights {
     // Key light: frontal diagonal, intensidade moderada
     this.keyLight = new THREE.DirectionalLight(
       0xffffff,
-      options.keyLightIntensity ?? 0.9
+      options.keyLightIntensity ?? 0.38
     );
-    this.keyLight.position.set(4, 5, 4);
+    this.keyLight.position.set(5.4, 6.0, 5.4);
     this.keyLight.castShadow = true;
-    // Resolução maior = sombras mais nítidas
-    this.keyLight.shadow.mapSize.width = 4096;
-    this.keyLight.shadow.mapSize.height = 4096;
-    // Suavidade do penumbra (PCF)
-    this.keyLight.shadow.radius = 8;
-    // Reduz acne e banding (artefactos)
-    this.keyLight.shadow.bias = -0.0003;
-    this.keyLight.shadow.normalBias = 0.03;
-    // Frustum apertado na área do módulo = mais resolução, menos borrão
-    this.keyLight.shadow.camera.near = 0.2;
-    this.keyLight.shadow.camera.far = 12;
-    this.keyLight.shadow.camera.left = -2.2;
-    this.keyLight.shadow.camera.right = 2.2;
-    this.keyLight.shadow.camera.top = 1.8;
-    this.keyLight.shadow.camera.bottom = -1.2;
+    const shadowSize = options.shadowMapSize ?? 1024;
+    this.keyLight.shadow.mapSize.width = shadowSize;
+    this.keyLight.shadow.mapSize.height = shadowSize;
+    // Suavidade do penumbra (PCF) reduzida para diminuir custo.
+    this.keyLight.shadow.radius = 1.0;
+    // Suaviza sombras: aumenta bias para reduzir artefatos e sombras duras
+    this.keyLight.shadow.bias = 0.002;
+    this.keyLight.shadow.normalBias = 0.05;
+    // Frustum ampliado para suportar múltiplas caixas lado a lado
+    this.keyLight.shadow.camera.near = 0.1;
+    this.keyLight.shadow.camera.far = 20;
+    this.keyLight.shadow.camera.left = -4;
+    this.keyLight.shadow.camera.right = 4;
+    this.keyLight.shadow.camera.top = 3;
+    this.keyLight.shadow.camera.bottom = -2;
 
     // Fill light: lado oposto, suave, sem sombra
     this.fillLight = new THREE.DirectionalLight(
       0xe8f0ff,
-      options.fillLightIntensity ?? 0.38
+      options.fillLightIntensity ?? 0.6
     );
     this.fillLight.position.set(-3, 3, 2.5);
 
     // Rim light: atrás do módulo, destaca bordas
-    this.rimLight = new THREE.DirectionalLight(
-      0xffffff,
-      options.rimLightIntensity ?? 0.45
-    );
+    const rimIntensity = options.rimLightIntensity ?? 0.16;
+    this.rimLight = new THREE.DirectionalLight(0xffffff, rimIntensity);
     this.rimLight.position.set(-2, 2.5, -4);
 
-    scene.add(
-      this.ambient,
-      this.hemisphere,
-      this.keyLight,
-      this.fillLight,
-      this.rimLight
-    );
+    scene.add(this.ambient, this.hemisphere, this.keyLight, this.fillLight);
+    if (rimIntensity > 0) {
+      scene.add(this.rimLight);
+    }
+  }
+
+  setShadowMapSize(size: number): void {
+    this.keyLight.shadow.mapSize.width = size;
+    this.keyLight.shadow.mapSize.height = size;
   }
 }

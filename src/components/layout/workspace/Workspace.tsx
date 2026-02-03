@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { extractPartsFromGLB } from "../../../core/glb";
 import { glbPartsToCutListItems } from "../../../core/glb";
 import { calcularPrecoCutList } from "../../../core/pricing/pricing";
 import { useProject } from "../../../context/useProject";
+import { useToast } from "../../../context/ToastContext";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
 import { useMultiBoxManager } from "../../../core/multibox";
@@ -18,6 +19,7 @@ import {
 } from "../../../core/layout/viewerLayoutAdapter";
 import { mToMm } from "../../../utils/units";
 import { getModelo } from "../../../core/cad/cadModels";
+import { validateProjectLight } from "../../../core/validation/validateProject";
 
 type WorkspaceProps = {
   viewerBackground?: string;
@@ -32,6 +34,7 @@ export default function Workspace({
 }: WorkspaceProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { project, actions, viewerSync } = useProject();
+  const { showToast } = useToast();
   const viewerOptionsStable = useMemo(
     () => ({
       background: viewerBackground,
@@ -92,10 +95,39 @@ export default function Workspace({
     viewerSync.setActiveTool(mode);
   }, [project.activeViewerTool, viewerSync]);
 
+  const [explodedView, setExplodedViewState] = useState(false);
+  const toggleExplodedView = useCallback(() => {
+    const next = !explodedView;
+    setExplodedViewState(next);
+    viewerSync.setExplodedView(next);
+  }, [explodedView, viewerSync]);
+
   const projectRef = useRef(project);
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  const prevBoxesRef = useRef<string>("");
+  useEffect(() => {
+    const key = JSON.stringify(
+      project.workspaceBoxes.map((b) => [b.id, b.posicaoX_mm, b.posicaoY_mm, b.posicaoZ_mm])
+    );
+    if (prevBoxesRef.current && prevBoxesRef.current !== key) {
+      const errors = validateProjectLight({
+        workspaceBoxes: project.workspaceBoxes,
+        boxes: project.boxes ?? [],
+        roomConfig: null,
+      });
+      const msg = errors[0]?.message;
+      if (msg) {
+        if (errors.some((e) => e.type === "out_of_room")) showToast("Peça fora da sala", "error");
+        else if (errors.some((e) => e.type === "collision")) showToast("Colisão detectada", "error");
+        else if (errors.some((e) => e.type === "missing_ferragens")) showToast("Ferragens incompletas", "warning");
+        else showToast(msg, "warning");
+      }
+    }
+    prevBoxesRef.current = key;
+  }, [project.workspaceBoxes, project.boxes, showToast]);
 
   useEffect(() => {
     viewerApi.setOnModelLoaded((boxId, modelInstanceId, object) => {
@@ -109,6 +141,7 @@ export default function Workspace({
 
       const box = projectRef.current.workspaceBoxes.find((b) => b.id === boxId);
       const modelId = box?.models?.find((m) => m.id === modelInstanceId)?.modelId;
+      const isCatalogModel = modelId?.startsWith("catalog:");
       scene.updateMatrixWorld(true);
       const bbox = new THREE.Box3().setFromObject(scene);
       const size = new THREE.Vector3();
@@ -122,7 +155,7 @@ export default function Workspace({
       // Caixa CAD-only: dimensões vêm do GLB; atualizar estado para cut list, lista de caixas e reflow
       const isCadOnlyBox =
         box && (box.models?.length ?? 0) > 0 && box.prateleiras === 0 && box.gavetas === 0;
-      if (isCadOnlyBox) {
+      if (isCadOnlyBox && !isCatalogModel) {
         actions.setWorkspaceBoxDimensoes(boxId, modelSizeMm);
         if (modelId) {
           const cadModel = getModelo(modelId);
@@ -172,6 +205,8 @@ export default function Workspace({
                 actions.setActiveTool(toolId);
               }
             }}
+            explodedView={explodedView}
+            onToggleExplodedView={toggleExplodedView}
           />
         </div>
         <div className="workspace-viewer" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>

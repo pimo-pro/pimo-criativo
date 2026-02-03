@@ -30,6 +30,7 @@ import { mmToM } from "../utils/units";
 import { loadProfiles } from "../core/rules/rulesProfilesStorage";
 import { defaultRulesConfig } from "../core/rules/rulesConfig";
 import type { RulesProfilesConfig } from "../core/rules/rulesProfiles";
+import { getCatalogGlbPath } from "../core/glb/glbRegistry";
 
 /** Extrai rules do perfil ativo; fallback para default se não existir. */
 function getRulesFromProfiles(config: RulesProfilesConfig) {
@@ -38,7 +39,7 @@ function getRulesFromProfiles(config: RulesProfilesConfig) {
 }
 
 const defaultMaterial: Material = {
-  tipo: "MDF",
+  tipo: "MDF Branco",
   espessura: 19,
   precoPorM2: 25.0,
 };
@@ -99,7 +100,8 @@ export const createWorkspaceBox = (
   posicaoX_mm: number,
   models: BoxModelInstance[] = [],
   tipoBorda: TipoBorda = defaultTipoBorda,
-  tipoFundo: TipoFundo = defaultTipoFundo
+  tipoFundo: TipoFundo = defaultTipoFundo,
+  catalogItemId?: string
 ): WorkspaceBox => ({
   id,
   nome,
@@ -118,6 +120,7 @@ export const createWorkspaceBox = (
   rotacaoY_90: false,
   rotacaoY: 0,
   manualPosition: false,
+  catalogItemId,
 });
 
 const defaultWorkspaceBoxes: WorkspaceBox[] = [
@@ -325,6 +328,21 @@ function getBaseUrl(): string {
 
 export const getModelUrlFromStorage = (modelId?: string | null): string | null => {
   if (!modelId) return null;
+  if (modelId.startsWith("catalog:")) {
+    const catalogItemId = modelId.replace("catalog:", "");
+    const catalogPath = getCatalogGlbPath(catalogItemId);
+    if (!catalogPath) return null;
+    if (
+      catalogPath.startsWith("data:") ||
+      catalogPath.startsWith("http://") ||
+      catalogPath.startsWith("https://")
+    ) {
+      return catalogPath;
+    }
+    const base = getBaseUrl();
+    const path = catalogPath.startsWith("/") ? catalogPath : `/${catalogPath}`;
+    return `${base}${path}`;
+  }
   const stored = safeGetItem("pimo_admin_cad_models");
   const parsed = safeParseJson<{ id?: string; arquivo?: string }[]>(stored);
   if (!Array.isArray(parsed)) return null;

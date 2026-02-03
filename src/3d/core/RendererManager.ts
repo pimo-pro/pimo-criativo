@@ -13,8 +13,12 @@ export class RendererManager {
     this.renderer = new THREE.WebGLRenderer({
       antialias: options.antialias ?? true,
       alpha: false,
+      powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    const dpr = window.devicePixelRatio || 1;
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    this.renderer.setPixelRatio(Math.min(dpr, isMobile ? 1.1 : 1.6));
     this.renderer.setSize(container.clientWidth, container.clientHeight, false);
     if ("outputColorSpace" in this.renderer) {
       this.renderer.outputColorSpace = THREE.SRGBColorSpace;

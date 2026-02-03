@@ -228,6 +228,12 @@ export default function Documentacao() {
           {"\n"}- Câmara ajustada para enquadramento natural com chão.
           {"\n"}- Build mais estável com chunks separados por vendor.
           {"\n"}- Roadmap semanal removido sem impacto no fluxo atual.
+          {"\n"}- UX de Seleção de Caixas: outline suave, feedback visual imediato, sem alterar materiais PBR.
+          {"\n"}- Lazy Loading de Texturas e HDRI: carregar apenas essencial no início, HDRI no modo Showcase, texturas PBR sob demanda.
+          {"\n"}- Photo Mode Integrado: botão de câmera, popup de renderização, modos Realista/Linhas, exportação em alta qualidade.
+          {"\n"}- Ultra Performance Mode: botão no RightToolsBar, desativa normal/roughness, reduz resolução interna, simplifica luzes.
+          {"\n"}- Novos presets do Photo Mode: Frontal, Superior, Isométrico 1, Isométrico 2.
+          {"\n"}- Ajustes finais do Refino: outline suave, sombras mais leves, brilho equilibrado.
           {"\n\n"}Exemplo de uso:
           {"\n"}- Alternar painel esquerdo sem perder a lista de modelos.
           {"\n"}- Adicionar modelo no Admin e ver atualização no painel esquerdo.

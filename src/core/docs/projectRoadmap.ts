@@ -9,6 +9,8 @@ export type PhaseTask = {
   status: TaskStatus;
   notes?: string;
   date?: string;
+  isNew?: boolean;
+  createdAt?: number;
 };
 
 export type Phase = {
@@ -89,7 +91,7 @@ const basePhases: Phase[] = [
   {
     id: "phase_3_3d_realism",
     title: "Phase 3: Realismo 3D",
-    description: "HDRI, sombras suaves e materiais PBR realistas.",
+    description: "HDRI, sombras suaves, materiais PBR realistas e modos de visualização avançados.",
     status: "in_progress",
     tasks: [
       {
@@ -108,6 +110,36 @@ const basePhases: Phase[] = [
         id: "phase3_task_shadows",
         title: "Sombras suaves refinadas",
         description: "PCFSoft com bias/blur ajustados.",
+        status: "in_progress",
+      },
+      {
+        id: "phase3_task_pbr_system",
+        title: "Sistema de Materiais PBR (100% realista)",
+        description: "Biblioteca com 6 materiais PBR: Carvalho Natural, Carvalho Escuro, Nogueira, MDF Branco, MDF Cinza, MDF Preto. Cada material com colorMap, normalMap, roughnessMap, aoMap e metalnessMap. Remoção total de cores sólidas. Mapeamento automático de materiais antigos para PBR. Material padrão: MDF Branco.",
+        status: "in_progress",
+      },
+      {
+        id: "phase3_task_viewer_consistency",
+        title: "Viewer 3D – Realismo e consistência",
+        description: "Aplicação de materiais PBR em todas as caixas. Correção de diferenças de cor entre o primeiro módulo e os restantes. Ajuste de iluminação para remover hotspots exagerados. Redução de bloom e exposição para visual mais natural. Ajuste de envMapIntensity para equilíbrio de reflexos.",
+        status: "in_progress",
+      },
+      {
+        id: "phase3_task_presentation_mode",
+        title: "Modo 'Apresentação Realista'",
+        description: "DOF (BokehPass) com foco automático. Bloom cinematográfico. Foco dinâmico baseado na distância da câmara. Rotação turntable opcional. Botão 'Ver em modo realista' na toolbar. Composer criado apenas quando necessário (lazy init).",
+        status: "in_progress",
+      },
+      {
+        id: "phase3_task_performance_mode",
+        title: "Modo 'Performance'",
+        description: "Novo modo padrão mais leve. Sem DOF, sem Bloom, sombras reduzidas. Ideal para edição rápida e dispositivos fracos. Alternância entre modos via API.",
+        status: "in_progress",
+      },
+      {
+        id: "phase3_task_general_optimizations",
+        title: "Otimizações gerais",
+        description: "pixelRatio limitado a 2. HDRI carregado de forma assíncrona. Redução de carga inicial. Melhorias no BoxBuilder e no Viewer para consistência de materiais.",
         status: "in_progress",
       },
     ],
@@ -223,7 +255,7 @@ const basePhases: Phase[] = [
   {
     id: "phase_4_material_system",
     title: "Phase 4: Sistema de Materiais Profissional",
-    description: "Gestão avançada de materiais e presets reutilizáveis.",
+    description: "Gestão avançada de materiais PBR, presets reutilizáveis e integração completa com o Viewer e PDF Técnico.",
     status: "in_progress",
     tasks: [
       {
@@ -237,6 +269,12 @@ const basePhases: Phase[] = [
         title: "Editor de materiais",
         description: "Ferramenta para ajustar PBR em tempo real.",
         status: "todo",
+      },
+      {
+        id: "phase4_task_materials_manager",
+        title: "Atualização do Materials Manager",
+        description: "Campo 'cor' substituído por 'materialPbrId'. Dropdown 'Acabamento (PBR)' com os 6 materiais. Compatibilidade com dados antigos mantida. Aplicação automática do material PBR no Viewer e no PDF Técnico.",
+        status: "in_progress",
       },
     ],
   },
@@ -339,6 +377,50 @@ const basePhases: Phase[] = [
         title: "Expansão viewer: snapshot, 2D e renderização",
         description: "Implementar stubs documentados no viewerApiAdapter (snapshot, vistas 2D, render).",
         status: "in_progress",
+      },
+    ],
+  },
+  {
+    id: "phase_5c_models_catalog",
+    title: "Phase 5c: Catálogo de Modelos CAD",
+    description: "Gerar e organizar 56 modelos CAD paramétricos (cozinha e guarda-roupa) e integrar ao catálogo.",
+    status: "done",
+    tasks: [
+      {
+        id: "phase5c_task_create_dir",
+        title: "Criar diretório /pimo-models-temp/ e subpastas",
+        description: "Estrutura: /kitchen/base, /kitchen/upper, /wardrobe/lower, /wardrobe/upper.",
+        status: "done",
+      },
+      {
+        id: "phase5c_task_kitchen_base",
+        title: "Gerar 10 modelos de base de cozinha (20-100cm)",
+        description: "Arquivos: base_20cm.js a base_100cm.js; export default { id, nome, categoria, arquivo, dimensions }.",
+        status: "done",
+      },
+      {
+        id: "phase5c_task_kitchen_upper",
+        title: "Gerar 22 modelos de superiores de cozinha (25d/35d)",
+        description: "Arquivos: upper_25d_20cm.js a upper_35d_100cm.js; export default { id, nome, categoria, arquivo, dimensions }.",
+        status: "done",
+      },
+      {
+        id: "phase5c_task_wardrobe_lower",
+        title: "Gerar 12 modelos de guarda-roupas inferiores",
+        description: "Arquivos: lower_60cm.js a lower_120cm.js; export default { id, nome, categoria, arquivo, dimensions }.",
+        status: "done",
+      },
+      {
+        id: "phase5c_task_wardrobe_upper",
+        title: "Gerar 12 modelos de guarda-roupas superiores",
+        description: "Arquivos: upper_60cm.js a upper_120cm.js; export default { id, nome, categoria, arquivo, dimensions }.",
+        status: "done",
+      },
+      {
+        id: "phase5c_task_documentation",
+        title: "Documentar e organizar arquivos",
+        description: "README.md com instruções de uso; arquivos organizados por tipo e dimensão.",
+        status: "done",
       },
     ],
   },
@@ -612,3 +694,31 @@ export const roadmapInstructions = [
   "OBRIGATÓRIO: Novas fases devem declarar dependências em PHASE_DEPENDENCIES: { phase_id: [\"phase_X\", ...] }.",
   "Fases sem dependências: usar array vazio []; fases dependentes: listar IDs exatos das fases pré-requisito.",
 ];
+
+/**
+ * Verifica se uma tarefa deve exibir a etiqueta "novo".
+ * Exibe por 48 horas após a criação.
+ */
+export const isNewTask = (task: PhaseTask): boolean => {
+  if (!task.isNew || typeof task.createdAt !== "number") return false;
+  const now = Date.now();
+  const ageHours = (now - task.createdAt) / (1000 * 60 * 60);
+  return ageHours <= 48;
+};
+
+/**
+ * Marca uma tarefa como nova (isNew: true, createdAt: now).
+ */
+export const markTaskAsNew = (task: PhaseTask): PhaseTask => ({
+  ...task,
+  isNew: true,
+  createdAt: Date.now(),
+});
+
+/**
+ * Remove a marcação "novo" de uma tarefa (isNew: false).
+ */
+export const clearTaskNew = (task: PhaseTask): PhaseTask => ({
+  ...task,
+  isNew: false,
+});

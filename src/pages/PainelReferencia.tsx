@@ -17,6 +17,7 @@ import {
   getRoadmapStats,
   roadmapInstructions,
   statusLabel,
+  isNewTask,
 } from "../core/docs/projectRoadmap";
 import { painelReferenciaSections } from "../core/docs/painelReferenciaSections";
 import {
@@ -419,7 +420,77 @@ export default function PainelReferencia() {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Contexts, managers e viewerApiAdapter</div>
+            <strong>Arquivos alterados/adicionados/removidos:</strong>
+          {"\n"}+ src/pages/PainelReferencia.tsx
+          {"\n"}+ src/core/docs/painelReferenciaSections.ts
+          {"\n"}+ src/core/docs/progressoResumo.ts
+          {"\n"}+ src/core/docs/architectureIndex.ts
+          {"\n"}- src/pages/Documentation.tsx (removido; substituído por PainelReferencia)
+          {"\n"}M src/App.tsx (rota e navegação)
+          {"\n"}M src/components/layout/header/Header.tsx (botão Painel de Referência)
+          {"\n"}M src/core/docs/projectRoadmap.ts (Phase 6, PHASE_DEPENDENCIES, renumeração, task ids)
+          {"\n"}M src/core/docs/architectureIndex.ts (addAutoSection, addAutoLink)
+          {"\n"}M src/index.css (focus-visible sidebar)
+          {"\n"}+ src/constants/toolbarConfig.ts
+          {"\n"}+ src/constants/fileManagerConfig.ts
+          {"\n"}+ src/context/ToolbarModalContext.tsx
+          {"\n"}+ src/components/ui/UnifiedPopover.tsx
+          {"\n"}+ src/components/layout/viewer-toolbar/ViewerToolbar.tsx
+          {"\n"}+ src/components/layout/viewer-toolbar/Tools3DToolbar.tsx
+          {"\n"}+ src/components/admin/FileManager.tsx
+          {"\n"}M src/App.tsx (ToolbarModalProvider)
+          {"\n"}M src/components/layout/workspace/Workspace.tsx (ViewerToolbar, Tools3DToolbar)
+          {"\n"}M src/components/layout/right-tools/RightToolsBar.tsx (modais via context)
+          {"\n"}M src/components/layout/left-panel/LeftPanel.tsx (renomear caixas, popovers)
+          {"\n"}M src/components/layout/left-panel/PainelModelosDaCaixa.tsx (accordion opções)
+          {"\n"}M src/context/ProjectProvider.tsx (setGavetas)
+          {"\n"}+ pimo-models-temp/ (diretório)
+          {"\n"}+ pimo-models-temp/README.md
+          {"\n"}+ pimo-models-temp/kitchen/base/base_20cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_30cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_40cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_50cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_60cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_70cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_80cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_90cm.js
+          {"\n"}+ pimo-models-temp/kitchen/base/base_100cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_20cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_30cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_40cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_50cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_60cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_70cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_80cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_90cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_25d_100cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_20cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_30cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_40cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_50cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_60cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_70cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_80cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_90cm.js
+          {"\n"}+ pimo-models-temp/kitchen/upper/upper_35d_100cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_60cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_70cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_80cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_90cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_100cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_110cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/lower/lower_120cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_60cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_70cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_80cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_90cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_100cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_110cm.js
+          {"\n"}+ pimo-models-temp/wardrobe/upper/upper_120cm.js
+          {"\n"}M src/core/docs/projectRoadmap.ts (Phase 5c: Catálogo de Modelos CAD)
+          </div>
+          <div>
+            <strong>Contexts, managers e viewerApiAdapter</strong>
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
               ProjectProvider (estado) → Workspace (monta) → MultiBoxManager (sync) → Viewer (render).
               PimoViewerContext regista viewerApi; useViewerSync regista viewerApiAdapter para snapshot/2D/render.
@@ -493,6 +564,60 @@ export default function PainelReferencia() {
             </div>
           </div>
           <div>
+            <strong>UX de Seleção de Caixas</strong>
+            <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+              Local: src/3d/core/Viewer.ts (métodos de seleção)
+            </div>
+            <div style={{ marginTop: 4 }}>
+              Melhorias: outline suave, feedback visual imediato, sem alterar materiais PBR
+            </div>
+          </div>
+          <div>
+            <strong>Lazy Loading de Texturas e HDRI</strong>
+            <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+              Local: src/3d/core/Environment.ts, src/3d/materials/MaterialLibrary.ts
+            </div>
+            <div style={{ marginTop: 4 }}>
+              Estratégia: carregar apenas essencial no início, HDRI no modo Showcase, texturas PBR sob demanda
+            </div>
+          </div>
+          <div>
+            <strong>Photo Mode Integrado</strong>
+            <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+              Local: src/components/layout/viewer-toolbar/ViewerToolbar.tsx
+            </div>
+            <div style={{ marginTop: 4 }}>
+              Funcionalidades: botão de câmera, popup de renderização, modos Realista/Linhas, exportação em alta qualidade
+            </div>
+          </div>
+          <div>
+            <strong>Ultra Performance Mode</strong>
+            <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+              Local: src/components/layout/right-tools/RightToolsBar.tsx
+            </div>
+            <div style={{ marginTop: 4 }}>
+              Funcionalidades: botão no RightToolsBar, desativa normal/roughness, reduz resolução interna, simplifica luzes
+            </div>
+          </div>
+          <div>
+            <strong>Novos Presets do Photo Mode</strong>
+            <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+              Local: src/components/layout/viewer-toolbar/ViewerToolbar.tsx
+            </div>
+            <div style={{ marginTop: 4 }}>
+              Presets: Frontal, Superior, Isométrico 1, Isométrico 2
+            </div>
+          </div>
+          <div>
+            <strong>Ajustes Finais do Refino</strong>
+            <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+              Local: src/3d/core/Viewer.ts, src/3d/core/Lights.ts
+            </div>
+            <div style={{ marginTop: 4 }}>
+              Melhorias: outline suave, sombras mais leves, brilho equilibrado
+            </div>
+          </div>
+          <div>
             <strong>Fluxo de dados:</strong>
             <pre
               style={{
@@ -556,6 +681,11 @@ UI (addWorkspaceBox) → ProjectContext.actions → sincronização automática`
                     </span>
                   </label>
                   <div style={{ fontSize: 12, color: "var(--text-main)" }}>{task.title}</div>
+                  {isNewTask(task) && (
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }} title="Novo">
+                      novo
+                    </span>
+                  )}
                   <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                     {task.description}
                     {task.notes && task.notes !== task.description ? ` — ${task.notes}` : ""}

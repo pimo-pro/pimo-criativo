@@ -1,7 +1,28 @@
+/** IDs dos materiais PBR reais (acabamento visual) */
+export type MaterialPbrId =
+  | "carvalho_natural"
+  | "carvalho_escuro"
+  | "nogueira"
+  | "mdf_branco"
+  | "mdf_cinza"
+  | "mdf_preto";
+
+export const MATERIAIS_PBR_OPCOES: { id: MaterialPbrId; label: string }[] = [
+  { id: "carvalho_natural", label: "Carvalho Natural" },
+  { id: "carvalho_escuro", label: "Carvalho Escuro" },
+  { id: "nogueira", label: "Nogueira" },
+  { id: "mdf_branco", label: "MDF Branco" },
+  { id: "mdf_cinza", label: "MDF Cinza" },
+  { id: "mdf_preto", label: "MDF Preto" },
+];
+
 export type MaterialIndustrial = {
   nome: string;
   espessuraPadrao: number;
   custo_m2: number;
+  /** Material PBR real (acabamento visual); substitui cor sólida. */
+  materialPbrId?: MaterialPbrId;
+  /** @deprecated Use materialPbrId. Cor sólida — mantido para compatibilidade com dados antigos. */
   cor?: string;
   // Dimensões da chapa (mm)
   larguraChapa?: number;

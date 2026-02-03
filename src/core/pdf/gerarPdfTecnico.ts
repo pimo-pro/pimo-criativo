@@ -11,7 +11,7 @@ import type { RulesConfig } from "../rules/rulesConfig";
 import { gerarModeloIndustrial } from "../manufacturing/boxManufacturing";
 import { safeGetItem } from "../../utils/storage";
 import { COMPONENT_TYPES_DEFAULT } from "../components/componentTypes";
-import { MATERIAIS_INDUSTRIAIS, getMaterial, type MaterialIndustrial } from "../manufacturing/materials";
+import { MATERIAIS_INDUSTRIAIS, MATERIAIS_PBR_OPCOES, getMaterial, type MaterialIndustrial } from "../manufacturing/materials";
 
 const MARGIN = 12;
 const HEADER_COLOR: [number, number, number] = [15, 23, 42];
@@ -269,8 +269,10 @@ function getAcabamentosUnicos(boxes: BoxModule[], materials: MaterialIndustrial[
     const mat = box.material ?? "MDF Branco";
     const esp = box.espessura > 0 ? box.espessura : 18;
     const matInfo = materials.find((m) => m.nome === mat) ?? getMaterial(mat);
-    const cor = matInfo.cor ?? "";
-    const s = `${mat}${cor ? " " + cor : ""} ${esp}mm`;
+    const acabamento = matInfo.materialPbrId
+      ? MATERIAIS_PBR_OPCOES.find((p) => p.id === matInfo.materialPbrId)?.label ?? matInfo.materialPbrId
+      : matInfo.cor ?? "";
+    const s = `${mat}${acabamento ? " " + acabamento : ""} ${esp}mm`;
     if (!seen.has(s)) {
       seen.add(s);
       acc.push(s);

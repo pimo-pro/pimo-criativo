@@ -1,6 +1,10 @@
 import * as THREE from "three";
+import { Vector2 } from "three";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { SceneManager } from "./SceneManager";
@@ -13,13 +17,23 @@ import { Lights } from "./Lights";
 import type { LightsOptions } from "./Lights";
 import { Controls } from "./Controls";
 import type { ControlsOptions } from "./Controls";
-import { createWoodMaterial } from "../materials/WoodMaterial";
-import { defaultMaterialSet, mergeMaterialSet } from "../materials/MaterialLibrary";
-import type { MaterialPreset, MaterialSet } from "../materials/MaterialLibrary";
+import { createWoodMaterial, type LoadedWoodMaterial } from "../materials/WoodMaterial";
+import { defaultMaterialSet, getMaterialPreset, mergeMaterialSet } from "../materials/MaterialLibrary";
+import type { MaterialSet } from "../materials/MaterialLibrary";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { updateBoxGeometry, updateBoxGroup, buildBoxLegacy } from "../objects/BoxBuilder";
 import type { BoxOptions } from "../objects/BoxBuilder";
+import { RoomBuilder } from "../room/RoomBuilder";
+import type { RoomConfig, DoorWindowConfig } from "../room/types";
+import { DEFAULT_DOOR_CONFIG, DEFAULT_WINDOW_CONFIG } from "../room/types";
 import type { EnvironmentOptions } from "./Environment";
+import type {
+  ViewerRenderOptions,
+  ViewerRenderResult,
+  ViewerCameraPreset,
+  ViewerRenderFormat,
+} from "../../context/projectTypes";
+import { loadGLB } from "../../core/glb/glbLoader";
 
 /**
  * Interface multi-box do Viewer:
@@ -35,6 +49,8 @@ export type ViewerOptions = {
   background?: string;
   scene?: SceneOptions;
   environment?: EnvironmentOptions;
+  /** URL do HDRI para modo realista (reflexos, luz ambiente). Se definido, carrega automaticamente. */
+  environmentMap?: string;
   camera?: CameraOptions;
   renderer?: RendererOptions;
   lights?: LightsOptions;
@@ -70,18 +86,23 @@ export class Viewer {
         object: THREE.Object3D;
         path: string;
       }>;
-      highlight: {
-        emissive: THREE.Color;
-        emissiveIntensity: number;
-      } | null;
-      material: { material: THREE.MeshStandardMaterial; textures: THREE.Texture[] } | null;
+      material: LoadedWoodMaterial | null;
+      detailMapsRequested?: boolean;
+      detailTextures?: {
+        normal?: THREE.Texture | null;
+        roughness?: THREE.Texture | null;
+        metalness?: THREE.Texture | null;
+        ao?: THREE.Texture | null;
+      };
+      detailMapsActive?: boolean;
     }
   >();
   private mainBoxId = "main";
   private materialSet: MaterialSet;
-  private defaultMaterialName = "carvalho";
+  private defaultMaterialName = "mdf_branco";
   private boxGap = 0;
   private modelCounter = 0;
+  private roomBuilder: RoomBuilder;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private selectedBoxId: string | null = null;
@@ -96,11 +117,63 @@ export class Viewer {
   private readonly _center = new THREE.Vector3();
   private readonly _size = new THREE.Vector3();
   private _initialCanvasSizeDone = false;
+  private readonly isMobile: boolean;
+  private hoveredBoxId: string | null = null;
+  private outlineCurrentOpacity = 0;
+  private outlineTargetOpacity = 0;
+  private placementMode: "door" | "window" | null = null;
+  private onRoomElementPlaced: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null = null;
+  private onRoomElementSelected: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null = null;
+
+  /** Exploded View: posições base (do projeto) e offsets visuais. */
+  private explodedViewEnabled = false;
+  private explodedBasePositions = new Map<string, { x: number; y: number; z: number }>();
+  private explodedOffsets = new Map<string, { x: number; y: number; z: number }>();
+  private readonly EXPLODED_OFFSET_M = 0.1;
+  private readonly EXPLODED_LERP = 0.12;
+
+  /** "performance" = leve, sem DOF/Bloom; "showcase" = DOF+Bloom+turntable */
+  private currentMode: "performance" | "showcase" = "performance";
+  private turntableEnabled = false;
+  private turntableSpeed = 0.15;
+  private lights: Lights;
+  private selectionOutline: THREE.BoxHelper | null = null;
+  private selectionOutlineTarget: THREE.Object3D | null = null;
+  private selectionOutlineMaterial: THREE.LineBasicMaterial | null = null;
+  private composer: EffectComposer | null = null;
+  private bloomPass: UnrealBloomPass | null = null;
+  private bokehPass: BokehPass | null = null;
+  private hdriLoaded = false;
+  private pendingHDRIUrl: string | null = null;
+  private ultraPerformanceMode = false;
+  private defaultPixelRatio: number;
+  private ultraLightState: {
+    key: number;
+    fill: number;
+    ambient: number;
+    rim: number;
+    castShadow: boolean;
+    shadowRadius: number;
+  } | null = null;
+  private ultraLightTarget: {
+    key: number;
+    fill: number;
+    ambient: number;
+    rim: number;
+    castShadow: boolean;
+    shadowRadius: number;
+  } | null = null;
+  private readonly LIGHT_LERP_FACTOR = 0.14;
 
   constructor(container: HTMLElement, options: ViewerOptions = {}) {
     if (!container) {
       throw new Error("Viewer: container is required");
     }
+    const userAgent =
+      typeof window !== "undefined" && window.navigator ? window.navigator.userAgent : "";
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      userAgent ?? ""
+    );
     this.container = container;
     const background = options.background ?? options.scene?.background;
     this.sceneManager = new SceneManager({
@@ -112,11 +185,35 @@ export class Viewer {
       ...options.renderer,
       clearColor: background,
     });
-    new Lights(this.sceneManager.scene, options.lights);
+    const shadowMapSize = this.isMobile ? 512 : 1024;
+    this.lights = new Lights(this.sceneManager.scene, {
+      ...options.lights,
+      shadowMapSize,
+    });
+    this.defaultPixelRatio = this.rendererManager.renderer.getPixelRatio();
+    this.selectionOutlineMaterial = new THREE.LineBasicMaterial({
+      color: new THREE.Color("#7dd3fc"),
+      linewidth: 1,
+      opacity: 0.6,
+      transparent: true,
+      depthTest: true,
+    });
+    this.selectionOutline = new THREE.BoxHelper(new THREE.Object3D(), 0x00aeef);
+    if (this.selectionOutlineMaterial) {
+      (this.selectionOutline.material as THREE.Material).dispose();
+      this.selectionOutline.material = this.selectionOutlineMaterial;
+    }
+    this.selectionOutline.visible = false;
+    this.sceneManager.scene.add(this.selectionOutline);
+
+    this.roomBuilder = new RoomBuilder();
+    this.sceneManager.add(this.roomBuilder.getGroup());
+
+    this.pendingHDRIUrl = options.environmentMap ?? "/hdr/studio_neutral.hdr";
 
     this.materialSet = mergeMaterialSet(defaultMaterialSet);
     if (!options.skipInitialBox) {
-      this.addBox(this.mainBoxId, { ...options.box, materialName: "mdf" });
+      this.addBox(this.mainBoxId, { ...options.box, materialName: "MDF Branco" });
     }
 
     this.controls = options.enableControls === false
@@ -144,9 +241,240 @@ export class Viewer {
     this.updateCameraTarget();
 
     this.rendererManager.renderer.domElement.addEventListener("click", this.handleCanvasClick);
+    this.rendererManager.renderer.domElement.addEventListener("pointermove", this.handleCanvasPointerMove);
+    this.rendererManager.renderer.domElement.addEventListener("pointerleave", this.handleCanvasPointerLeave);
 
     this.start();
     window.addEventListener("resize", this.updateCanvasSize);
+  }
+
+  getCurrentMode(): "performance" | "showcase" {
+    return this.currentMode;
+  }
+
+  setMode(mode: "performance" | "showcase", turntable = false): void {
+    this.currentMode = mode;
+    this.turntableEnabled = mode === "showcase" && turntable;
+    this.lights.setShadowMapSize(this.isMobile ? 512 : 1024);
+    if (mode === "showcase") {
+      if (!this.hdriLoaded && this.pendingHDRIUrl) {
+        this.loadHDRI(this.pendingHDRIUrl, { setBackground: false });
+      }
+      if (!this.composer) {
+        this.initShowcaseComposer();
+      }
+    } else {
+      this.disposeComposer();
+    }
+  }
+
+  setShowcaseMode(active: boolean, turntable = false): void {
+    this.setMode(active ? "showcase" : "performance", turntable);
+  }
+
+  getShowcaseMode(): boolean {
+    return this.currentMode === "showcase";
+  }
+
+  setUltraPerformanceMode(active: boolean): void {
+    if (this.ultraPerformanceMode === active) return;
+    this.ultraPerformanceMode = active;
+
+    if (active) {
+      if (!this.ultraLightState) {
+        this.ultraLightState = {
+          key: this.lights.keyLight.intensity,
+          fill: this.lights.fillLight.intensity,
+          ambient: this.lights.ambient.intensity,
+          rim: this.lights.rimLight.intensity,
+          castShadow: this.lights.keyLight.castShadow,
+          shadowRadius: this.lights.keyLight.shadow.radius,
+        };
+      }
+      this.ultraLightTarget = {
+        key: this.ultraLightState.key * 0.65,
+        fill: this.ultraLightState.fill * 0.6,
+        ambient: this.ultraLightState.ambient * 0.7,
+        rim: this.ultraLightState.rim * 0.4,
+        castShadow: false,
+        shadowRadius: 0.5,
+      };
+      const performanceRatio = this.isMobile ? 0.9 : 1.1;
+      this.rendererManager.renderer.setPixelRatio(performanceRatio);
+    } else {
+      if (this.ultraLightState) {
+        this.ultraLightTarget = { ...this.ultraLightState };
+      } else {
+        this.ultraLightTarget = null;
+      }
+      this.ultraLightState = null;
+      this.rendererManager.renderer.setPixelRatio(this.defaultPixelRatio);
+    }
+
+    this.updateCanvasSize();
+    this.boxes.forEach((entry) => {
+      this.applyDetailMapState(entry);
+    });
+  }
+
+  private lerpLightsToTarget(): void {
+    if (!this.ultraLightTarget) return;
+    const t = this.LIGHT_LERP_FACTOR;
+    const key = this.lights.keyLight.intensity;
+    const fill = this.lights.fillLight.intensity;
+    const ambient = this.lights.ambient.intensity;
+    const rim = this.lights.rimLight.intensity;
+    const radius = this.lights.keyLight.shadow.radius;
+
+    this.lights.keyLight.intensity = key + (this.ultraLightTarget.key - key) * t;
+    this.lights.fillLight.intensity = fill + (this.ultraLightTarget.fill - fill) * t;
+    this.lights.ambient.intensity = ambient + (this.ultraLightTarget.ambient - ambient) * t;
+    this.lights.rimLight.intensity = rim + (this.ultraLightTarget.rim - rim) * t;
+    this.lights.keyLight.shadow.radius = radius + (this.ultraLightTarget.shadowRadius - radius) * t;
+
+    const snap = 0.002;
+    if (
+      Math.abs(this.lights.keyLight.intensity - this.ultraLightTarget.key) < snap &&
+      Math.abs(this.lights.fillLight.intensity - this.ultraLightTarget.fill) < snap &&
+      Math.abs(this.lights.ambient.intensity - this.ultraLightTarget.ambient) < snap &&
+      Math.abs(this.lights.rimLight.intensity - this.ultraLightTarget.rim) < snap
+    ) {
+      this.lights.keyLight.intensity = this.ultraLightTarget.key;
+      this.lights.fillLight.intensity = this.ultraLightTarget.fill;
+      this.lights.ambient.intensity = this.ultraLightTarget.ambient;
+      this.lights.rimLight.intensity = this.ultraLightTarget.rim;
+      this.lights.keyLight.castShadow = this.ultraLightTarget.castShadow;
+      this.lights.keyLight.shadow.radius = this.ultraLightTarget.shadowRadius;
+      this.ultraLightTarget = null;
+    } else {
+      this.lights.keyLight.castShadow = this.ultraLightTarget.castShadow;
+    }
+  }
+
+  getUltraPerformanceMode(): boolean {
+    return this.ultraPerformanceMode;
+  }
+
+  setExplodedView(enabled: boolean): void {
+    if (this.explodedViewEnabled === enabled) return;
+    this.explodedViewEnabled = enabled;
+    if (enabled) {
+      this.explodedBasePositions.clear();
+      this.explodedOffsets.clear();
+      const positions: Array<{ id: string; x: number; y: number; z: number }> = [];
+      this.boxes.forEach((entry, id) => {
+        const p = entry.mesh.position;
+        this.explodedBasePositions.set(id, { x: p.x, y: p.y, z: p.z });
+        positions.push({ id, x: p.x, y: p.y, z: p.z });
+      });
+      if (positions.length > 1) {
+        const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
+        const cy = positions.reduce((s, p) => s + p.y, 0) / positions.length;
+        const cz = positions.reduce((s, p) => s + p.z, 0) / positions.length;
+        positions.forEach((p) => {
+          const dx = p.x - cx;
+          const dy = p.y - cy;
+          const dz = p.z - cz;
+          const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+          const scale = this.EXPLODED_OFFSET_M / len;
+          this.explodedOffsets.set(p.id, {
+            x: dx * scale,
+            y: dy * scale,
+            z: dz * scale,
+          });
+        });
+      }
+    } else {
+      this.explodedOffsets.clear();
+    }
+  }
+
+  getExplodedView(): boolean {
+    return this.explodedViewEnabled;
+  }
+
+  private updateExplodedView(): void {
+    if (this.explodedViewEnabled && this.explodedOffsets.size > 0) {
+      this.boxes.forEach((entry, id) => {
+        const base = this.explodedBasePositions.get(id);
+        const off = this.explodedOffsets.get(id);
+        if (base && off) {
+          const target = {
+            x: base.x + off.x,
+            y: base.y + off.y,
+            z: base.z + off.z,
+          };
+          entry.mesh.position.x += (target.x - entry.mesh.position.x) * this.EXPLODED_LERP;
+          entry.mesh.position.y += (target.y - entry.mesh.position.y) * this.EXPLODED_LERP;
+          entry.mesh.position.z += (target.z - entry.mesh.position.z) * this.EXPLODED_LERP;
+        }
+      });
+    } else if (!this.explodedViewEnabled && this.explodedBasePositions.size > 0) {
+      let allDone = true;
+      this.boxes.forEach((entry, id) => {
+        const base = this.explodedBasePositions.get(id);
+        if (base) {
+          const mx = entry.mesh.position.x;
+          const my = entry.mesh.position.y;
+          const mz = entry.mesh.position.z;
+          const dx = base.x - mx;
+          const dy = base.y - my;
+          const dz = base.z - mz;
+          const eps = 0.0005;
+          if (Math.abs(dx) > eps || Math.abs(dy) > eps || Math.abs(dz) > eps) {
+            allDone = false;
+            entry.mesh.position.x += dx * this.EXPLODED_LERP;
+            entry.mesh.position.y += dy * this.EXPLODED_LERP;
+            entry.mesh.position.z += dz * this.EXPLODED_LERP;
+          } else {
+            entry.mesh.position.set(base.x, base.y, base.z);
+          }
+        }
+      });
+      if (allDone) this.explodedBasePositions.clear();
+    }
+  }
+
+  private initShowcaseComposer(): void {
+    const renderer = this.rendererManager.renderer;
+    const scene = this.sceneManager.scene;
+    const camera = this.cameraManager.camera;
+    const w = this.container?.clientWidth ?? 1;
+    const h = this.container?.clientHeight ?? 1;
+
+    this.composer = new EffectComposer(renderer);
+    this.composer.addPass(new RenderPass(scene, camera));
+    this.bloomPass = new UnrealBloomPass(new Vector2(w, h), 0.18, 0.35, 0.9);
+    this.composer.addPass(this.bloomPass);
+    this.bokehPass = new BokehPass(scene, camera, {
+      focus: 5,
+      aperture: 0.02,
+      maxblur: 0.004,
+    });
+    this.composer.addPass(this.bokehPass);
+    this.updateShowcaseComposerSize();
+  }
+
+  private updateShowcaseComposerSize(): void {
+    if (!this.composer || !this.container) return;
+    const w = this.container.clientWidth || 1;
+    const h = this.container.clientHeight || 1;
+    this.composer.setSize(w, h);
+    this.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    if (this.bloomPass) {
+      this.bloomPass.resolution.set(w, h);
+    }
+  }
+
+  private disposeComposer(): void {
+    if (!this.composer) return;
+    if ("renderTarget1" in this.composer && "renderTarget2" in this.composer) {
+      (this.composer.renderTarget1 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
+      (this.composer.renderTarget2 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
+    }
+    this.composer = null;
+    this.bloomPass = null;
+    this.bokehPass = null;
   }
 
   loadHDRI(url: string, options?: { setBackground?: boolean }) {
@@ -154,7 +482,53 @@ export class Viewer {
       this.pmremGenerator = new THREE.PMREMGenerator(this.rendererManager.renderer);
     }
     const loader = new RGBELoader();
+    if (THREE.UnsignedByteType) {
+      loader.setDataType(THREE.UnsignedByteType);
+    }
     loader.load(url, (texture) => {
+      if (this.isMobile && texture.image && "data" in texture.image) {
+        const image = texture.image as {
+          width: number;
+          height: number;
+          data?: Float32Array | Uint16Array | Uint8Array;
+        };
+        if (image.width && image.height && image.data) {
+          const targetWidth = Math.max(256, Math.floor(image.width / 2));
+          const targetHeight = Math.max(128, Math.floor(image.height / 2));
+          if (targetWidth < image.width && targetHeight < image.height) {
+            let targetData: Float32Array | Uint16Array | Uint8Array;
+            if (image.data instanceof Float32Array) {
+              targetData = new Float32Array(targetWidth * targetHeight * 4);
+            } else if (image.data instanceof Uint16Array) {
+              targetData = new Uint16Array(targetWidth * targetHeight * 4);
+            } else {
+              targetData = new Uint8Array(targetWidth * targetHeight * 4);
+            }
+            for (let y = 0; y < targetHeight; y++) {
+              const srcY = Math.min(
+                image.height - 1,
+                Math.floor((y / targetHeight) * image.height)
+              );
+              for (let x = 0; x < targetWidth; x++) {
+                const srcX = Math.min(
+                  image.width - 1,
+                  Math.floor((x / targetWidth) * image.width)
+                );
+                const dstIndex = (y * targetWidth + x) * 4;
+                const srcIndex = (srcY * image.width + srcX) * 4;
+                targetData[dstIndex] = image.data[srcIndex];
+                targetData[dstIndex + 1] = image.data[srcIndex + 1];
+                targetData[dstIndex + 2] = image.data[srcIndex + 2];
+                targetData[dstIndex + 3] = image.data[srcIndex + 3];
+              }
+            }
+            image.data = targetData;
+            image.width = targetWidth;
+            image.height = targetHeight;
+            texture.needsUpdate = true;
+          }
+        }
+      }
       const envMap = this.pmremGenerator?.fromEquirectangular(texture).texture ?? null;
       texture.dispose();
       if (!envMap) return;
@@ -166,6 +540,8 @@ export class Viewer {
       if (options?.setBackground ?? true) {
         this.sceneManager.scene.background = envMap;
       }
+      this.hdriLoaded = true;
+      this.pendingHDRIUrl = null;
     });
   }
 
@@ -191,7 +567,6 @@ export class Viewer {
     }
     
     if (this.selectedBoxId === id) {
-      entry.highlight = null;
       this.applyHighlight(entry);
     }
     if (entry.material) {
@@ -199,6 +574,15 @@ export class Viewer {
       entry.material.textures.forEach((texture) => texture.dispose());
     }
     entry.material = nextMaterial;
+    entry.detailMapsRequested = false;
+    entry.detailTextures = undefined;
+    entry.detailMapsActive = undefined;
+    if (this.ultraPerformanceMode) {
+      this.applyDetailMapState(entry);
+    } else if (this.selectedBoxId === id) {
+      this.ensureMaterialDetailMaps(entry);
+      this.refreshOutlineTarget();
+    }
   }
 
   updateBoxDimensions(
@@ -232,7 +616,7 @@ export class Viewer {
     const index = opts.index ?? this.getNextBoxIndex();
 
     let box: THREE.Object3D;
-    let material: { material: THREE.MeshStandardMaterial; textures: THREE.Texture[] } | null = null;
+    let material: LoadedWoodMaterial | null = null;
 
     if (cadOnly) {
       // Caixa só CAD: grupo vazio; o GLB é a própria caixa (sem geometria paramétrica)
@@ -240,7 +624,7 @@ export class Viewer {
       box.name = id;
     } else {
       const materialName = opts.materialName ?? this.defaultMaterialName;
-      material = this.loadMaterial(materialName);
+      material = this.loadMaterial(materialName) ?? this.loadMaterial("mdf_branco");
       const boxOptions: BoxOptions = {
         ...opts,
         width: opts.width ?? 1,
@@ -279,9 +663,17 @@ export class Viewer {
       cadOnly: cadOnly || undefined,
       manualPosition: opts.manualPosition ?? false,
       cadModels: [],
-      highlight: null,
       material,
+      detailMapsRequested: false,
+      detailTextures: undefined,
+      detailMapsActive: undefined,
     });
+    if (this.ultraPerformanceMode) {
+      const entry = this.boxes.get(id);
+      if (entry) {
+        this.applyDetailMapState(entry);
+      }
+    }
     this.reflowBoxes();
     this.updateCameraTarget();
     return true;
@@ -354,7 +746,10 @@ export class Viewer {
       this.updateBoxMaterial(id, opts.materialName);
     }
     if (opts.position) {
-      entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
+      this.explodedBasePositions.set(id, { ...opts.position });
+      if (!this.explodedViewEnabled) {
+        entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
+      }
     } else {
       // Não alterar X/Z: vêm do reflow (ou já estão corretos). Só corrigir Y (base no chão).
       entry.mesh.position.y = entry.cadOnly ? 0 : height / 2;
@@ -369,6 +764,13 @@ export class Viewer {
     entry.width = width;
     entry.height = height;
     entry.depth = depth;
+    if (dimensionsChanged && entry.cadOnly) {
+      entry.cadModels.forEach((model) => {
+        if (model.object.userData?.isCatalogGlb) {
+          this.applyCatalogModelScale(entry, model.object);
+        }
+      });
+    }
     const reflowNeeded =
       indexChanged || (dimensionsChanged && entry.cadOnly);
     if (reflowNeeded) {
@@ -442,6 +844,46 @@ export class Viewer {
     Array.from(this.boxes.keys()).forEach((id) => this.removeBox(id));
   }
 
+  createRoom(config: RoomConfig): void {
+    this.roomBuilder.createRoom(config);
+  }
+
+  removeRoom(): void {
+    this.roomBuilder.clearRoom(true);
+  }
+
+  setPlacementMode(mode: "door" | "window" | null): void {
+    this.placementMode = mode;
+  }
+
+  setOnRoomElementPlaced(
+    callback: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+  ): void {
+    this.onRoomElementPlaced = callback;
+  }
+
+  setOnRoomElementSelected(
+    callback: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+  ): void {
+    this.onRoomElementSelected = callback;
+  }
+
+  updateRoomElementConfig(elementId: string, config: DoorWindowConfig): boolean {
+    return this.roomBuilder.updateElementConfig(elementId, config);
+  }
+
+  addDoorToRoom(wallId: number, config: DoorWindowConfig): string {
+    return this.roomBuilder.addDoor(wallId, config);
+  }
+
+  addWindowToRoom(wallId: number, config: DoorWindowConfig): string {
+    return this.roomBuilder.addWindow(wallId, config);
+  }
+
+  getRoomWalls(): THREE.Mesh[] {
+    return this.roomBuilder.getWalls();
+  }
+
   setOnBoxSelected(callback: (_id: string | null) => void): void {
     this.onBoxSelected = callback;
   }
@@ -488,6 +930,7 @@ export class Viewer {
     if (!extension) return false;
     const id = modelId ?? this.getNextModelId();
     if (entry.cadModels.some((model) => model.id === id)) return false;
+    const isCatalogModel = id.startsWith("catalog:");
 
     this.loadModelObject(modelPath, extension)
       .then((object) => {
@@ -495,7 +938,13 @@ export class Viewer {
         object.traverse((child) => {
           child.userData.boxId = boxId;
         });
-        if (entry.cadOnly) {
+        if (isCatalogModel) {
+          object.userData.isCatalogGlb = true;
+          this.storeCatalogBaseSize(object);
+          if (entry.cadOnly) {
+            this.applyCatalogModelScale(entry, object);
+          }
+        } else if (entry.cadOnly) {
           // Caixa só CAD: o GLB é a própria caixa; centrar bbox na origem do grupo para reflow correto
           this.centerObjectInGroup(object);
         } else {
@@ -519,6 +968,32 @@ export class Viewer {
     object.position.x = -this._center.x;
     object.position.z = -this._center.z;
     object.position.y = -this._boundingBox.min.y;
+  }
+
+  /** Guarda o bounding box base do GLB para permitir escala por dimensão. */
+  private storeCatalogBaseSize(object: THREE.Object3D): void {
+    object.updateMatrixWorld(true);
+    this._boundingBox.setFromObject(object);
+    this._boundingBox.getSize(this._size);
+    object.userData.glbBaseSize = {
+      x: Math.max(this._size.x, 0.001),
+      y: Math.max(this._size.y, 0.001),
+      z: Math.max(this._size.z, 0.001),
+    };
+  }
+
+  /** Ajusta escala do GLB de catálogo para corresponder às dimensões da caixa. */
+  private applyCatalogModelScale(
+    entry: { width: number; height: number; depth: number },
+    object: THREE.Object3D
+  ): void {
+    const base = object.userData.glbBaseSize as { x: number; y: number; z: number } | undefined;
+    if (!base) return;
+    const sx = entry.width / Math.max(base.x, 0.001);
+    const sy = entry.height / Math.max(base.y, 0.001);
+    const sz = entry.depth / Math.max(base.z, 0.001);
+    object.scale.set(sx, sy, sz);
+    this.centerObjectInGroup(object);
   }
 
   removeModelFromBox(boxId: string, modelId: string): boolean {
@@ -629,6 +1104,11 @@ export class Viewer {
         entry.mesh.position.z = 0;
       }
       entry.mesh.updateMatrixWorld();
+      this.explodedBasePositions.set(entry.mesh.userData.boxId as string, {
+        x: entry.mesh.position.x,
+        y: entry.mesh.position.y,
+        z: entry.mesh.position.z,
+      });
       cursorX += w + this.boxGap;
     });
   }
@@ -693,8 +1173,7 @@ export class Viewer {
 
   private loadModelObject(path: string, extension: string): Promise<THREE.Object3D> {
     if (extension === "glb" || extension === "gltf") {
-      const loader = new GLTFLoader();
-      return loader.loadAsync(path).then((gltf) => gltf.scene);
+      return loadGLB(path);
     }
     if (extension === "obj") {
       const loader = new OBJLoader();
@@ -733,26 +1212,45 @@ export class Viewer {
   }
 
   private handleCanvasClick = (event: MouseEvent) => {
-    const canvas = this.rendererManager.renderer.domElement;
-    const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    this.pointer.set(x, y);
-    this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
-    const allMeshes: THREE.Object3D[] = [];
-    this.boxes.forEach((entry) => {
-      entry.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) allMeshes.push(child);
-      });
-    });
-    const hits = this.raycaster.intersectObjects(allMeshes, false);
-    if (!hits.length) {
-      this.setSelectedBox(null);
+    if (this.placementMode && this.onRoomElementPlaced) {
+      const hit = this.getWallHitAtPointer(event);
+      if (hit) {
+        if (hit.type === "door") {
+          this.roomBuilder.addDoor(hit.wallId, hit.config);
+        } else {
+          this.roomBuilder.addWindow(hit.wallId, hit.config);
+        }
+        this.onRoomElementPlaced(hit.wallId, hit.config, hit.type);
+        this.setPlacementMode(null);
+      }
       return;
     }
-    const hitMesh = hits[0].object;
-    const id = this.getBoxIdByMesh(hitMesh);
-    this.setSelectedBox(id);
+    const boxId = this.getBoxIdAtPointer(event);
+    if (boxId) {
+      this.setHoveredBox(boxId);
+      this.setSelectedBox(boxId);
+      this.onRoomElementSelected?.(null);
+      return;
+    }
+    const roomHit = this.getRoomElementAtPointer(event);
+    if (roomHit) {
+      this.setHoveredBox(null);
+      this.setSelectedBox(null);
+      this.onRoomElementSelected?.(roomHit);
+      return;
+    }
+    this.setHoveredBox(null);
+    this.setSelectedBox(null);
+    this.onRoomElementSelected?.(null);
+  };
+
+  private handleCanvasPointerMove = (event: PointerEvent) => {
+    const id = this.getBoxIdAtPointer(event);
+    this.setHoveredBox(id);
+  };
+
+  private handleCanvasPointerLeave = () => {
+    this.setHoveredBox(null);
   };
 
   /** Obtém boxId a partir de um mesh (grupo ou filho/GLB); sobe na hierarquia até encontrar userData.boxId ou o grupo da caixa. */
@@ -774,10 +1272,10 @@ export class Viewer {
       this.onBoxSelected?.(id);
       return;
     }
-    if (this.selectedBoxId) {
+    if (this.selectedBoxId && !this.ultraPerformanceMode) {
       const previous = this.boxes.get(this.selectedBoxId);
       if (previous) {
-        this.removeHighlight(previous);
+        this.releaseDetailMaps(previous);
       }
     }
     this.selectedBoxId = id;
@@ -797,9 +1295,10 @@ export class Viewer {
     if (id) {
       const entry = this.boxes.get(id);
       if (entry) {
-        this.applyHighlight(entry);
+        this.ensureMaterialDetailMaps(entry);
       }
     }
+    this.refreshOutlineTarget();
     this.onBoxSelected?.(id);
   }
 
@@ -825,95 +1324,273 @@ export class Viewer {
     this.onBoxTransform?.(this.selectedBoxId, { x, y, z }, entry.mesh.rotation.y);
   }
 
-  private applyHighlight(entry: {
-    mesh: THREE.Object3D;
-    highlight: { emissive: THREE.Color; emissiveIntensity: number } | null;
-  }) {
-    // Aplicar highlight a todos os painéis do caixote
-    if (entry.mesh instanceof THREE.Group) {
-      entry.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          const material = child.material;
-          if (Array.isArray(material)) return;
-          if (
-            material instanceof THREE.MeshStandardMaterial ||
-            material instanceof THREE.MeshPhysicalMaterial
-          ) {
-            if (!entry.highlight) {
-              entry.highlight = {
-                emissive: material.emissive.clone(),
-                emissiveIntensity: material.emissiveIntensity,
-              };
-            }
-            material.emissive = new THREE.Color("#38bdf8");
-            material.emissiveIntensity = 0.6;
-          }
-        }
-      });
-    } else if (entry.mesh instanceof THREE.Mesh) {
-      const material = entry.mesh.material;
-      if (Array.isArray(material)) return;
-      if (
-        material instanceof THREE.MeshStandardMaterial ||
-        material instanceof THREE.MeshPhysicalMaterial
-      ) {
-        if (!entry.highlight) {
-          entry.highlight = {
-            emissive: material.emissive.clone(),
-            emissiveIntensity: material.emissiveIntensity,
-          };
-        }
-        material.emissive = new THREE.Color("#38bdf8");
-        material.emissiveIntensity = 0.6;
-      }
-    }
+  private applyHighlight(_entry: { mesh: THREE.Object3D }) {
+    this.refreshOutlineTarget();
   }
 
-  private removeHighlight(entry: {
-    mesh: THREE.Object3D;
-    highlight: { emissive: THREE.Color; emissiveIntensity: number } | null;
+  private releaseDetailMaps(entry: {
+    material: LoadedWoodMaterial | null;
+    detailTextures?: {
+      normal?: THREE.Texture | null;
+      roughness?: THREE.Texture | null;
+      metalness?: THREE.Texture | null;
+      ao?: THREE.Texture | null;
+    };
+    detailMapsActive?: boolean;
   }) {
-    // Remover highlight de todos os painéis do caixote
-    if (entry.mesh instanceof THREE.Group) {
-      entry.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          const material = child.material;
-          if (Array.isArray(material)) return;
-          if (
-            material instanceof THREE.MeshStandardMaterial ||
-            material instanceof THREE.MeshPhysicalMaterial
-          ) {
-            if (entry.highlight) {
-              material.emissive.copy(entry.highlight.emissive);
-              material.emissiveIntensity = entry.highlight.emissiveIntensity;
-            }
-          }
-        }
-      });
-    } else if (entry.mesh instanceof THREE.Mesh) {
-      const material = entry.mesh.material;
-      if (Array.isArray(material)) return;
-      if (
-        material instanceof THREE.MeshStandardMaterial ||
-        material instanceof THREE.MeshPhysicalMaterial
-      ) {
-        if (entry.highlight) {
-          material.emissive.copy(entry.highlight.emissive);
-          material.emissiveIntensity = entry.highlight.emissiveIntensity;
-        }
-      }
+    if (!entry.material) return;
+    const material = entry.material.material;
+    if (!entry.detailTextures && entry.material.areDetailMapsLoaded()) {
+      this.captureDetailTextures(entry);
     }
-    entry.highlight = null;
+    material.normalMap = null;
+    material.roughnessMap = null;
+    material.metalnessMap = null;
+    material.aoMap = null;
+    material.needsUpdate = true;
+    entry.detailMapsActive = false;
   }
 
   private loadMaterial(materialName: string) {
-    const preset: MaterialPreset | undefined = this.materialSet[materialName];
-    if (!preset) return null;
-    const anisotropy = this.rendererManager.renderer.capabilities.getMaxAnisotropy();
+    const preset = getMaterialPreset(this.materialSet, materialName);
+    if (!preset || !preset.maps?.colorMap) return null;
+    const maxAnisotropy = this.rendererManager.renderer.capabilities.getMaxAnisotropy();
+    const anisotropy = Math.min(maxAnisotropy, 4);
     const loader = new THREE.TextureLoader();
     return createWoodMaterial(preset.maps, { ...preset.options, anisotropy }, loader);
   }
 
+  private ensureMaterialDetailMaps(entry: {
+    material: LoadedWoodMaterial | null;
+    detailMapsRequested?: boolean;
+    detailTextures?: {
+      normal?: THREE.Texture | null;
+      roughness?: THREE.Texture | null;
+      metalness?: THREE.Texture | null;
+      ao?: THREE.Texture | null;
+    };
+    detailMapsActive?: boolean;
+  }) {
+    if (!entry.material) return;
+    if (entry.material.areDetailMapsLoaded()) {
+      this.captureDetailTextures(entry);
+      this.applyDetailMapState(entry);
+      return;
+    }
+    if (this.ultraPerformanceMode) return;
+    if (entry.detailMapsRequested) return;
+    entry.detailMapsRequested = true;
+    void entry.material
+      .loadDetailMaps()
+      .then(() => {
+        entry.detailMapsRequested = false;
+        this.captureDetailTextures(entry);
+        this.applyDetailMapState(entry);
+      })
+      .catch(() => {
+        entry.detailMapsRequested = false;
+      });
+  }
+
+  private captureDetailTextures(entry: {
+    material: LoadedWoodMaterial | null;
+    detailTextures?: {
+      normal?: THREE.Texture | null;
+      roughness?: THREE.Texture | null;
+      metalness?: THREE.Texture | null;
+      ao?: THREE.Texture | null;
+    };
+  }) {
+    if (!entry.material) return;
+    const material = entry.material.material;
+    const prev = entry.detailTextures;
+    entry.detailTextures = {
+      normal: material.normalMap ?? prev?.normal ?? null,
+      roughness: material.roughnessMap ?? prev?.roughness ?? null,
+      metalness: material.metalnessMap ?? prev?.metalness ?? null,
+      ao: material.aoMap ?? prev?.ao ?? null,
+    };
+  }
+
+  private applyDetailMapState(entry: {
+    material: LoadedWoodMaterial | null;
+    detailTextures?: {
+      normal?: THREE.Texture | null;
+      roughness?: THREE.Texture | null;
+      metalness?: THREE.Texture | null;
+      ao?: THREE.Texture | null;
+    };
+    detailMapsActive?: boolean;
+  }) {
+    if (!entry.material) return;
+    const material = entry.material.material;
+    if (!entry.detailTextures && entry.material.areDetailMapsLoaded()) {
+      this.captureDetailTextures(entry);
+    }
+    if (this.ultraPerformanceMode) {
+      if (entry.detailMapsActive !== false) {
+        material.normalMap = null;
+        material.roughnessMap = null;
+        material.metalnessMap = null;
+        material.aoMap = null;
+        material.needsUpdate = true;
+        entry.detailMapsActive = false;
+      }
+      return;
+    }
+    if (!entry.detailTextures) return;
+    material.normalMap = entry.detailTextures.normal ?? null;
+    material.roughnessMap = entry.detailTextures.roughness ?? null;
+    material.metalnessMap = entry.detailTextures.metalness ?? null;
+    material.aoMap = entry.detailTextures.ao ?? null;
+    material.needsUpdate = true;
+    entry.detailMapsActive = true;
+  }
+
+  private refreshOutlineTarget() {
+    if (!this.selectionOutline || !this.selectionOutlineMaterial) return;
+    const targetId = this.selectedBoxId ?? this.hoveredBoxId;
+    if (!targetId) {
+      this.selectionOutlineTarget = null;
+      this.outlineTargetOpacity = 0;
+      return;
+    }
+    const entry = this.boxes.get(targetId);
+    if (!entry) {
+      this.selectionOutlineTarget = null;
+      this.outlineTargetOpacity = 0;
+      return;
+    }
+    this.selectionOutlineTarget = entry.mesh;
+    const isSelected = targetId === this.selectedBoxId;
+    this.outlineTargetOpacity = isSelected ? 0.9 : 0.55;
+    const colorHex = isSelected ? 0x38bdf8 : 0x7dd3fc;
+    this.selectionOutlineMaterial.color.setHex(colorHex);
+    this.selectionOutlineMaterial.needsUpdate = true;
+    this.selectionOutline.visible = true;
+    this.selectionOutline.update(entry.mesh);
+  }
+
+  private setHoveredBox(id: string | null) {
+    if (this.hoveredBoxId === id) return;
+    this.hoveredBoxId = id;
+    this.refreshOutlineTarget();
+  }
+
+  private getBoxIdAtPointer(event: { clientX: number; clientY: number }) {
+    const canvas = this.rendererManager.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.pointer.set(x, y);
+    this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
+    const allMeshes: THREE.Object3D[] = [];
+    this.boxes.forEach((entry) => {
+      entry.mesh.traverse((child) => {
+        if (child instanceof THREE.Mesh) allMeshes.push(child);
+      });
+    });
+    const hits = this.raycaster.intersectObjects(allMeshes, false);
+    if (!hits.length) return null;
+    return this.getBoxIdByMesh(hits[0].object);
+  }
+
+  private getWallHitAtPointer(event: { clientX: number; clientY: number }): {
+    wallId: number;
+    config: DoorWindowConfig;
+    type: "door" | "window";
+  } | null {
+    const roomGroup = this.roomBuilder.getGroup();
+    const roomMeshes: THREE.Object3D[] = [];
+    roomGroup.traverse((child) => {
+      if (child instanceof THREE.Mesh) roomMeshes.push(child);
+    });
+    if (!roomMeshes.length) return null;
+
+    const canvas = this.rendererManager.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.pointer.set(x, y);
+    this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
+    const hits = this.raycaster.intersectObjects(roomMeshes, true);
+    if (!hits.length) return null;
+
+    let wall: THREE.Mesh | null = null;
+    const hitPoint = hits[0].point.clone();
+    let current: THREE.Object3D | null = hits[0].object;
+    while (current) {
+      const wid = (current as THREE.Mesh & { userData?: { wallId?: number } }).userData?.wallId;
+      if (typeof wid === "number" && current instanceof THREE.Mesh) {
+        wall = current;
+        break;
+      }
+      current = current.parent;
+    }
+    if (!wall) return null;
+
+    const wallId = wall.userData.wallId as number;
+    const wallLenMm = (wall.userData.wallLengthMm as number) ?? 4000;
+    const wallHeightMm = (wall.userData.wallHeightMm as number) ?? 2700;
+    wall.worldToLocal(hitPoint);
+
+    const type = this.placementMode ?? "door";
+    const baseConfig = type === "door" ? { ...DEFAULT_DOOR_CONFIG } : { ...DEFAULT_WINDOW_CONFIG };
+    const wallLenM = wallLenMm / 1000;
+    const horizLeftMm = (hitPoint.x + wallLenM / 2) * 1000 - baseConfig.widthMm / 2;
+    const horizontalOffsetMm = Math.max(0, Math.min(wallLenMm - baseConfig.widthMm, horizLeftMm));
+    const floorOffsetMm = Math.max(
+      0,
+      Math.min(wallHeightMm - baseConfig.heightMm, hitPoint.y * 1000 - baseConfig.heightMm / 2)
+    );
+    const config: DoorWindowConfig = {
+      ...baseConfig,
+      horizontalOffsetMm,
+      floorOffsetMm,
+    };
+    return { wallId, config, type };
+  }
+
+  private getRoomElementAtPointer(event: { clientX: number; clientY: number }): {
+    elementId: string;
+    wallId: number;
+    type: "door" | "window";
+    config: DoorWindowConfig;
+  } | null {
+    const roomGroup = this.roomBuilder.getGroup();
+    const roomMeshes: THREE.Object3D[] = [];
+    roomGroup.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.userData?.isRoomElement === true) {
+        roomMeshes.push(child);
+      }
+    });
+    if (!roomMeshes.length) return null;
+
+    const canvas = this.rendererManager.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.pointer.set(x, y);
+    this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
+    const hits = this.raycaster.intersectObjects(roomMeshes, true);
+    if (!hits.length) return null;
+
+    let current: THREE.Object3D | null = hits[0].object;
+    while (current) {
+      const elementId = current.userData?.elementId as string | undefined;
+      const elementType = current.userData?.elementType as "door" | "window" | undefined;
+      const config = current.userData?.config as DoorWindowConfig | undefined;
+      if (elementId && elementType && config) {
+        const wall = current.parent;
+        const wallId = wall?.userData?.wallId as number | undefined;
+        if (typeof wallId === "number") {
+          return { elementId, wallId, type: elementType, config: { ...config } };
+        }
+      }
+      current = current.parent;
+    }
+    return null;
+  }
 
   private updateCanvasSize = () => {
     if (!this.container) return;
@@ -922,6 +1599,7 @@ export class Viewer {
     this.rendererManager.renderer.setSize(w, h);
     this.cameraManager.camera.aspect = w / h;
     this.cameraManager.camera.updateProjectionMatrix();
+    this.updateShowcaseComposerSize();
   };
 
   private start() {
@@ -931,10 +1609,267 @@ export class Viewer {
         this._initialCanvasSizeDone = true;
       }
       this.controls?.update();
-      this.rendererManager.render(this.sceneManager.scene, this.cameraManager.camera);
+      this.lerpLightsToTarget();
+      this.updateExplodedView();
+      if (this.selectionOutline && this.selectionOutlineMaterial) {
+        this.outlineCurrentOpacity += (this.outlineTargetOpacity - this.outlineCurrentOpacity) * 0.25;
+        const shouldShow = this.outlineCurrentOpacity > 0.02 && this.selectionOutlineTarget;
+        if (shouldShow && this.selectionOutlineTarget) {
+          this.selectionOutline.visible = true;
+          this.selectionOutline.update(this.selectionOutlineTarget);
+        } else if (!shouldShow) {
+          this.selectionOutline.visible = false;
+        }
+        this.selectionOutlineMaterial.opacity = Math.max(0, Math.min(1, this.outlineCurrentOpacity));
+        this.selectionOutlineMaterial.needsUpdate = true;
+      }
+
+      if (this.currentMode === "showcase" && this.composer && this.bokehPass) {
+        this._boundingBox.makeEmpty();
+        this.boxes.forEach((entry) => {
+          this._boundingBox.expandByObject(entry.mesh);
+        });
+        this._boundingBox.getCenter(this._center);
+        const cam = this.cameraManager.camera;
+        const focusDist = cam.position.distanceTo(this._center);
+        (this.bokehPass as { uniforms: Record<string, { value: number }> }).uniforms["focus"].value = focusDist;
+
+        if (this.turntableEnabled && this.controls?.controls && this.currentMode === "showcase") {
+          const target = this.controls.controls.target;
+          const dx = cam.position.x - target.x;
+          const dz = cam.position.z - target.z;
+          const angle = this.turntableSpeed * 0.01;
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          cam.position.x = target.x + dx * cos - dz * sin;
+          cam.position.z = target.z + dx * sin + dz * cos;
+          cam.lookAt(target);
+        }
+
+        this.composer.render();
+      } else {
+        this.rendererManager.render(this.sceneManager.scene, this.cameraManager.camera);
+      }
+
       this.rafId = requestAnimationFrame(animate);
     };
     this.rafId = requestAnimationFrame(animate);
+  }
+
+  async renderScene(options: ViewerRenderOptions): Promise<ViewerRenderResult | null> {
+    const sizeMap: Record<ViewerRenderOptions["size"], [number, number]> = {
+      small: [1280, 720],
+      medium: [1600, 900],
+      large: [1920, 1080],
+      "4k": [3840, 2160],
+    };
+    const [width, height] = sizeMap[options.size] ?? sizeMap.medium;
+    const preset: ViewerCameraPreset = options.preset ?? "current";
+    const applyWatermark = options.watermark ?? false;
+    const format: ViewerRenderFormat = options.format ?? "png";
+    const quality = format === "jpg" ? Math.max(0.1, Math.min(options.quality ?? 0.92, 1)) : 1;
+    const shadowFactor = THREE.MathUtils.clamp(options.shadowIntensity ?? 1, 0, 1);
+    const renderer = this.rendererManager.renderer;
+    const scene = this.sceneManager.scene;
+    const camera = this.cameraManager.camera;
+    const controls = this.controls?.controls ?? null;
+
+    const originalCameraPosition = camera.position.clone();
+    const originalCameraQuaternion = camera.quaternion.clone();
+    const originalCameraZoom = camera.zoom;
+    const originalControlsTarget = controls ? controls.target.clone() : null;
+
+    const originalLightState = {
+      key: this.lights.keyLight.intensity,
+      fill: this.lights.fillLight.intensity,
+      ambient: this.lights.ambient.intensity,
+      rim: this.lights.rimLight.intensity,
+      castShadow: this.lights.keyLight.castShadow,
+      shadowRadius: this.lights.keyLight.shadow.radius,
+    };
+
+    const applyPresetCamera = () => {
+    if (preset === "current") return;
+    if (this.boxes.size === 0) return;
+
+    this._boundingBox.makeEmpty();
+    this.boxes.forEach((entry) => {
+      this._boundingBox.expandByObject(entry.mesh);
+    });
+    if (this._boundingBox.isEmpty()) return;
+    this._boundingBox.getCenter(this._center);
+    this._boundingBox.getSize(this._size);
+    const center = this._center.clone();
+    const maxDim = Math.max(this._size.x, this._size.y, this._size.z, 1);
+    const distance = maxDim * 1.8;
+
+    const offsets: Record<ViewerCameraPreset, THREE.Vector3> = {
+      current: new THREE.Vector3().copy(camera.position),
+      front: new THREE.Vector3(0, maxDim * 0.35, distance),
+      top: new THREE.Vector3(0, distance, 0.001),
+      iso1: new THREE.Vector3(distance * 0.9, distance * 0.7, distance * 0.9),
+      iso2: new THREE.Vector3(-distance * 0.75, distance * 0.65, distance * 0.9),
+    };
+
+    const offset = offsets[preset] ?? offsets.current;
+    camera.position.set(center.x + offset.x, center.y + offset.y, center.z + offset.z);
+
+    camera.lookAt(center);
+    camera.updateMatrixWorld(true);
+    if (controls) {
+      controls.target.copy(center);
+      controls.update();
+    }
+    };
+
+    const applyShadowIntensity = () => {
+      const eased = 0.4 + shadowFactor * 0.6;
+      this.lights.keyLight.intensity = originalLightState.key * eased;
+      this.lights.fillLight.intensity = originalLightState.fill * (0.6 + shadowFactor * 0.4);
+      this.lights.ambient.intensity = originalLightState.ambient * (0.7 + shadowFactor * 0.3);
+      this.lights.rimLight.intensity = originalLightState.rim * (0.5 + shadowFactor * 0.5);
+      this.lights.keyLight.castShadow = shadowFactor > 0.15 ? originalLightState.castShadow : false;
+      this.lights.keyLight.shadow.radius = originalLightState.shadowRadius * (0.5 + shadowFactor * 0.5);
+    };
+
+    applyPresetCamera();
+    applyShadowIntensity();
+
+    if (options.mode === "pbr") {
+      const selectedEntry = this.selectedBoxId
+        ? this.boxes.get(this.selectedBoxId) ?? null
+        : null;
+      if (
+        selectedEntry &&
+        selectedEntry.material &&
+        !selectedEntry.material.areDetailMapsLoaded() &&
+        !this.ultraPerformanceMode
+      ) {
+        selectedEntry.detailMapsRequested = true;
+        try {
+          await selectedEntry.material.loadDetailMaps();
+          selectedEntry.detailMapsRequested = false;
+          this.captureDetailTextures(selectedEntry);
+          this.applyDetailMapState(selectedEntry);
+        } catch {
+          selectedEntry.detailMapsRequested = false;
+        }
+      } else if (selectedEntry) {
+        this.captureDetailTextures(selectedEntry);
+        this.applyDetailMapState(selectedEntry);
+      }
+    }
+
+    const prevPixelRatio = renderer.getPixelRatio();
+    const prevRenderTarget = renderer.getRenderTarget();
+    const prevClearColor = renderer.getClearColor(new THREE.Color()).clone();
+    const prevClearAlpha = renderer.getClearAlpha();
+    const prevBackground = scene.background;
+    const prevEnvironment = scene.environment;
+
+    const renderTarget = new THREE.WebGLRenderTarget(width, height, {
+      depthBuffer: true,
+      stencilBuffer: false,
+      type: THREE.UnsignedByteType,
+    });
+
+    const swappedMaterials: Array<{ mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }> = [];
+    let linesMaterial: THREE.MeshBasicMaterial | null = null;
+
+    try {
+      renderer.setPixelRatio(1);
+      renderer.setRenderTarget(renderTarget);
+
+      if (options.background === "white") {
+        renderer.setClearColor("#ffffff", 1);
+        scene.background = new THREE.Color("#ffffff");
+      } else {
+        renderer.setClearColor("#000000", 0);
+        scene.background = null;
+      }
+
+      if (options.mode === "lines") {
+        linesMaterial = new THREE.MeshBasicMaterial({ color: 0x111111, wireframe: true });
+        this.boxes.forEach((entry) => {
+          entry.mesh.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              swappedMaterials.push({ mesh: child, material: child.material });
+              child.material = linesMaterial!;
+            }
+          });
+        });
+        scene.environment = null;
+      }
+
+      renderer.render(scene, camera);
+
+      const buffer = new Uint8Array(width * height * 4);
+      renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, buffer);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return null;
+      }
+      const imageData = context.createImageData(width, height);
+      for (let y = 0; y < height; y++) {
+        const srcOffset = (height - y - 1) * width * 4;
+        const dstOffset = y * width * 4;
+        imageData.data.set(buffer.subarray(srcOffset, srcOffset + width * 4), dstOffset);
+      }
+      context.putImageData(imageData, 0, 0);
+
+      if (applyWatermark) {
+        const padding = Math.max(16, width * 0.02);
+        const fontSize = Math.max(24, Math.round(width * 0.04));
+        context.globalAlpha = 0.55;
+        context.fillStyle = "#0f172a";
+        context.font = `bold ${fontSize}px 'Segoe UI', 'Inter', sans-serif`;
+        context.textAlign = "right";
+        context.textBaseline = "bottom";
+        context.fillText("PIMO", width - padding + 2, height - padding + 2);
+        context.fillStyle = "#1e293b";
+        context.fillText("PIMO", width - padding + 1, height - padding + 1);
+        context.fillStyle = "#38bdf8";
+        context.fillText("PIMO", width - padding, height - padding);
+        context.globalAlpha = 1;
+      }
+
+      const dataUrl =
+        format === "jpg"
+          ? canvas.toDataURL("image/jpeg", quality)
+          : canvas.toDataURL("image/png", 1);
+      return { dataUrl, width, height };
+    } finally {
+      camera.position.copy(originalCameraPosition);
+      camera.quaternion.copy(originalCameraQuaternion);
+      camera.zoom = originalCameraZoom;
+      camera.updateProjectionMatrix();
+      if (controls && originalControlsTarget) {
+        controls.target.copy(originalControlsTarget);
+        controls.update();
+      }
+      this.lights.keyLight.intensity = originalLightState.key;
+      this.lights.fillLight.intensity = originalLightState.fill;
+      this.lights.ambient.intensity = originalLightState.ambient;
+      this.lights.rimLight.intensity = originalLightState.rim;
+      this.lights.keyLight.castShadow = originalLightState.castShadow;
+      this.lights.keyLight.shadow.radius = originalLightState.shadowRadius;
+      swappedMaterials.forEach(({ mesh, material }) => {
+        mesh.material = material;
+      });
+      if (linesMaterial) {
+        linesMaterial.dispose();
+      }
+      renderer.setRenderTarget(prevRenderTarget);
+      renderer.setPixelRatio(prevPixelRatio);
+      renderer.setClearColor(prevClearColor, prevClearAlpha);
+      scene.background = prevBackground;
+      scene.environment = prevEnvironment;
+      renderTarget.dispose();
+    }
   }
 
   dispose() {
@@ -943,6 +1878,7 @@ export class Viewer {
     }
     window.removeEventListener("resize", this.updateCanvasSize);
     this.resizeObserver?.disconnect();
+    this.disposeComposer();
     this.controls?.dispose();
     if (this.transformControls) {
       this.transformControls.detach();
@@ -952,15 +1888,29 @@ export class Viewer {
       }
       this.transformControls.dispose();
     }
-    this.rendererManager.renderer.domElement.removeEventListener("click", this.handleCanvasClick);
+    const canvas = this.rendererManager.renderer.domElement;
+    canvas.removeEventListener("click", this.handleCanvasClick);
+    canvas.removeEventListener("pointermove", this.handleCanvasPointerMove);
+    canvas.removeEventListener("pointerleave", this.handleCanvasPointerLeave);
     if (this.envMap) {
       this.envMap.dispose();
     }
     this.pmremGenerator?.dispose();
+    if (this.selectionOutline) {
+      this.sceneManager.scene.remove(this.selectionOutline);
+      this.selectionOutline.geometry.dispose();
+      if (this.selectionOutlineMaterial) {
+        this.selectionOutlineMaterial.dispose();
+      }
+      this.selectionOutline = null;
+      this.selectionOutlineMaterial = null;
+      this.selectionOutlineTarget = null;
+    }
     
     // Limpar todos os caixotes corretamente
     this.clearBoxes();
-    
+    this.roomBuilder.clearRoom();
+
     this.sceneManager.dispose();
     this.rendererManager.dispose();
   }
