@@ -51,19 +51,25 @@ export const createWoodMaterial = (
   const textureLoader = loader ?? new THREE.TextureLoader();
   const textures: THREE.Texture[] = [];
 
-  const loadTextureImmediate = (url: string, isColor = false) => {
-    const texture = textureLoader.load(
+  const loadTextureImmediate = (
+    url: string,
+    isColor: boolean,
+    onSuccess: (tex: THREE.Texture) => void,
+    onError: () => void
+  ) => {
+    textureLoader.load(
       url,
-      (loaded) => applyTextureSettings(loaded, options, isColor),
+      (loaded) => {
+        applyTextureSettings(loaded, options, isColor);
+        textures.push(loaded);
+        onSuccess(loaded);
+      },
       undefined,
       () => {
-        // Fallback: se falhar, usar cor sólida
-        console.warn(`Failed to load texture: ${url}`);
+        console.warn(`[WoodMaterial] Falha ao carregar textura: ${url}; usando cor sólida.`);
+        onError();
       }
     );
-    applyTextureSettings(texture, options, isColor);
-    textures.push(texture);
-    return texture;
   };
 
   const loadTextureAsync = (url: string, isColor = false) =>
@@ -75,15 +81,23 @@ export const createWoodMaterial = (
       return null;
     });
 
-  const colorMap = maps.colorMap ? loadTextureImmediate(maps.colorMap, true) : null;
-
   const material = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(options.color ?? "#f5f5f5"), // Fallback mais claro
+    color: new THREE.Color(options.color ?? "#f2f0eb"),
     roughness: options.roughness ?? 0.55,
     metalness: options.metalness ?? 0,
-    map: colorMap ?? undefined,
+    map: undefined,
     envMapIntensity: options.envMapIntensity ?? 0.4,
+    emissive: new THREE.Color(0x000000),
   });
+
+  if (maps.colorMap) {
+    loadTextureImmediate(
+      maps.colorMap,
+      true,
+      (tex) => { material.map = tex; material.needsUpdate = true; },
+      () => { /* mantém material.color; não usa textura quebrada */ }
+    );
+  }
 
   let detailMapsLoaded = false;
   let loadingPromise: Promise<void> | null = null;

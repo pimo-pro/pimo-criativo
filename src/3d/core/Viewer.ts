@@ -143,6 +143,9 @@ export class Viewer {
   private composer: EffectComposer | null = null;
   private bloomPass: UnrealBloomPass | null = null;
   private bokehPass: BokehPass | null = null;
+  /** Compositor principal: RenderPass + bloom muito suave (modo atual). */
+  private mainComposer: EffectComposer | null = null;
+  private mainBloomPass: UnrealBloomPass | null = null;
   private hdriLoaded = false;
   private pendingHDRIUrl: string | null = null;
   private ultraPerformanceMode = false;
@@ -164,6 +167,7 @@ export class Viewer {
     shadowRadius: number;
   } | null = null;
   private readonly LIGHT_LERP_FACTOR = 0.14;
+  private _diagnosticsLogged = false;
 
   constructor(container: HTMLElement, options: ViewerOptions = {}) {
     if (!container) {
@@ -185,7 +189,7 @@ export class Viewer {
       ...options.renderer,
       clearColor: background,
     });
-    const shadowMapSize = this.isMobile ? 512 : 1024;
+    const shadowMapSize = this.isMobile ? 512 : (options.lights?.shadowMapSize ?? 2048);
     this.lights = new Lights(this.sceneManager.scene, {
       ...options.lights,
       shadowMapSize,
@@ -209,7 +213,8 @@ export class Viewer {
     this.roomBuilder = new RoomBuilder();
     this.sceneManager.add(this.roomBuilder.getGroup());
 
-    this.pendingHDRIUrl = options.environmentMap ?? "/hdr/studio_neutral.hdr";
+    this.pendingHDRIUrl =
+      options.environmentMap ?? `${import.meta.env.BASE_URL}hdr/studio_neutral.hdr`;
 
     this.materialSet = mergeMaterialSet(defaultMaterialSet);
     if (!options.skipInitialBox) {
@@ -244,6 +249,9 @@ export class Viewer {
     this.rendererManager.renderer.domElement.addEventListener("pointermove", this.handleCanvasPointerMove);
     this.rendererManager.renderer.domElement.addEventListener("pointerleave", this.handleCanvasPointerLeave);
 
+    if (this.pendingHDRIUrl) {
+      this.loadHDRI(this.pendingHDRIUrl, { setBackground: false });
+    }
     this.start();
     window.addEventListener("resize", this.updateCanvasSize);
   }
@@ -255,7 +263,7 @@ export class Viewer {
   setMode(mode: "performance" | "showcase", turntable = false): void {
     this.currentMode = mode;
     this.turntableEnabled = mode === "showcase" && turntable;
-    this.lights.setShadowMapSize(this.isMobile ? 512 : 1024);
+    this.lights.setShadowMapSize(this.isMobile ? 512 : 2048);
     if (mode === "showcase") {
       if (!this.hdriLoaded && this.pendingHDRIUrl) {
         this.loadHDRI(this.pendingHDRIUrl, { setBackground: false });
@@ -466,6 +474,32 @@ export class Viewer {
     }
   }
 
+  private initMainComposer(): void {
+    if (this.mainComposer || !this.container) return;
+    const renderer = this.rendererManager.renderer;
+    const scene = this.sceneManager.scene;
+    const camera = this.cameraManager.camera;
+    const w = this.container.clientWidth || 1;
+    const h = this.container.clientHeight || 1;
+    this.mainComposer = new EffectComposer(renderer);
+    this.mainComposer.addPass(new RenderPass(scene, camera));
+    this.mainBloomPass = new UnrealBloomPass(new Vector2(w, h), 0.05, 0.4, 0.85);
+    this.mainComposer.addPass(this.mainBloomPass);
+    this.mainComposer.setSize(w, h);
+    this.mainComposer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  }
+
+  private updateMainComposerSize(): void {
+    if (!this.mainComposer || !this.container) return;
+    const w = this.container.clientWidth || 1;
+    const h = this.container.clientHeight || 1;
+    this.mainComposer.setSize(w, h);
+    this.mainComposer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    if (this.mainBloomPass) {
+      this.mainBloomPass.resolution.set(w, h);
+    }
+  }
+
   private disposeComposer(): void {
     if (!this.composer) return;
     if ("renderTarget1" in this.composer && "renderTarget2" in this.composer) {
@@ -477,6 +511,16 @@ export class Viewer {
     this.bokehPass = null;
   }
 
+  private disposeMainComposer(): void {
+    if (!this.mainComposer) return;
+    if ("renderTarget1" in this.mainComposer && "renderTarget2" in this.mainComposer) {
+      (this.mainComposer.renderTarget1 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
+      (this.mainComposer.renderTarget2 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
+    }
+    this.mainComposer = null;
+    this.mainBloomPass = null;
+  }
+
   loadHDRI(url: string, options?: { setBackground?: boolean }) {
     if (!this.pmremGenerator) {
       this.pmremGenerator = new THREE.PMREMGenerator(this.rendererManager.renderer);
@@ -485,7 +529,9 @@ export class Viewer {
     if (THREE.UnsignedByteType) {
       loader.setDataType(THREE.UnsignedByteType);
     }
-    loader.load(url, (texture) => {
+    loader.load(
+      url,
+      (texture) => {
       if (this.isMobile && texture.image && "data" in texture.image) {
         const image = texture.image as {
           width: number;
@@ -542,6 +588,45 @@ export class Viewer {
       }
       this.hdriLoaded = true;
       this.pendingHDRIUrl = null;
+      if (import.meta.env.PROD) {
+        console.log("[Viewer] HDRI carregado:", url);
+      }
+    },
+      undefined,
+      () => {
+        console.warn("[Viewer] Falha ao carregar HDRI:", url, "- usando fallback (sem envMap).");
+        this.hdriLoaded = true;
+        this.pendingHDRIUrl = null;
+        this.applyEnvMapFallback();
+      }
+    );
+  }
+
+  private applyEnvMapFallback(): void {
+    const fallbackColor = new THREE.Color("#f2f0eb");
+    this.boxes.forEach((entry) => {
+      const mat = entry.material?.material;
+      if (mat && mat instanceof THREE.MeshStandardMaterial) {
+        mat.envMapIntensity = 0;
+        if (mat.color.getHex() === 0x000000 || mat.color.getStyle().toLowerCase() === "#000000") {
+          mat.color.copy(fallbackColor);
+        }
+      }
+      if (entry.mesh instanceof THREE.Group) {
+        entry.mesh.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+            child.material.envMapIntensity = 0;
+            if (child.material.color.getHex() === 0x000000) {
+              child.material.color.copy(fallbackColor);
+            }
+          }
+        });
+      } else if (entry.mesh instanceof THREE.Mesh && entry.mesh.material instanceof THREE.MeshStandardMaterial) {
+        entry.mesh.material.envMapIntensity = 0;
+        if (entry.mesh.material.color.getHex() === 0x000000) {
+          entry.mesh.material.color.copy(fallbackColor);
+        }
+      }
     });
   }
 
@@ -1600,6 +1685,7 @@ export class Viewer {
     this.cameraManager.camera.aspect = w / h;
     this.cameraManager.camera.updateProjectionMatrix();
     this.updateShowcaseComposerSize();
+    this.updateMainComposerSize();
   };
 
   private start() {
@@ -1607,6 +1693,38 @@ export class Viewer {
       if (this.container && !this._initialCanvasSizeDone) {
         this.updateCanvasSize();
         this._initialCanvasSizeDone = true;
+      }
+      if (!this._diagnosticsLogged) {
+        this._diagnosticsLogged = true;
+        const exp = this.rendererManager.renderer.toneMappingExposure;
+        if (exp <= 0) {
+          this.rendererManager.renderer.toneMappingExposure = 1.05;
+        }
+        const { keyLight, fillLight, ambient, hemisphere } = this.lights;
+        if (keyLight.intensity <= 0) keyLight.intensity = 0.55;
+        if (fillLight.intensity <= 0) fillLight.intensity = 0.15;
+        if (ambient.intensity <= 0) ambient.intensity = 0.4;
+        if (hemisphere.intensity <= 0) hemisphere.intensity = 0.35;
+        if (import.meta.env.PROD) {
+          console.log(
+            "[Viewer] Lights:",
+            "key", keyLight.intensity,
+            "fill", fillLight.intensity,
+            "ambient", ambient.intensity,
+            "hemi", hemisphere.intensity,
+            "| Exposure:", this.rendererManager.renderer.toneMappingExposure
+          );
+          const first = this.boxes.values().next().value;
+          if (first?.material?.material instanceof THREE.MeshStandardMaterial) {
+            const m = first.material.material;
+            console.log(
+              "[Viewer] Material sample:",
+              "color", m.color.getStyle(),
+              "roughness", m.roughness,
+              "envMapIntensity", m.envMapIntensity
+            );
+          }
+        }
       }
       this.controls?.update();
       this.lerpLightsToTarget();
@@ -1647,6 +1765,13 @@ export class Viewer {
         }
 
         this.composer.render();
+      } else if (!this.ultraPerformanceMode) {
+        if (!this.mainComposer) this.initMainComposer();
+        if (this.mainComposer) {
+          this.mainComposer.render();
+        } else {
+          this.rendererManager.render(this.sceneManager.scene, this.cameraManager.camera);
+        }
       } else {
         this.rendererManager.render(this.sceneManager.scene, this.cameraManager.camera);
       }
@@ -1879,6 +2004,7 @@ export class Viewer {
     window.removeEventListener("resize", this.updateCanvasSize);
     this.resizeObserver?.disconnect();
     this.disposeComposer();
+    this.disposeMainComposer();
     this.controls?.dispose();
     if (this.transformControls) {
       this.transformControls.detach();

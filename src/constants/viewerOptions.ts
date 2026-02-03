@@ -1,38 +1,39 @@
 import type { ViewerOptions } from "../3d/core/Viewer";
 
 /**
- * Configurações padronizadas do viewer 3D — modo realista.
- * Usadas pelo Workspace (página principal) e DevActions para manter
- * iluminação, controles e comportamento idênticos.
- * Inclui: sombras suaves, materiais PBR, tone mapping, iluminação profissional.
+ * Configurações padronizadas do viewer 3D — modo principal.
+ * Iluminação equilibrada, sombras suaves, materiais PBR, tone mapping e câmera fluida.
  */
 export const DEFAULT_VIEWER_OPTIONS: Omit<ViewerOptions, "background" | "skipInitialBox"> = {
   enableControls: true,
-  /** HDRI para reflexos e luz ambiente realista */
-  environmentMap: "/hdr/studio_neutral.hdr",
+  /** HDRI neutro e suave para reflexos coerentes com MDF (luz difusa, sem fontes diretas). Respeita base URL (produção/subpath). */
+  environmentMap: `${import.meta.env.BASE_URL}hdr/studio_neutral.hdr`,
   renderer: {
     antialias: true,
-    toneMappingExposure: 1.0,
+    toneMappingExposure: 1.05,
   },
   lights: {
-    ambientIntensity: 0.46,
-    hemisphereIntensity: 0.45,
-    keyLightIntensity: 0.38,
-    fillLightIntensity: 0.6,
-    rimLightIntensity: 0.16,
-    shadowMapSize: 1024,
+    ambientIntensity: 0.4,
+    hemisphereIntensity: 0.35,
+    keyLightIntensity: 0.55,
+    fillLightIntensity: 0.15,
+    rimLightIntensity: 0.14,
+    shadowMapSize: 2048,
+    shadowBias: 0.0015,
+    shadowNormalBias: 0.04,
+    shadowRadius: 2.0,
   },
   camera: {
-    fov: 50,
+    fov: 45,
     near: 0.01,
     far: 5000,
     position: { x: 3, y: 2.2, z: 5.5 },
   },
   controls: {
     enableDamping: true,
-    dampingFactor: 0.06,
-    minDistance: 0.8,
-    maxDistance: 15,
+    dampingFactor: 0.08,
+    minDistance: 1.0,
+    maxDistance: 12,
     minPolarAngle: Math.PI * 0.12,
     maxPolarAngle: Math.PI * 0.48,
   },

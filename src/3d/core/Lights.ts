@@ -3,14 +3,21 @@ import * as THREE from "three";
 export type LightsOptions = {
   ambientIntensity?: number;
   hemisphereIntensity?: number;
+  hemisphereSkyColor?: number;
+  hemisphereGroundColor?: number;
   /** Luz principal (key) — frontal diagonal; projeta sombra. */
   keyLightIntensity?: number;
-  /** Luz de preenchimento (fill) — lado oposto, suaviza sombras. */
+  keyLightColor?: number;
+  /** Luz de preenchimento (fill) — suave, reduz áreas escuras, sem sombras. */
   fillLightIntensity?: number;
+  fillLightColor?: number;
   /** Luz de contorno (rim) — atrás do módulo, destaca bordas. */
   rimLightIntensity?: number;
-  /** Resolução do shadow map (2048 para performance, 4096 para apresentação). */
+  /** Resolução do shadow map (2048 para qualidade, 1024 para performance). */
   shadowMapSize?: number;
+  shadowBias?: number;
+  shadowNormalBias?: number;
+  shadowRadius?: number;
 };
 
 export class Lights {
@@ -27,30 +34,28 @@ export class Lights {
     // Ambient reduzido para não “lavar” as cores do MDF
     this.ambient = new THREE.AmbientLight(
       0xffffff,
-      options.ambientIntensity ?? 0.55
+      options.ambientIntensity ?? 0.4
     );
 
     this.hemisphere = new THREE.HemisphereLight(
-      0xddeeff,
-      0x2b2b2b,
-      options.hemisphereIntensity ?? 0.48
+      options.hemisphereSkyColor ?? 0xdfe7ff,
+      options.hemisphereGroundColor ?? 0xf2f2f2,
+      options.hemisphereIntensity ?? 0.35
     );
 
-    // Key light: frontal diagonal, intensidade moderada
+    // Key light: frontal diagonal, cor levemente quente, ângulo suave
     this.keyLight = new THREE.DirectionalLight(
-      0xffffff,
-      options.keyLightIntensity ?? 0.46
+      options.keyLightColor ?? 0xfff4e6,
+      options.keyLightIntensity ?? 0.55
     );
-    this.keyLight.position.set(5.4, 6.0, 5.4);
+    this.keyLight.position.set(4.2, 5.5, 4.2);
     this.keyLight.castShadow = true;
-    const shadowSize = options.shadowMapSize ?? 1024;
+    const shadowSize = options.shadowMapSize ?? 2048;
     this.keyLight.shadow.mapSize.width = shadowSize;
     this.keyLight.shadow.mapSize.height = shadowSize;
-    // Suavidade do penumbra (PCF) reduzida para diminuir custo.
-    this.keyLight.shadow.radius = 1.0;
-    // Suaviza sombras: aumenta bias para reduzir artefatos e sombras duras
-    this.keyLight.shadow.bias = 0.002;
-    this.keyLight.shadow.normalBias = 0.05;
+    this.keyLight.shadow.radius = options.shadowRadius ?? 2.0;
+    this.keyLight.shadow.bias = options.shadowBias ?? 0.0015;
+    this.keyLight.shadow.normalBias = options.shadowNormalBias ?? 0.04;
     // Frustum ampliado para suportar múltiplas caixas lado a lado
     this.keyLight.shadow.camera.near = 0.1;
     this.keyLight.shadow.camera.far = 20;
@@ -59,10 +64,10 @@ export class Lights {
     this.keyLight.shadow.camera.top = 3;
     this.keyLight.shadow.camera.bottom = -2;
 
-    // Fill light: lado oposto, suave, sem sombra
+    // Fill light: secundária suave, reduz áreas escuras, sem sombras
     this.fillLight = new THREE.DirectionalLight(
-      0xe8f0ff,
-      options.fillLightIntensity ?? 0.6
+      options.fillLightColor ?? 0xe8ecf1,
+      options.fillLightIntensity ?? 0.15
     );
     this.fillLight.position.set(-3, 3, 2.5);
 

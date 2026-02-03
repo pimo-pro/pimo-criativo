@@ -1,5 +1,8 @@
 import type { WoodMaterialMaps, WoodMaterialOptions } from "./WoodMaterial";
 
+/** Base URL para assets (correto em produção/subpath). */
+const BASE = import.meta.env.BASE_URL;
+
 export type MaterialPreset = {
   name: string;
   maps: WoodMaterialMaps;
@@ -60,45 +63,45 @@ export const defaultMaterialSet: MaterialSet = {
   carvalho_natural: {
     name: "carvalho_natural",
     maps: {
-      colorMap: "/textures/wood/base.svg",
-      normalMap: "/textures/wood/normal.svg",
-      roughnessMap: "/textures/wood/roughness.svg",
-      metalnessMap: "/textures/wood/metalness.svg",
-      aoMap: "/textures/wood/ao.svg",
+      colorMap: `${BASE}textures/wood/base.svg`,
+      normalMap: `${BASE}textures/wood/normal.svg`,
+      roughnessMap: `${BASE}textures/wood/roughness.svg`,
+      metalnessMap: `${BASE}textures/wood/metalness.svg`,
+      aoMap: `${BASE}textures/wood/ao.svg`,
     },
     options: {
       color: "#c9a27a",
       repeat: { x: 2, y: 2 },
       metalness: 0,
-      roughness: 0.55,
-      envMapIntensity: 0.4,
+      roughness: 0.52,
+      envMapIntensity: 0.42,
     },
   },
   carvalho_escuro: {
     name: "carvalho_escuro",
     maps: {
-      colorMap: "/textures/wood/base.svg",
-      normalMap: "/textures/wood/normal.svg",
-      roughnessMap: "/textures/wood/roughness.svg",
-      metalnessMap: "/textures/wood/metalness.svg",
-      aoMap: "/textures/wood/ao.svg",
+      colorMap: `${BASE}textures/wood/base.svg`,
+      normalMap: `${BASE}textures/wood/normal.svg`,
+      roughnessMap: `${BASE}textures/wood/roughness.svg`,
+      metalnessMap: `${BASE}textures/wood/metalness.svg`,
+      aoMap: `${BASE}textures/wood/ao.svg`,
     },
     options: {
       color: "#5c3d2e",
       repeat: { x: 2, y: 2 },
       metalness: 0,
-      roughness: 0.55,
-      envMapIntensity: 0.4,
+      roughness: 0.58,
+      envMapIntensity: 0.38,
     },
   },
   nogueira: {
     name: "nogueira",
     maps: {
-      colorMap: "/textures/wood/base.svg",
-      normalMap: "/textures/wood/normal.svg",
-      roughnessMap: "/textures/wood/roughness.svg",
-      metalnessMap: "/textures/wood/metalness.svg",
-      aoMap: "/textures/wood/ao.svg",
+      colorMap: `${BASE}textures/wood/base.svg`,
+      normalMap: `${BASE}textures/wood/normal.svg`,
+      roughnessMap: `${BASE}textures/wood/roughness.svg`,
+      metalnessMap: `${BASE}textures/wood/metalness.svg`,
+      aoMap: `${BASE}textures/wood/ao.svg`,
     },
     options: {
       color: "#8a5a2b",
@@ -111,49 +114,49 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_branco: {
     name: "mdf_branco",
     maps: {
-      colorMap: "/textures/mdf/branco/map.jpg",
-      normalMap: "/textures/mdf/branco/normal.jpg",
-      roughnessMap: "/textures/mdf/branco/roughness.jpg",
-      aoMap: "/textures/mdf/branco/ao.jpg",
+      colorMap: `${BASE}textures/mdf/branco/map.jpg`,
+      normalMap: `${BASE}textures/mdf/branco/normal.jpg`,
+      roughnessMap: `${BASE}textures/mdf/branco/roughness.jpg`,
+      aoMap: `${BASE}textures/mdf/branco/ao.jpg`,
     },
     options: {
-      color: "#f8fafc",
+      color: "#f2f0eb",
       repeat: { x: 1, y: 1 },
       metalness: 0,
-      roughness: 0.55,
+      roughness: 0.52,
       envMapIntensity: 0.4,
     },
   },
   mdf_cinza: {
     name: "mdf_cinza",
     maps: {
-      colorMap: "/textures/mdf/branco/map.jpg",
-      normalMap: "/textures/mdf/branco/normal.jpg",
-      roughnessMap: "/textures/mdf/branco/roughness.jpg",
-      aoMap: "/textures/mdf/branco/ao.jpg",
+      colorMap: `${BASE}textures/mdf/branco/map.jpg`,
+      normalMap: `${BASE}textures/mdf/branco/normal.jpg`,
+      roughnessMap: `${BASE}textures/mdf/branco/roughness.jpg`,
+      aoMap: `${BASE}textures/mdf/branco/ao.jpg`,
     },
     options: {
       color: "#9ca3af",
       repeat: { x: 1, y: 1 },
       metalness: 0,
       roughness: 0.55,
-      envMapIntensity: 0.4,
+      envMapIntensity: 0.38,
     },
   },
   mdf_preto: {
     name: "mdf_preto",
     maps: {
-      colorMap: "/textures/mdf/branco/map.jpg",
-      normalMap: "/textures/mdf/branco/normal.jpg",
-      roughnessMap: "/textures/mdf/branco/roughness.jpg",
-      aoMap: "/textures/mdf/branco/ao.jpg",
+      colorMap: `${BASE}textures/mdf/branco/map.jpg`,
+      normalMap: `${BASE}textures/mdf/branco/normal.jpg`,
+      roughnessMap: `${BASE}textures/mdf/branco/roughness.jpg`,
+      aoMap: `${BASE}textures/mdf/branco/ao.jpg`,
     },
     options: {
       color: "#1f2937",
       repeat: { x: 1, y: 1 },
       metalness: 0,
-      roughness: 0.55,
-      envMapIntensity: 0.4,
+      roughness: 0.58,
+      envMapIntensity: 0.35,
     },
   },
 

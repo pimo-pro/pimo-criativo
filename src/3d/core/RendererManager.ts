@@ -28,11 +28,8 @@ export class RendererManager {
       }).sRGBEncoding;
     }
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = options.toneMappingExposure ?? 1.0;
-    // Garantir que o exposure não esteja muito baixo
-    if (this.renderer.toneMappingExposure < 0.5) {
-      this.renderer.toneMappingExposure = 1.0;
-    }
+    const exposure = options.toneMappingExposure ?? 1.05;
+    this.renderer.toneMappingExposure = exposure <= 0 ? 1.05 : exposure;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if (options.clearColor) {
