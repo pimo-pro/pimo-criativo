@@ -29,6 +29,10 @@ export class RendererManager {
     }
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = options.toneMappingExposure ?? 1.0;
+    // Garantir que o exposure não esteja muito baixo
+    if (this.renderer.toneMappingExposure < 0.5) {
+      this.renderer.toneMappingExposure = 1.0;
+    }
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if (options.clearColor) {

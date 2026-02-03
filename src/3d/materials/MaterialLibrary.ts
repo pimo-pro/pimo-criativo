@@ -111,14 +111,14 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_branco: {
     name: "mdf_branco",
     maps: {
-      colorMap: "/textures/mdf/branco/map.jpg",
-      normalMap: "/textures/mdf/branco/normal.jpg",
-      roughnessMap: "/textures/mdf/branco/roughness.jpg",
-      aoMap: "/textures/mdf/branco/ao.jpg",
+      colorMap: "/textures/mdf/branco/base.svg",
+      normalMap: "/textures/mdf/branco/normal.svg",
+      roughnessMap: "/textures/mdf/branco/roughness.svg",
+      aoMap: "/textures/mdf/branco/ao.svg",
     },
     options: {
       color: "#f8fafc",
-      repeat: { x: 2, y: 2 },
+      repeat: { x: 1, y: 1 },
       metalness: 0,
       roughness: 0.55,
       envMapIntensity: 0.4,
@@ -127,14 +127,14 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_cinza: {
     name: "mdf_cinza",
     maps: {
-      colorMap: "/textures/mdf/branco/map.jpg",
-      normalMap: "/textures/mdf/branco/normal.jpg",
-      roughnessMap: "/textures/mdf/branco/roughness.jpg",
-      aoMap: "/textures/mdf/branco/ao.jpg",
+      colorMap: "/textures/mdf/branco/base.svg",
+      normalMap: "/textures/mdf/branco/normal.svg",
+      roughnessMap: "/textures/mdf/branco/roughness.svg",
+      aoMap: "/textures/mdf/branco/ao.svg",
     },
     options: {
       color: "#9ca3af",
-      repeat: { x: 2, y: 2 },
+      repeat: { x: 1, y: 1 },
       metalness: 0,
       roughness: 0.55,
       envMapIntensity: 0.4,
@@ -143,14 +143,14 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_preto: {
     name: "mdf_preto",
     maps: {
-      colorMap: "/textures/mdf/branco/map.jpg",
-      normalMap: "/textures/mdf/branco/normal.jpg",
-      roughnessMap: "/textures/mdf/branco/roughness.jpg",
-      aoMap: "/textures/mdf/branco/ao.jpg",
+      colorMap: "/textures/mdf/branco/base.svg",
+      normalMap: "/textures/mdf/branco/normal.svg",
+      roughnessMap: "/textures/mdf/branco/roughness.svg",
+      aoMap: "/textures/mdf/branco/ao.svg",
     },
     options: {
       color: "#1f2937",
-      repeat: { x: 2, y: 2 },
+      repeat: { x: 1, y: 1 },
       metalness: 0,
       roughness: 0.55,
       envMapIntensity: 0.4,

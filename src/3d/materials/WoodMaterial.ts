@@ -56,7 +56,10 @@ export const createWoodMaterial = (
       url,
       (loaded) => applyTextureSettings(loaded, options, isColor),
       undefined,
-      () => undefined
+      () => {
+        // Fallback: se falhar, usar cor sólida
+        console.warn(`Failed to load texture: ${url}`);
+      }
     );
     applyTextureSettings(texture, options, isColor);
     textures.push(texture);
@@ -67,12 +70,15 @@ export const createWoodMaterial = (
     textureLoader.loadAsync(url).then((texture) => {
       applyTextureSettings(texture, options, isColor);
       return texture;
+    }).catch((error) => {
+      console.warn(`Failed to load texture: ${url}`, error);
+      return null;
     });
 
   const colorMap = maps.colorMap ? loadTextureImmediate(maps.colorMap, true) : null;
 
   const material = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(options.color ?? "#c9a27a"),
+    color: new THREE.Color(options.color ?? "#f5f5f5"), // Fallback mais claro
     roughness: options.roughness ?? 0.55,
     metalness: options.metalness ?? 0,
     map: colorMap ?? undefined,
