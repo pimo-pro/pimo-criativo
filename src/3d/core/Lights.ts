@@ -27,19 +27,19 @@ export class Lights {
     // Ambient reduzido para não “lavar” as cores do MDF
     this.ambient = new THREE.AmbientLight(
       0xffffff,
-      options.ambientIntensity ?? 0.46
+      options.ambientIntensity ?? 0.55
     );
 
     this.hemisphere = new THREE.HemisphereLight(
       0xddeeff,
       0x2b2b2b,
-      options.hemisphereIntensity ?? 0.4
+      options.hemisphereIntensity ?? 0.48
     );
 
     // Key light: frontal diagonal, intensidade moderada
     this.keyLight = new THREE.DirectionalLight(
       0xffffff,
-      options.keyLightIntensity ?? 0.38
+      options.keyLightIntensity ?? 0.46
     );
     this.keyLight.position.set(5.4, 6.0, 5.4);
     this.keyLight.castShadow = true;

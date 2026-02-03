@@ -111,10 +111,10 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_branco: {
     name: "mdf_branco",
     maps: {
-      colorMap: "/textures/mdf/branco/base.svg",
-      normalMap: "/textures/mdf/branco/normal.svg",
-      roughnessMap: "/textures/mdf/branco/roughness.svg",
-      aoMap: "/textures/mdf/branco/ao.svg",
+      colorMap: "/textures/mdf/branco/map.jpg",
+      normalMap: "/textures/mdf/branco/normal.jpg",
+      roughnessMap: "/textures/mdf/branco/roughness.jpg",
+      aoMap: "/textures/mdf/branco/ao.jpg",
     },
     options: {
       color: "#f8fafc",
@@ -127,10 +127,10 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_cinza: {
     name: "mdf_cinza",
     maps: {
-      colorMap: "/textures/mdf/branco/base.svg",
-      normalMap: "/textures/mdf/branco/normal.svg",
-      roughnessMap: "/textures/mdf/branco/roughness.svg",
-      aoMap: "/textures/mdf/branco/ao.svg",
+      colorMap: "/textures/mdf/branco/map.jpg",
+      normalMap: "/textures/mdf/branco/normal.jpg",
+      roughnessMap: "/textures/mdf/branco/roughness.jpg",
+      aoMap: "/textures/mdf/branco/ao.jpg",
     },
     options: {
       color: "#9ca3af",
@@ -143,10 +143,10 @@ export const defaultMaterialSet: MaterialSet = {
   mdf_preto: {
     name: "mdf_preto",
     maps: {
-      colorMap: "/textures/mdf/branco/base.svg",
-      normalMap: "/textures/mdf/branco/normal.svg",
-      roughnessMap: "/textures/mdf/branco/roughness.svg",
-      aoMap: "/textures/mdf/branco/ao.svg",
+      colorMap: "/textures/mdf/branco/map.jpg",
+      normalMap: "/textures/mdf/branco/normal.jpg",
+      roughnessMap: "/textures/mdf/branco/roughness.jpg",
+      aoMap: "/textures/mdf/branco/ao.jpg",
     },
     options: {
       color: "#1f2937",
