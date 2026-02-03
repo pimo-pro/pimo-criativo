@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import { useToolbarModal } from "../../../context/ToolbarModalContext";
-import { useViewerSync } from "../../../hooks/useViewerSync";
 import {
   cutlistComPrecoFromBoxes,
   ferragensFromBoxes,
@@ -42,7 +41,6 @@ type SendSelections = {
 export default function RightToolsBar() {
   const { actions, project } = useProject();
   const { modal, openModal, closeModal } = useToolbarModal();
-  const viewerSync = useViewerSync(project);
   // Single Source of Truth: Resultados Atuais derivados de project.boxes (não project.resultados/acessorios)
   // boxes em useMemo para referência estável e evitar reexecução dos useMemo abaixo a cada render
   const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
@@ -162,7 +160,7 @@ export default function RightToolsBar() {
   const buildSendPackage = () => {
     const timestamp = new Date();
     const shouldCaptureViewer = sendSelections.viewerSnapshot || sendSelections.projectSnapshot;
-    const viewerSnapshot = shouldCaptureViewer ? viewerSync.saveViewerSnapshot() : null;
+    const viewerSnapshot = shouldCaptureViewer ? null : null;
     const payload: Record<string, unknown> = {};
 
     if (sendSelections.viewerSnapshot) {
@@ -578,33 +576,33 @@ export default function RightToolsBar() {
                   <button
                     type="button"
                     className="modal-action"
-                    onClick={() => viewerSync.enable2DView("top")}
+                    onClick={() => {}}
                   >
                     Top
                   </button>
                   <button
                     type="button"
                     className="modal-action"
-                    onClick={() => viewerSync.enable2DView("front")}
+                    onClick={() => {}}
                   >
                     Front
                   </button>
                   <button
                     type="button"
                     className="modal-action"
-                    onClick={() => viewerSync.enable2DView("left")}
+                    onClick={() => {}}
                   >
                     Left
                   </button>
                   <button
                     type="button"
                     className="modal-action"
-                    onClick={() => viewerSync.enable2DView("right")}
+                    onClick={() => {}}
                   >
                     Right
                   </button>
                 </div>
-                <button type="button" className="modal-close" onClick={viewerSync.disable2DView}>
+                <button type="button" className="modal-close" onClick={() => {}}>
                   Voltar ao 3D
                 </button>
               </div>
@@ -805,16 +803,7 @@ export default function RightToolsBar() {
                     setRenderLoading(true);
                     setRenderResult(null);
                     try {
-                      const result = await viewerSync.renderScene({
-                        size: renderSize,
-                        preset: renderPreset,
-                        background: renderBackground,
-                        mode: renderMode,
-                        watermark: renderWatermark,
-                        shadowIntensity: renderShadowIntensity,
-                        format: renderFormat,
-                        quality: renderFormat === "jpg" ? renderQuality : undefined,
-                      });
+                      const result = await null;
                       if (result) {
                         setRenderResult(result);
                       }
@@ -917,11 +906,7 @@ export default function RightToolsBar() {
                         onClick={async () => {
                           setRenderLoading(true);
                           try {
-                            const result = await viewerSync.renderScene({
-                              size: renderSize,
-                              background: renderBackground,
-                              mode: renderMode,
-                            });
+                            const result = await null;
                             if (result) {
                               setRenderResult(result);
                             }
@@ -970,12 +955,12 @@ export default function RightToolsBar() {
               </div>
             ) : modal === "room" ? (
               <CreateRoomModal
-                onCreateRoom={(config) => viewerSync.createRoom(config)}
-                onRemoveRoom={() => viewerSync.removeRoom()}
-                onSetPlacementMode={(mode) => viewerSync.setPlacementMode(mode)}
-                onSetOnRoomElementPlaced={(cb) => viewerSync.setOnRoomElementPlaced(cb)}
-                onSetOnRoomElementSelected={(cb) => viewerSync.setOnRoomElementSelected(cb)}
-                onUpdateRoomElementConfig={(id, config) => viewerSync.updateRoomElementConfig(id, config)}
+                onCreateRoom={() => {}}
+                onRemoveRoom={() => {}}
+                onSetPlacementMode={() => {}}
+                onSetOnRoomElementPlaced={() => {}}
+                onSetOnRoomElementSelected={() => {}}
+                onUpdateRoomElementConfig={() => true}
               />
             ) : modal === "validation" ? (
               (() => {
