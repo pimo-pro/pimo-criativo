@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { buildCutlistPdf } from "../core/pdf/pdfCutlist";
-import { buildTechnicalPdf } from "../core/pdf/pdfTechnical";
 import { buildUnifiedPdf } from "../core/pdf/pdfUnified";
 import type { BoxModelInstance, WorkspaceBox } from "../core/types";
 import { saveProfiles } from "../core/rules/rulesProfilesStorage";
@@ -875,21 +874,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       doc.save(`${safeName}_cutlist.pdf`);
     },
 
-    exportarPdfTecnico: () => {
+    exportarPdfTecnico: async () => {
       const currentProject = projectRef.current;
       const boxesToExport = currentProject.boxes ?? [];
       if (boxesToExport.length === 0) {
         alert("Nenhuma caixa no projeto. Gere o design primeiro.");
         return;
       }
-      const projectName = currentProject.projectName?.trim() || "Projeto";
-      const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
-      const pdfProject = {
-        projectName,
-        boxes: boxesToExport,
-        rules: currentProject.rules,
-      };
-      const doc = buildTechnicalPdf(pdfProject);
+const projectName = currentProject.projectName?.trim() || "Projeto";
+const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
+const { gerarPdfTecnicoCompleto } = await import("../core/pdf/gerarPdfTecnico");
+const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName, {});
       doc.save(`${safeName}_tecnico.pdf`);
     },
 

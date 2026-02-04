@@ -7,8 +7,6 @@ import { buildTechnicalPdf } from "../../../core/pdf/pdfTechnical";
 import { buildCutlistPdf } from "../../../core/pdf/pdfCutlist";
 import { buildUnifiedPdf } from "../../../core/pdf/pdfUnified";
 import { runCutLayout, cutlistToPieces } from "../../../core/cutlayout/cutLayoutEngine";
-import { buildCutLayoutPdf } from "../../../core/cutlayout/cutLayoutPdf";
-import { exportCncFiles, buildBasicDrillOperations } from "../../../core/cnc/cncExport";
 import type { GerarArquivoConteudo } from "./GerarArquivoModal";
 import GerarArquivoModal from "./GerarArquivoModal";
 
@@ -75,7 +73,7 @@ export default function RightPanel() {
     doc.save(`${slug}_completo.pdf`);
   };
 
-  const onLayoutCorte = () => {
+  const onLayoutCorte = async () => {
     if (!hasBoxes) {
       alert("Nenhuma caixa no projeto. Gere o design primeiro.");
       return;
@@ -91,11 +89,12 @@ export default function RightPanel() {
       return;
     }
     const result = runCutLayout(pieces, { largura_mm: 2750, altura_mm: 1830, espessura_mm: 19 });
-    const doc = buildCutLayoutPdf(result);
+    const { buildCutLayoutPdf } = await import("../../../core/cutlayout/cutLayoutPdf");
+const doc = buildCutLayoutPdf(result);
     doc.save(`${slug}_layout_corte.pdf`);
   };
 
-  const onExportarCnc = () => {
+  const onExportarCnc = async () => {
     if (!hasBoxes) {
       alert("Nenhuma caixa no projeto. Gere o design primeiro.");
       return;
@@ -111,8 +110,9 @@ export default function RightPanel() {
       return;
     }
     const layoutResult = runCutLayout(pieces, { largura_mm: 2750, altura_mm: 1830, espessura_mm: 19 });
-    const drillOps = buildBasicDrillOperations(layoutResult);
-    const cnc = exportCncFiles(project, layoutResult, drillOps);
+const { exportCncFiles, buildBasicDrillOperations } = await import("../../../core/cnc/cncExport");
+const drillOps = buildBasicDrillOperations(layoutResult);
+const cnc = exportCncFiles(project, layoutResult, drillOps);
     const tcnBlob = new Blob([cnc.tcn], { type: "text/plain" });
     const kdtBlob = new Blob([cnc.kdt], { type: "text/xml" });
     const tcnUrl = URL.createObjectURL(tcnBlob);
