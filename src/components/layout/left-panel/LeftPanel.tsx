@@ -5,10 +5,8 @@ import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import Panel from "../../ui/Panel";
 import { mmToM } from "../../../utils/units";
 import { LEFT_TOOLBAR_IDS } from "../left-toolbar/LeftToolbar";
-import PainelMoveis from "./PainelMoveis";
+import PainelMoveisUnificado from "./PainelMoveisUnificado";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
-import PainelModelosProntos from "./PainelModelosProntos";
-import PainelCatalogo3D from "./PainelCatalogo3D";
 
 export type LeftPanelProps = {
   activeTab?: string;
@@ -111,38 +109,9 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     </div>
   );
 
-  // Modelos Prontos = Biblioteca de templates
-  if (activeTab === LEFT_TOOLBAR_IDS.TEMPLATES) {
-    return (
-      <div className="left-panel-content">
-        <div className="left-panel-scroll">
-          <PainelModelosProntos />
-        </div>
-      </div>
-    );
-  }
-
-  // Catálogo 3D = Biblioteca de módulos padrão
-  if (activeTab === LEFT_TOOLBAR_IDS.CATALOGO) {
-    return (
-      <div className="left-panel-content">
-        <div className="left-panel-scroll">
-          <PainelCatalogo3D />
-        </div>
-      </div>
-    );
-  }
-
-  // Móveis = Catálogo CAD (biblioteca) — sempre dentro do LeftPanel
+  // Móveis = painel unificado
   if (activeTab === LEFT_TOOLBAR_IDS.MOVEIS) {
-    return (
-      <div className="left-panel-content">
-        <div className="left-panel-scroll">
-          <PainelMoveis />
-        </div>
-        {footer}
-      </div>
-    );
+    return <PainelMoveisUnificado />;
   }
 
   // Modelos = Instâncias dentro da caixa atual

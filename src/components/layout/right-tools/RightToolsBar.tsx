@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import {
   cutlistComPrecoFromBoxes,
   ferragensFromBoxes,
 } from "../../../core/manufacturing/cutlistFromBoxes";
 import { validateProject } from "../../../core/validation/validateProject";
-import { buildTechnicalPdf } from "../../../core/pdf/pdfTechnical";
-import { buildCutlistPdf } from "../../../core/pdf/pdfCutlist";
-import { buildUnifiedPdf } from "../../../core/pdf/pdfUnified";
-import { runCutLayout, cutlistToPieces } from "../../../core/cutlayout/cutLayoutEngine";
-import { buildCutLayoutPdf } from "../../../core/cutlayout/cutLayoutPdf";
-import { exportCncFiles, buildBasicDrillOperations } from "../../../core/cnc/cncExport";
 import {
   calcularPrecoTotalPecas,
   calcularPrecoTotalProjeto,
@@ -38,9 +33,36 @@ type SendSelections = {
   precos: boolean;
 };
 
+const boxCardStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 8,
+  marginBottom: 8,
+};
+const boxCardTitleStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--text-main)",
+  marginBottom: 6,
+};
+const boxCardDimsStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: "var(--text-muted)",
+  marginBottom: 8,
+};
+const boxCardRowStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 6,
+  flexWrap: "wrap",
+};
+
 export default function RightToolsBar() {
   const { actions, project } = useProject();
+  const { viewerApi } = usePimoViewerContext();
   const { modal, openModal, closeModal } = useToolbarModal();
+  const workspaceBoxes = project.workspaceBoxes;
+  const selectedId = project.selectedWorkspaceBoxId;
   // Single Source of Truth: Resultados Atuais derivados de project.boxes (não project.resultados/acessorios)
   // boxes em useMemo para referência estável e evitar reexecução dos useMemo abaixo a cada render
   const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
@@ -291,166 +313,77 @@ export default function RightToolsBar() {
             Abrir Photo Mode
           </button>
         </div>
-        <div
-          className="right-tools-card"
-          style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}
-        >
-          <div className="right-tools-card-title">Exportar</div>
-          <button
-            type="button"
-            className="modal-action"
-            style={{ width: "100%", fontSize: 12 }}
-            onClick={() => {
-              const boxes = project.boxes ?? [];
-              if (boxes.length === 0) {
-                alert("Nenhuma caixa no projeto. Gere o design primeiro.");
-                return;
-              }
-              const pdfProject = {
-                projectName: project.projectName ?? "Projeto",
-                boxes,
-                rules: project.rules,
-              };
-              const doc = buildTechnicalPdf(pdfProject);
-              const name = (project.projectName || "projeto").replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
-              doc.save(`${name}_tecnico.pdf`);
+
+        {/* Lista de Caixas - último bloco do painel direito */}
+        <div className="right-tools-card" style={{ marginTop: 16 }}>
+          <div className="section-title" style={{ marginBottom: 8 }}>Lista de Caixas</div>
+          <div
+            className="boxes-list"
+            style={{
+              maxHeight: 300,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 0,
             }}
           >
-            PDF Técnico
-          </button>
-          <button
-            type="button"
-            className="modal-action"
-            style={{ width: "100%", fontSize: 12 }}
-            onClick={() => {
-              const boxes = project.boxes ?? [];
-              if (boxes.length === 0) {
-                alert("Nenhuma caixa no projeto. Gere o design primeiro.");
-                return;
-              }
-              const pdfProject = {
-                projectName: project.projectName ?? "Projeto",
-                boxes,
-                rules: project.rules,
-                extractedPartsByBoxId: project.extractedPartsByBoxId ?? {},
-              };
-              const doc = buildCutlistPdf(pdfProject);
-              const name = (project.projectName || "projeto").replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
-              doc.save(`${name}_cutlist.pdf`);
-            }}
-          >
-            Cutlist
-          </button>
-          <button
-            type="button"
-            className="modal-action"
-            style={{ width: "100%", fontSize: 12, fontWeight: 600 }}
-            onClick={() => {
-              const boxes = project.boxes ?? [];
-              if (boxes.length === 0) {
-                alert("Nenhuma caixa no projeto. Gere o design primeiro.");
-                return;
-              }
-              const pdfProject = {
-                projectName: project.projectName ?? "Projeto",
-                boxes,
-                rules: project.rules,
-                extractedPartsByBoxId: project.extractedPartsByBoxId ?? {},
-              };
-              const doc = buildUnifiedPdf(pdfProject);
-              const name = (project.projectName || "projeto").replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
-              doc.save(`${name}_completo.pdf`);
-            }}
-          >
-            Ambos (Unificado)
-          </button>
-          <button
-            type="button"
-            className="modal-action"
-            title="Otimização com rotação e agrupamento por material"
-            style={{ width: "100%", fontSize: 12, opacity: 0.9 }}
-            onClick={() => {
-              const boxes = project.boxes ?? [];
-              if (boxes.length === 0) {
-                alert("Nenhuma caixa no projeto. Gere o design primeiro.");
-                return;
-              }
-              const parametric = cutlistComPrecoFromBoxes(boxes, project.rules);
-              const extracted = boxes.flatMap((b) =>
-                Object.values(project.extractedPartsByBoxId?.[b.id] ?? {}).flat()
-              );
-              const allItems = [...parametric, ...extracted].map((p) => ({
-                ...p,
-                boxId: p.boxId ?? "",
-              }));
-              const pieces = cutlistToPieces(allItems);
-              if (pieces.length === 0) {
-                alert("Nenhuma peça na cutlist para o layout de corte.");
-                return;
-              }
-              const result = runCutLayout(pieces, {
-                largura_mm: 2750,
-                altura_mm: 1830,
-                espessura_mm: 19,
-              });
-              const doc = buildCutLayoutPdf(result);
-              const name = (project.projectName || "projeto").replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
-              doc.save(`${name}_layout_corte.pdf`);
-            }}
-          >
-            Layout de Corte PRO
-          </button>
-          <button
-            type="button"
-            className="modal-action"
-            style={{ width: "100%", fontSize: 12, fontWeight: 600 }}
-            onClick={() => {
-              const boxes = project.boxes ?? [];
-              if (boxes.length === 0) {
-                alert("Nenhuma caixa no projeto. Gere o design primeiro.");
-                return;
-              }
-              const parametric = cutlistComPrecoFromBoxes(boxes, project.rules);
-              const extracted = boxes.flatMap((b) =>
-                Object.values(project.extractedPartsByBoxId?.[b.id] ?? {}).flat()
-              );
-              const allItems = [...parametric, ...extracted].map((p) => ({
-                ...p,
-                boxId: p.boxId ?? "",
-              }));
-              const pieces = cutlistToPieces(allItems);
-              if (pieces.length === 0) {
-                alert("Nenhuma peça na cutlist para exportar CNC.");
-                return;
-              }
-              const layoutResult = runCutLayout(pieces, {
-                largura_mm: 2750,
-                altura_mm: 1830,
-                espessura_mm: 19,
-              });
-              const drillOps = buildBasicDrillOperations(layoutResult);
-              const cnc = exportCncFiles(project, layoutResult, drillOps);
-              const name = (project.projectName || "projeto").replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
-              const tcnBlob = new Blob([cnc.tcn], { type: "text/plain" });
-              const kdtBlob = new Blob([cnc.kdt], { type: "text/xml" });
-              const tcnUrl = URL.createObjectURL(tcnBlob);
-              const kdtUrl = URL.createObjectURL(kdtBlob);
-              const link1 = document.createElement("a");
-              link1.href = tcnUrl;
-              link1.download = `${name}.tcn`;
-              link1.click();
-              const link2 = document.createElement("a");
-              link2.href = kdtUrl;
-              link2.download = `${name}.kdt`;
-              link2.click();
-              setTimeout(() => {
-                URL.revokeObjectURL(tcnUrl);
-                URL.revokeObjectURL(kdtUrl);
-              }, 500);
-            }}
-          >
-            Exportar CNC (TCN + KDT)
-          </button>
+            {workspaceBoxes.length === 0 ? (
+              <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 0" }}>
+                Nenhuma caixa. Clique em &quot;Adicionar caixote&quot; ou &quot;Gerar Design 3D&quot;.
+              </div>
+            ) : (
+              workspaceBoxes.map((box) => {
+                const d = box.dimensoes;
+                const isSelected = box.id === selectedId;
+                return (
+                  <div
+                    key={box.id}
+                    style={{
+                      ...boxCardStyle,
+                      borderColor: isSelected ? "var(--blue-light)" : "rgba(255,255,255,0.08)",
+                      background: isSelected ? "rgba(59, 130, 246, 0.12)" : "rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    <div style={boxCardTitleStyle}>{box.nome}</div>
+                    <div style={boxCardDimsStyle}>
+                      {d?.largura != null && d?.altura != null && d?.profundidade != null
+                        ? `${d.largura} × ${d.altura} × ${d.profundidade} mm`
+                        : "—"}
+                    </div>
+                    <div style={boxCardRowStyle}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          actions.selectBox(box.id);
+                          viewerApi?.highlightBox?.(box.id);
+                        }}
+                        className="button button-ghost"
+                        style={{
+                          flex: 1,
+                          fontSize: 11,
+                          padding: "4px 8px",
+                        }}
+                      >
+                        Selecionar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => actions.removeWorkspaceBoxById(box.id)}
+                        className="button button-ghost"
+                        style={{
+                          flex: 1,
+                          fontSize: 11,
+                          padding: "4px 8px",
+                        }}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </aside>
 

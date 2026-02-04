@@ -8,12 +8,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom"],
-          three: ["three", "@react-three/fiber", "@react-three/drei", "three-stdlib"],
-          pdf: ["jspdf", "jspdf-autotable", "html2canvas"],
-          sanitize: ["dompurify"],
-        },
+manualChunks: {
+        three: ['three'],
+        pdf: ['jspdf', 'jspdf-autotable'],
+        viewer: ['three/examples/jsm/controls/OrbitControls'],
+        core: ['react', 'react-dom']
+      },
       },
     },
   },

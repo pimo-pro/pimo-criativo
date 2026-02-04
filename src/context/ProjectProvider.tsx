@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { gerarPdfTecnicoCompleto } from "../core/pdf/gerarPdfTecnico";
+import { buildCutlistPdf } from "../core/pdf/pdfCutlist";
+import { buildTechnicalPdf } from "../core/pdf/pdfTechnical";
+import { buildUnifiedPdf } from "../core/pdf/pdfUnified";
 import type { BoxModelInstance, WorkspaceBox } from "../core/types";
 import { saveProfiles } from "../core/rules/rulesProfilesStorage";
 import { DEFAULT_PROFILE_ID } from "../core/rules/rulesProfilesStorage";
@@ -858,21 +860,56 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const currentProject = projectRef.current;
       const boxesToExport = currentProject.boxes ?? [];
       if (boxesToExport.length === 0) {
-        alert("Nenhuma cut list disponível para exportar.");
+        alert("Nenhuma caixa no projeto. Gere o design primeiro.");
         return;
       }
       const projectName = currentProject.projectName?.trim() || "Projeto";
-      const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "Projeto";
-      const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName);
-      doc.save(`${safeName}_CutList.pdf`);
+      const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
+      const pdfProject = {
+        projectName,
+        boxes: boxesToExport,
+        rules: currentProject.rules,
+        extractedPartsByBoxId: currentProject.extractedPartsByBoxId ?? {},
+      };
+      const doc = buildCutlistPdf(pdfProject);
+      doc.save(`${safeName}_cutlist.pdf`);
     },
 
     exportarPdfTecnico: () => {
       const currentProject = projectRef.current;
       const boxesToExport = currentProject.boxes ?? [];
+      if (boxesToExport.length === 0) {
+        alert("Nenhuma caixa no projeto. Gere o design primeiro.");
+        return;
+      }
       const projectName = currentProject.projectName?.trim() || "Projeto";
-      const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName);
-      doc.save("documento-tecnico-industrial.pdf");
+      const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
+      const pdfProject = {
+        projectName,
+        boxes: boxesToExport,
+        rules: currentProject.rules,
+      };
+      const doc = buildTechnicalPdf(pdfProject);
+      doc.save(`${safeName}_tecnico.pdf`);
+    },
+
+    exportarPdfUnificado: () => {
+      const currentProject = projectRef.current;
+      const boxesToExport = currentProject.boxes ?? [];
+      if (boxesToExport.length === 0) {
+        alert("Nenhuma caixa no projeto. Gere o design primeiro.");
+        return;
+      }
+      const projectName = currentProject.projectName?.trim() || "Projeto";
+      const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
+      const pdfProject = {
+        projectName,
+        boxes: boxesToExport,
+        rules: currentProject.rules,
+        extractedPartsByBoxId: currentProject.extractedPartsByBoxId ?? {},
+      };
+      const doc = buildUnifiedPdf(pdfProject);
+      doc.save(`${safeName}_completo.pdf`);
     },
 
     logChangelog: (message) => {
@@ -1104,6 +1141,61 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       undoStackRef.current = [];
       redoStackRef.current = [];
       updateProject(() => applied, false);
+    },
+    addTemplateAsNewBox: (templateId) => {
+      const template = getTemplateById(templateId);
+      if (!template || !template.boxes.length) return;
+      updateProject((prev) => {
+        const baseEspessura = template.materialPadrao?.espessura ?? prev.material.espessura;
+        const stamp = Date.now();
+        const usedIds = new Set(prev.workspaceBoxes.map((box) => box.id));
+        const nextBoxes = template.boxes.map((b, index) => {
+          let candidateIndex = prev.workspaceBoxes.length + index + 1;
+          let id = `box-${candidateIndex}-${stamp}`;
+          while (usedIds.has(id)) {
+            candidateIndex += 1;
+            id = `box-${candidateIndex}-${stamp}`;
+          }
+          usedIds.add(id);
+          const espessura = b.espessura ?? baseEspessura;
+          const newBox = createWorkspaceBox(
+            id,
+            b.nome,
+            b.dimensoes,
+            espessura,
+            b.posicaoX_mm ?? 0,
+            []
+          );
+          newBox.prateleiras = b.prateleiras ?? 0;
+          newBox.gavetas = b.gavetas ?? 0;
+          newBox.portaTipo = b.portaTipo ?? "porta_simples";
+          newBox.posicaoY_mm = b.posicaoY_mm ?? 0;
+          newBox.posicaoZ_mm = b.posicaoZ_mm ?? 0;
+          newBox.manualPosition = true;
+          return newBox;
+        });
+        const nextWorkspaceBoxes = [...prev.workspaceBoxes, ...nextBoxes];
+        const nextPrev = { ...prev, workspaceBoxes: nextWorkspaceBoxes };
+        const boxes = buildBoxesFromWorkspace(nextPrev);
+        const lastId = nextBoxes[nextBoxes.length - 1]?.id ?? prev.selectedWorkspaceBoxId;
+        return recomputeState(
+          prev,
+          {
+            workspaceBoxes: nextWorkspaceBoxes,
+            boxes,
+            selectedWorkspaceBoxId: lastId,
+            selectedCaixaId: lastId,
+            selectedCaixaModelUrl: null,
+            selectedModelInstanceId: null,
+            changelog: appendChangelog(prev.changelog, {
+              timestamp: new Date(),
+              type: "box",
+              message: `Template adicionado: ${template.nome}`,
+            }),
+          },
+          true
+        );
+      });
     },
     listSavedProjects: (): SavedProjectInfo[] => {
       return readStoredProjects().map(({ id, name, createdAt, updatedAt }) => ({

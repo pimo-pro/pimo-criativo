@@ -274,6 +274,8 @@ export interface ProjectActions {
   gerarDesign: () => void;
   exportarPDF: () => void;
   exportarPdfTecnico: () => void;
+  /** Gera PDF unificado (Técnico + Cutlist em um único ficheiro). */
+  exportarPdfUnificado: () => void;
   logChangelog: (_message: string) => void;
   /** Define a ferramenta 3D ativa (select, move, rotate) e aplica ao viewerApiAdapter. */
   setActiveTool: (_mode: "select" | "move" | "rotate") => void;
@@ -299,6 +301,8 @@ export interface ProjectActions {
   loadProjectSnapshot: (_id: string) => void;
   /** Carrega projeto a partir de um template (limpa sala, caixas e substitui pelo layout do modelo). */
   loadProjectFromTemplate: (_templateId: string) => void;
+  /** Adiciona um template como novas caixas no workspace (não substitui o projeto). */
+  addTemplateAsNewBox: (_templateId: string) => void;
   listSavedProjects: () => SavedProjectInfo[];
   createNewProject: () => void;
   renameProject: (_id: string, _name: string) => void;
