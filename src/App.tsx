@@ -11,7 +11,6 @@ import PainelReferencia from "./pages/PainelReferencia";
 import SobreNos from "./pages/SobreNos";
 import Documentacao from "./pages/Documentacao";
 import AdminPanel from "./pages/AdminPanel";
-import ProjectRoadmap from "./pages/ProjectRoadmap";
 import DevPimoTest from "./pages/DevPimoTest";
 import DevActionsTest from "./pages/DevActionsTest";
 import { PimoViewerProvider } from "./context/PimoViewerContext";
@@ -59,7 +58,6 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showSystemDocs, setShowSystemDocs] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [showRoadmap, setShowRoadmap] = useState(false);
   const [showDevTest, setShowDevTest] = useState(false);
   const [showDevActions, setShowDevActions] = useState(false);
   const viewerOptions = useMemo(() => DEFAULT_VIEWER_OPTIONS, []);
@@ -69,14 +67,12 @@ export default function App() {
       const isAbout = window.location.pathname === "/sobre-nos";
       const isSystemDocs = window.location.pathname === "/documentacao";
       const isAdmin = window.location.pathname === "/admin";
-      const isRoadmap = window.location.pathname === "/roadmap";
       const isDevTest = window.location.pathname === "/dev-test";
       const isDevActions = window.location.pathname === "/dev-actions";
       const isPainelReferencia = window.location.pathname === "/painel-referencia";
       setShowAbout(isAbout);
       setShowSystemDocs(isSystemDocs);
       setShowAdmin(isAdmin);
-      setShowRoadmap(isRoadmap);
       setShowDevTest(isDevTest);
       setShowDevActions(isDevActions);
       setShowPainelReferencia(isPainelReferencia);
@@ -104,15 +100,6 @@ export default function App() {
     setShowAdmin(true);
     setShowAbout(false);
     setShowSystemDocs(false);
-    setShowRoadmap(false);
-  };
-
-  const navigateToRoadmap = () => {
-    window.history.pushState({}, "", "/roadmap");
-    setShowRoadmap(true);
-    setShowAbout(false);
-    setShowSystemDocs(false);
-    setShowAdmin(false);
   };
 
   const navigateToPainelReferencia = () => {
@@ -121,7 +108,6 @@ export default function App() {
     setShowAbout(false);
     setShowSystemDocs(false);
     setShowAdmin(false);
-    setShowRoadmap(false);
   };
 
   const navigateToApp = () => {
@@ -129,7 +115,6 @@ export default function App() {
     setShowAbout(false);
     setShowSystemDocs(false);
     setShowAdmin(false);
-    setShowRoadmap(false);
     setShowDevTest(false);
     setShowDevActions(false);
     setShowPainelReferencia(false);
@@ -150,14 +135,6 @@ export default function App() {
             }
           }}
           painelReferenciaOpen={showPainelReferencia}
-          onShowRoadmap={() => {
-            if (showRoadmap) {
-              navigateToApp();
-              return;
-            }
-            navigateToRoadmap();
-          }}
-          roadmapOpen={showRoadmap}
         />
 
         {/* MAIN AREA */}
@@ -168,8 +145,6 @@ export default function App() {
             <Documentacao />
           ) : showAdmin ? (
             <AdminPanel />
-          ) : showRoadmap ? (
-            <ProjectRoadmap />
           ) : showDevTest ? (
             <DevPimoTest />
           ) : showDevActions ? (
@@ -238,7 +213,7 @@ export default function App() {
         </div>
 
         {/* BOTTOM PANEL */}
-        {!showPainelReferencia && !showAbout && !showSystemDocs && !showAdmin && !showRoadmap && (
+        {!showPainelReferencia && !showAbout && !showSystemDocs && !showAdmin && (
           <div
             className={
               showBottom

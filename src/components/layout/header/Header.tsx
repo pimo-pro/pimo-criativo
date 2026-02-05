@@ -1,15 +1,11 @@
 interface HeaderProps {
   onTogglePainelReferencia: () => void;
   painelReferenciaOpen: boolean;
-  onShowRoadmap: () => void;
-  roadmapOpen: boolean;
 }
 
 export default function Header({
   onTogglePainelReferencia,
   painelReferenciaOpen,
-  onShowRoadmap,
-  roadmapOpen,
 }: HeaderProps) {
   return (
     <header
@@ -67,20 +63,6 @@ export default function Header({
       >
         <span style={{ color: "var(--text-muted)" }}>🌐 Idioma: PT</span>
         <span style={{ color: "var(--text-main)" }}>📁 Projetos</span>
-        <button
-          onClick={onShowRoadmap}
-          style={{
-            background: roadmapOpen ? "rgba(59,130,246,0.25)" : "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "var(--text-main)",
-            padding: "6px 10px",
-            borderRadius: "var(--radius)",
-            fontSize: 13,
-            cursor: "pointer",
-          }}
-        >
-          Roadmap
-        </button>
         <button
           onClick={() => {
             window.history.pushState({}, "", "/dev-actions");
