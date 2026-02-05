@@ -12,7 +12,7 @@ export type ToolbarActionId =
   | "imagem"
   | "enviar";
 
-export type Tool3DId = "select" | "move" | "rotate" | "scale" | "orbit" | "pan";
+export type Tool3DId = "select" | "move" | "rotate" | "ruler" | "scale" | "orbit" | "pan";
 
 export const VIEWER_TOOLBAR_ITEMS: Array<{
   id: ToolbarActionId;
@@ -39,6 +39,7 @@ export const TOOLS_3D_ITEMS: Array<{
   { id: "select", label: "Selecionar", icon: "◆", tooltip: "Selecionar", eventKey: "tool:select" },
   { id: "move", label: "Mover", icon: "↔", tooltip: "Mover", eventKey: "tool:move" },
   { id: "rotate", label: "Rodar", icon: "↻", tooltip: "Rodar", eventKey: "tool:rotate" },
+  { id: "ruler", label: "Régua", icon: "📏", tooltip: "Medir distância", eventKey: "tool:ruler" },
   { id: "scale", label: "Escalar", icon: "⊞", tooltip: "Escalar (futuro)", eventKey: "tool:scale" },
   { id: "orbit", label: "Orbit", icon: "◎", tooltip: "Orbit (futuro)", eventKey: "tool:orbit" },
   { id: "pan", label: "Pan", icon: "✥", tooltip: "Pan (futuro)", eventKey: "tool:pan" },

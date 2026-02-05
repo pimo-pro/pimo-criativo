@@ -85,6 +85,9 @@ const reviveState = (snapshot: unknown): ProjectState | null => {
     ...restored,
     workspaceBoxes,
     selectedWorkspaceBoxId: workspaceBoxes.length ? (restored.selectedWorkspaceBoxId ?? workspaceBoxes[0].id) : "",
+    selectedWorkspaceBoxIds: workspaceBoxes.length
+      ? (restored.selectedWorkspaceBoxIds ?? [restored.selectedWorkspaceBoxId ?? workspaceBoxes[0].id])
+      : [],
     selectedCaixaId: workspaceBoxes.length ? (restored.selectedCaixaId ?? workspaceBoxes[0].id) : "",
     selectedBoxId: workspaceBoxes.length ? (restored.selectedBoxId ?? "") : "",
     material: { ...defaultState.material, ...restored.material },
@@ -262,6 +265,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             workspaceBoxes: nextWorkspaceBoxes,
             boxes,
             selectedWorkspaceBoxId: newBox.id,
+            selectedWorkspaceBoxIds: [newBox.id],
             selectedCaixaId: newBox.id,
             selectedCaixaModelUrl: null,
             changelog: appendChangelog(prev.changelog, {
@@ -330,6 +334,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             workspaceBoxes: nextWorkspaceBoxes,
             boxes,
             selectedWorkspaceBoxId: newBox.id,
+            selectedWorkspaceBoxIds: [newBox.id],
             selectedCaixaId: newBox.id,
             selectedCaixaModelUrl: null,
             changelog: appendChangelog(prev.changelog, {
@@ -370,6 +375,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             workspaceBoxes: nextWorkspaceBoxes,
             boxes,
             selectedWorkspaceBoxId: newBox.id,
+            selectedWorkspaceBoxIds: [newBox.id],
             selectedCaixaId: newBox.id,
             selectedCaixaModelUrl: null,
             selectedModelInstanceId: null,
@@ -396,6 +402,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           (box) => box.id !== prev.selectedWorkspaceBoxId
         );
         const nextSelected = filtered[0];
+        const nextSelectedIds = (prev.selectedWorkspaceBoxIds ?? []).filter(
+          (id) => id !== prev.selectedWorkspaceBoxId
+        );
+        if (nextSelected && !nextSelectedIds.includes(nextSelected.id)) {
+          nextSelectedIds.unshift(nextSelected.id);
+        }
         const nextPrev = { ...prev, workspaceBoxes: filtered };
         const boxes = buildBoxesFromWorkspace(nextPrev);
         return recomputeState(
@@ -404,6 +416,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             workspaceBoxes: filtered,
             boxes,
             selectedWorkspaceBoxId: nextSelected?.id ?? "",
+            selectedWorkspaceBoxIds: nextSelected ? nextSelectedIds : [],
             selectedCaixaId: nextSelected?.id ?? "",
             selectedBoxId: nextSelected?.id ?? prev.selectedBoxId ?? "",
             selectedCaixaModelUrl: null,
@@ -429,6 +442,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         const filtered = prev.workspaceBoxes.filter((box) => box.id !== boxId);
         if (filtered.length === prev.workspaceBoxes.length) return prev;
         const nextSelected = filtered[0];
+        const nextSelectedIds = (prev.selectedWorkspaceBoxIds ?? []).filter((id) => id !== boxId);
+        if (nextSelected && !nextSelectedIds.includes(nextSelected.id)) {
+          nextSelectedIds.unshift(nextSelected.id);
+        }
         const nextPrev = { ...prev, workspaceBoxes: filtered };
         const boxes = buildBoxesFromWorkspace(nextPrev);
         const extractedRest = Object.fromEntries(
@@ -442,6 +459,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             boxes,
             extractedPartsByBoxId: extractedRest,
             selectedWorkspaceBoxId: nextSelected?.id ?? "",
+            selectedWorkspaceBoxIds: nextSelected ? nextSelectedIds : [],
             selectedCaixaId: nextSelected?.id ?? "",
             selectedBoxId: nextSelected ? (prev.selectedBoxId === boxId ? nextSelected.id : prev.selectedBoxId) : "",
             selectedCaixaModelUrl: null,
@@ -466,6 +484,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           prev,
           {
             selectedWorkspaceBoxId: boxId,
+            selectedWorkspaceBoxIds: [boxId],
             selectedBoxId: prev.boxes.find((box) => box.id === boxId)
               ? boxId
               : prev.selectedBoxId,
@@ -477,6 +496,31 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           true
         );
       });
+    },
+
+    toggleWorkspaceBoxSelection: (boxId) => {
+      updateProject(
+        (prev) => {
+          const exists = prev.workspaceBoxes.some((box) => box.id === boxId);
+          if (!exists) return prev;
+          const current = new Set(prev.selectedWorkspaceBoxIds ?? []);
+          if (current.has(boxId)) current.delete(boxId);
+          else current.add(boxId);
+          const selectedWorkspaceBoxIds = Array.from(current);
+          const nextPrimary = selectedWorkspaceBoxIds[0] ?? "";
+          const selectedBoxId = prev.boxes.find((box) => box.id === nextPrimary)
+            ? nextPrimary
+            : prev.selectedBoxId;
+          return {
+            ...prev,
+            selectedWorkspaceBoxIds,
+            selectedWorkspaceBoxId: nextPrimary,
+            selectedCaixaId: nextPrimary,
+            selectedBoxId,
+          };
+        },
+        false
+      );
     },
 
     addModelToBox: (caixaId, cadModelId) => {
@@ -525,6 +569,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             workspaceBoxes: nextWorkspaceBoxes,
             boxes,
             selectedWorkspaceBoxId: newBox.id,
+            selectedWorkspaceBoxIds: [newBox.id],
             selectedCaixaId: newBox.id,
             selectedBoxId: newBox.id,
             selectedCaixaModelUrl: null,
@@ -815,6 +860,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
               ...prev,
               workspaceBoxes: [newBox],
               selectedWorkspaceBoxId: newBox.id,
+              selectedWorkspaceBoxIds: [newBox.id],
               selectedCaixaId: newBox.id,
               selectedBoxId: newBox.id,
             };
@@ -1128,6 +1174,7 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
           : defaultState.material,
         workspaceBoxes,
         selectedWorkspaceBoxId: firstId,
+        selectedWorkspaceBoxIds: [firstId],
         selectedCaixaId: firstId,
         selectedBoxId: "",
         selectedCaixaModelUrl: null,
@@ -1183,6 +1230,7 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
             workspaceBoxes: nextWorkspaceBoxes,
             boxes,
             selectedWorkspaceBoxId: lastId,
+            selectedWorkspaceBoxIds: [lastId],
             selectedCaixaId: lastId,
             selectedCaixaModelUrl: null,
             selectedModelInstanceId: null,

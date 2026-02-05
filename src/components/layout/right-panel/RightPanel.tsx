@@ -73,6 +73,7 @@ export default function RightPanel() {
     doc.save(`${slug}_completo.pdf`);
   };
 
+
   const onLayoutCorte = async () => {
     if (!hasBoxes) {
       alert("Nenhuma caixa no projeto. Gere o design primeiro.");
@@ -151,15 +152,15 @@ const cnc = exportCncFiles(project, layoutResult, drillOps);
           {project.estaCarregando ? "A Calcular..." : "Gerar Design 3D"}
         </button>
 
-        {/* Adicionar caixote: cria um novo card na lista; o Viewer recebe via sync */}
-        <button
-          onClick={() => actions.addWorkspaceBox()}
-          className="button button-ghost"
-        >
-          Adicionar caixote
-        </button>
-
         <div className="row row-gap-sm" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {/* Adicionar caixote: cria um novo card na lista; o Viewer recebe via sync */}
+          <button
+            onClick={() => actions.addWorkspaceBox()}
+            className="button button-ghost"
+            style={{ flex: 1 }}
+          >
+            Adicionar caixote
+          </button>
           <button
             onClick={() => actions.duplicateWorkspaceBox()}
             disabled={!selectedId || workspaceBoxes.length === 0}
@@ -168,14 +169,18 @@ const cnc = exportCncFiles(project, layoutResult, drillOps);
           >
             Duplicar
           </button>
-          <button
-            onClick={() => setShowGerarArquivoModal(true)}
-            className="button button-ghost"
-            style={{ flex: 1 }}
-          >
-            Gerar Arquivo
-          </button>
         </div>
+
+        <button
+          onClick={() => setShowGerarArquivoModal(true)}
+          className="button button-primary"
+          style={{
+            width: "100%",
+            background: "linear-gradient(90deg, #22c55e, #38bdf8)",
+          }}
+        >
+          Gerar Arquivo
+        </button>
 
         {showGerarArquivoModal && (
           <GerarArquivoModal

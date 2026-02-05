@@ -137,6 +137,7 @@ export const defaultState: ProjectState = {
   selectedBoxId: "",
   workspaceBoxes: defaultWorkspaceBoxes,
   selectedWorkspaceBoxId: defaultWorkspaceBoxes[0].id,
+  selectedWorkspaceBoxIds: [defaultWorkspaceBoxes[0].id],
   selectedCaixaId: defaultWorkspaceBoxes[0].id,
   selectedCaixaModelUrl: null,
   selectedModelInstanceId: null,

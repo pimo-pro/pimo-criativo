@@ -63,6 +63,7 @@ export default function RightToolsBar() {
   const { modal, openModal, closeModal } = useToolbarModal();
   const workspaceBoxes = project.workspaceBoxes;
   const selectedId = project.selectedWorkspaceBoxId;
+  const selectedIds = project.selectedWorkspaceBoxIds ?? [];
   // Single Source of Truth: Resultados Atuais derivados de project.boxes (não project.resultados/acessorios)
   // boxes em useMemo para referência estável e evitar reexecução dos useMemo abaixo a cada render
   const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
@@ -277,24 +278,9 @@ export default function RightToolsBar() {
   return (
     <>
       <aside className="right-tools-bar" aria-label="Resultados e modais">
-        <div className="right-tools-card">
-          <div className="right-tools-card-title">Resultados Atuais</div>
-          <div className="right-tools-card-row">
-            <span>Peças</span>
-            <strong>{totalPecas}</strong>
-          </div>
-          <div className="right-tools-card-row">
-            <span>Ferragens</span>
-            <strong>{totalFerragens}</strong>
-          </div>
-          <div className="right-tools-card-row">
-            <span>Total de itens</span>
-            <strong>{totalItens}</strong>
-          </div>
-        </div>
         <div
           className="right-tools-card"
-          style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}
+          style={{ display: "flex", flexDirection: "column", gap: 10 }}
         >
           <button
             type="button"
@@ -312,6 +298,21 @@ export default function RightToolsBar() {
           >
             Abrir Photo Mode
           </button>
+        </div>
+        <div className="right-tools-card" style={{ marginTop: 12 }}>
+          <div className="right-tools-card-title">Resultados Atuais</div>
+          <div className="right-tools-card-row">
+            <span>Peças</span>
+            <strong>{totalPecas}</strong>
+          </div>
+          <div className="right-tools-card-row">
+            <span>Ferragens</span>
+            <strong>{totalFerragens}</strong>
+          </div>
+          <div className="right-tools-card-row">
+            <span>Total de itens</span>
+            <strong>{totalItens}</strong>
+          </div>
         </div>
 
         {/* Lista de Caixas - último bloco do painel direito */}
@@ -351,6 +352,22 @@ export default function RightToolsBar() {
                         : "—"}
                     </div>
                     <div style={boxCardRowStyle}>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 11,
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(box.id)}
+                          onChange={() => actions.toggleWorkspaceBoxSelection(box.id)}
+                        />
+                        Selecionar
+                      </label>
                       <button
                         type="button"
                         onClick={() => {
