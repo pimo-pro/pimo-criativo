@@ -289,6 +289,11 @@ export const usePimoViewer = (
     []
   );
 
+  const getRightmostX = useCallback(
+    () => viewerRef.current?.getRightmostX?.() ?? -0.1,
+    []
+  );
+
   const updateRoomElementConfig = useCallback(
     (elementId: string, config: DoorWindowConfig) =>
       viewerRef.current?.updateRoomElementConfig?.(elementId, config) ?? false,
@@ -346,6 +351,7 @@ export const usePimoViewer = (
       getSelectedBoxDimensions,
       setDimensionsOverlayVisible,
       getDimensionsOverlayVisible,
+      getRightmostX,
     }),
     [
       viewerReady,
@@ -391,6 +397,7 @@ export const usePimoViewer = (
       getSelectedBoxDimensions,
       setDimensionsOverlayVisible,
       getDimensionsOverlayVisible,
+      getRightmostX,
     ]
   );
 };

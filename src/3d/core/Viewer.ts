@@ -362,6 +362,18 @@ export class Viewer {
     };
   }
 
+  /** Maior X (borda direita) das caixas em metros. Atualiza bounding boxes antes. Sem caixas retorna -0.1 (100 mm à esquerda da origem). */
+  getRightmostX(): number {
+    if (this.boxes.size === 0) return -0.1;
+    let maxX = -Infinity;
+    this.boxes.forEach((entry) => {
+      entry.mesh.updateMatrixWorld(true);
+      this._boundingBox.setFromObject(entry.mesh);
+      if (this._boundingBox.max.x > maxX) maxX = this._boundingBox.max.x;
+    });
+    return Number.isFinite(maxX) ? maxX : -0.1;
+  }
+
   /** Dimensões da caixa selecionada (L, A, P). Usado no modo Selecionar para overlay. */
   getSelectedBoxDimensions(): { width: number; height: number; depth: number } | null {
     if (!this.selectedBoxId) return null;

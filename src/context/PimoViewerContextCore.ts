@@ -56,6 +56,7 @@ export type PimoViewerApi = {
   getSelectedBoxDimensions?: () => { width: number; height: number; depth: number } | null;
   setDimensionsOverlayVisible?: (_visible: boolean) => void;
   getDimensionsOverlayVisible?: () => boolean;
+  getRightmostX?: () => number;
 };
 
 export type PimoViewerContextValue = {

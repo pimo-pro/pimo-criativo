@@ -283,32 +283,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     addWorkspaceBoxFromCatalog: (catalogItemId) => {
       const catalogItem = getCatalogItemById(catalogItemId);
       if (!catalogItem) return;
-
+      const rightmostX_m = viewerSync.getRightmostX();
       updateProject((prev) => {
         const nextIndex = prev.workspaceBoxes.length + 1;
         const baseEspessura =
           prev.workspaceBoxes.find((box) => box.id === prev.selectedWorkspaceBoxId)
             ?.espessura ?? prev.material.espessura;
-        
-        // Usar dimensões do catálogo
         const dimensoes = {
           largura: catalogItem.dimensoesDefault.largura_mm,
           altura: catalogItem.dimensoesDefault.altura_mm,
           profundidade: catalogItem.dimensoesDefault.profundidade_mm,
         };
-
-        // Posicionar ao lado dos modelos existentes (nunca em cima): direita do último + 100 mm
-        const GAP_MM = 100;
-        const rightmost_mm =
-          prev.workspaceBoxes.length > 0
-            ? Math.max(
-                ...prev.workspaceBoxes.map(
-                  (b) => (b.posicaoX_mm ?? 0) + (b.dimensoes?.largura ?? 0) / 2
-                )
-              )
-            : -GAP_MM;
-        const posicaoX_mm = rightmost_mm + GAP_MM + dimensoes.largura / 2;
-        
+        const posicaoX_mm = (rightmostX_m + 0.1) * 1000 + dimensoes.largura / 2;
         const glbPath = getCatalogGlbPath(catalogItemId);
         const models = glbPath
           ? [
@@ -359,21 +345,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     },
 
     duplicateBox: () => {
+      const rightmostX_m = viewerSync.getRightmostX();
       updateProject((prev) => {
         const selected = getSelectedWorkspaceBox(prev);
         if (!selected) return prev;
         const nextIndex = prev.workspaceBoxes.length + 1;
-        const GAP_MM = 100;
-        const rightmost_mm =
-          prev.workspaceBoxes.length > 0
-            ? Math.max(
-                ...prev.workspaceBoxes.map(
-                  (b) => (b.posicaoX_mm ?? 0) + (b.dimensoes?.largura ?? 0) / 2
-                )
-              )
-            : -GAP_MM;
         const largura = selected.dimensoes?.largura ?? 400;
-        const posicaoX_mm = rightmost_mm + GAP_MM + largura / 2;
+        const posicaoX_mm = (rightmostX_m + 0.1) * 1000 + largura / 2;
         const newBox: WorkspaceBox = {
           ...selected,
           id: `box-${nextIndex}`,
@@ -517,6 +495,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
     /** Cria uma nova caixa no workspace contendo apenas o modelo CAD (cada modelo CAD = uma caixa completa). Dimensões placeholder até o GLB carregar. */
     addCadModelAsNewBox: (cadModelId) => {
+      const rightmostX_m = viewerSync.getRightmostX();
       updateProject((prev) => {
         const nextIndex = prev.workspaceBoxes.length + 1;
         const newBoxId = `box-${nextIndex}`;
@@ -525,16 +504,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         const baseEspessura =
           prev.workspaceBoxes[0]?.espessura ?? prev.material.espessura;
         const placeholderDimensoes = { largura: 100, altura: 100, profundidade: 100 };
-        const GAP_MM = 100;
-        const rightmost_mm =
-          prev.workspaceBoxes.length > 0
-            ? Math.max(
-                ...prev.workspaceBoxes.map(
-                  (b) => (b.posicaoX_mm ?? 0) + (b.dimensoes?.largura ?? 0) / 2
-                )
-              )
-            : -GAP_MM;
-        const posicaoX_mm = rightmost_mm + GAP_MM + placeholderDimensoes.largura / 2;
+        const posicaoX_mm = (rightmostX_m + 0.1) * 1000 + placeholderDimensoes.largura / 2;
         const newBox = createWorkspaceBox(
           newBoxId,
           `Módulo ${nextIndex}`,

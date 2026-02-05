@@ -116,5 +116,8 @@ export function createViewerApiAdapter(
     getDimensionsOverlayVisible: (): boolean => {
       return pimoApi.getDimensionsOverlayVisible?.() ?? false;
     },
+    getRightmostX: (): number => {
+      return pimoApi.getRightmostX?.() ?? -0.1;
+    },
   };
 }

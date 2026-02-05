@@ -188,6 +188,8 @@ export type ViewerApi = {
   getSelectedBoxDimensions: () => { width: number; height: number; depth: number } | null;
   setDimensionsOverlayVisible: (_visible: boolean) => void;
   getDimensionsOverlayVisible: () => boolean;
+  /** Maior X (borda direita) das caixas no viewer, em metros. Usado para posicionar nova caixa ao lado. */
+  getRightmostX: () => number;
 };
 
 export type ProjectSnapshot = {
@@ -227,6 +229,7 @@ export type ViewerSync = {
   getSelectedBoxDimensions: () => { width: number; height: number; depth: number } | null;
   setDimensionsOverlayVisible: (_visible: boolean) => void;
   getDimensionsOverlayVisible: () => boolean;
+  getRightmostX: () => number;
 };
 
 export interface ProjectActions {

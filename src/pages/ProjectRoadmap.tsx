@@ -82,97 +82,125 @@ export default function ProjectRoadmap() {
     <main className="roadmap-main">
       <style dangerouslySetInnerHTML={{ __html: roadmapStyles }} />
 
-      {/* Header Bar */}
-      <div className="roadmap-header-bar">
-        <div className="header-stats">
-          <div className="stat-item">
-            <span className="stat-value">{stats.progress}%</span>
-            <span className="stat-label">Progresso</span>
+      {/* Page Title */}
+      <div className="page-header">
+        <h1 className="page-title">Roadmap do Projeto</h1>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="roadmap-stats-bar">
+        <div className="stats-grid">
+          <div className="stat-box">
+            <div className="stat-progress-circle">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" className="progress-bg" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  className="progress-ring"
+                  style={{
+                    strokeDasharray: `${2 * Math.PI * 45}`,
+                    strokeDashoffset: `${2 * Math.PI * 45 * (1 - stats.progress / 100)}`,
+                  }}
+                />
+                <text x="50" y="60" className="progress-text">
+                  {stats.progress}%
+                </text>
+              </svg>
+            </div>
+            <p className="stat-box-label">Progresso</p>
           </div>
-          <div className="stat-item">
-            <span className="stat-value">{stats.doneTasks}</span>
-            <span className="stat-label">Concluídas</span>
+
+          <div className="stat-box">
+            <div className="stat-number">{stats.doneTasks}</div>
+            <p className="stat-box-label">Concluídas</p>
           </div>
-          <div className="stat-item">
-            <span className="stat-value">{stats.pendingTasks}</span>
-            <span className="stat-label">Pendentes</span>
+
+          <div className="stat-box">
+            <div className="stat-number">{stats.pendingTasks}</div>
+            <p className="stat-box-label">Pendentes</p>
           </div>
-          <div className="stat-item">
-            <span className="stat-value">{stats.totalTasks}</span>
-            <span className="stat-label">Total</span>
+
+          <div className="stat-box">
+            <div className="stat-number">{stats.totalTasks}</div>
+            <p className="stat-box-label">Total</p>
           </div>
         </div>
-        <h1 className="header-title">Roadmap do Projeto</h1>
+      </div>
+
+      {/* Actions Bar */}
+      <div className="roadmap-actions-bar">
+        <div className="actions-grid">
+          <button
+            className={`action-bar-btn ${selectionMode ? "active" : ""}`}
+            onClick={() => {
+              setSelectionMode(!selectionMode);
+              if (!selectionMode) clearSelection();
+            }}
+          >
+            <span className="btn-icon">☑️</span>
+            <span>{selectionMode ? "Seleção Ativa" : "Selecionar"}</span>
+          </button>
+
+          {selectionMode && selectedTasks.size > 0 && (
+            <>
+              <div className="selection-indicator">
+                {selectedTasks.size} selecionada(s)
+              </div>
+
+              <select
+                className="status-select-bar"
+                value={bulkStatus}
+                onChange={(e) => setBulkStatus(e.target.value as PhaseTask["status"])}
+              >
+                <option value="todo">A Fazer</option>
+                <option value="in_progress">Em Progresso</option>
+                <option value="done">Concluído</option>
+              </select>
+
+              <button
+                className="action-bar-btn primary"
+                onClick={() => applyStatusToSelected(bulkStatus)}
+              >
+                <span className="btn-icon">✓</span>
+                <span>Aplicar</span>
+              </button>
+
+              <button
+                className="action-bar-btn danger"
+                onClick={deleteSelected}
+              >
+                <span className="btn-icon">🗑️</span>
+                <span>Excluir</span>
+              </button>
+
+              <button
+                className="action-bar-btn secondary"
+                onClick={() => {
+                  setSelectionMode(false);
+                  clearSelection();
+                }}
+              >
+                <span className="btn-icon">✕</span>
+                <span>Cancelar</span>
+              </button>
+            </>
+          )}
+
+          <button
+            className="action-bar-btn create"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <span className="btn-icon">➕</span>
+            <span>Nova Phase</span>
+          </button>
+        </div>
       </div>
 
       <div className="roadmap-container">
-        {/* Sidebar - Actions */}
-        <aside className="roadmap-sidebar">
-          <div className="sidebar-section">
-            <h3 className="sidebar-title">Ações</h3>
-
-            <button
-              className={`action-btn ${selectionMode ? "active" : ""}`}
-              onClick={() => {
-                setSelectionMode(!selectionMode);
-                if (!selectionMode) clearSelection();
-              }}
-            >
-              {selectionMode ? "✓ Seleção Ativa" : "☑️ Selecionar"}
-            </button>
-
-            {selectionMode && selectedTasks.size > 0 && (
-              <>
-                <div className="selection-count">
-                  {selectedTasks.size} selecionada(s)
-                </div>
-
-                <select
-                  className="status-select"
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value as PhaseTask["status"])}
-                >
-                  <option value="todo">A Fazer</option>
-                  <option value="in_progress">Em Progresso</option>
-                  <option value="done">Concluído</option>
-                </select>
-
-                <button
-                  className="apply-btn"
-                  onClick={() => applyStatusToSelected(bulkStatus)}
-                >
-                  ✓ Aplicar
-                </button>
-
-                <button className="delete-btn" onClick={deleteSelected}>
-                  🗑️ Excluir
-                </button>
-
-                <button
-                  className="cancel-btn"
-                  onClick={() => {
-                    setSelectionMode(false);
-                    clearSelection();
-                  }}
-                >
-                  ✕ Cancelar
-                </button>
-              </>
-            )}
-          </div>
-
-          <div className="sidebar-section">
-            <button
-              className="create-phase-btn"
-              onClick={() => setShowCreateModal(true)}
-            >
-              ➕ Nova Phase
-            </button>
-          </div>
-        </aside>
-
         {/* Main Content - Phases and Tasks */}
-        <div className="roadmap-content">
+        <div className="roadmap-content-full">
           {phases.map((phase) => (
             <div key={phase.id} className="phase-section">
               <div className="phase-header">
@@ -220,11 +248,12 @@ export default function ProjectRoadmap() {
                           }}
                         />
                       )}
-                      <span
-                        className={`task-status-dot ${statusColor[task.status]}`}
-                        title={statusLabel[task.status]}
-                      />
-                      <span className="task-text">{task.title}</span>
+                      <span className="task-content">
+                        <span className="task-text">{task.title}</span>
+                      </span>
+                      <span className={`task-status-badge ${statusColor[task.status]}`}>
+                        {statusLabel[task.status]}
+                      </span>
                     </div>
                   ))
                 )}

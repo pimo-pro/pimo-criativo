@@ -133,6 +133,11 @@ export const useViewerSync = (project: ProjectState): ViewerSync => {
     []
   );
 
+  const getRightmostX = useCallback(
+    () => viewerApiRef.current?.getRightmostX?.() ?? -0.1,
+    []
+  );
+
   return {
     notifyChangeSignal: project,
     applyStateToViewer,
@@ -162,5 +167,6 @@ export const useViewerSync = (project: ProjectState): ViewerSync => {
     getSelectedBoxDimensions,
     setDimensionsOverlayVisible,
     getDimensionsOverlayVisible,
+    getRightmostX,
   };
 };
