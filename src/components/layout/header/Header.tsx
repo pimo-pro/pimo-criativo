@@ -1,11 +1,15 @@
 interface HeaderProps {
   onTogglePainelReferencia: () => void;
   painelReferenciaOpen: boolean;
+  onToggleProjectProgress?: () => void;
+  projectProgressOpen?: boolean;
 }
 
 export default function Header({
   onTogglePainelReferencia,
   painelReferenciaOpen,
+  onToggleProjectProgress,
+  projectProgressOpen,
 }: HeaderProps) {
   return (
     <header
@@ -79,6 +83,20 @@ export default function Header({
           }}
         >
           Dev Actions
+        </button>
+        <button
+          onClick={onToggleProjectProgress}
+          style={{
+            background: projectProgressOpen ? "rgba(139,92,246,0.25)" : "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "var(--text-main)",
+            padding: "6px 10px",
+            borderRadius: "var(--radius)",
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          {projectProgressOpen ? "العودة إلى التطبيق" : "تقدم المشروع"}
         </button>
         <button
           onClick={onTogglePainelReferencia}

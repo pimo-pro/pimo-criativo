@@ -362,14 +362,23 @@ export class Viewer {
     };
   }
 
-  /** Maior X (borda direita) das caixas em metros. Atualiza bounding boxes antes. Sem caixas retorna -0.1 (100 mm à esquerda da origem). */
+  /**
+   * Maior X (borda direita) das caixas em metros.
+   * Usa bbox real quando disponível; quando bbox ainda não carregado (ex.: Group vazio) usa position + width/2.
+   * Sem caixas retorna -0.1.
+   */
   getRightmostX(): number {
     if (this.boxes.size === 0) return -0.1;
     let maxX = -Infinity;
     this.boxes.forEach((entry) => {
       entry.mesh.updateMatrixWorld(true);
       this._boundingBox.setFromObject(entry.mesh);
-      if (this._boundingBox.max.x > maxX) maxX = this._boundingBox.max.x;
+      this._boundingBox.getSize(this._size);
+      const rightEdge =
+        this._size.x < 0.001 || !Number.isFinite(this._boundingBox.max.x)
+          ? entry.mesh.position.x + entry.width / 2
+          : this._boundingBox.max.x;
+      if (rightEdge > maxX) maxX = rightEdge;
     });
     return Number.isFinite(maxX) ? maxX : -0.1;
   }
@@ -585,7 +594,6 @@ export class Viewer {
     let material: LoadedWoodMaterial | null = null;
 
     if (cadOnly) {
-      // Caixa só CAD: grupo vazio; o GLB é a própria caixa (sem geometria paramétrica)
       box = new THREE.Group();
       box.name = id;
     } else {
@@ -609,7 +617,7 @@ export class Viewer {
     box.frustumCulled = false;
     box.userData.boxId = id;
     const baseY = height / 2;
-    // manualPosition + position: usar EXCLUSIVAMENTE a posição do projeto (ProjectProvider). Sem offsets, recenter ou ajustes.
+    // Posição inicial aplicada IMEDIATAMENTE; sem recenter, clamp, colisão nem bbox antes.
     const position =
       manualPosition && opts.position
         ? { x: opts.position.x, y: opts.position.y, z: opts.position.z }
@@ -620,7 +628,7 @@ export class Viewer {
     if (opts.rotationY != null && Number.isFinite(opts.rotationY)) {
       box.rotation.y = opts.rotationY;
     }
-    this.sceneManager.add(box);
+    // Registar em this.boxes ANTES de adicionar à cena (getRightmostX e restante lógica usam este mapa).
     this.boxes.set(id, {
       mesh: box,
       width,
@@ -632,6 +640,8 @@ export class Viewer {
       cadModels: [],
       material,
     });
+    this.sceneManager.add(box);
+    // reflowBoxes não altera caixas com manualPosition; clampTransform só em objectChange (arraste).
     this.reflowBoxes();
     this.updateCameraTarget();
     return true;
@@ -677,7 +687,6 @@ export class Viewer {
       height = Math.max(0.001, opts.height ?? opts.size ?? height);
       depth = Math.max(0.001, opts.depth ?? opts.size ?? depth);
       heightChanged = height !== entry.height;
-      // Caixa CAD-only: não tem geometria paramétrica para atualizar; só atualizamos dimensões para reflow
       if (!entry.cadOnly) {
         const fullOpts: Partial<BoxOptions> = {
           width: opts.width ?? width,
@@ -692,7 +701,8 @@ export class Viewer {
         width = updated.width;
         height = updated.height;
         depth = updated.depth;
-      } else if (!entry.manualPosition) {
+      }
+      if (entry.cadOnly && !entry.manualPosition) {
         entry.mesh.position.y = height / 2;
       }
     }
@@ -703,8 +713,9 @@ export class Viewer {
     if (opts.materialName && !entry.cadOnly) {
       this.updateBoxMaterial(id, opts.materialName);
     }
-    // manualPosition: só alterar posição quando opts.position for explícito; nunca aplicar reflow/height/2.
-    if (opts.position) {
+    if (entry.manualPosition && !opts.position) {
+      // Nunca alterar position.x/y/z quando manualPosition sem opts.position explícito.
+    } else if (opts.position) {
       entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
     } else if (!entry.manualPosition) {
       entry.mesh.position.y = height / 2;
@@ -900,8 +911,9 @@ export class Viewer {
             this.applyCatalogModelScale(entry, object);
           }
         } else if (entry.cadOnly) {
-          // Caixa só CAD: o GLB é a própria caixa; centrar bbox na origem do grupo para reflow correto
-          this.centerObjectInGroup(object);
+          if (!entry.manualPosition) {
+            this.centerObjectInGroup(object);
+          }
         } else {
           object.position.set(0, entry.height / 2, 0);
         }
@@ -937,9 +949,9 @@ export class Viewer {
     };
   }
 
-  /** Ajusta escala do GLB de catálogo para corresponder às dimensões da caixa. */
+  /** Ajusta escala do GLB de catálogo. manualPosition: NÃO recentrar (preserva posição do grupo). */
   private applyCatalogModelScale(
-    entry: { width: number; height: number; depth: number },
+    entry: { width: number; height: number; depth: number; manualPosition?: boolean },
     object: THREE.Object3D
   ): void {
     const base = object.userData.glbBaseSize as { x: number; y: number; z: number } | undefined;
@@ -948,7 +960,9 @@ export class Viewer {
     const sy = entry.height / Math.max(base.y, 0.001);
     const sz = entry.depth / Math.max(base.z, 0.001);
     object.scale.set(sx, sy, sz);
-    this.centerObjectInGroup(object);
+    if (!entry.manualPosition) {
+      this.centerObjectInGroup(object);
+    }
   }
 
   removeModelFromBox(boxId: string, modelId: string): boolean {
@@ -1054,7 +1068,9 @@ export class Viewer {
         w = Math.max(Number(entry.width) || 0.001, 0.001);
       }
       entry.mesh.frustumCulled = false;
-      if (!entry.manualPosition) {
+      if (entry.manualPosition) {
+        // Nunca alterar position: caixa posicionada pelo ProjectProvider (rightmost + 0.1, Y=altura/2, Z=0).
+      } else {
         entry.mesh.position.x = cursorX + w / 2;
         entry.mesh.position.z = 0;
       }
