@@ -7,6 +7,11 @@ import { mmToM } from "../../../utils/units";
 import { LEFT_TOOLBAR_IDS } from "../left-toolbar/LeftToolbar";
 import PainelMoveisUnificado from "./PainelMoveisUnificado";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
+import SidebarWalls from "../../walls/SidebarWalls";
+import RoomSetupPanel from "../../walls/RoomSetupPanel";
+import OpeningSettings from "../../walls/OpeningSettings";
+import { useWallStore } from "../../../stores/wallStore";
+import { useUiStore } from "../../../stores/uiStore";
 
 export type LeftPanelProps = {
   activeTab?: string;
@@ -86,6 +91,12 @@ function InfoPanelContent({ footer }: { footer: React.ReactNode }) {
 }
 
 export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
+  const isRoomOpen = useWallStore((state) => state.isOpen);
+  const walls = useWallStore((state) => state.walls);
+  const selectedTool = useUiStore((state) => state.selectedTool);
+  const selectedObject = useUiStore((state) => state.selectedObject);
+  const setSelectedObject = useUiStore((state) => state.setSelectedObject);
+  const setSelectedTool = useUiStore((state) => state.setSelectedTool);
   const { project, actions } = useProject();
   const selectedBox = project.workspaceBoxes.find(
     (box) => box.id === project.selectedWorkspaceBoxId
@@ -109,13 +120,37 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     </div>
   );
 
+  const resolvedTab = selectedTool ?? activeTab;
+
+  // Layout = configurações da Sala (paredes, aberturas, Reiniciar Sala)
+  if (resolvedTab === LEFT_TOOLBAR_IDS.LAYOUT) {
+    if (selectedObject?.type === "roomElement" && selectedObject?.id) {
+      const wallWithOpening = walls.find((w) =>
+        (w.openings ?? []).some((o) => o.id === selectedObject.id)
+      );
+      const opening = wallWithOpening?.openings?.find((o) => o.id === selectedObject.id) ?? null;
+      return (
+        <OpeningSettings
+          opening={opening}
+          wallId={wallWithOpening?.id ?? null}
+        />
+      );
+    }
+    const isInitialRoomView =
+      selectedObject?.type === "none" && project.workspaceBoxes.length === 0;
+    if (isInitialRoomView) {
+      return <RoomSetupPanel onClear={() => viewerApi?.removeRoom?.()} />;
+    }
+    return <SidebarWalls />;
+  }
+
   // Móveis = painel unificado
-  if (activeTab === LEFT_TOOLBAR_IDS.MOVEIS) {
+  if (resolvedTab === LEFT_TOOLBAR_IDS.MOVEIS) {
     return <PainelMoveisUnificado />;
   }
 
   // Modelos = Instâncias dentro da caixa atual
-  if (activeTab === LEFT_TOOLBAR_IDS.MODELOS) {
+  if (resolvedTab === LEFT_TOOLBAR_IDS.MODELOS) {
     return (
       <div className="left-panel-content">
         <div className="left-panel-scroll">
@@ -127,7 +162,7 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   }
 
   // Calculadora — criar e apagar caixas
-  if (activeTab === LEFT_TOOLBAR_IDS.CALCULADORA) {
+  if (resolvedTab === LEFT_TOOLBAR_IDS.CALCULADORA) {
     return (
       <div className="left-panel-content">
         <div className="left-panel-scroll">
@@ -189,7 +224,11 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => actions.selectBox(box.id)}
+                        onClick={() => {
+                          actions.selectBox(box.id);
+                          setSelectedTool(LEFT_TOOLBAR_IDS.HOME);
+                          setSelectedObject({ type: "box", id: box.id });
+                        }}
                         onDoubleClick={() => { setEditingBoxId(box.id); setEditingBoxName(box.nome); }}
                         className="panel-button"
                         title="Duplo-clique para editar nome"
@@ -237,25 +276,8 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     );
   }
 
-  // Layout — placeholder (cores chão/parede futuro)
-  if (activeTab === LEFT_TOOLBAR_IDS.LAYOUT) {
-    return (
-      <div className="left-panel-content">
-        <div className="left-panel-scroll">
-        <aside className="panel-content panel-content--side">
-          <div className="section-title">Layout</div>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
-            Cores de chão e parede (em breve).
-          </p>
-        </aside>
-        </div>
-        {footer}
-      </div>
-    );
-  }
-
   // Eletrodomésticos — placeholder
-  if (activeTab === LEFT_TOOLBAR_IDS.ELETRO) {
+  if (resolvedTab === LEFT_TOOLBAR_IDS.ELETRO) {
     return (
       <div className="left-panel-content">
         <div className="left-panel-scroll">
@@ -266,13 +288,12 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
           </p>
         </aside>
         </div>
-        {footer}
       </div>
     );
   }
 
   // Acessórios — placeholder
-  if (activeTab === LEFT_TOOLBAR_IDS.ACESSORIOS) {
+  if (resolvedTab === LEFT_TOOLBAR_IDS.ACESSORIOS) {
     return (
       <div className="left-panel-content">
         <div className="left-panel-scroll">
@@ -283,15 +304,30 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
           </p>
         </aside>
         </div>
-        {footer}
       </div>
     );
   }
 
   // Info — ajuda / como funciona (estrutura com tabs para futura Info Técnica)
-  if (activeTab === LEFT_TOOLBAR_IDS.INFO) {
+  if (resolvedTab === LEFT_TOOLBAR_IDS.INFO) {
     return (
-      <InfoPanelContent footer={footer} />
+      <InfoPanelContent footer={null} />
+    );
+  }
+
+  if (resolvedTab === LEFT_TOOLBAR_IDS.HOME && !selectedBox) {
+    return (
+      <div className="left-panel-content">
+        <div className="left-panel-scroll">
+          <aside className="panel-content panel-content--side">
+            <div className="section-title">Seleção</div>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+              Nenhum item selecionado.
+            </p>
+          </aside>
+        </div>
+        {footer}
+      </div>
     );
   }
 

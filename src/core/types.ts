@@ -131,6 +131,18 @@ export interface BoxDesign {
   precoTotalPecas: number;
 }
 
+/** IDs únicos e estáveis por peça da caixa (evita "duplicate key" no React). */
+export interface BoxPanelIds {
+  cima: string;
+  fundo: string;
+  lateral_esquerda: string;
+  lateral_direita: string;
+  costa: string;
+  prateleiras: string[];
+  portas: string[];
+  gavetas: string[];
+}
+
 export interface BoxModule {
   id: string;
   nome: string;
@@ -145,6 +157,8 @@ export interface BoxModule {
   portaTipo: "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr";
   gavetas: number;
   alturaGaveta: number;
+  /** IDs únicos por peça (cima, fundo, laterais, costa, prateleiras, portas, gavetas). */
+  panelIds?: BoxPanelIds;
   ferragens: Acessorio[];
   cutList: CutListItem[];
   cutListComPreco: CutListItemComPreco[];
@@ -174,10 +188,25 @@ export interface WorkspaceBox {
   rotacaoY_90: boolean;
   /** Rotação Y em radianos (manipulação visual no viewer; não altera cut list). */
   rotacaoY?: number;
+  /**
+   * Direção da "costa" (parte traseira) da caixa em radianos: 0 | π/2 | π | -π/2.
+   * Usado no auto-rotate ao encostar na parede: finalRotationY = wall.rotation.y + costaRotationY.
+   */
+  costaRotationY?: number;
   /** Se true, o viewer não reposiciona esta caixa no reflow (posição manual). */
   manualPosition?: boolean;
   /** ID do item do catálogo que originou esta caixa (opcional). */
   catalogItemId?: string;
+  /** ID do modelo Base Cabinet que originou esta caixa (para expansão: guardar como modelo personalizado). */
+  baseCabinetId?: string;
+  /** Tipo de armário para altura automática: inferior (base) ou superior (parede). */
+  cabinetType?: "lower" | "upper";
+  /** Altura do pé (PE) em cm para caixas inferiores; base da caixa fica a PE cm do piso (default 10). */
+  pe_cm?: number;
+  /** Se false, o viewer não altera rotation.y (modo manual; ativado pelo botão RODAR). Default true. */
+  autoRotateEnabled?: boolean;
+  /** IDs únicos e estáveis por peça (cima, fundo, laterais, costa, prateleiras, portas, gavetas). Evita duplicate key no React. */
+  panelIds?: BoxPanelIds;
 }
 
 export interface ProjetoConfig {

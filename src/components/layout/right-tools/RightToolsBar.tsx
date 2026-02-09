@@ -11,7 +11,6 @@ import {
   calcularPrecoTotalPecas,
   calcularPrecoTotalProjeto,
 } from "../../../core/pricing/pricing";
-import CreateRoomModal from "../../modals/CreateRoomModal";
 import Piece3DModal from "../../modals/Piece3DModal";
 import type {
   ViewerRenderBackground,
@@ -113,7 +112,6 @@ export default function RightToolsBar() {
     if (modal === "image") return "Photo Mode";
     if (modal === "send") return "Enviar";
     if (modal === "integration") return "Integração";
-    if (modal === "room") return "Criar Sala";
     return "";
   }, [modal]);
 
@@ -337,7 +335,7 @@ export default function RightToolsBar() {
                 const isSelected = box.id === selectedId;
                 return (
                   <div
-                    key={box.id}
+                    key={`box-list-${box.id}`}
                     style={{
                       ...boxCardStyle,
                       borderColor: isSelected ? "var(--blue-light)" : "rgba(255,255,255,0.08)",
@@ -886,15 +884,6 @@ export default function RightToolsBar() {
                   Preparar envio
                 </button>
               </div>
-            ) : modal === "room" ? (
-              <CreateRoomModal
-                onCreateRoom={() => {}}
-                onRemoveRoom={() => {}}
-                onSetPlacementMode={() => {}}
-                onSetOnRoomElementPlaced={() => {}}
-                onSetOnRoomElementSelected={() => {}}
-                onUpdateRoomElementConfig={() => true}
-              />
             ) : modal === "validation" ? (
               (() => {
                 const result = validateProject({

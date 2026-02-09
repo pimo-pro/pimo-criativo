@@ -19,6 +19,7 @@ import type {
   TipoFundo,
   WorkspaceBox,
 } from "../core/types";
+import { ensureBoxPanelIds } from "../core/box/panelIds";
 import type { ProjectState } from "./projectTypes";
 import { safeGetItem, safeParseJson } from "../utils/storage";
 import { validateBoxModels } from "../core/rules/validation";
@@ -92,6 +93,15 @@ const createBox = (
   precoTotalPecas: 0,
 });
 
+export type CreateWorkspaceBoxOverrides = {
+  prateleiras?: number;
+  portaTipo?: WorkspaceBox["portaTipo"];
+  gavetas?: number;
+  panelIds?: WorkspaceBox["panelIds"];
+  cabinetType?: "lower" | "upper";
+  pe_cm?: number;
+};
+
 export const createWorkspaceBox = (
   id: string,
   nome: string,
@@ -101,31 +111,50 @@ export const createWorkspaceBox = (
   models: BoxModelInstance[] = [],
   tipoBorda: TipoBorda = defaultTipoBorda,
   tipoFundo: TipoFundo = defaultTipoFundo,
-  catalogItemId?: string
-): WorkspaceBox => ({
-  id,
-  nome,
-  dimensoes,
-  espessura,
-  tipoBorda,
-  tipoFundo,
-  models: models ?? [],
-  prateleiras: 0,
-  portaTipo: "sem_porta",
-  gavetas: 0,
-  alturaGaveta: 200,
-  posicaoX_mm,
-  posicaoY_mm: 0,
-  posicaoZ_mm: 0,
-  rotacaoY_90: false,
-  rotacaoY: 0,
-  manualPosition: false,
-  catalogItemId,
-});
+  catalogItemId?: string,
+  overrides?: CreateWorkspaceBoxOverrides
+): WorkspaceBox => {
+  const prateleiras = overrides?.prateleiras ?? 0;
+  const portaTipo = overrides?.portaTipo ?? "sem_porta";
+  const gavetas = overrides?.gavetas ?? 0;
+  const panelIds = ensureBoxPanelIds(overrides?.panelIds, { prateleiras, portaTipo, gavetas });
+  const cabinetType = overrides?.cabinetType;
+  const pe_cm = overrides?.pe_cm;
+  const alturaMm = dimensoes?.altura ?? 0;
+  const posicaoY_mm =
+    cabinetType === "lower"
+      ? (pe_cm ?? 10) * 10 + alturaMm / 2
+      : cabinetType === "upper"
+        ? 1500 + alturaMm / 2
+        : 0;
+  return {
+    id,
+    nome,
+    dimensoes,
+    espessura,
+    tipoBorda,
+    tipoFundo,
+    models: models ?? [],
+    prateleiras,
+    portaTipo,
+    gavetas,
+    alturaGaveta: 200,
+    posicaoX_mm,
+    posicaoY_mm,
+    posicaoZ_mm: 0,
+    rotacaoY_90: false,
+    rotacaoY: 0,
+    manualPosition: false,
+    catalogItemId,
+    cabinetType,
+    pe_cm,
+    autoRotateEnabled: true,
+    panelIds,
+  };
+};
 
-const defaultWorkspaceBoxes: WorkspaceBox[] = [
-  createWorkspaceBox("box-1", "Caixa 1", defaultDimensoes, defaultMaterial.espessura, 0, []),
-];
+/** Projeto inicia sem caixas; o utilizador adiciona pelo catálogo ou "Adicionar caixote". */
+const defaultWorkspaceBoxes: WorkspaceBox[] = [];
 
 export const defaultState: ProjectState = {
   projectName: "Novo Projeto",
@@ -136,8 +165,8 @@ export const defaultState: ProjectState = {
   boxes: [],
   selectedBoxId: "",
   workspaceBoxes: defaultWorkspaceBoxes,
-  selectedWorkspaceBoxId: defaultWorkspaceBoxes[0].id,
-  selectedCaixaId: defaultWorkspaceBoxes[0].id,
+  selectedWorkspaceBoxId: "",
+  selectedCaixaId: "",
   selectedCaixaModelUrl: null,
   selectedModelInstanceId: null,
   resultados: null,
@@ -359,21 +388,29 @@ export const getModelUrlFromStorage = (modelId?: string | null): string | null =
   return `${base}${path}`;
 };
 
-const convertWorkspaceToBox = (box: WorkspaceBox): BoxModule => ({
-  ...createBox(
-    box.id,
-    box.nome,
-    box.dimensoes,
-    box.espessura,
-    box.models ?? [],
-    box.tipoBorda,
-    box.tipoFundo
-  ),
-  prateleiras: box.prateleiras,
-  portaTipo: box.portaTipo,
-  gavetas: box.gavetas,
-  alturaGaveta: box.alturaGaveta,
-});
+const convertWorkspaceToBox = (box: WorkspaceBox): BoxModule => {
+  const panelIds = ensureBoxPanelIds(box.panelIds, {
+    prateleiras: box.prateleiras,
+    portaTipo: box.portaTipo,
+    gavetas: box.gavetas,
+  });
+  return {
+    ...createBox(
+      box.id,
+      box.nome,
+      box.dimensoes,
+      box.espessura,
+      box.models ?? [],
+      box.tipoBorda,
+      box.tipoFundo
+    ),
+    prateleiras: box.prateleiras,
+    portaTipo: box.portaTipo,
+    gavetas: box.gavetas,
+    alturaGaveta: box.alturaGaveta,
+    panelIds,
+  };
+};
 
 export const buildBoxesFromWorkspace = (state: ProjectState): BoxModule[] => {
   return state.workspaceBoxes.map((box) => convertWorkspaceToBox(box));

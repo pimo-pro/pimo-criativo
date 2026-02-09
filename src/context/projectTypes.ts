@@ -148,9 +148,26 @@ export type ViewerRenderResult = {
 export type ViewerToolMode = "select" | "move" | "rotate";
 
 export type RoomConfig = {
-  numWalls: 1 | 2 | 3 | 4;
-  walls: Array<{ lengthMm: number; heightMm: number }>;
-  thicknessMm?: number;
+  numWalls: 3 | 4;
+  walls: Array<{
+    id: string;
+    position: { x: number; z: number };
+    rotation: number;
+    lengthMm: number;
+    heightMm: number;
+    thicknessMm: number;
+    color?: string;
+    openings: Array<{
+      id: string;
+      type: "door" | "window";
+      widthMm: number;
+      heightMm: number;
+      floorOffsetMm: number;
+      horizontalOffsetMm: number;
+      modelId?: string;
+    }>;
+  }>;
+  selectedWallId?: string | null;
 };
 
 export type DoorWindowConfig = {
@@ -192,9 +209,34 @@ export type ViewerApi = {
   getRightmostX: () => number;
 };
 
+/** Snapshot da sala (paredes + seleção) para persistir com o projeto. */
+export type RoomSnapshot = {
+  walls: Array<{
+    id: string;
+    lengthCm: number;
+    heightCm: number;
+    thicknessCm: number;
+    color: string;
+    position?: { x: number; z: number };
+    rotation?: number;
+    openings: Array<{
+      id: string;
+      type: "door" | "window";
+      widthMm: number;
+      heightMm: number;
+      floorOffsetMm: number;
+      horizontalOffsetMm: number;
+      modelId?: string;
+    }>;
+  }>;
+  selectedWallId: string | null;
+};
+
 export type ProjectSnapshot = {
   projectState: unknown;
   viewerSnapshot: ViewerSnapshot | null;
+  /** Estado da sala (paredes e aberturas) para carregar com o projeto. */
+  roomSnapshot?: RoomSnapshot | null;
 };
 
 export type ViewerSync = {
@@ -248,6 +290,7 @@ export interface ProjectActions {
   removeWorkspaceBox: () => void;
   removeWorkspaceBoxById: (_boxId: string) => void;
   selectBox: (_boxId: string) => void;
+  clearSelection: () => void;
   /** Adiciona um modelo CAD (por id do catálogo) à caixa. */
   addModelToBox: (_caixaId: string, _cadModelId: string) => void;
   /** Cria uma nova caixa no workspace com o modelo CAD (modelo = Box completo). */
@@ -274,7 +317,14 @@ export interface ProjectActions {
   /** Atualiza posição/rotação/manual da caixa no viewer (manipulação visual; não altera cut list). */
   updateWorkspaceBoxTransform: (
     _boxId: string,
-    _partial: { x_mm?: number; y_mm?: number; z_mm?: number; rotacaoY_rad?: number; manualPosition?: boolean }
+    _partial: {
+      x_mm?: number;
+      y_mm?: number;
+      z_mm?: number;
+      rotacaoY_rad?: number;
+      manualPosition?: boolean;
+      autoRotateEnabled?: boolean;
+    }
   ) => void;
   /** Atualiza dimensões da caixa a partir do bbox do GLB (caixas CAD-only). */
   setWorkspaceBoxDimensoes: (_boxId: string, _dimensoes: { largura: number; altura: number; profundidade: number }) => void;

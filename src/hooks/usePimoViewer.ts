@@ -5,7 +5,6 @@ import type { ViewerOptions } from "../3d/core/Viewer";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
 import type {
   DoorWindowConfig,
-  RoomConfig,
   ViewerRenderOptions,
   ViewerRenderResult,
 } from "../context/projectTypes";
@@ -33,8 +32,20 @@ type PimoViewerAPI = {
   setModelPosition: (_boxId: string, _modelId: string, _position: { x: number; y: number; z: number }) => boolean;
   setOnModelLoaded: (_callback: ((_boxId: string, _modelId: string, _object: unknown) => void) | null) => void;
   setOnBoxTransform: (_callback: ((_boxId: string, _position: { x: number; y: number; z: number }, _rotationY: number) => void) | null) => void;
+  setOnWallSelected: (_callback: ((_wallId: number | null) => void) | null) => void;
+  setOnWallTransform: (_callback: ((_wallIndex: number, _position: { x: number; z: number }, _rotation: number) => void) | null) => void;
+  setOnRoomElementTransform: (_callback: ((_elementId: string, _config: DoorWindowConfig) => void) | null) => void;
   setTransformMode: (_mode: "translate" | "rotate" | null) => void;
   highlightBox: (_id: string | null) => void;
+  setRoomBounds: (_bounds: {
+    width: number;
+    depth: number;
+    height: number;
+    originX?: number;
+    originZ?: number;
+  }) => void;
+  clearRoomBounds: () => void;
+  setCameraView: (_preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric") => void;
   setShowcaseMode: (_active: boolean, _turntable?: boolean) => void;
   getShowcaseMode: () => boolean;
   getCurrentMode: () => "performance" | "showcase";
@@ -118,6 +129,30 @@ export const usePimoViewer = (
     []
   );
 
+  const setRoomBounds = useCallback(
+    (bounds: {
+      width: number;
+      depth: number;
+      height: number;
+      originX?: number;
+      originZ?: number;
+    }) => {
+      viewerRef.current?.setRoomBounds(bounds);
+    },
+    []
+  );
+
+  const clearRoomBounds = useCallback(() => {
+    viewerRef.current?.clearRoomBounds();
+  }, []);
+
+  const setCameraView = useCallback(
+    (preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric") => {
+      viewerRef.current?.setCameraView(preset);
+    },
+    []
+  );
+
   const setBoxGap = useCallback((gap: number) => {
     viewerRef.current?.setBoxGap(gap);
   }, []);
@@ -176,6 +211,24 @@ export const usePimoViewer = (
   const setOnBoxTransform = useCallback(
     (_callback: ((_boxId: string, _position: { x: number; y: number; z: number }, _rotationY: number) => void) | null) => {
       viewerRef.current?.setOnBoxTransform(_callback ?? null);
+    },
+    []
+  );
+
+  const setOnWallSelected = useCallback((_callback: ((_wallId: number | null) => void) | null) => {
+    viewerRef.current?.setOnWallSelected(_callback ?? null);
+  }, []);
+
+  const setOnWallTransform = useCallback(
+    (_callback: ((_wallIndex: number, _position: { x: number; z: number }, _rotation: number) => void) | null) => {
+      viewerRef.current?.setOnWallTransform(_callback ?? null);
+    },
+    []
+  );
+
+  const setOnRoomElementTransform = useCallback(
+    (_callback: ((_elementId: string, _config: DoorWindowConfig) => void) | null) => {
+      viewerRef.current?.setOnRoomElementTransform(_callback ?? null);
     },
     []
   );
@@ -294,6 +347,15 @@ export const usePimoViewer = (
     []
   );
 
+  const setManualWallHidden = useCallback((active: boolean) => {
+    viewerRef.current?.setManualWallHidden?.(active);
+  }, []);
+
+  const getManualWallHidden = useCallback(
+    () => viewerRef.current?.getManualWallHidden?.() ?? false,
+    []
+  );
+
   const updateRoomElementConfig = useCallback(
     (elementId: string, config: DoorWindowConfig) =>
       viewerRef.current?.updateRoomElementConfig?.(elementId, config) ?? false,
@@ -302,6 +364,14 @@ export const usePimoViewer = (
 
   const selectBox = useCallback((id: string | null) => {
     viewerRef.current?.selectBox(id);
+  }, []);
+
+  const selectWallByIndex = useCallback((index: number | null) => {
+    viewerRef.current?.selectWallByIndex?.(index);
+  }, []);
+
+  const selectRoomElementById = useCallback((elementId: string | null) => {
+    viewerRef.current?.selectRoomElementById?.(elementId);
   }, []);
 
   return useMemo(
@@ -328,9 +398,15 @@ export const usePimoViewer = (
       setModelPosition,
       setOnModelLoaded,
       setOnBoxTransform,
-      setTransformMode,
+    setOnWallSelected,
+    setOnWallTransform,
+    setOnRoomElementTransform,
+    setTransformMode,
       highlightBox,
-      setShowcaseMode,
+    setRoomBounds,
+    clearRoomBounds,
+    setCameraView,
+    setShowcaseMode,
       getShowcaseMode,
       getCurrentMode,
       setMode,
@@ -339,6 +415,8 @@ export const usePimoViewer = (
       getUltraPerformanceMode,
       createRoom,
       removeRoom,
+      selectWallByIndex,
+      selectRoomElementById,
       setPlacementMode,
       addDoorToRoom,
       addWindowToRoom,
@@ -352,6 +430,8 @@ export const usePimoViewer = (
       setDimensionsOverlayVisible,
       getDimensionsOverlayVisible,
       getRightmostX,
+      setManualWallHidden,
+      getManualWallHidden,
     }),
     [
       viewerReady,
@@ -376,6 +456,7 @@ export const usePimoViewer = (
       setOnBoxTransform,
       setTransformMode,
       highlightBox,
+      setCameraView,
       setShowcaseMode,
       getShowcaseMode,
       getCurrentMode,
@@ -385,6 +466,8 @@ export const usePimoViewer = (
       getUltraPerformanceMode,
       createRoom,
       removeRoom,
+      selectWallByIndex,
+      selectRoomElementById,
       setPlacementMode,
       addDoorToRoom,
       addWindowToRoom,
@@ -398,6 +481,8 @@ export const usePimoViewer = (
       setDimensionsOverlayVisible,
       getDimensionsOverlayVisible,
       getRightmostX,
+      setManualWallHidden,
+      getManualWallHidden,
     ]
   );
 };

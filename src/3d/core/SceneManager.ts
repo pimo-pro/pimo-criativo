@@ -34,6 +34,17 @@ export class SceneManager {
     this.root.add(object);
   }
 
+  setGroundSize(width: number, depth: number) {
+    if (!this.ground) return;
+    this.ground.geometry.dispose();
+    this.ground.geometry = new THREE.PlaneGeometry(width, depth);
+  }
+
+  setGroundPosition(x: number, z: number) {
+    if (!this.ground) return;
+    this.ground.position.set(x, 0, z);
+  }
+
   dispose() {
     this.root.traverse((child) => {
       if (child instanceof THREE.Mesh) {

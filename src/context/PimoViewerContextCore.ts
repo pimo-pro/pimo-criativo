@@ -40,6 +40,18 @@ export type PimoViewerApi = {
   getUltraPerformanceMode?: () => boolean;
   createRoom?: (_config: RoomConfig) => void;
   removeRoom?: () => void;
+  setRoomBounds?: (_bounds: {
+    width: number;
+    depth: number;
+    height: number;
+    originX?: number;
+    originZ?: number;
+  }) => void;
+  clearRoomBounds?: () => void;
+  /** Seleciona parede por índice (para sincronizar lista do painel com viewer). */
+  selectWallByIndex?: (_index: number | null) => void;
+  /** Seleciona abertura (porta/janela) por id para mover/rodar com botões do topo. */
+  selectRoomElementById?: (_elementId: string | null) => void;
   setPlacementMode?: (_mode: "door" | "window" | null) => void;
   addDoorToRoom?: (_wallId: number, _config: DoorWindowConfig) => string;
   addWindowToRoom?: (_wallId: number, _config: DoorWindowConfig) => string;
@@ -49,6 +61,9 @@ export type PimoViewerApi = {
   setOnRoomElementSelected?: (
     _cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
   ) => void;
+  setOnWallSelected?: (_cb: ((_wallId: number | null) => void) | null) => void;
+  setOnWallTransform?: (_cb: ((_wallIndex: number, _position: { x: number; z: number }, _rotation: number) => void) | null) => void;
+  setOnRoomElementTransform?: (_cb: ((_elementId: string, _config: DoorWindowConfig) => void) | null) => void;
   updateRoomElementConfig?: (_elementId: string, _config: DoorWindowConfig) => boolean;
   setLockEnabled?: (_enabled: boolean) => void;
   getLockEnabled?: () => boolean;
@@ -57,6 +72,11 @@ export type PimoViewerApi = {
   setDimensionsOverlayVisible?: (_visible: boolean) => void;
   getDimensionsOverlayVisible?: () => boolean;
   getRightmostX?: () => number;
+  /** Reposiciona a câmera numa vista pré-definida (top, bottom, front, back, right, left, isometric). */
+  setCameraView?: (_preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric") => void;
+  /** Esconde/mostra manualmente uma parede (auto-hide continua ativo). */
+  setManualWallHidden?: (_active: boolean) => void;
+  getManualWallHidden?: () => boolean;
 };
 
 export type PimoViewerContextValue = {

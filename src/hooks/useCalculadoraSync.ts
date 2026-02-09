@@ -27,6 +27,9 @@ function getBoxPositionAndRotation(workspaceBox: WorkspaceBox | undefined): Part
     if (workspaceBox.rotacaoY != null && Number.isFinite(workspaceBox.rotacaoY)) {
       opts.rotationY = workspaceBox.rotacaoY;
     }
+    if (workspaceBox.costaRotationY != null && Number.isFinite(workspaceBox.costaRotationY)) {
+      opts.costaRotationY = workspaceBox.costaRotationY;
+    }
   }
   if (workspaceBox.manualPosition !== undefined) {
     opts.manualPosition = workspaceBox.manualPosition;
@@ -91,15 +94,24 @@ export const useCalculadoraSync = (
       const cadOnly =
         (box.models?.length ?? 0) > 0 && box.prateleiras === 0 && box.gavetas === 0;
 
+      const shelves = Number.isFinite(box.prateleiras) ? Math.max(0, box.prateleiras) : undefined;
+      const cabinetType = wsBox?.cabinetType === "lower" || wsBox?.cabinetType === "upper" ? wsBox.cabinetType : undefined;
+      const pe_cm = wsBox?.pe_cm;
+      const autoRotateEnabled = wsBox?.autoRotateEnabled;
+      const cabinetOpts = cabinetType ? { cabinetType, pe_cm } : {};
+      const rotateOpts = autoRotateEnabled === false ? { autoRotateEnabled: false } : {};
       if (!stateRef.current.has(box.id)) {
         api.addBox(box.id, {
           width,
           height,
           depth,
           thickness,
+          shelves,
           materialName: resolvedMaterialName,
           index,
           cadOnly,
+          ...cabinetOpts,
+          ...rotateOpts,
           ...posRot,
         });
       } else {
@@ -108,8 +120,11 @@ export const useCalculadoraSync = (
           height,
           depth,
           thickness,
+          shelves,
           materialName: resolvedMaterialName,
           index,
+          ...cabinetOpts,
+          ...rotateOpts,
           ...posRot,
         });
       }

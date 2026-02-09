@@ -22,6 +22,7 @@ import type { MaterialSet } from "../materials/MaterialLibrary";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { updateBoxGeometry, updateBoxGroup, buildBoxLegacy } from "../objects/BoxBuilder";
 import type { BoxOptions } from "../objects/BoxBuilder";
+import { SYSTEM_BACK_MM } from "../../core/baseCabinets";
 import { RoomBuilder } from "../room/RoomBuilder";
 import type { RoomConfig, DoorWindowConfig } from "../room/types";
 import { DEFAULT_DOOR_CONFIG, DEFAULT_WINDOW_CONFIG } from "../room/types";
@@ -33,6 +34,7 @@ import type {
   ViewerRenderFormat,
 } from "../../context/projectTypes";
 import { loadGLB } from "../../core/glb/glbLoader";
+import { snapHorizontalOffset } from "../../utils/openingConstraints";
 
 /**
  * Interface multi-box do Viewer:
@@ -76,6 +78,9 @@ export class Viewer {
       index: number;
       cadOnly?: boolean;
       manualPosition?: boolean;
+      cabinetType?: "lower" | "upper";
+      pe_cm?: number;
+      autoRotateEnabled?: boolean;
       cadModels: Array<{
         id: string;
         object: THREE.Object3D;
@@ -90,6 +95,20 @@ export class Viewer {
   private boxGap = 0;
   private modelCounter = 0;
   private roomBuilder: RoomBuilder;
+  private roomBoxGroup: THREE.Group | null = null;
+  private roomBoxWalls: Array<{ id: number; normal: THREE.Vector3; mesh: THREE.Mesh }> = [];
+  private roomBoxFloor: THREE.Mesh | null = null;
+  private roomBoxCeiling: THREE.Mesh | null = null;
+  private roomBounds: {
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+    minY: number;
+    maxY: number;
+    centerX: number;
+    centerZ: number;
+  } | null = null;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private selectedBoxId: string | null = null;
@@ -111,9 +130,25 @@ export class Viewer {
   private placementMode: "door" | "window" | null = null;
   private onRoomElementPlaced: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null = null;
   private onRoomElementSelected: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null = null;
+  private onWallSelected: ((_wallId: number | null) => void) | null = null;
+  private onWallTransform: ((_wallIndex: number, _position: { x: number; z: number }, _rotation: number) => void) | null = null;
+  private onRoomElementTransform: ((_elementId: string, _config: DoorWindowConfig) => void) | null = null;
 
-  /** Lock: quando ativo, impede que caixas entrem uma na outra (colisão). */
+  private selectedWallIndex: number | null = null;
+  private selectedRoomElementId: string | null = null;
+
+  /** Lock: quando ativo, impede que caixas entrem uma na outra e respeitam limites da sala (colisão). */
   private lockEnabled = false;
+  /** True enquanto o utilizador arrasta o TransformControls (para não snapar rotação a cada frame). */
+  private _isDragging = false;
+  /** Quando lock desativado: caixas que intersectam paredes (para destaque vermelho). */
+  private boxesIntersectingWalls = new Set<string>();
+  /** Parede escondida manualmente (se existir). */
+  private manualHiddenWallId: number | null = null;
+  /** Cache para evitar recalcular auto-hide quando câmera não muda. */
+  private lastWallHideCamPos = new THREE.Vector3(Number.NaN, Number.NaN, Number.NaN);
+  private lastWallHideDir = new THREE.Vector3(Number.NaN, Number.NaN, Number.NaN);
+  private lastWallHideManualId: number | null = null;
 
   /** Overlay de dimensões da caixa selecionada (modo Selecionar). */
   private dimensionsOverlayVisible = false;
@@ -128,6 +163,9 @@ export class Viewer {
   private selectionOutline: THREE.BoxHelper | null = null;
   private selectionOutlineTarget: THREE.Object3D | null = null;
   private selectionOutlineMaterial: THREE.LineBasicMaterial | null = null;
+  /** Outline da parede selecionada (Room Box). */
+  private wallSelectionOutline: THREE.BoxHelper | null = null;
+  private wallSelectionOutlineMaterial: THREE.LineBasicMaterial | null = null;
   private composer: EffectComposer | null = null;
   private bloomPass: UnrealBloomPass | null = null;
   private bokehPass: BokehPass | null = null;
@@ -136,6 +174,7 @@ export class Viewer {
   private mainBloomPass: UnrealBloomPass | null = null;
   private ultraPerformanceMode = false;
   private defaultPixelRatio: number;
+  private defaultGroundSize: number;
   private ultraLightState: {
     key: number;
     fill: number;
@@ -170,6 +209,7 @@ export class Viewer {
       background,
       environment: options.environment,
     });
+    this.defaultGroundSize = options.environment?.groundSize ?? 20;
     this.cameraManager = new CameraManager(options.camera);
     this.rendererManager = new RendererManager(container, {
       ...options.renderer,
@@ -196,13 +236,25 @@ export class Viewer {
     this.selectionOutline.visible = false;
     this.sceneManager.scene.add(this.selectionOutline);
 
+    this.wallSelectionOutlineMaterial = new THREE.LineBasicMaterial({
+      color: new THREE.Color("#3b82f6"),
+      linewidth: 1,
+      opacity: 0.9,
+      transparent: true,
+      depthTest: true,
+    });
+    this.wallSelectionOutline = new THREE.BoxHelper(new THREE.Object3D(), 0x3b82f6);
+    if (this.wallSelectionOutlineMaterial) {
+      (this.wallSelectionOutline.material as THREE.Material).dispose();
+      this.wallSelectionOutline.material = this.wallSelectionOutlineMaterial;
+    }
+    this.wallSelectionOutline.visible = false;
+    this.sceneManager.scene.add(this.wallSelectionOutline);
+
     this.roomBuilder = new RoomBuilder();
     this.sceneManager.add(this.roomBuilder.getGroup());
 
     this.materialSet = mergeMaterialSet(defaultMaterialSet);
-    if (!options.skipInitialBox) {
-      this.addBox(this.mainBoxId, { ...options.box, materialName: "MDF Branco" });
-    }
 
     this.controls = options.enableControls === false
       ? null
@@ -214,10 +266,16 @@ export class Viewer {
     );
     this.transformControls.setSpace("world");
     this.transformControls.addEventListener("dragging-changed", (event) => {
+      this._isDragging = event.value;
       if (this.controls?.controls) {
         this.controls.controls.enabled = !event.value;
       }
-      if (!event.value) this.notifyBoxTransform();
+      if (!event.value) {
+        this.clampTransform();
+        this.notifyBoxTransform();
+        this.notifyWallTransform();
+        this.notifyRoomElementTransform();
+      }
     });
     this.transformControls.addEventListener("objectChange", () => {
       this.clampTransform();
@@ -339,6 +397,8 @@ export class Viewer {
 
   setLockEnabled(enabled: boolean): void {
     this.lockEnabled = enabled;
+    this.updateBoxesIntersectingWalls();
+    this.refreshOutlineTarget();
   }
 
   getLockEnabled(): boolean {
@@ -578,6 +638,7 @@ export class Viewer {
   }
 
   setCameraFrontView() {
+    console.log("CAMERA MOVE", "setCameraFrontView");
     this.cameraManager.setPosition(0, 2.2, 6);
     this.updateCameraTarget();
   }
@@ -616,14 +677,23 @@ export class Viewer {
 
     box.frustumCulled = false;
     box.userData.boxId = id;
+    box.userData.costaRotationY =
+      opts.costaRotationY != null && Number.isFinite(opts.costaRotationY) ? opts.costaRotationY : 0;
     const baseY = height / 2;
     // Posição inicial aplicada IMEDIATAMENTE; sem recenter, clamp, colisão nem bbox antes.
-    const position =
+    let position =
       manualPosition && opts.position
         ? { x: opts.position.x, y: opts.position.y, z: opts.position.z }
         : cadOnly
           ? { x: 0, y: baseY, z: 0 }
           : (opts.position ?? { x: 0, y: baseY, z: 0 });
+    const cabinetType = opts.cabinetType === "lower" || opts.cabinetType === "upper" ? opts.cabinetType : undefined;
+    if (cabinetType) {
+      position = {
+        ...position,
+        y: this.getFixedYForCabinet({ height, cabinetType, pe_cm: opts.pe_cm }),
+      };
+    }
     box.position.set(position.x, position.y, position.z);
     if (opts.rotationY != null && Number.isFinite(opts.rotationY)) {
       box.rotation.y = opts.rotationY;
@@ -637,10 +707,17 @@ export class Viewer {
       index,
       cadOnly: cadOnly || undefined,
       manualPosition,
+      cabinetType: cabinetType ?? undefined,
+      pe_cm: opts.pe_cm,
+      autoRotateEnabled: opts.autoRotateEnabled !== false,
       cadModels: [],
       material,
     });
     this.sceneManager.add(box);
+    if (this.roomBounds) {
+      this.applyAutoRotateToRoom(box, { snapPosition: this.lockEnabled });
+      if (this.lockEnabled) this.applyRoomConstraint(box, { ignoreY: manualPosition });
+    }
     // reflowBoxes não altera caixas com manualPosition; clampTransform só em objectChange (arraste).
     this.reflowBoxes();
     this.updateCameraTarget();
@@ -681,8 +758,15 @@ export class Viewer {
       opts.depth !== undefined ||
       opts.size !== undefined ||
       opts.thickness !== undefined;
+    const structureChanged =
+      dimensionsChanged ||
+      opts.shelves !== undefined ||
+      opts.doors !== undefined ||
+      opts.drawers !== undefined ||
+      opts.hingeType !== undefined ||
+      opts.runnerType !== undefined;
 
-    if (dimensionsChanged) {
+    if (structureChanged) {
       width = Math.max(0.001, opts.width ?? opts.size ?? width);
       height = Math.max(0.001, opts.height ?? opts.size ?? height);
       depth = Math.max(0.001, opts.depth ?? opts.size ?? depth);
@@ -693,6 +777,11 @@ export class Viewer {
           height: opts.height ?? height,
           depth: opts.depth ?? depth,
           thickness: opts.thickness,
+          shelves: opts.shelves,
+          doors: opts.doors,
+          hingeType: opts.hingeType,
+          drawers: opts.drawers,
+          runnerType: opts.runnerType,
         };
         const updated =
           entry.mesh instanceof THREE.Group
@@ -713,8 +802,26 @@ export class Viewer {
     if (opts.materialName && !entry.cadOnly) {
       this.updateBoxMaterial(id, opts.materialName);
     }
+    if (opts.cabinetType === "lower" || opts.cabinetType === "upper") {
+      entry.cabinetType = opts.cabinetType;
+    }
+    if (opts.pe_cm !== undefined) entry.pe_cm = opts.pe_cm;
+    if (opts.autoRotateEnabled !== undefined) entry.autoRotateEnabled = opts.autoRotateEnabled;
     if (entry.manualPosition && !opts.position) {
       // Nunca alterar position.x/y/z quando manualPosition sem opts.position explícito.
+    } else if (opts.position && !entry.cabinetType) {
+      entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
+    } else if (entry.cabinetType) {
+      const fixedY = this.getFixedYForCabinet({
+        height,
+        cabinetType: entry.cabinetType,
+        pe_cm: entry.pe_cm,
+      });
+      if (opts.position) {
+        entry.mesh.position.set(opts.position.x, fixedY, opts.position.z);
+      } else {
+        entry.mesh.position.y = fixedY;
+      }
     } else if (opts.position) {
       entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
     } else if (!entry.manualPosition) {
@@ -722,6 +829,10 @@ export class Viewer {
     }
     if (opts.rotationY != null && Number.isFinite(opts.rotationY)) {
       entry.mesh.rotation.y = opts.rotationY;
+    }
+    if (opts.costaRotationY !== undefined) {
+      (entry.mesh as THREE.Object3D & { userData: { costaRotationY?: number } }).userData.costaRotationY =
+        Number.isFinite(opts.costaRotationY) ? opts.costaRotationY : 0;
     }
     if (opts.manualPosition !== undefined) {
       entry.manualPosition = opts.manualPosition;
@@ -745,6 +856,10 @@ export class Viewer {
     }
     if (heightChanged && !entry.cadOnly) {
       this.updateModelsVerticalPosition(entry);
+    }
+    if (this.roomBounds) {
+      this.applyAutoRotateToRoom(entry.mesh, { snapPosition: this.lockEnabled });
+      if (this.lockEnabled) this.applyRoomConstraint(entry.mesh, { ignoreY: entry.manualPosition });
     }
     return true;
   }
@@ -811,11 +926,251 @@ export class Viewer {
   }
 
   createRoom(config: RoomConfig): void {
-    this.roomBuilder.createRoom(config);
+    // Room Box fechado baseado nos bounds atuais (ignora paredes soltas).
+    if (this.roomBounds) {
+      this.createRoomBox(this.roomBounds);
+      return;
+    }
+    // Fallback: cria bounds mínimos a partir do config caso não existam.
+    const walls = config.walls.slice(0, config.numWalls);
+    const widthM = Math.max(0.01, (walls[0]?.lengthMm ?? 4000) / 1000);
+    const depthM = Math.max(0.01, (walls[1]?.lengthMm ?? widthM * 1000) / 1000);
+    const heightM = Math.max(0.01, Math.max(...walls.map((w) => w.heightMm ?? 2700)) / 1000);
+    this.roomBounds = {
+      minX: 0,
+      maxX: widthM,
+      minZ: 0,
+      maxZ: depthM,
+      minY: 0,
+      maxY: heightM,
+      centerX: widthM / 2,
+      centerZ: depthM / 2,
+    };
+    this.createRoomBox(this.roomBounds);
   }
 
   removeRoom(): void {
+    this.clearRoomBox();
     this.roomBuilder.clearRoom(true);
+  }
+
+  private clearRoomBox(): void {
+    if (this.roomBoxGroup) {
+      this.sceneManager.root.remove(this.roomBoxGroup);
+    }
+    this.roomBoxWalls.forEach((w) => {
+      w.mesh.geometry.dispose();
+      if (Array.isArray(w.mesh.material)) {
+        w.mesh.material.forEach((m) => m.dispose());
+      } else {
+        w.mesh.material.dispose();
+      }
+    });
+    if (this.roomBoxFloor) {
+      this.roomBoxFloor.geometry.dispose();
+      if (Array.isArray(this.roomBoxFloor.material)) {
+        this.roomBoxFloor.material.forEach((m) => m.dispose());
+      } else {
+        this.roomBoxFloor.material.dispose();
+      }
+    }
+    if (this.roomBoxCeiling) {
+      this.roomBoxCeiling.geometry.dispose();
+      if (Array.isArray(this.roomBoxCeiling.material)) {
+        this.roomBoxCeiling.material.forEach((m) => m.dispose());
+      } else {
+        this.roomBoxCeiling.material.dispose();
+      }
+    }
+    this.roomBoxGroup = null;
+    this.roomBoxWalls = [];
+    this.roomBoxFloor = null;
+    this.roomBoxCeiling = null;
+  }
+
+  private createRoomBox(bounds: {
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+    minY: number;
+    maxY: number;
+    centerX: number;
+    centerZ: number;
+  }): void {
+    this.clearRoomBox();
+    const { minX, maxX, minZ, maxZ, minY, maxY, centerX, centerZ } = bounds;
+    const width = Math.max(0.01, maxX - minX);
+    const depth = Math.max(0.01, maxZ - minZ);
+    const height = Math.max(0.01, maxY - minY);
+    const t = Viewer.ROOM_WALL_THICKNESS_M;
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0xd1d5db,
+      roughness: 0.75,
+      metalness: 0.05,
+      transparent: true,
+      opacity: 0.8,
+    });
+
+    const group = new THREE.Group();
+    group.name = "roomBox";
+
+    const front = new THREE.Mesh(new THREE.BoxGeometry(width, height, t), wallMat.clone());
+    front.position.set(centerX, minY + height / 2, minZ - t / 2);
+    front.userData.wallId = 0;
+    front.userData.wallNormal = new THREE.Vector3(0, 0, -1);
+    front.userData.isRoomWall = true;
+    front.userData.wallLengthMm = width * 1000;
+    front.userData.wallHeightMm = height * 1000;
+    front.userData.wallThicknessM = t;
+    group.add(front);
+
+    const right = new THREE.Mesh(new THREE.BoxGeometry(depth, height, t), wallMat.clone());
+    right.rotation.y = Math.PI / 2;
+    right.position.set(maxX + t / 2, minY + height / 2, centerZ);
+    right.userData.wallId = 1;
+    right.userData.wallNormal = new THREE.Vector3(-1, 0, 0);
+    right.userData.isRoomWall = true;
+    right.userData.wallLengthMm = depth * 1000;
+    right.userData.wallHeightMm = height * 1000;
+    right.userData.wallThicknessM = t;
+    group.add(right);
+
+    const back = new THREE.Mesh(new THREE.BoxGeometry(width, height, t), wallMat.clone());
+    back.position.set(centerX, minY + height / 2, maxZ + t / 2);
+    back.userData.wallId = 2;
+    back.userData.wallNormal = new THREE.Vector3(0, 0, 1);
+    back.userData.isRoomWall = true;
+    back.userData.wallLengthMm = width * 1000;
+    back.userData.wallHeightMm = height * 1000;
+    back.userData.wallThicknessM = t;
+    group.add(back);
+
+    const left = new THREE.Mesh(new THREE.BoxGeometry(depth, height, t), wallMat.clone());
+    left.rotation.y = Math.PI / 2;
+    left.position.set(minX - t / 2, minY + height / 2, centerZ);
+    left.userData.wallId = 3;
+    left.userData.wallNormal = new THREE.Vector3(1, 0, 0);
+    left.userData.isRoomWall = true;
+    left.userData.wallLengthMm = depth * 1000;
+    left.userData.wallHeightMm = height * 1000;
+    left.userData.wallThicknessM = t;
+    group.add(left);
+
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(width, t, depth), wallMat.clone());
+    floor.position.set(centerX, minY - t / 2, centerZ);
+    floor.userData.isRoomFloor = true;
+    group.add(floor);
+
+    const ceiling = new THREE.Mesh(new THREE.BoxGeometry(width, t, depth), wallMat.clone());
+    ceiling.position.set(centerX, maxY + t / 2, centerZ);
+    ceiling.userData.isRoomCeiling = true;
+    group.add(ceiling);
+
+    this.sceneManager.root.add(group);
+    this.roomBoxGroup = group;
+    this.roomBoxWalls = [
+      { id: 0, normal: new THREE.Vector3(0, 0, -1), mesh: front },
+      { id: 1, normal: new THREE.Vector3(-1, 0, 0), mesh: right },
+      { id: 2, normal: new THREE.Vector3(0, 0, 1), mesh: back },
+      { id: 3, normal: new THREE.Vector3(1, 0, 0), mesh: left },
+    ];
+    this.roomBoxFloor = floor;
+    this.roomBoxCeiling = ceiling;
+  }
+
+  setRoomBounds(bounds: {
+    width: number;
+    depth: number;
+    height: number;
+    originX?: number;
+    originZ?: number;
+  }): void {
+    const width = Math.max(0.01, bounds.width);
+    const depth = Math.max(0.01, bounds.depth);
+    const height = Math.max(0.01, bounds.height);
+    const originX = bounds.originX ?? 0;
+    const originZ = bounds.originZ ?? 0;
+    const minX = originX;
+    const maxX = originX + width;
+    const minZ = originZ;
+    const maxZ = originZ + depth;
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minZ + maxZ) / 2;
+    this.roomBounds = { minX, maxX, minZ, maxZ, minY: 0, maxY: height, centerX, centerZ };
+    this.sceneManager.setGroundSize(width, depth);
+    this.sceneManager.setGroundPosition(centerX, centerZ);
+    this.createRoomBox(this.roomBounds);
+
+    // Re-aplicar snap/rotação a todas as caixas com o novo Room Box.
+    this.boxes.forEach((entry) => {
+      this.applyAutoRotateToRoom(entry.mesh, { snapPosition: this.lockEnabled });
+      if (this.lockEnabled) this.applyRoomConstraint(entry.mesh, { ignoreY: entry.manualPosition });
+    });
+  }
+
+  clearRoomBounds(): void {
+    this.roomBounds = null;
+    this.sceneManager.setGroundSize(this.defaultGroundSize, this.defaultGroundSize);
+    this.sceneManager.setGroundPosition(0, 0);
+    this.clearRoomBox();
+  }
+
+  /** Vista isométrica padrão ao abrir/definir sala. Não persistida. */
+  private applyDefaultCameraView(): void {
+    this.setCameraView("isometric");
+  }
+
+  /**
+   * Reposiciona a câmera numa vista pré-definida (lookAt no centro da sala).
+   * Sem sala: usa centro (0, 0, 0) e dimensões padrão.
+   */
+  setCameraView(
+    preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric"
+  ): void {
+    console.log("CAMERA MOVE", `setCameraView:${preset}`);
+    const cam = this.cameraManager.camera;
+    const centerX = this.roomBounds?.centerX ?? 0;
+    const centerZ = this.roomBounds?.centerZ ?? 0;
+    const minX = this.roomBounds?.minX ?? -2;
+    const maxX = this.roomBounds?.maxX ?? 2;
+    const minZ = this.roomBounds?.minZ ?? -1.5;
+    const maxZ = this.roomBounds?.maxZ ?? 1.5;
+    const roomHeight = this.roomBounds ? this.roomBounds.maxY - this.roomBounds.minY : 2.8;
+    const roomWidth = maxX - minX;
+    const roomDepth = maxZ - minZ;
+    const dist = Math.max(roomWidth, roomDepth, roomHeight) * 1.2;
+
+    this.cameraManager.setTarget(centerX, 0, centerZ);
+
+    switch (preset) {
+      case "top":
+        this.cameraManager.setPosition(centerX, roomHeight * 2, centerZ);
+        break;
+      case "bottom":
+        this.cameraManager.setPosition(centerX, -roomHeight * 0.5, centerZ);
+        break;
+      case "front":
+        this.cameraManager.setPosition(centerX, roomHeight * 0.8, minZ - dist);
+        break;
+      case "back":
+        this.cameraManager.setPosition(centerX, roomHeight * 0.8, maxZ + dist);
+        break;
+      case "right":
+        this.cameraManager.setPosition(maxX + dist, roomHeight * 0.8, centerZ);
+        break;
+      case "left":
+        this.cameraManager.setPosition(minX - dist, roomHeight * 0.8, centerZ);
+        break;
+      case "isometric":
+      default:
+        this.cameraManager.setPosition(
+          minX + roomWidth * 0.8,
+          roomHeight * 1.2,
+          minZ + roomDepth * 0.8
+        );
+        break;
+    }
   }
 
   setPlacementMode(mode: "door" | "window" | null): void {
@@ -834,20 +1189,50 @@ export class Viewer {
     this.onRoomElementSelected = callback;
   }
 
+  setOnWallSelected(callback: ((_wallId: number | null) => void) | null): void {
+    this.onWallSelected = callback;
+  }
+
+  setOnWallTransform(callback: ((_wallIndex: number, _position: { x: number; z: number }, _rotation: number) => void) | null): void {
+    this.onWallTransform = callback;
+  }
+
+  setOnRoomElementTransform(callback: ((_elementId: string, _config: DoorWindowConfig) => void) | null): void {
+    this.onRoomElementTransform = callback;
+  }
+
   updateRoomElementConfig(elementId: string, config: DoorWindowConfig): boolean {
     return this.roomBuilder.updateElementConfig(elementId, config);
   }
 
   addDoorToRoom(wallId: number, config: DoorWindowConfig): string {
-    return this.roomBuilder.addDoor(wallId, config);
+    return this.roomBuilder.addDoorByIndex(wallId, config);
   }
 
   addWindowToRoom(wallId: number, config: DoorWindowConfig): string {
-    return this.roomBuilder.addWindow(wallId, config);
+    return this.roomBuilder.addWindowByIndex(wallId, config);
   }
 
   getRoomWalls(): THREE.Mesh[] {
-    return this.roomBuilder.getWalls();
+    return this.roomBoxWalls.map((w) => w.mesh);
+  }
+
+  /** Seleciona parede por índice (ex.: ao clicar na lista do painel). Atualiza TransformControls. */
+  selectWallByIndex(index: number | null): void {
+    this.selectedBoxId = null;
+    this.selectedRoomElementId = null;
+    this.selectedWallIndex = index;
+    this.refreshTransformControlsAttachment();
+    this.refreshOutlineTarget();
+  }
+
+  /** Seleciona abertura (porta/janela) por id (ex.: ao clicar no painel). Permite mover/rodar com botões do topo. */
+  selectRoomElementById(elementId: string | null): void {
+    this.selectedBoxId = null;
+    this.selectedWallIndex = null;
+    this.selectedRoomElementId = elementId;
+    this.refreshTransformControlsAttachment();
+    this.refreshOutlineTarget();
   }
 
   setOnBoxSelected(callback: (_id: string | null) => void): void {
@@ -864,19 +1249,45 @@ export class Viewer {
 
   setTransformMode(mode: "translate" | "rotate" | null): void {
     this.transformMode = mode;
-    if (this.transformControls) {
-      if (this.selectedBoxId && mode) {
-        const entry = this.boxes.get(this.selectedBoxId);
-        if (entry) {
-          this.transformControls.attach(entry.mesh);
-          this.transformControls.setMode(mode);
-          if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
-        }
-      } else {
+    this.refreshTransformControlsAttachment();
+  }
+
+  /** Anexa ou desanexa TransformControls conforme seleção (caixa, parede ou abertura). */
+  private refreshTransformControlsAttachment(): void {
+    if (!this.transformControls) return;
+    const mode = this.transformMode;
+    if (this.selectedBoxId && mode) {
+      const entry = this.boxes.get(this.selectedBoxId);
+      if (entry) {
         this.transformControls.detach();
-        if (this.transformControlsHelper) this.transformControlsHelper.visible = false;
+        this.transformControls.attach(entry.mesh);
+        this.transformControls.setMode(mode);
+        if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
+        return;
       }
     }
+    if (this.selectedWallIndex !== null && mode) {
+      const wall = this.roomBoxWalls.find((w) => w.id === this.selectedWallIndex)?.mesh;
+      if (wall) {
+        this.transformControls.detach();
+        this.transformControls.attach(wall);
+        this.transformControls.setMode(mode);
+        if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
+        return;
+      }
+    }
+    if (this.selectedRoomElementId && mode) {
+      const element = this.roomBuilder.getElementById(this.selectedRoomElementId);
+      if (element) {
+        this.transformControls.detach();
+        this.transformControls.attach(element);
+        this.transformControls.setMode(mode);
+        if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
+        return;
+      }
+    }
+    this.transformControls.detach();
+    if (this.transformControlsHelper) this.transformControlsHelper.visible = false;
   }
 
   selectBox(id: string | null): void {
@@ -1110,6 +1521,24 @@ export class Viewer {
     return { width, height, depth };
   }
 
+  /** Altura Y (m) fixa para caixas inferior/superior: centro da caixa para base no PE ou na altura superior. */
+  private getFixedYForCabinet(entry: {
+    height: number;
+    cabinetType?: "lower" | "upper";
+    pe_cm?: number;
+  }): number {
+    const h = entry.height;
+    if (entry.cabinetType === "lower") {
+      const peM = ((entry.pe_cm ?? Viewer.HEIGHT_BASE_CM) / 100);
+      return peM + h / 2;
+    }
+    if (entry.cabinetType === "upper") {
+      const baseM = Viewer.HEIGHT_UPPER_CM / 100;
+      return baseM + h / 2;
+    }
+    return h / 2;
+  }
+
   private getNextBoxIndex() {
     if (this.boxes.size === 0) return 0;
     let maxIndex = -1;
@@ -1183,9 +1612,9 @@ export class Viewer {
       const hit = this.getWallHitAtPointer(event);
       if (hit) {
         if (hit.type === "door") {
-          this.roomBuilder.addDoor(hit.wallId, hit.config);
+          this.roomBuilder.addDoorByIndex(hit.wallId, hit.config);
         } else {
-          this.roomBuilder.addWindow(hit.wallId, hit.config);
+          this.roomBuilder.addWindowByIndex(hit.wallId, hit.config);
         }
         this.onRoomElementPlaced(hit.wallId, hit.config, hit.type);
         this.setPlacementMode(null);
@@ -1197,18 +1626,44 @@ export class Viewer {
       this.setHoveredBox(boxId);
       this.setSelectedBox(boxId);
       this.onRoomElementSelected?.(null);
+      this.onWallSelected?.(null);
       return;
     }
     const roomHit = this.getRoomElementAtPointer(event);
     if (roomHit) {
       this.setHoveredBox(null);
-      this.setSelectedBox(null);
+      this.selectedBoxId = null;
+      this.selectedWallIndex = null;
+      this.selectedRoomElementId = roomHit.elementId;
+      this.refreshTransformControlsAttachment();
+      this.refreshOutlineTarget();
+      this.onBoxSelected?.(null);
       this.onRoomElementSelected?.(roomHit);
+      this.onWallSelected?.(null);
+      return;
+    }
+    const wallId = this.getWallIdAtPointer(event);
+    if (wallId !== null) {
+      this.setHoveredBox(null);
+      this.selectedBoxId = null;
+      this.selectedWallIndex = wallId;
+      this.selectedRoomElementId = null;
+      this.refreshTransformControlsAttachment();
+      this.refreshOutlineTarget();
+      this.onBoxSelected?.(null);
+      this.onRoomElementSelected?.(null);
+      this.onWallSelected?.(wallId);
       return;
     }
     this.setHoveredBox(null);
-    this.setSelectedBox(null);
+    this.selectedBoxId = null;
+    this.selectedWallIndex = null;
+    this.selectedRoomElementId = null;
+    this.refreshTransformControlsAttachment();
+    this.refreshOutlineTarget();
+    this.onBoxSelected?.(null);
     this.onRoomElementSelected?.(null);
+    this.onWallSelected?.(null);
   };
 
   private handleCanvasPointerMove = (event: PointerEvent) => {
@@ -1240,40 +1695,60 @@ export class Viewer {
       return;
     }
     this.selectedBoxId = id;
-    if (this.transformControls) {
-      this.transformControls.detach();
-      if (id && this.transformMode) {
-        const entry = this.boxes.get(id);
-        if (entry) {
-          this.transformControls.attach(entry.mesh);
-          this.transformControls.setMode(this.transformMode);
-          (this.transformControls as unknown as THREE.Object3D).visible = true;
-        }
-      } else {
-        (this.transformControls as unknown as THREE.Object3D).visible = false;
-      }
-    }
+    this.selectedWallIndex = null;
+    this.selectedRoomElementId = null;
+    this.refreshTransformControlsAttachment();
     this.refreshOutlineTarget();
     this.onBoxSelected?.(id);
   }
 
   /** Só chamado em objectChange (arraste do utilizador). Nunca na criação da caixa. */
   private clampTransform() {
-    if (!this.transformControls || !this.selectedBoxId) return;
+    if (!this.transformControls) return;
     const obj = this.transformControls.object;
-    if (!obj || !this.boxes.has(this.selectedBoxId)) return;
-    const entry = this.boxes.get(this.selectedBoxId)!;
-    if (obj !== entry.mesh) return;
-    if (this.transformMode === "translate") {
-      obj.updateMatrixWorld(true);
-      this._boundingBox.setFromObject(obj);
-      if (this._boundingBox.min.y < 0) {
-        obj.position.y -= this._boundingBox.min.y;
+    if (!obj) return;
+    if (this.selectedBoxId && this.boxes.has(this.selectedBoxId)) {
+      const entry = this.boxes.get(this.selectedBoxId)!;
+      if (obj === entry.mesh) {
+        if (this.transformMode === "translate") {
+          obj.updateMatrixWorld(true);
+          this._boundingBox.setFromObject(obj);
+          if (this._boundingBox.min.y < 0) obj.position.y -= this._boundingBox.min.y;
+          if (this.lockEnabled) {
+            this.applyCollisionConstraint(obj);
+          }
+          if (this.roomBounds) {
+            this.applyAutoRotateToRoom(obj, { snapPosition: this.lockEnabled });
+            this.applyRoomConstraint(obj, { ignoreY: entry.manualPosition });
+          }
+          if (
+            (entry.cabinetType === "lower" || entry.cabinetType === "upper") &&
+            !entry.manualPosition
+          ) {
+            obj.position.y = this.getFixedYForCabinet(entry);
+          }
+          this.updateBoxesIntersectingWalls();
+        } else if (this.transformMode === "rotate") {
+          obj.rotation.x = 0;
+          obj.rotation.z = 0;
+          if (!this._isDragging) {
+            (obj as THREE.Object3D & { rotation: { y: number } }).rotation.y = Viewer.snapRotationTo90(
+              (obj as THREE.Object3D & { rotation: { y: number } }).rotation.y
+            );
+          }
+        }
+        return;
       }
-      if (this.lockEnabled) this.applyCollisionConstraint(obj);
-    } else if (this.transformMode === "rotate") {
-      obj.rotation.x = 0;
-      obj.rotation.z = 0;
+    }
+    if (this.selectedWallIndex !== null && this.roomBoxWalls.find((w) => w.id === this.selectedWallIndex)?.mesh === obj) {
+      if (this.transformMode === "translate") {
+        const wall = obj as THREE.Mesh;
+        const heightM = (wall.userData.wallHeightMm as number) * 0.001 ?? 2.7;
+        if (wall.position.y < heightM / 2) wall.position.y = heightM / 2;
+      } else if (this.transformMode === "rotate") {
+        (obj as THREE.Mesh).rotation.x = 0;
+        (obj as THREE.Mesh).rotation.z = 0;
+      }
     }
   }
 
@@ -1317,12 +1792,503 @@ export class Viewer {
     }
   }
 
+  /** Atualiza o conjunto de caixas que intersectam paredes (para destaque quando lock desativado). */
+  private updateBoxesIntersectingWalls(): void {
+    this.boxesIntersectingWalls.clear();
+    if (this.lockEnabled) return;
+    const roomWalls = this.roomBoxWalls.map((w) => w.mesh);
+    if (!roomWalls.length) return;
+    const wallBox = new THREE.Box3();
+    roomWalls.forEach((wall) => {
+      wall.updateMatrixWorld(true);
+      wallBox.union(new THREE.Box3().setFromObject(wall));
+    });
+    this.boxes.forEach((entry, boxId) => {
+      entry.mesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(entry.mesh);
+      if (box.intersectsBox(wallBox)) this.boxesIntersectingWalls.add(boxId);
+    });
+  }
+
+  /** Esconde a parede que está entre a câmera e o centro da sala. */
+  private updateWallVisibilityBasedOnCamera(): void {
+    if (!this.roomBounds) return;
+    const cam = this.cameraManager.camera;
+    const centerY = (this.roomBounds.minY + this.roomBounds.maxY) / 2;
+    const center = new THREE.Vector3(this.roomBounds.centerX, centerY, this.roomBounds.centerZ);
+    const dir = center.clone().sub(cam.position);
+    if (dir.lengthSq() < 1e-6) return;
+    if (
+      this.lastWallHideCamPos.distanceToSquared(cam.position) < 1e-6 &&
+      this.lastWallHideDir.distanceToSquared(dir) < 1e-6 &&
+      this.lastWallHideManualId === this.manualHiddenWallId
+    ) {
+      return;
+    }
+    this.lastWallHideCamPos.copy(cam.position);
+    this.lastWallHideDir.copy(dir);
+    this.lastWallHideManualId = this.manualHiddenWallId;
+
+    const roomWalls = this.roomBoxWalls.map((w) => w.mesh);
+    if (!roomWalls.length) return;
+    this.raycaster.set(cam.position, dir.normalize());
+    const hits = this.raycaster.intersectObjects(roomWalls, false);
+    const hitWall = hits.length ? hits[0].object : null;
+    this.roomBoxWalls.forEach((entry) => {
+      let visible = entry.mesh !== hitWall;
+      if (this.manualHiddenWallId !== null && entry.id === this.manualHiddenWallId) {
+        visible = false;
+      }
+      entry.mesh.visible = visible;
+    });
+  }
+
+  private getWallIdInFrontOfCamera(): number | null {
+    if (!this.roomBounds) return null;
+    const cam = this.cameraManager.camera;
+    const centerY = (this.roomBounds.minY + this.roomBounds.maxY) / 2;
+    const center = new THREE.Vector3(this.roomBounds.centerX, centerY, this.roomBounds.centerZ);
+    const dir = center.clone().sub(cam.position);
+    if (dir.lengthSq() < 1e-6) return null;
+    const roomWalls = this.roomBoxWalls.map((w) => w.mesh);
+    if (!roomWalls.length) return null;
+    this.raycaster.set(cam.position, dir.normalize());
+    const hits = this.raycaster.intersectObjects(roomWalls, false);
+    const hitWall = hits.length ? hits[0].object : null;
+    if (!hitWall) return null;
+    const entry = this.roomBoxWalls.find((w) => w.mesh === hitWall);
+    return entry?.id ?? null;
+  }
+
+  /** Esconde/mostra uma parede manualmente. Auto-hide continua ativo. */
+  setManualWallHidden(active: boolean): void {
+    if (!active) {
+      this.manualHiddenWallId = null;
+      this.roomBoxWalls.forEach((w) => {
+        w.mesh.visible = true;
+      });
+      return;
+    }
+    const wallId = this.selectedWallIndex ?? this.getWallIdInFrontOfCamera();
+    if (wallId === null) return;
+    this.manualHiddenWallId = wallId;
+    this.roomBoxWalls.forEach((w) => {
+      if (w.id === wallId) w.mesh.visible = false;
+    });
+  }
+
+  getManualWallHidden(): boolean {
+    return this.manualHiddenWallId !== null;
+  }
+
+  /**
+   * Restringe a caixa aos limites da sala.
+   * Sempre: nunca sair de [0→width]×[0→depth]. Com lock ON: usar limites internos (inset) para não entrar no muro.
+   */
+  private applyRoomConstraint(movingMesh: THREE.Object3D, options: { ignoreY?: boolean } = {}): void {
+    if (!this.roomBounds) return;
+    movingMesh.updateMatrixWorld(true);
+    const movingBox = new THREE.Box3().setFromObject(movingMesh);
+    const inset = this.lockEnabled ? Viewer.WALL_INNER_INSET_M : 0;
+    const off = this.lockEnabled ? Viewer.SNAP_WALL_OFFSET_M : 0;
+    const minX = this.roomBounds.minX + inset + off;
+    const maxX = this.roomBounds.maxX - inset - off;
+    const minZ = this.roomBounds.minZ + inset + off;
+    const maxZ = this.roomBounds.maxZ - inset - off;
+    const minY = this.roomBounds.minY;
+    const maxY = this.roomBounds.maxY;
+    let dx = 0;
+    let dy = 0;
+    let dz = 0;
+    if (movingBox.min.x < minX) dx += minX - movingBox.min.x;
+    if (movingBox.max.x > maxX) dx -= movingBox.max.x - maxX;
+    if (movingBox.min.z < minZ) dz += minZ - movingBox.min.z;
+    if (movingBox.max.z > maxZ) dz -= movingBox.max.z - maxZ;
+    if (!options.ignoreY) {
+      if (movingBox.min.y < minY) dy += minY - movingBox.min.y;
+      if (movingBox.max.y > maxY) dy -= movingBox.max.y - maxY;
+    }
+    if (dx !== 0 || dy !== 0 || dz !== 0) {
+      movingMesh.position.x += dx;
+      movingMesh.position.y += dy;
+      movingMesh.position.z += dz;
+    }
+  }
+
+  /** Distância (m) abaixo da qual a caixa é considerada "encostada" na parede para auto-rotação e snap. */
+  private static readonly WALL_TOUCH_THRESHOLD_M = 0.2;
+  /** Espessura das paredes (m) do Room Box. */
+  private static readonly ROOM_WALL_THICKNESS_M = 0.12;
+  /** Espessura da costa em metros (10 mm). Ponto de encosto: z = -depth/2 - BACK_THICKNESS_M/2. */
+  private static readonly BACK_THICKNESS_M = SYSTEM_BACK_MM / 1000;
+  /** Recuo (m) do limite interno da parede; com lock ON a caixa não entra no muro. */
+  private static readonly WALL_INNER_INSET_M = 0.06;
+  /** Tolerância (m) para eliminar gap residual entre costa e parede (1–3 mm). */
+  private static readonly SNAP_GAP_TOLERANCE_M = 0.003;
+  /** Offset (m) da caixa em relação ao plano da parede para evitar Z-fighting (0.5 cm). */
+  private static readonly SNAP_WALL_OFFSET_M = 0.005;
+  /** Logs temporários para diagnosticar rotação/snap por parede. */
+  private static readonly DEBUG_WALL_ROTATION = !import.meta.env.PROD;
+  /** Altura da base do armário inferior (PE) em cm; base da caixa fica a esta altura do piso. */
+  private static readonly HEIGHT_BASE_CM = 10;
+  /** Altura em cm do piso à base da caixa superior (wall cabinet). */
+  private static readonly HEIGHT_UPPER_CM = 150;
+
+  /** Garante rotação sempre múltiplo de 90° (0, π/2, π, -π/2). */
+  private static snapRotationTo90(rad: number): number {
+    let deg = (rad * 180) / Math.PI;
+    deg = Math.round(deg / 90) * 90;
+    deg = ((deg % 360) + 360) % 360;
+    if (deg === 360) deg = 0;
+    return (deg * Math.PI) / 180;
+  }
+
+  /** Normaliza ângulo para 0..2π. */
+  private static normalizeAngle(rad: number): number {
+    const twoPi = Math.PI * 2;
+    const normalized = ((rad % twoPi) + twoPi) % twoPi;
+    return normalized === twoPi ? 0 : normalized;
+  }
+
+  /** Tolerância em graus para identificar rotação 0/90/180/270. */
+  private static readonly ROT_DEG_TOLERANCE = 1;
+
+  private getWallNormalById(wallId: number): THREE.Vector3 {
+    if (wallId === 0) return new THREE.Vector3(0, 0, -1);
+    if (wallId === 1) return new THREE.Vector3(-1, 0, 0);
+    if (wallId === 2) return new THREE.Vector3(0, 0, 1);
+    return new THREE.Vector3(1, 0, 0);
+  }
+
+  private getWallNormalFromSide(side: "front" | "right" | "back" | "left"): THREE.Vector3 {
+    if (side === "front") return new THREE.Vector3(0, 0, -1);
+    if (side === "right") return new THREE.Vector3(-1, 0, 0);
+    if (side === "back") return new THREE.Vector3(0, 0, 1);
+    return new THREE.Vector3(1, 0, 0);
+  }
+
+  /** Rotação Y (rad) para a costa da caixa (local -Z) ficar alinhada à normal da parede. */
+  private getRotationFromNormal(normal: THREE.Vector3): number {
+    const nz = normal.z;
+    const nx = normal.x;
+    if (nz <= -0.99) return 0;           // front: costa em -Z
+    if (nx <= -0.99) return Math.PI / 2;  // right: costa em +X
+    if (nz >= 0.99) return Math.PI;      // back: costa em +Z
+    if (nx >= 0.99) return -Math.PI / 2;  // left: costa em -X
+    return 0;
+  }
+
+  private getNearestWallNormal(point: { x: number; z: number }): THREE.Vector3 {
+    if (!this.roomBounds) return new THREE.Vector3(0, 0, -1);
+    const { minX, maxX, minZ, maxZ } = this.roomBounds;
+    const candidates = [
+      { normal: new THREE.Vector3(0, 0, -1), dist: point.z - minZ },
+      { normal: new THREE.Vector3(-1, 0, 0), dist: maxX - point.x },
+      { normal: new THREE.Vector3(0, 0, 1), dist: maxZ - point.z },
+      { normal: new THREE.Vector3(1, 0, 0), dist: point.x - minX },
+    ];
+    candidates.sort((a, b) => a.dist - b.dist);
+    return candidates[0].normal;
+  }
+
+  private getSnapLimitForNormal(
+    normal: THREE.Vector3,
+    inset: number
+  ): { axis: "x" | "z"; target: number; boxIsMin: boolean } {
+    if (!this.roomBounds) return { axis: "z", target: 0, boxIsMin: true };
+    const { minX, maxX, minZ, maxZ } = this.roomBounds;
+    const off = Viewer.SNAP_WALL_OFFSET_M;
+    if (normal.z <= -0.99) return { axis: "z", target: minZ + inset + off, boxIsMin: true };
+    if (normal.z >= 0.99) return { axis: "z", target: maxZ - inset - off, boxIsMin: false };
+    if (normal.x <= -0.99) return { axis: "x", target: maxX - inset - off, boxIsMin: false };
+    return { axis: "x", target: minX + inset + off, boxIsMin: true };
+  }
+
+  /**
+   * Identifica qual face do AABB é a costa a partir de rotation.y (modo manual).
+   * Costa = face traseira da caixa (local -Z); após rotação corresponde a min/max de X ou Z.
+   */
+  /** Costa = face traseira da caixa (local -Z). Para cada rotação, devolve o eixo/valor dessa face em mundo e o lado da sala (front/right/back/left). */
+  private static getCostaFace(
+    rotationY_rad: number,
+    boxAABB: THREE.Box3
+  ): { eixo: "x" | "z"; valor: number; side: "front" | "back" | "left" | "right" } {
+    const deg = (Viewer.normalizeAngle(rotationY_rad) * 180) / Math.PI;
+    const t = Viewer.ROT_DEG_TOLERANCE;
+    if (deg >= 360 - t || deg < t) {
+      return { eixo: "z", valor: boxAABB.min.z, side: "front" };
+    }
+    if (deg >= 90 - t && deg < 90 + t) {
+      return { eixo: "x", valor: boxAABB.max.x, side: "right" };
+    }
+    if (deg >= 180 - t && deg < 180 + t) {
+      return { eixo: "z", valor: boxAABB.max.z, side: "back" };
+    }
+    return { eixo: "x", valor: boxAABB.min.x, side: "left" };
+  }
+
+  /**
+   * Orienta a caixa pelos lados da sala (piso) e encosta a costa no limite interno.
+   * Com autoRotateEnabled: escolhe lado, aplica rotação e snap. Sem: só snap (mantém rotation.y).
+   */
+  private applyAutoRotateToRoom(
+    movingMesh: THREE.Object3D,
+    options: { snapPosition?: boolean } = {}
+  ): void {
+    if (!this.roomBounds) {
+      (movingMesh as THREE.Object3D & { rotation: { y: number } }).rotation.y = Viewer.snapRotationTo90(
+        (movingMesh as THREE.Object3D & { rotation: { y: number } }).rotation.y
+      );
+      return;
+    }
+
+    movingMesh.updateMatrixWorld(true);
+    const boxId = (movingMesh as THREE.Object3D & { userData?: { boxId?: string } }).userData?.boxId;
+    const entry = boxId ? this.boxes.get(boxId) : null;
+    const inset = this.lockEnabled ? Viewer.WALL_INNER_INSET_M : 0;
+    const parent = movingMesh.parent;
+
+    if (entry && entry.autoRotateEnabled === false) {
+      if ((entry.depth ?? 0) > 0 && options.snapPosition !== false) {
+        this.snapCostaToWallCurrentRotation(movingMesh, entry.depth, inset, parent);
+      }
+      if (this.lockEnabled) {
+        movingMesh.updateMatrixWorld(true);
+        this.applyInnerBoundsHardStop(movingMesh, parent);
+      }
+      return;
+    }
+
+    const worldCenter = new THREE.Vector3();
+    movingMesh.getWorldPosition(worldCenter);
+    const pt = { x: worldCenter.x, z: worldCenter.z };
+    const normal = this.getNearestWallNormal(pt);
+
+    const finalY = this.getRotationFromNormal(normal);
+    (movingMesh as THREE.Object3D & { rotation: { y: number } }).rotation.y = finalY;
+    movingMesh.updateMatrixWorld(true);
+    if (Viewer.DEBUG_WALL_ROTATION) {
+      const boxId = (movingMesh as THREE.Object3D & { userData?: { boxId?: string } }).userData?.boxId;
+      const box = new THREE.Box3().setFromObject(movingMesh);
+      const costa = Viewer.getCostaFace(finalY, box);
+      console.debug("[WallSnap] applyAutoRotateToRoom", {
+        boxId,
+        normal: { x: normal.x, y: normal.y, z: normal.z },
+        finalY,
+        costaSide: costa.side,
+        costaValue: costa.valor,
+      });
+    }
+
+    const snapEnabled = (entry?.depth ?? 0) > 0 && options.snapPosition !== false;
+    if (snapEnabled) {
+      this.snapCostaToWall(movingMesh, normal, inset, parent);
+      movingMesh.updateMatrixWorld(true);
+      const residual = this.measureSnapResidual(movingMesh, normal, inset);
+      if (residual !== 0 && Math.abs(residual) <= Viewer.SNAP_GAP_TOLERANCE_M) {
+        this.nudgeCostaBy(movingMesh, normal, residual, parent);
+      }
+    }
+    if (this.lockEnabled) {
+      movingMesh.updateMatrixWorld(true);
+      this.applyInnerBoundsHardStop(movingMesh, parent);
+    }
+  }
+
+  /**
+   * Encosta a costa na parede correta sem alterar rotation.y (modo manual).
+   * Usa getCostaFace(rotation.y, AABB) para identificar a face da costa e encostá-la no limite interno.
+   */
+  private snapCostaToWallCurrentRotation(
+    movingMesh: THREE.Object3D,
+    _depth: number,
+    inset: number,
+    parent: THREE.Object3D | null
+  ): void {
+    if (!this.roomBounds) return;
+    movingMesh.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(movingMesh);
+    const rotationY = (movingMesh as THREE.Object3D & { rotation: { y: number } }).rotation.y;
+    const { valor, side } = Viewer.getCostaFace(rotationY, box);
+    if (Viewer.DEBUG_WALL_ROTATION) {
+      const boxId = (movingMesh as THREE.Object3D & { userData?: { boxId?: string } }).userData?.boxId;
+      console.debug("[WallSnap] snapCostaToWallCurrentRotation", {
+        boxId,
+        rotationY,
+        costaSide: side,
+        costaValue: valor,
+      });
+    }
+    const { axis, target } = this.getSnapLimitForNormal(this.getWallNormalFromSide(side), inset);
+
+    let dx = 0;
+    let dz = 0;
+    if (axis === "x") dx = target - valor;
+    else dz = target - valor;
+
+    if (dx === 0 && dz === 0) return;
+    const worldPos = new THREE.Vector3();
+    movingMesh.getWorldPosition(worldPos);
+    worldPos.x += dx;
+    worldPos.z += dz;
+    if (parent) {
+      parent.worldToLocal(worldPos);
+      movingMesh.position.copy(worldPos);
+    } else {
+      movingMesh.position.copy(worldPos);
+    }
+  }
+
+  /**
+   * Encosta a face da costa (AABB) exatamente no limite interno da parede (Room Box).
+   */
+  private snapCostaToWall(
+    movingMesh: THREE.Object3D,
+    normal: THREE.Vector3,
+    inset: number,
+    parent: THREE.Object3D | null
+  ): void {
+    if (!this.roomBounds) return;
+    movingMesh.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(movingMesh);
+    const { axis, target, boxIsMin } = this.getSnapLimitForNormal(normal, inset);
+    const faceValue = axis === "x" ? (boxIsMin ? box.min.x : box.max.x) : boxIsMin ? box.min.z : box.max.z;
+    const delta = target - faceValue;
+    let dx = 0;
+    let dz = 0;
+    if (axis === "x") dx = delta;
+    else dz = delta;
+    if (dx === 0 && dz === 0) return;
+    const worldPos = new THREE.Vector3();
+    movingMesh.getWorldPosition(worldPos);
+    worldPos.x += dx;
+    worldPos.z += dz;
+    if (parent) {
+      parent.worldToLocal(worldPos);
+      movingMesh.position.copy(worldPos);
+    } else {
+      movingMesh.position.copy(worldPos);
+    }
+  }
+
+  /** Mede o gap residual entre a face da costa e o alvo lógico (positivo = folga, negativo = penetração). */
+  private measureSnapResidual(
+    movingMesh: THREE.Object3D,
+    normal: THREE.Vector3,
+    inset: number
+  ): number {
+    if (!this.roomBounds) return 0;
+    movingMesh.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(movingMesh);
+    const { axis, target, boxIsMin } = this.getSnapLimitForNormal(normal, inset);
+    const faceValue = axis === "x" ? (boxIsMin ? box.min.x : box.max.x) : boxIsMin ? box.min.z : box.max.z;
+    return target - faceValue;
+  }
+
+  /** Desloca a caixa ao longo do eixo da parede lógica para eliminar gap residual. */
+  private nudgeCostaBy(
+    movingMesh: THREE.Object3D,
+    normal: THREE.Vector3,
+    residualM: number,
+    parent: THREE.Object3D | null
+  ): void {
+    const { axis } = this.getSnapLimitForNormal(normal, 0);
+    const worldPos = new THREE.Vector3();
+    movingMesh.getWorldPosition(worldPos);
+    if (axis === "x") worldPos.x += residualM;
+    else worldPos.z += residualM;
+    if (parent) {
+      parent.worldToLocal(worldPos);
+      movingMesh.position.copy(worldPos);
+    } else {
+      movingMesh.position.copy(worldPos);
+    }
+  }
+
+  /**
+   * Hard stop: impede que o AABB penetre o limite interno da sala (lock ON).
+   * Compara box.min/max com inner limits e aplica o delta exato para remover penetração.
+   */
+  private applyInnerBoundsHardStop(
+    movingMesh: THREE.Object3D,
+    parent: THREE.Object3D | null
+  ): void {
+    if (!this.roomBounds || !this.lockEnabled) return;
+    const inset = Viewer.WALL_INNER_INSET_M;
+    const off = Viewer.SNAP_WALL_OFFSET_M;
+    const innerMinX = this.roomBounds.minX + inset + off;
+    const innerMaxX = this.roomBounds.maxX - inset - off;
+    const innerMinZ = this.roomBounds.minZ + inset + off;
+    const innerMaxZ = this.roomBounds.maxZ - inset - off;
+
+    movingMesh.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(movingMesh);
+
+    let dx = 0;
+    let dz = 0;
+    if (box.min.x < innerMinX) dx = innerMinX - box.min.x;
+    else if (box.max.x > innerMaxX) dx = innerMaxX - box.max.x;
+    if (box.min.z < innerMinZ) dz = innerMinZ - box.min.z;
+    else if (box.max.z > innerMaxZ) dz = innerMaxZ - box.max.z;
+
+    if (dx === 0 && dz === 0) return;
+
+    const worldPos = new THREE.Vector3();
+    movingMesh.getWorldPosition(worldPos);
+    worldPos.x += dx;
+    worldPos.z += dz;
+    if (parent) {
+      parent.worldToLocal(worldPos);
+      movingMesh.position.copy(worldPos);
+    } else {
+      movingMesh.position.copy(worldPos);
+    }
+  }
+
   private notifyBoxTransform() {
     if (!this.selectedBoxId) return;
     const entry = this.boxes.get(this.selectedBoxId);
     if (!entry) return;
     const { x, y, z } = entry.mesh.position;
     this.onBoxTransform?.(this.selectedBoxId, { x, y, z }, entry.mesh.rotation.y);
+  }
+
+  private notifyWallTransform() {
+    if (this.selectedWallIndex === null || !this.onWallTransform) return;
+    const wall = this.roomBoxWalls.find((w) => w.id === this.selectedWallIndex)?.mesh;
+    if (!wall) return;
+    const { x, z } = wall.position;
+    const rotationDeg = (wall.rotation.y * 180) / Math.PI;
+    this.onWallTransform(this.selectedWallIndex, { x, z }, rotationDeg);
+  }
+
+  private static readonly MM_TO_M = 1 / 1000;
+
+  private notifyRoomElementTransform() {
+    if (!this.selectedRoomElementId || !this.onRoomElementTransform) return;
+    const element = this.roomBuilder.getElementById(this.selectedRoomElementId);
+    if (!element || !element.parent) return;
+    const wall = element.parent as THREE.Mesh;
+    const wallLenMm = (wall.userData.wallLengthMm as number) ?? 4000;
+    const wallHeightMm = (wall.userData.wallHeightMm as number) ?? 2800;
+    const wallLenM = wallLenMm * 0.001;
+    element.updateMatrixWorld(true);
+    wall.updateMatrixWorld(true);
+    const localPos = new THREE.Vector3();
+    element.getWorldPosition(localPos);
+    wall.worldToLocal(localPos);
+    const cur = element.userData.config as DoorWindowConfig;
+    let horizontalOffsetMm = (localPos.x + wallLenM / 2) * 1000 - cur.widthMm / 2;
+    let floorOffsetMm = localPos.y * 1000 - cur.heightMm / 2;
+    horizontalOffsetMm = Math.max(0, Math.min(wallLenMm - cur.widthMm, horizontalOffsetMm));
+    floorOffsetMm = Math.max(0, Math.min(wallHeightMm - cur.heightMm, floorOffsetMm));
+    horizontalOffsetMm = snapHorizontalOffset(horizontalOffsetMm, cur.widthMm, wallLenMm, true);
+    const config: DoorWindowConfig = {
+      ...cur,
+      horizontalOffsetMm,
+      floorOffsetMm,
+    };
+    this.onRoomElementTransform(this.selectedRoomElementId, config);
   }
 
   private applyHighlight(_entry: { mesh: THREE.Object3D }) {
@@ -1352,7 +2318,8 @@ export class Viewer {
     this.selectionOutlineTarget = entry.mesh;
     const isSelected = targetId === this.selectedBoxId;
     this.outlineTargetOpacity = isSelected ? 0.9 : 0.55;
-    const colorHex = isSelected ? 0x38bdf8 : 0x7dd3fc;
+    const intersectsWall = this.boxesIntersectingWalls.has(targetId);
+    const colorHex = intersectsWall ? 0xef4444 : (isSelected ? 0x38bdf8 : 0x7dd3fc);
     this.selectionOutlineMaterial.color.setHex(colorHex);
     this.selectionOutlineMaterial.needsUpdate = true;
     this.selectionOutline.visible = true;
@@ -1383,16 +2350,8 @@ export class Viewer {
     return this.getBoxIdByMesh(hits[0].object);
   }
 
-  private getWallHitAtPointer(event: { clientX: number; clientY: number }): {
-    wallId: number;
-    config: DoorWindowConfig;
-    type: "door" | "window";
-  } | null {
-    const roomGroup = this.roomBuilder.getGroup();
-    const roomMeshes: THREE.Object3D[] = [];
-    roomGroup.traverse((child) => {
-      if (child instanceof THREE.Mesh) roomMeshes.push(child);
-    });
+  private getWallIdAtPointer(event: { clientX: number; clientY: number }): number | null {
+    const roomMeshes = this.roomBoxWalls.map((w) => w.mesh);
     if (!roomMeshes.length) return null;
 
     const canvas = this.rendererManager.renderer.domElement;
@@ -1404,39 +2363,22 @@ export class Viewer {
     const hits = this.raycaster.intersectObjects(roomMeshes, true);
     if (!hits.length) return null;
 
-    let wall: THREE.Mesh | null = null;
-    const hitPoint = hits[0].point.clone();
     let current: THREE.Object3D | null = hits[0].object;
     while (current) {
-      const wid = (current as THREE.Mesh & { userData?: { wallId?: number } }).userData?.wallId;
-      if (typeof wid === "number" && current instanceof THREE.Mesh) {
-        wall = current;
-        break;
-      }
+      const wallId = (current as THREE.Mesh & { userData?: { wallId?: number } }).userData?.wallId;
+      if (typeof wallId === "number") return wallId;
       current = current.parent;
     }
-    if (!wall) return null;
+    return null;
+  }
 
-    const wallId = wall.userData.wallId as number;
-    const wallLenMm = (wall.userData.wallLengthMm as number) ?? 4000;
-    const wallHeightMm = (wall.userData.wallHeightMm as number) ?? 2700;
-    wall.worldToLocal(hitPoint);
-
-    const type = this.placementMode ?? "door";
-    const baseConfig = type === "door" ? { ...DEFAULT_DOOR_CONFIG } : { ...DEFAULT_WINDOW_CONFIG };
-    const wallLenM = wallLenMm / 1000;
-    const horizLeftMm = (hitPoint.x + wallLenM / 2) * 1000 - baseConfig.widthMm / 2;
-    const horizontalOffsetMm = Math.max(0, Math.min(wallLenMm - baseConfig.widthMm, horizLeftMm));
-    const floorOffsetMm = Math.max(
-      0,
-      Math.min(wallHeightMm - baseConfig.heightMm, hitPoint.y * 1000 - baseConfig.heightMm / 2)
-    );
-    const config: DoorWindowConfig = {
-      ...baseConfig,
-      horizontalOffsetMm,
-      floorOffsetMm,
-    };
-    return { wallId, config, type };
+  private getWallHitAtPointer(event: { clientX: number; clientY: number }): {
+    wallId: number;
+    config: DoorWindowConfig;
+    type: "door" | "window";
+  } | null {
+    // Room Box não suporta abertura posicionada por clique.
+    return null;
   }
 
   private getRoomElementAtPointer(event: { clientX: number; clientY: number }): {
@@ -1532,6 +2474,7 @@ export class Viewer {
       this.controls?.update();
       this.lerpLightsToTarget();
       this.updateDimensionsOverlay();
+      this.updateWallVisibilityBasedOnCamera();
       if (this.selectionOutline && this.selectionOutlineMaterial) {
         this.outlineCurrentOpacity += (this.outlineTargetOpacity - this.outlineCurrentOpacity) * 0.25;
         const shouldShow = this.outlineCurrentOpacity > 0.02 && this.selectionOutlineTarget;
@@ -1543,6 +2486,18 @@ export class Viewer {
         }
         this.selectionOutlineMaterial.opacity = Math.max(0, Math.min(1, this.outlineCurrentOpacity));
         this.selectionOutlineMaterial.needsUpdate = true;
+      }
+
+      if (this.wallSelectionOutline && this.wallSelectionOutlineMaterial) {
+        const wallEntry = this.selectedWallIndex !== null
+          ? this.roomBoxWalls.find((w) => w.id === this.selectedWallIndex)
+          : null;
+        if (wallEntry) {
+          this.wallSelectionOutline.visible = true;
+          this.wallSelectionOutline.update(wallEntry.mesh);
+        } else {
+          this.wallSelectionOutline.visible = false;
+        }
       }
 
       if (this.currentMode === "showcase" && this.composer && this.bokehPass) {
@@ -1805,6 +2760,15 @@ export class Viewer {
       this.selectionOutline = null;
       this.selectionOutlineMaterial = null;
       this.selectionOutlineTarget = null;
+    }
+    if (this.wallSelectionOutline) {
+      this.sceneManager.scene.remove(this.wallSelectionOutline);
+      this.wallSelectionOutline.geometry.dispose();
+      if (this.wallSelectionOutlineMaterial) {
+        this.wallSelectionOutlineMaterial.dispose();
+      }
+      this.wallSelectionOutline = null;
+      this.wallSelectionOutlineMaterial = null;
     }
     if (this.dimensionsOverlayLines) {
       this.dimensionsOverlayLines.geometry.dispose();

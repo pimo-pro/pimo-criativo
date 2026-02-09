@@ -11,7 +11,7 @@ export interface CatalogItemDimensoes {
 export interface CatalogItem {
   id: string;
   nome: string;
-  categoria: "cozinha" | "roupeiro" | "banheiro" | "quarto-infantil";
+  categoria: "cozinha" | "roupeiro" | "banheiro" | "quarto-infantil" | "base";
   dimensoesDefault: CatalogItemDimensoes;
   descricao?: string;
   /** URL opcional para thumbnail (futuro) */

@@ -26,13 +26,108 @@ import {
   recomputeState,
 } from "./projectState";
 import { getTemplateById } from "../templates/templatesIndex";
-import { getCatalogGlbPath } from "../core/glb/glbRegistry";
 import { getCatalogItemById } from "../catalog/catalogIndex";
+import { getBaseCabinetById, modelToPortaTipo } from "../core/baseCabinets";
+import { ensureBoxPanelIds } from "../core/box/panelIds";
 import { safeGetItem, safeParseJson, safeSetItem } from "../utils/storage";
 import { useViewerSync } from "../hooks/useViewerSync";
+import { wallStore, getRoomDimensionsCm } from "../stores/wallStore";
 
 const PROJECTS_STORAGE_KEY = "pimo_saved_projects";
+const AUTOSAVE_STORAGE_KEY = "pimo_autosave";
+const AUTO_SAVE_INTERVAL_MS = 3000;
 const MAX_HISTORY = 40;
+
+const WALL_SPAWN_MARGIN_M = 0.06;
+
+const getRotationForWallIndex = (wallIndex: number) => {
+  if (wallIndex === 0) return 0;
+  if (wallIndex === 1) return Math.PI / 2;
+  if (wallIndex === 2) return Math.PI;
+  return -Math.PI / 2;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+const getSafeCenterAlongWall = (
+  lengthM: number,
+  boxWidthM: number,
+  openings: Array<{ widthMm?: number; horizontalOffsetMm?: number }>
+) => {
+  const half = boxWidthM / 2;
+  const min = half + WALL_SPAWN_MARGIN_M;
+  const max = Math.max(min, lengthM - half - WALL_SPAWN_MARGIN_M);
+  let center = lengthM / 2;
+  if (!openings?.length) return clamp(center, min, max);
+  const blocked = openings
+    .filter((o) => (o.widthMm ?? 0) > 0)
+    .map((o) => {
+      const start = (o.horizontalOffsetMm ?? 0) / 1000;
+      const end = start + (o.widthMm ?? 0) / 1000;
+      return {
+        start: start - (half + WALL_SPAWN_MARGIN_M),
+        end: end + (half + WALL_SPAWN_MARGIN_M),
+      };
+    });
+  for (const b of blocked) {
+    if (center >= b.start && center <= b.end) {
+      const left = clamp(b.start - 0.001, min, max);
+      const right = clamp(b.end + 0.001, min, max);
+      center = Math.abs(center - left) <= Math.abs(center - right) ? left : right;
+    }
+  }
+  return clamp(center, min, max);
+};
+
+const getSpawnFromSelectedWall = (dimensoes: { largura: number; profundidade: number; altura: number }) => {
+  const wallState = wallStore.getState();
+  const selectedWallId = wallState.selectedWallId;
+  if (!selectedWallId) return null;
+  const walls = wallState.walls ?? [];
+  const wallIndex = walls.findIndex((w) => w.id === selectedWallId);
+  if (wallIndex < 0) return null;
+  const dims = getRoomDimensionsCm(walls);
+  if (!dims) return null;
+
+  const widthM = dims.widthCm / 100;
+  const depthM = dims.depthCm / 100;
+  const minX = 0;
+  const minZ = 0;
+  const maxX = widthM;
+  const maxZ = depthM;
+
+  const rotationY = getRotationForWallIndex(wallIndex);
+  const boxDepthM = (dimensoes.profundidade ?? 0) / 1000;
+  const boxWidthM = (dimensoes.largura ?? 0) / 1000;
+
+  const isFrontBack = wallIndex === 0 || wallIndex === 2;
+  const wallLengthM = isFrontBack ? widthM : depthM;
+  const openings = walls[wallIndex]?.openings ?? [];
+  const along = getSafeCenterAlongWall(wallLengthM, boxWidthM, openings);
+
+  let posX = widthM / 2;
+  let posZ = depthM / 2;
+  if (isFrontBack) {
+    posX = minX + along;
+    const targetZ = wallIndex === 0 ? minZ : maxZ;
+    posZ = wallIndex === 0 ? targetZ + boxDepthM / 2 : targetZ - boxDepthM / 2;
+  } else {
+    posZ = minZ + along;
+    const targetX = wallIndex === 1 ? maxX : minX;
+    posX = wallIndex === 1 ? targetX - boxDepthM / 2 : targetX + boxDepthM / 2;
+  }
+
+  return {
+    posicaoX_mm: posX * 1000,
+    posicaoZ_mm: posZ * 1000,
+    rotacaoY: rotationY,
+  };
+};
+
+type AutosaveEntry = {
+  snapshot: ProjectSnapshot;
+  savedAt: string;
+};
 
 type StoredProject = {
   id: string;
@@ -73,11 +168,22 @@ const reviveState = (snapshot: unknown): ProjectState | null => {
   const extractedPartsByBoxId = normalizeExtractedParts(restored.extractedPartsByBoxId);
   const workspaceBoxesRaw = restored.workspaceBoxes ?? [];
   const workspaceBoxes = Array.isArray(workspaceBoxesRaw)
-    ? workspaceBoxesRaw.map((box: WorkspaceBox & { modelId?: string | null }) => {
-        const models = box.models ?? (box.modelId != null ? [{ id: `${box.id}-model-1`, modelId: box.modelId }] : []);
-        const { modelId: _modelId, ...rest } = box;
-        return { ...rest, models };
-      })
+    ? (() => {
+        const seenIds = new Set<string>();
+        return workspaceBoxesRaw
+          .map((box: WorkspaceBox & { modelId?: string | null }) => {
+            const models =
+              box.models ?? (box.modelId != null ? [{ id: `${box.id}-model-1`, modelId: box.modelId }] : []);
+            const { modelId: _modelId, ...rest } = box;
+            return { ...rest, models };
+          })
+          .filter((box) => {
+            if (!box?.id || typeof box.id !== "string") return false;
+            if (seenIds.has(box.id)) return false;
+            seenIds.add(box.id);
+            return true;
+          });
+      })()
     : defaultState.workspaceBoxes;
 
   return {
@@ -118,6 +224,27 @@ function getRulesFromRestored(restored: Partial<ProjectState> & { rules?: RulesC
   const config = restored.rulesProfiles ?? defaultState.rulesProfiles;
   const perfil = config.perfis.find((p) => p.id === config.perfilAtivoId);
   return perfil?.rules ?? (restored.rules as RulesConfig | undefined) ?? defaultState.rules;
+}
+
+function getNextWorkspaceBoxId(
+  workspaceBoxes: WorkspaceBox[],
+  preferredIndex?: number
+): { id: string; index: number } {
+  const usedIds = new Set(workspaceBoxes.map((box) => box.id));
+  let nextIndex =
+    preferredIndex ??
+    workspaceBoxes.reduce((max, box) => {
+      const match = /^box-(\d+)/.exec(box.id);
+      if (!match) return max;
+      const value = Number(match[1]);
+      return Number.isFinite(value) ? Math.max(max, value) : max;
+    }, 0) + 1;
+  let id = `box-${nextIndex}`;
+  while (usedIds.has(id)) {
+    nextIndex += 1;
+    id = `box-${nextIndex}`;
+  }
+  return { id, index: nextIndex };
 }
 
 /** Converte formato antigo (boxId → items[]) para boxId → modelInstanceId → items[]. */
@@ -170,6 +297,67 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const viewerSync = useViewerSync(project);
   const undoStackRef = useRef<ProjectState[]>([]);
   const redoStackRef = useRef<ProjectState[]>([]);
+  const hasRestoredAutosaveRef = useRef(false);
+
+  // Restaurar último projeto (autosave) ao abrir a página (apenas uma vez)
+  useEffect(() => {
+    if (hasRestoredAutosaveRef.current) return;
+    hasRestoredAutosaveRef.current = true;
+    const raw = safeGetItem(AUTOSAVE_STORAGE_KEY);
+    const parsed = safeParseJson<AutosaveEntry>(raw);
+    if (!parsed?.snapshot) return;
+    const snap = parsed.snapshot as ProjectSnapshot;
+    const projectState =
+      snap && typeof snap === "object" && "projectState" in snap
+        ? (snap as ProjectSnapshot).projectState
+        : null;
+    const viewerSnapshot =
+      snap && typeof snap === "object" && "viewerSnapshot" in snap
+        ? (snap as ProjectSnapshot).viewerSnapshot
+        : null;
+    const roomSnapshot =
+      snap && typeof snap === "object" && "roomSnapshot" in snap
+        ? (snap as ProjectSnapshot).roomSnapshot
+        : null;
+    if (roomSnapshot) wallStore.getState().loadRoomConfig(roomSnapshot);
+    const restored = reviveState(projectState);
+    if (restored) setProject(applyResultados(restored));
+    if (viewerSnapshot) viewerSync.restoreViewerSnapshot(viewerSnapshot);
+  }, [viewerSync]);
+
+  // Auto-save a cada 2–5 segundos (localStorage); não altera o save manual
+  useEffect(() => {
+    const tick = () => {
+      const proj = projectRef.current;
+      const room = wallStore.getState();
+      if (proj.workspaceBoxes.length === 0 && room.walls.length === 0) return;
+      const snapshot: ProjectSnapshot = {
+        projectState: serializeState(proj),
+        viewerSnapshot: viewerSync.saveViewerSnapshot(),
+        roomSnapshot: { walls: room.walls, selectedWallId: room.selectedWallId, mainWallIndex: room.mainWallIndex },
+      };
+      safeSetItem(
+        AUTOSAVE_STORAGE_KEY,
+        JSON.stringify({ snapshot, savedAt: new Date().toISOString() } as AutosaveEntry)
+      );
+    };
+    const id = setInterval(tick, AUTO_SAVE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [viewerSync]);
+
+  // Aviso antes de fechar/atualizar/navegar para fora
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const ws = wallStore.getState();
+      const proj = projectRef.current;
+      if (proj.workspaceBoxes.length > 0 || ws.walls.length > 0) {
+        e.preventDefault();
+        e.returnValue = "Você perderá o seu projeto atual. Deseja continuar?";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   const pushState = (state: ProjectState) => {
     const snapshot = reviveState(serializeState(state));
@@ -239,20 +427,45 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     },
 
     addBox: () => {
+      const defaultModel = getBaseCabinetById("base-600-2portas-2prateleiras");
+      const rightmostX_m = viewerSync.getRightmostX();
       updateProject((prev) => {
-        const nextIndex = prev.workspaceBoxes.length + 1;
+        const { id: newBoxId, index: nextIndex } = getNextWorkspaceBoxId(prev.workspaceBoxes);
         const baseEspessura =
           prev.workspaceBoxes.find((box) => box.id === prev.selectedWorkspaceBoxId)
             ?.espessura ?? prev.material.espessura;
-        const dimensoes = prev.dimensoes;
+        const dimensoes = defaultModel
+          ? { largura: defaultModel.widthMm, altura: defaultModel.heightMm, profundidade: defaultModel.depthMm }
+          : prev.dimensoes;
+        const spawn = getSpawnFromSelectedWall(dimensoes);
+        const posicaoX_mm =
+          spawn?.posicaoX_mm ?? (rightmostX_m + 0.1) * 1000 + dimensoes.largura / 2;
         const newBox = createWorkspaceBox(
-          `box-${nextIndex}`,
-          `Caixa ${nextIndex}`,
+          newBoxId,
+          defaultModel?.nome ?? `Caixa ${nextIndex}`,
           dimensoes,
           baseEspessura,
-          0,
-          []
+          posicaoX_mm,
+          [],
+          "reta",
+          "recuado",
+          defaultModel?.id,
+          defaultModel
+            ? {
+                prateleiras: defaultModel.shelves,
+                portaTipo: modelToPortaTipo(defaultModel.doors),
+                gavetas: defaultModel.drawers,
+              }
+            : undefined
         );
+        newBox.manualPosition = true;
+        newBox.posicaoZ_mm = spawn?.posicaoZ_mm ?? 0;
+        newBox.posicaoY_mm = dimensoes.altura / 2;
+        if (spawn) {
+          newBox.rotacaoY = spawn.rotacaoY;
+          newBox.rotacaoY_90 = Math.round(Math.abs(spawn.rotacaoY) / (Math.PI / 2)) % 2 === 1;
+        }
+        if (defaultModel) newBox.baseCabinetId = defaultModel.id;
         const nextWorkspaceBoxes = [...prev.workspaceBoxes, newBox];
         const nextPrev = { ...prev, workspaceBoxes: nextWorkspaceBoxes };
         const boxes = buildBoxesFromWorkspace(nextPrev);
@@ -281,45 +494,48 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     },
 
     addWorkspaceBoxFromCatalog: (catalogItemId) => {
-      const catalogItem = getCatalogItemById(catalogItemId);
-      if (!catalogItem) return;
+      const baseModel = getBaseCabinetById(catalogItemId);
+      if (!baseModel) return;
       const rightmostX_m = viewerSync.getRightmostX();
       updateProject((prev) => {
-        const nextIndex = prev.workspaceBoxes.length + 1;
+        const { id: newBoxId } = getNextWorkspaceBoxId(prev.workspaceBoxes);
         const baseEspessura =
           prev.workspaceBoxes.find((box) => box.id === prev.selectedWorkspaceBoxId)
             ?.espessura ?? prev.material.espessura;
         const dimensoes = {
-          largura: catalogItem.dimensoesDefault.largura_mm,
-          altura: catalogItem.dimensoesDefault.altura_mm,
-          profundidade: catalogItem.dimensoesDefault.profundidade_mm,
+          largura: baseModel.widthMm,
+          altura: baseModel.heightMm,
+          profundidade: baseModel.depthMm,
         };
-        const posicaoX_mm = (rightmostX_m + 0.1) * 1000 + dimensoes.largura / 2;
-        const glbPath = getCatalogGlbPath(catalogItemId);
-        const models = glbPath
-          ? [
-              {
-                id: `box-${nextIndex}-model-catalog`,
-                modelId: `catalog:${catalogItemId}`,
-              },
-            ]
-          : [];
+        const spawn = getSpawnFromSelectedWall(dimensoes);
+        const posicaoX_mm =
+          spawn?.posicaoX_mm ?? (rightmostX_m + 0.1) * 1000 + dimensoes.largura / 2;
 
         const newBox = createWorkspaceBox(
-          `box-${nextIndex}`,
-          catalogItem.nome,
+          newBoxId,
+          baseModel.nome,
           dimensoes,
           baseEspessura,
           posicaoX_mm,
-          models,
+          [],
           "reta",
           "recuado",
-          catalogItemId
+          catalogItemId,
+          {
+            prateleiras: baseModel.shelves,
+            portaTipo: modelToPortaTipo(baseModel.doors),
+            gavetas: baseModel.drawers,
+          }
         );
-        
         newBox.manualPosition = true;
-        newBox.posicaoZ_mm = 0;
-        newBox.posicaoY_mm = dimensoes.altura / 2;
+        newBox.posicaoZ_mm = spawn?.posicaoZ_mm ?? 0;
+        newBox.cabinetType = "lower";
+        newBox.posicaoY_mm = 10 * 10 + dimensoes.altura / 2;
+        if (spawn) {
+          newBox.rotacaoY = spawn.rotacaoY;
+          newBox.rotacaoY_90 = Math.round(Math.abs(spawn.rotacaoY) / (Math.PI / 2)) % 2 === 1;
+        }
+        newBox.baseCabinetId = baseModel.id;
 
         const nextWorkspaceBoxes = [...prev.workspaceBoxes, newBox];
         const nextPrev = { ...prev, workspaceBoxes: nextWorkspaceBoxes };
@@ -335,7 +551,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             changelog: appendChangelog(prev.changelog, {
               timestamp: new Date(),
               type: "box",
-              message: `Módulo do catálogo adicionado: ${catalogItem.nome}`,
+              message: `Base cabinet adicionado: ${baseModel.nome}`,
             }),
             selectedModelInstanceId: null,
           },
@@ -349,17 +565,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       updateProject((prev) => {
         const selected = getSelectedWorkspaceBox(prev);
         if (!selected) return prev;
-        const nextIndex = prev.workspaceBoxes.length + 1;
+        const { id: newBoxId } = getNextWorkspaceBoxId(prev.workspaceBoxes);
         const largura = selected.dimensoes?.largura ?? 400;
         const posicaoX_mm = (rightmostX_m + 0.1) * 1000 + largura / 2;
         const newBox: WorkspaceBox = {
           ...selected,
-          id: `box-${nextIndex}`,
+          id: newBoxId,
           nome: `${selected.nome} (cópia)`,
           posicaoX_mm,
-          posicaoY_mm: (selected.dimensoes?.altura ?? 400) / 2,
+          posicaoY_mm: selected.posicaoY_mm ?? (selected.dimensoes?.altura ?? 400) / 2,
           posicaoZ_mm: 0,
-          models: (selected.models ?? []).map((m, i) => ({ ...m, id: `box-${nextIndex}-model-${Date.now()}-${i}` })),
+          models: (selected.models ?? []).map((m, i) => ({ ...m, id: `${newBoxId}-model-${Date.now()}-${i}` })),
+          panelIds: ensureBoxPanelIds(undefined, {
+            prateleiras: selected.prateleiras,
+            portaTipo: selected.portaTipo,
+            gavetas: selected.gavetas,
+          }),
         };
         const nextWorkspaceBoxes = [...prev.workspaceBoxes, newBox];
         const nextPrev = { ...prev, workspaceBoxes: nextWorkspaceBoxes };
@@ -479,6 +700,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       });
     },
 
+    clearSelection: () => {
+      updateProject((prev) =>
+        recomputeState(
+          prev,
+          {
+            selectedWorkspaceBoxId: "",
+            selectedCaixaId: "",
+            selectedBoxId: "",
+            selectedCaixaModelUrl: null,
+            selectedModelInstanceId: null,
+          },
+          true
+        )
+      );
+    },
+
     addModelToBox: (caixaId, cadModelId) => {
       updateProject((prev) => {
         const box = prev.workspaceBoxes.find((b) => b.id === caixaId);
@@ -497,8 +734,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     addCadModelAsNewBox: (cadModelId) => {
       const rightmostX_m = viewerSync.getRightmostX();
       updateProject((prev) => {
-        const nextIndex = prev.workspaceBoxes.length + 1;
-        const newBoxId = `box-${nextIndex}`;
+        const { id: newBoxId, index: nextIndex } = getNextWorkspaceBoxId(prev.workspaceBoxes);
         const instanceId = `${newBoxId}-model-${Date.now()}`;
         const instance: BoxModelInstance = { id: instanceId, modelId: cadModelId };
         const baseEspessura =
@@ -629,7 +865,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const valor = Math.max(0, Math.floor(quantidade));
       updateProject((prev) => {
         const workspaceBoxes = prev.workspaceBoxes.map((box) =>
-          box.id === prev.selectedWorkspaceBoxId ? { ...box, prateleiras: valor } : box
+          box.id === prev.selectedWorkspaceBoxId
+            ? {
+                ...box,
+                prateleiras: valor,
+                panelIds: ensureBoxPanelIds(box.panelIds, {
+                  ...box,
+                  prateleiras: valor,
+                }),
+              }
+            : box
         );
         return recomputeState(
           prev,
@@ -650,7 +895,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const valor = Math.max(0, Math.floor(quantidade));
       updateProject((prev) => {
         const workspaceBoxes = prev.workspaceBoxes.map((box) =>
-          box.id === prev.selectedWorkspaceBoxId ? { ...box, gavetas: valor } : box
+          box.id === prev.selectedWorkspaceBoxId
+            ? {
+                ...box,
+                gavetas: valor,
+                panelIds: ensureBoxPanelIds(box.panelIds, {
+                  ...box,
+                  gavetas: valor,
+                }),
+              }
+            : box
         );
         return recomputeState(
           prev,
@@ -670,7 +924,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setPortaTipo: (portaTipo) => {
       updateProject((prev) => {
         const workspaceBoxes = prev.workspaceBoxes.map((box) =>
-          box.id === prev.selectedWorkspaceBoxId ? { ...box, portaTipo } : box
+          box.id === prev.selectedWorkspaceBoxId
+            ? {
+                ...box,
+                portaTipo,
+                panelIds: ensureBoxPanelIds(box.panelIds, {
+                  ...box,
+                  portaTipo,
+                }),
+              }
+            : box
         );
         return recomputeState(prev, { workspaceBoxes }, true);
       });
@@ -760,6 +1023,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           if (partial.z_mm !== undefined) next.posicaoZ_mm = partial.z_mm ?? 0;
           if (partial.rotacaoY_rad !== undefined) next.rotacaoY = partial.rotacaoY_rad;
           if (partial.manualPosition !== undefined) next.manualPosition = partial.manualPosition;
+          if (partial.autoRotateEnabled !== undefined) next.autoRotateEnabled = partial.autoRotateEnabled;
           return next;
         });
         return { ...prev, workspaceBoxes };
@@ -786,9 +1050,23 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
     toggleWorkspaceRotation: (boxId) => {
       updateProject((prev) => {
-        const workspaceBoxes = prev.workspaceBoxes.map((box) =>
-          box.id === boxId ? { ...box, rotacaoY_90: !box.rotacaoY_90 } : box
-        );
+        const workspaceBoxes = prev.workspaceBoxes.map((box) => {
+          if (box.id !== boxId) return box;
+          const currentRad = box.rotacaoY ?? 0;
+          let nextRad = currentRad + Math.PI / 2;
+          let deg = (nextRad * 180) / Math.PI;
+          deg = Math.round(deg / 90) * 90;
+          deg = ((deg % 360) + 360) % 360;
+          if (deg === 360) deg = 0;
+          nextRad = (deg * Math.PI) / 180;
+          return {
+            ...box,
+            rotacaoY_90: !box.rotacaoY_90,
+            rotacaoY: nextRad,
+            autoRotateEnabled: false,
+            manualPosition: true,
+          };
+        });
         return { ...prev, workspaceBoxes };
       });
     },
@@ -803,8 +1081,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           let prevAdjusted = prev;
           // Se não há caixas, criar uma nova antes de gerar o design
           if (!prev.workspaceBoxes || prev.workspaceBoxes.length === 0) {
+            const { id: newBoxId } = getNextWorkspaceBoxId(prev.workspaceBoxes);
             const newBox = createWorkspaceBox(
-              "box-1",
+              newBoxId,
               "Caixa 1",
               prev.dimensoes,
               prev.material.espessura,
@@ -1052,9 +1331,14 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
       );
     },
     saveProjectSnapshot: () => {
+      const roomState = wallStore.getState();
       const snapshot: ProjectSnapshot = {
         projectState: serializeState(project),
         viewerSnapshot: viewerSync.saveViewerSnapshot(),
+        roomSnapshot: {
+          walls: roomState.walls,
+          selectedWallId: roomState.selectedWallId,
+        },
       };
       const name = project.projectName?.trim() || "Projeto";
       const timestamp = new Date().toISOString();
@@ -1091,6 +1375,11 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
         writeStoredProjects(nextStored);
       }
       viewerSync.restoreViewerSnapshot(viewerSnapshot ?? null);
+      const roomSnapshot =
+        snapshot && typeof snapshot === "object" && "roomSnapshot" in snapshot
+          ? (snapshot as ProjectSnapshot).roomSnapshot
+          : null;
+      wallStore.getState().loadRoomConfig(roomSnapshot ?? null);
       const restored = reviveState(projectState);
       if (!restored) return;
       updateProject(() => applyResultados(restored));
@@ -1100,25 +1389,31 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
       if (!template || !template.boxes.length) return;
       viewerSync.removeRoom();
       const espessura = template.materialPadrao?.espessura ?? 19;
-      const workspaceBoxes = template.boxes.map((b) => ({
-        id: b.id,
-        nome: b.nome,
-        dimensoes: b.dimensoes,
-        espessura: b.espessura ?? espessura,
-        tipoBorda: "reta" as const,
-        tipoFundo: "recuado" as const,
-        models: [],
-        prateleiras: b.prateleiras ?? 0,
-        portaTipo: b.portaTipo ?? "porta_simples",
-        gavetas: b.gavetas ?? 0,
-        alturaGaveta: 200,
-        posicaoX_mm: b.posicaoX_mm,
-        posicaoY_mm: b.posicaoY_mm ?? 0,
-        posicaoZ_mm: b.posicaoZ_mm ?? 0,
-        rotacaoY_90: false,
-        rotacaoY: 0,
-        manualPosition: true,
-      }));
+      const workspaceBoxes = template.boxes.map((b) => {
+        const prateleiras = b.prateleiras ?? 0;
+        const portaTipo = (b.portaTipo ?? "porta_simples") as WorkspaceBox["portaTipo"];
+        const gavetas = b.gavetas ?? 0;
+        return {
+          id: b.id,
+          nome: b.nome,
+          dimensoes: b.dimensoes,
+          espessura: b.espessura ?? espessura,
+          tipoBorda: "reta" as const,
+          tipoFundo: "recuado" as const,
+          models: [],
+          prateleiras,
+          portaTipo,
+          gavetas,
+          alturaGaveta: 200,
+          posicaoX_mm: b.posicaoX_mm,
+          posicaoY_mm: b.posicaoY_mm ?? 0,
+          posicaoZ_mm: b.posicaoZ_mm ?? 0,
+          rotacaoY_90: false,
+          rotacaoY: 0,
+          manualPosition: true,
+          panelIds: ensureBoxPanelIds(undefined, { prateleiras, portaTipo, gavetas }),
+        };
+      });
       const firstId = workspaceBoxes[0].id;
       const nextState = {
         ...defaultState,
@@ -1157,17 +1452,21 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
           }
           usedIds.add(id);
           const espessura = b.espessura ?? baseEspessura;
+          const prateleiras = b.prateleiras ?? 0;
+          const portaTipo = (b.portaTipo ?? "porta_simples") as WorkspaceBox["portaTipo"];
+          const gavetas = b.gavetas ?? 0;
           const newBox = createWorkspaceBox(
             id,
             b.nome,
             b.dimensoes,
             espessura,
             b.posicaoX_mm ?? 0,
-            []
+            [],
+            "reta",
+            "recuado",
+            undefined,
+            { prateleiras, portaTipo, gavetas }
           );
-          newBox.prateleiras = b.prateleiras ?? 0;
-          newBox.gavetas = b.gavetas ?? 0;
-          newBox.portaTipo = b.portaTipo ?? "porta_simples";
           newBox.posicaoY_mm = b.posicaoY_mm ?? 0;
           newBox.posicaoZ_mm = b.posicaoZ_mm ?? 0;
           newBox.manualPosition = true;

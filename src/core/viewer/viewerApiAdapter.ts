@@ -72,6 +72,14 @@ export function createViewerApiAdapter(
       pimoApi.removeRoom?.();
     },
 
+    selectWallByIndex: (index: number | null): void => {
+      pimoApi.selectWallByIndex?.(index);
+    },
+
+    selectRoomElementById: (elementId: string | null): void => {
+      pimoApi.selectRoomElementById?.(elementId);
+    },
+
     setPlacementMode: (mode: "door" | "window" | null): void => {
       pimoApi.setPlacementMode?.(mode);
     },

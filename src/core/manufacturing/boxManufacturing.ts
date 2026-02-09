@@ -2,6 +2,7 @@ import type { BoxModule } from "../types";
 import { getMaterial } from "./materials";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { getNumDobradicas } from "../rules/rulesConfig";
+import { SYSTEM_THICKNESS_MM, SYSTEM_BACK_MM } from "../baseCabinets";
 
 type PainelIndustrial = {
   id: string;
@@ -74,8 +75,27 @@ const clampPositive = (value: number) => Math.max(0, Math.round(value));
 
 const buildId = (prefix: string, index: number) => `${prefix}-${index + 1}`;
 
-const getEspessura = (box: BoxModule) => (box.espessura > 0 ? box.espessura : 18);
+/** ID estável para painel estrutural (cima, fundo, lateral_esquerda, lateral_direita, costa). */
+function getStructuralPanelId(box: BoxModule, kind: "cima" | "fundo" | "lateral_esquerda" | "lateral_direita" | "costa"): string {
+  const id = box.panelIds?.[kind];
+  if (typeof id === "string") return id;
+  const prefix = kind === "lateral_esquerda" ? "lateral-esquerda" : kind === "lateral_direita" ? "lateral-direita" : kind;
+  return buildId(prefix, 0);
+}
+
+/** ID estável para prateleira/porta/gaveta por índice. */
+function getArrayPanelId(box: BoxModule, kind: "prateleiras" | "portas" | "gavetas", index: number): string {
+  const arr = box.panelIds?.[kind];
+  if (Array.isArray(arr) && arr[index] != null) return arr[index];
+  const prefix = kind === "prateleiras" ? "prateleira" : kind === "portas" ? "porta" : "gaveta";
+  return buildId(prefix, index);
+}
+
+/** Espessura estrutural padrão 19 mm (spec). */
+const getEspessura = (box: BoxModule) => (box.espessura > 0 ? box.espessura : SYSTEM_THICKNESS_MM);
 const getNomeMaterial = (box: BoxModule) => box.material ?? "MDF Branco";
+/** Profundidade útil (sem costa): profundidade_total - 10 mm. */
+const PROFUNDIDADE_UTIL_MM = SYSTEM_BACK_MM;
 
 /** Nomes finais e fixos para exibição (UI, PDF). COSTA sem espessura ao lado do nome. */
 export const PIECE_LABELS: Record<string, string> = {
@@ -127,7 +147,6 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   const altura = Number(box.dimensoes.altura) || 0;
   const profundidade = Number(box.dimensoes.profundidade) || 0;
   const espessura = getEspessura(box);
-  const folgaPrateleira = 2;
   const folgaPorta = 3;
   const recuoGaveta = 13;
 
@@ -135,16 +154,16 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   const material = getNomeMaterial(box);
 
   const espessuraCosta = rules.madeira.espessuraCosta;
-  const larguraCimaFundo = clampPositive(largura - espessura * 2);
   const alturaLateral = rules.madeira.calcularAlturaLaterais
     ? clampPositive(altura - espessura * 2)
     : clampPositive(altura);
   const larguraLateral = clampPositive(profundidade);
 
+  // 3.2 Cima e Fundo: largura total × profundidade total × 19 mm
   paineis.push({
-    id: buildId("cima", paineis.length),
+    id: getStructuralPanelId(box, "cima"),
     tipo: "cima",
-    largura_mm: larguraCimaFundo,
+    largura_mm: clampPositive(largura),
     altura_mm: clampPositive(profundidade),
     espessura_mm: espessura,
     material,
@@ -154,9 +173,9 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   });
 
   paineis.push({
-    id: buildId("fundo", paineis.length),
+    id: getStructuralPanelId(box, "fundo"),
     tipo: "fundo",
-    largura_mm: larguraCimaFundo,
+    largura_mm: clampPositive(largura),
     altura_mm: clampPositive(profundidade),
     espessura_mm: espessura,
     material,
@@ -166,7 +185,7 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   });
 
   paineis.push({
-    id: buildId("lateral-esquerda", paineis.length),
+    id: getStructuralPanelId(box, "lateral_esquerda"),
     tipo: "lateral_esquerda",
     largura_mm: larguraLateral,
     altura_mm: alturaLateral,
@@ -178,7 +197,7 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   });
 
   paineis.push({
-    id: buildId("lateral-direita", paineis.length),
+    id: getStructuralPanelId(box, "lateral_direita"),
     tipo: "lateral_direita",
     largura_mm: larguraLateral,
     altura_mm: alturaLateral,
@@ -190,7 +209,7 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   });
 
   paineis.push({
-    id: buildId("costa", paineis.length),
+    id: getStructuralPanelId(box, "costa"),
     tipo: "COSTA",
     largura_mm: clampPositive(largura),
     altura_mm: clampPositive(altura),
@@ -201,41 +220,47 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
     custo: 0,
   });
 
+  // 3.4 Prateleiras: DENTRO; largura = width − 2 mm, profundidade = depth − 10 mm, espessura 19 mm
   if (box.prateleiras > 0) {
-    const larguraPrateleira = clampPositive(largura - espessura * 2 - folgaPrateleira);
-    const alturaPrateleira = clampPositive(profundidade - folgaPrateleira);
-    paineis.push({
-      id: buildId("prateleira", paineis.length),
-      tipo: "prateleira",
-      largura_mm: larguraPrateleira,
-      altura_mm: alturaPrateleira,
-      espessura_mm: espessura,
-      material,
-      orientacaoFibra: "horizontal",
-      quantidade: Math.max(0, Math.floor(box.prateleiras)),
-      custo: 0,
-    });
+    const larguraPrateleira = clampPositive(largura - 2);
+    const profundidadePrateleira = clampPositive(profundidade - PROFUNDIDADE_UTIL_MM);
+    const nPrateleiras = Math.max(0, Math.floor(box.prateleiras));
+    for (let i = 0; i < nPrateleiras; i++) {
+      paineis.push({
+        id: getArrayPanelId(box, "prateleiras", i),
+        tipo: "prateleira",
+        largura_mm: larguraPrateleira,
+        altura_mm: profundidadePrateleira,
+        espessura_mm: espessura,
+        material,
+        orientacaoFibra: "horizontal",
+        quantidade: 1,
+        custo: 0,
+      });
+    }
   }
 
   if (box.portaTipo !== "sem_porta") {
     const alturaPorta = clampPositive(altura - folgaPorta);
     if (box.portaTipo === "porta_dupla") {
       const larguraPorta = clampPositive((largura - folgaPorta) / 2);
-      paineis.push({
-        id: buildId("porta", paineis.length),
-        tipo: "porta_dupla",
-        largura_mm: larguraPorta,
-        altura_mm: alturaPorta,
-        espessura_mm: espessura,
-        material,
-        orientacaoFibra: "vertical",
-        quantidade: 2,
-        custo: 0,
-      });
+      for (let i = 0; i < 2; i++) {
+        paineis.push({
+          id: getArrayPanelId(box, "portas", i),
+          tipo: "porta_dupla",
+          largura_mm: larguraPorta,
+          altura_mm: alturaPorta,
+          espessura_mm: espessura,
+          material,
+          orientacaoFibra: "vertical",
+          quantidade: 1,
+          custo: 0,
+        });
+      }
     } else {
       const larguraPorta = clampPositive(largura - folgaPorta);
       paineis.push({
-        id: buildId("porta", paineis.length),
+        id: getArrayPanelId(box, "portas", 0),
         tipo: box.portaTipo === "porta_correr" ? "porta_correr" : "porta_simples",
         largura_mm: larguraPorta,
         altura_mm: alturaPorta,
@@ -251,17 +276,20 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
   if (box.gavetas > 0) {
     const larguraGaveta = clampPositive(largura - recuoGaveta * 2);
     const alturaGaveta = clampPositive(box.alturaGaveta);
-    paineis.push({
-      id: buildId("gaveta-frente", paineis.length),
-      tipo: "gaveta_frente",
-      largura_mm: larguraGaveta,
-      altura_mm: alturaGaveta,
-      espessura_mm: espessura,
-      material,
-      orientacaoFibra: "horizontal",
-      quantidade: Math.max(0, Math.floor(box.gavetas)),
-      custo: 0,
-    });
+    const nGavetas = Math.max(0, Math.floor(box.gavetas));
+    for (let i = 0; i < nGavetas; i++) {
+      paineis.push({
+        id: getArrayPanelId(box, "gavetas", i),
+        tipo: "gaveta_frente",
+        largura_mm: larguraGaveta,
+        altura_mm: alturaGaveta,
+        espessura_mm: espessura,
+        material,
+        orientacaoFibra: "horizontal",
+        quantidade: 1,
+        custo: 0,
+      });
+    }
   }
 
   const materialInfo = getMaterial(material);
@@ -349,7 +377,7 @@ export function gerarPortas(box: BoxModule, rules: RulesConfig): PortaIndustrial
     const metade = clampPositive(larguraPorta / 2);
     return [
       {
-        id: buildId("porta", 0),
+        id: getArrayPanelId(box, "portas", 0),
         largura_mm: metade,
         altura_mm: alturaPorta,
         espessura_mm: espessura,
@@ -361,7 +389,7 @@ export function gerarPortas(box: BoxModule, rules: RulesConfig): PortaIndustrial
         ),
       },
       {
-        id: buildId("porta", 1),
+        id: getArrayPanelId(box, "portas", 1),
         largura_mm: metade,
         altura_mm: alturaPorta,
         espessura_mm: espessura,
@@ -377,7 +405,7 @@ export function gerarPortas(box: BoxModule, rules: RulesConfig): PortaIndustrial
 
   return [
     {
-      id: buildId("porta", 0),
+      id: getArrayPanelId(box, "portas", 0),
       largura_mm: larguraPorta,
       altura_mm: alturaPorta,
       espessura_mm: espessura,
@@ -397,21 +425,19 @@ export function gerarGavetas(box: BoxModule, _rules: RulesConfig): GavetaIndustr
   const recuoLateral = 13;
   const folga = 2;
   const tipoPorta: "overlay" | "inset" = "overlay";
-  const { larguraInterna, alturaInterna, profundidadeInterna } = getDimensoesInternas(
-    box,
-    espessura
-  );
+  const { larguraInterna, alturaInterna } = getDimensoesInternas(box, espessura);
   const material = getMaterial(getNomeMaterial(box));
   const larguraGaveta = clampPositive(larguraInterna - recuoLateral * 2);
   const alturaGaveta = clampPositive(alturaInterna - 40);
-  const profundidadeGaveta = clampPositive(profundidadeInterna - 20);
+  const profundidadeTotal = Number(box.dimensoes.profundidade) || 0;
+  const profundidadeGaveta = clampPositive(profundidadeTotal - SYSTEM_BACK_MM);
   const alturaFrente =
     tipoPorta === "overlay"
       ? alturaInterna + folga * 2
       : alturaInterna - folga * 2;
 
   return Array.from({ length: Math.max(0, Math.floor(box.gavetas)) }).map((_, index) => ({
-    id: buildId("gaveta", index),
+    id: getArrayPanelId(box, "gavetas", index),
     largura_mm: clampPositive(larguraGaveta),
     altura_mm: clampPositive(alturaGaveta || alturaFrente),
     profundidade_mm: clampPositive(profundidadeGaveta),

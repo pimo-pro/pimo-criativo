@@ -1,11 +1,17 @@
 import * as THREE from "three";
 import { createWoodMaterial } from "../materials/WoodMaterial";
 import { defaultMaterialSet, getMaterialPreset } from "../materials/MaterialLibrary";
+import { SYSTEM_THICKNESS_MM, SYSTEM_BACK_MM } from "../../core/baseCabinets";
 
 /**
- * Dimensões em unidades de cena (Three.js).
- * Convenção: 1 unidade = 1 metro.
- * Valores vindos da calculadora (mm) devem ser convertidos (÷1000) antes de passar para buildBox/updateBox.
+ * Camada oficial de fabricação: gera TODAS as peças segundo as regras industriais.
+ * Aplica-se a modelos base, caixas manuais, calculadora, duplicadas, templates e personalizadas.
+ * Dimensões em cena em metros (1 unidade = 1 m).
+ * - Costa (fundo): 10 mm, sempre ATRÁS da caixa; profundidade da caixa NUNCA é reduzida pela costa.
+ * - Cima/fundo: largura total × profundidade total × 19 mm.
+ * - Laterais: DENTRO; altura = altura - 38 mm, profundidade = total, espessura 19 mm.
+ * - Prateleiras: DENTRO; largura = largura - 2 mm, profundidade = profundidade - 10 mm, 19 mm.
+ * updateBoxGroup: apenas atualiza geometria/posição por nome; não recria IDs.
  */
 export type BoxOptions = {
   size?: number;
@@ -18,13 +24,32 @@ export type BoxOptions = {
   material?: THREE.Material;
   castShadow?: boolean;
   receiveShadow?: boolean;
+  /** Ignorado na construção: espessura/costa vêm das constantes do sistema (19 mm / 10 mm). */
   thickness?: number;
+  /** Número de prateleiras internas (geradas dentro da caixa). */
+  shelves?: number;
+  /** Número de portas (0, 1 ou 2). */
+  doors?: number;
+  /** Tipo de dobradiça (futuro uso). */
+  hingeType?: string;
+  /** Número de gavetas (0+). */
+  drawers?: number;
+  /** Tipo de corrediça (futuro uso). */
+  runnerType?: string;
   /** Se true, não cria geometria paramétrica; o grupo serve apenas para o(s) modelo(s) GLB (caixa = GLB). */
   cadOnly?: boolean;
   /** Rotação Y em radianos (manipulação visual). */
   rotationY?: number;
+  /** Direção da costa (parte traseira) em radianos: 0 | π/2 | π | -π/2. Auto-rotate alinha costa à parede. */
+  costaRotationY?: number;
   /** Se true, o viewer não reposiciona esta caixa no reflow. */
   manualPosition?: boolean;
+  /** Tipo de armário para altura automática: inferior (base) ou superior (parede). */
+  cabinetType?: "lower" | "upper";
+  /** Altura do pé (PE) em cm para caixas inferiores; base da caixa fica a PE cm do piso (default 10). */
+  pe_cm?: number;
+  /** Se false, o viewer não altera rotation.y (modo manual; botão RODAR). Default true. */
+  autoRotateEnabled?: boolean;
 };
 
 export type BoxModel = {
@@ -44,51 +69,125 @@ export type BoxModel = {
   };
 };
 
-/** Dimensões padrão para um módulo de armário (cozinha/roupeiro) sem porta, em metros (1 unidade = 1 m). */
-export const CABINET_MODULE_PRESET = {
-  width: 0.6,
-  height: 0.72,
-  depth: 0.5,
-  thickness: 0.018,
-} as const;
-
-/** Opções para gerar um módulo de armário com valores padrão; pode sobrepor com options. */
-export function getCabinetModuleOptions(overrides: Partial<BoxOptions> = {}): BoxOptions {
-  return {
-    width: CABINET_MODULE_PRESET.width,
-    height: CABINET_MODULE_PRESET.height,
-    depth: CABINET_MODULE_PRESET.depth,
-    thickness: CABINET_MODULE_PRESET.thickness,
-    ...overrides,
-  };
-}
+/** Espessura dos painéis em metros (19 mm). */
+const THICKNESS_M = SYSTEM_THICKNESS_MM / 1000;
+/** Espessura da costa em metros (10 mm). */
+const BACK_THICKNESS_M = SYSTEM_BACK_MM / 1000;
+/** Folga lateral para prateleiras (1 mm cada lado = 2 mm total). */
+const SHELF_WIDTH_CLEARANCE_M = 0.002;
+/** Profundidade interna antes da costa (costa 10 mm atrás). */
+const SHELF_DEPTH_CLEARANCE_M = SYSTEM_BACK_MM / 1000;
 
 const resolveDimensions = (options: BoxOptions = {}) => {
   const size = options.size ?? 1;
   const width = options.width ?? size;
   const height = options.height ?? size;
   const depth = options.depth ?? size;
-  const thickness = options.thickness ?? 0.01; // 0.01 m = 10 mm
   return {
     width: Math.max(0.001, width),
     height: Math.max(0.001, height),
     depth: Math.max(0.001, depth),
-    thickness: Math.max(0.001, thickness),
   };
 };
 
-/** Dimensões e posições de cada painel (X, Y, Z). Única fonte de verdade para buildBox e updateBoxModel. */
-function getPanelSpecs(width: number, height: number, depth: number, thickness: number) {
+/**
+ * Especificação dos painéis segundo regras de marcenaria.
+ * - Cima/fundo: largura total × profundidade total × 19 mm.
+ * - Laterais: DENTRO; altura = altura - 38 mm, profundidade = total, 19 mm. Posição x dentro das faces.
+ * - Costa: ATRÁS da caixa; largura total × altura total × 10 mm; z = -depth/2 - 5 mm.
+ * Tamanhos em Three.js: [x_size, y_size, z_size] = [largura, altura, profundidade] para cada painel.
+ */
+function getPanelSpecs(width: number, height: number, depth: number) {
+  const sideHeight = height - 2 * THICKNESS_M;
   return {
-    left: { size: [thickness, height, depth] as const, pos: [-width / 2 + thickness / 2, 0, 0] as const },
-    right: { size: [thickness, height, depth] as const, pos: [width / 2 - thickness / 2, 0, 0] as const },
-    top: { size: [width - 2 * thickness, thickness, depth - 2 * thickness] as const, pos: [0, height / 2 - thickness / 2, 0] as const },
-    bottom: { size: [width - 2 * thickness, thickness, depth - 2 * thickness] as const, pos: [0, -height / 2 + thickness / 2, 0] as const },
-    back: { size: [width - 2 * thickness, height - 2 * thickness, thickness] as const, pos: [0, 0, -depth / 2 + thickness / 2] as const },
+    top: {
+      size: [width, THICKNESS_M, depth] as const,
+      pos: [0, height / 2 - THICKNESS_M / 2, 0] as const,
+    },
+    bottom: {
+      size: [width, THICKNESS_M, depth] as const,
+      pos: [0, -height / 2 + THICKNESS_M / 2, 0] as const,
+    },
+    left: {
+      size: [THICKNESS_M, sideHeight, depth] as const,
+      pos: [-width / 2 + THICKNESS_M / 2, 0, 0] as const,
+    },
+    right: {
+      size: [THICKNESS_M, sideHeight, depth] as const,
+      pos: [width / 2 - THICKNESS_M / 2, 0, 0] as const,
+    },
+    back: {
+      size: [width, height, BACK_THICKNESS_M] as const,
+      pos: [0, 0, -depth / 2 - BACK_THICKNESS_M / 2] as const,
+    },
   };
 }
 
-type PanelType = "left" | "right" | "top" | "bottom" | "back";
+/**
+ * Prateleiras: DENTRO da caixa. largura = width - 2 mm, profundidade = depth - 10 mm, espessura 19 mm.
+ * Posição z: centrada na profundidade útil (face interior até costa).
+ */
+function getShelfSpecs(width: number, height: number, depth: number, count: number) {
+  const shelfWidth = Math.max(0.001, width - SHELF_WIDTH_CLEARANCE_M);
+  const shelfDepth = Math.max(0.001, depth - SHELF_DEPTH_CLEARANCE_M);
+  const interiorHeight = Math.max(0.001, height - 2 * THICKNESS_M);
+  const centerZ = -depth / 2 + shelfDepth / 2;
+  const specs: { size: [number, number, number]; pos: [number, number, number] }[] = [];
+  if (count < 1) return specs;
+  const spacing = interiorHeight / (count + 1);
+  const yMin = -height / 2 + THICKNESS_M + spacing;
+  for (let i = 0; i < count; i++) {
+    const y = yMin + i * spacing;
+    specs.push({
+      size: [shelfWidth, THICKNESS_M, shelfDepth],
+      pos: [0, y, centerZ],
+    });
+  }
+  return specs;
+}
+
+type PanelType = "left" | "right" | "top" | "bottom" | "back" | "front";
+
+type PanelSpec = { size: [number, number, number]; pos: [number, number, number] };
+
+/** Portas: SEMPRE fora da caixa; largura = largura do vão; altura = altura total; espessura 19 mm. */
+function getDoorSpecs(width: number, height: number, depth: number, count: number): PanelSpec[] {
+  const doorCount = Math.max(0, Math.floor(count));
+  if (doorCount < 1) return [];
+  const openingWidth = Math.max(0.001, width - 2 * THICKNESS_M);
+  const doorWidth = doorCount === 2 ? openingWidth / 2 : openingWidth;
+  const z = depth / 2 + THICKNESS_M / 2;
+  const specs: PanelSpec[] = [];
+  for (let i = 0; i < doorCount; i++) {
+    const x = doorCount === 2 ? (i === 0 ? -doorWidth / 2 : doorWidth / 2) : 0;
+    specs.push({
+      size: [doorWidth, height, THICKNESS_M],
+      pos: [x, 0, z],
+    });
+  }
+  return specs;
+}
+
+/** Gavetas: largura interna; profundidade = depth − 10 mm; espessura 19 mm (placeholder). */
+function getDrawerSpecs(width: number, height: number, depth: number, count: number): PanelSpec[] {
+  const drawerCount = Math.max(0, Math.floor(count));
+  if (drawerCount < 1) return [];
+  const openingWidth = Math.max(0.001, width - 2 * THICKNESS_M);
+  const drawerDepth = Math.max(0.001, depth - BACK_THICKNESS_M);
+  const interiorHeight = Math.max(0.001, height - 2 * THICKNESS_M);
+  const drawerHeight = interiorHeight / drawerCount;
+  const yStart = -height / 2 + THICKNESS_M + drawerHeight / 2;
+  const z = depth / 2 - drawerDepth / 2;
+  const specs: PanelSpec[] = [];
+  for (let i = 0; i < drawerCount; i++) {
+    const y = yStart + i * drawerHeight;
+    specs.push({
+      size: [openingWidth, drawerHeight, drawerDepth],
+      pos: [0, y, z],
+    });
+  }
+  return specs;
+}
 
 let cachedFallbackMaterial: THREE.MeshStandardMaterial | null = null;
 
@@ -148,14 +247,14 @@ function createBoxGeometryWithEdgeGroups(
 
 export const buildBox = (options: BoxOptions = {}): BoxModel => {
   const opts = options ?? {};
-  const { width, height, depth, thickness } = resolveDimensions(opts);
+  const { width, height, depth } = resolveDimensions(opts);
   const useDefaultMDF = opts.material == null;
   const baseMaterial: THREE.Material = opts.material ?? getFallbackPBRMaterial();
 
   const root = new THREE.Group();
   root.name = "box-model";
 
-  const specs = getPanelSpecs(width, height, depth, thickness);
+  const specs = getPanelSpecs(width, height, depth);
   const panelTypes = ["left", "top", "bottom", "right", "back"] as const;
 
   const getMaterial = (_panelType: PanelType) => baseMaterial;
@@ -181,20 +280,55 @@ export const buildBox = (options: BoxOptions = {}): BoxModel => {
     root.add(p);
   });
 
+  const shelfCount = Math.max(0, Math.floor(opts.shelves ?? 0));
+  if (shelfCount > 0) {
+    const shelfSpecs = getShelfSpecs(width, height, depth, shelfCount);
+    const shelfMat = baseMaterial;
+    shelfSpecs.forEach((spec, i) => {
+      const mesh = createPanel(spec.size[0], spec.size[1], spec.size[2], `shelf-${i}`, "top", { singleMaterial: shelfMat });
+      mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+      root.add(mesh);
+    });
+  }
+
+  const doorCount = Math.max(0, Math.floor(opts.doors ?? 0));
+  if (doorCount > 0) {
+    const doorSpecs = getDoorSpecs(width, height, depth, doorCount);
+    const doorMat = baseMaterial;
+    doorSpecs.forEach((spec, i) => {
+      const mesh = createPanel(spec.size[0], spec.size[1], spec.size[2], `door-${i}`, "front", { singleMaterial: doorMat });
+      mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+      if (opts.hingeType) mesh.userData.hingeType = opts.hingeType;
+      root.add(mesh);
+    });
+  }
+
+  const drawerCount = Math.max(0, Math.floor(opts.drawers ?? 0));
+  if (drawerCount > 0) {
+    const drawerSpecs = getDrawerSpecs(width, height, depth, drawerCount);
+    const drawerMat = baseMaterial;
+    drawerSpecs.forEach((spec, i) => {
+      const mesh = createPanel(spec.size[0], spec.size[1], spec.size[2], `drawer-${i}`, "front", { singleMaterial: drawerMat });
+      mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+      if (opts.runnerType) mesh.userData.runnerType = opts.runnerType;
+      root.add(mesh);
+    });
+  }
+
   root.position.set(0, 0, 0);
 
   return {
     root,
     panels,
-    dimensions: { width, height, depth, thickness },
+    dimensions: { width, height, depth, thickness: THICKNESS_M },
   };
 };
 
 export const updateBoxModel = (model: BoxModel, options: BoxOptions = {}): BoxModel => {
   const opts = options ?? {};
-  const { width, height, depth, thickness } = resolveDimensions(opts);
+  const { width, height, depth } = resolveDimensions(opts);
   const material = opts.material ?? model.panels.left.material;
-  const specs = getPanelSpecs(width, height, depth, thickness);
+  const specs = getPanelSpecs(width, height, depth);
   const panelKeys: (keyof typeof model.panels)[] = ["left", "right", "top", "bottom", "back"];
 
   panelKeys.forEach((key) => {
@@ -210,7 +344,7 @@ export const updateBoxModel = (model: BoxModel, options: BoxOptions = {}): BoxMo
     });
   }
 
-  model.dimensions = { width, height, depth, thickness };
+  model.dimensions = { width, height, depth, thickness: THICKNESS_M };
   return model;
 };
 
@@ -292,22 +426,58 @@ export const buildBoxLegacy = (options?: BoxOptions | null) => {
 const PANEL_NAMES = ["left", "right", "top", "bottom", "back"] as const;
 
 /**
- * Atualiza um grupo criado por buildBoxLegacy: geometria e posição de cada painel por nome.
- * Use no Viewer quando entry.mesh for um Group (módulo de armário com painéis).
+ * Atualiza um grupo criado por buildBoxLegacy: geometria e posição de cada painel por nome (regras de marcenaria).
+ * Sincroniza também prateleiras (shelf-0, shelf-1, ...) quando options.shelves é fornecido.
  */
 export function updateBoxGroup(group: THREE.Group, options?: BoxOptions | null): { width: number; height: number; depth: number } {
   const opts = options ?? {};
-  const { width, height, depth, thickness } = resolveDimensions(opts);
-  const specs = getPanelSpecs(width, height, depth, thickness);
+  const { width, height, depth } = resolveDimensions(opts);
+  const specs = getPanelSpecs(width, height, depth);
 
+  const toRemove: THREE.Object3D[] = [];
   group.children.forEach((child) => {
     if (!(child instanceof THREE.Mesh) || !child.geometry) return;
-    const name = child.name as (typeof PANEL_NAMES)[number];
-    if (!PANEL_NAMES.includes(name)) return;
-    const spec = specs[name];
-    if (!spec) return;
-    updatePanelGeometry(child, spec.size[0], spec.size[1], spec.size[2]);
-    child.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+    const name = child.name;
+    if (PANEL_NAMES.includes(name as (typeof PANEL_NAMES)[number])) {
+      const spec = specs[name as keyof typeof specs];
+      if (spec) {
+        updatePanelGeometry(child, spec.size[0], spec.size[1], spec.size[2]);
+        child.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+      }
+      return;
+    }
+    if (name.startsWith("shelf-") || name.startsWith("door-") || name.startsWith("drawer-")) {
+      toRemove.push(child);
+    }
+  });
+
+  toRemove.forEach((c) => group.remove(c));
+  const shelfCount = Math.max(0, Math.floor(opts.shelves ?? 0));
+  const shelfSpecs = getShelfSpecs(width, height, depth, shelfCount);
+  const baseMaterial = group.children[0] instanceof THREE.Mesh ? (group.children[0] as THREE.Mesh).material : getFallbackPBRMaterial();
+  const mat = Array.isArray(baseMaterial) ? baseMaterial[0] : baseMaterial;
+  shelfSpecs.forEach((spec, i) => {
+    const mesh = createPanel(spec.size[0], spec.size[1], spec.size[2], `shelf-${i}`, "top", { singleMaterial: mat as THREE.Material });
+    mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+    group.add(mesh);
+  });
+
+  const doorCount = Math.max(0, Math.floor(opts.doors ?? 0));
+  const doorSpecs = getDoorSpecs(width, height, depth, doorCount);
+  doorSpecs.forEach((spec, i) => {
+    const mesh = createPanel(spec.size[0], spec.size[1], spec.size[2], `door-${i}`, "front", { singleMaterial: mat as THREE.Material });
+    mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+    if (opts.hingeType) mesh.userData.hingeType = opts.hingeType;
+    group.add(mesh);
+  });
+
+  const drawerCount = Math.max(0, Math.floor(opts.drawers ?? 0));
+  const drawerSpecs = getDrawerSpecs(width, height, depth, drawerCount);
+  drawerSpecs.forEach((spec, i) => {
+    const mesh = createPanel(spec.size[0], spec.size[1], spec.size[2], `drawer-${i}`, "front", { singleMaterial: mat as THREE.Material });
+    mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+    if (opts.runnerType) mesh.userData.runnerType = opts.runnerType;
+    group.add(mesh);
   });
 
   return { width, height, depth };

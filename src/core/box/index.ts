@@ -14,3 +14,4 @@ export {
   validateBoxParams,
   type ValidationResult,
 } from "./boxValidation";
+export { ensureBoxPanelIds, createStableId } from "./panelIds";

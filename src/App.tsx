@@ -21,10 +21,14 @@ import { ToolbarModalProvider } from "./context/ToolbarModalContext";
 import { ToastProvider } from "./context/ToastContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "./constants/viewerOptions";
+import { useUiStore } from "./stores/uiStore";
+import { wallStore } from "./stores/wallStore";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
-  const [leftPanelTab, setLeftPanelTab] = useState("home");
+  const leftPanelTab = useUiStore((state) => state.selectedTool);
+  const setLeftPanelTab = useUiStore((state) => state.setSelectedTool);
+  const clearSelection = useUiStore((state) => state.clearSelection);
   const [rightOpen] = useState(true);
   const [leftWidth, setLeftWidth] = useState(260);
   const [showBottom] = useState(true);
@@ -183,6 +187,7 @@ export default function App() {
                 selectedId={leftPanelTab}
                 onSelect={(id) => {
                   setLeftPanelTab(id);
+                  clearSelection();
                   if (!leftOpen) setLeftOpen(true);
                 }}
               />

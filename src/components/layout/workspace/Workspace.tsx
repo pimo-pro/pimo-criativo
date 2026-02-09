@@ -20,6 +20,9 @@ import {
 import { mToMm } from "../../../utils/units";
 import { getModelo } from "../../../core/cad/cadModels";
 import { validateProjectLight } from "../../../core/validation/validateProject";
+import { getRoomDimensionsCm, useWallStore, wallStore } from "../../../stores/wallStore";
+import { useUiStore } from "../../../stores/uiStore";
+import { clampOpeningNoOverlap } from "../../../utils/openingConstraints";
 
 type WorkspaceProps = {
   viewerBackground?: string;
@@ -45,6 +48,13 @@ export default function Workspace({
   );
   const viewerApi = usePimoViewer(containerRef, viewerOptionsStable);
   const { registerViewerApi } = usePimoViewerContext();
+  const isRoomOpen = useWallStore((state) => state.isOpen);
+  const walls = useWallStore((state) => state.walls);
+  const selectedWallId = useWallStore((state) => state.selectedWallId);
+  const selectedObject = useUiStore((state) => state.selectedObject);
+  const setSelectedObject = useUiStore((state) => state.setSelectedObject);
+  const clearUiSelection = useUiStore((state) => state.clearSelection);
+  const setSelectedTool = useUiStore((state) => state.setSelectedTool);
 
   useEffect(() => {
     registerViewerApi(viewerApi);
@@ -55,6 +65,74 @@ export default function Workspace({
       viewerSync.registerViewerApi(null);
     };
   }, [registerViewerApi, viewerSync, viewerApi]);
+
+  // Definir bounds antes de criar sala e antes de qualquer sync/snap/rotação.
+  useEffect(() => {
+    if (!viewerApi?.setRoomBounds || !viewerApi?.clearRoomBounds) return;
+    if (!isRoomOpen) {
+      viewerApi.clearRoomBounds();
+      return;
+    }
+    const dims = getRoomDimensionsCm(walls);
+    if (!dims) {
+      viewerApi.clearRoomBounds();
+      return;
+    }
+    const widthM = dims.widthCm / 100;
+    const depthM = dims.depthCm / 100;
+    const heightM = dims.heightCm / 100;
+    viewerApi.setRoomBounds({
+      width: widthM,
+      depth: depthM,
+      height: heightM,
+      originX: 0,
+      originZ: 0,
+    });
+  }, [viewerApi, isRoomOpen, walls]);
+
+  useEffect(() => {
+    if (!viewerApi?.createRoom || !viewerApi?.removeRoom) return;
+    if (!isRoomOpen) {
+      viewerApi.removeRoom();
+      return;
+    }
+    const limitedWalls = walls.slice(0, 4);
+    if (limitedWalls.length === 0) return;
+
+    const numWalls = Math.min(4, Math.max(3, limitedWalls.length)) as 3 | 4;
+    const roomWalls = limitedWalls.map((wall) => {
+      const pos = wall.position ?? { x: 0, z: 0 };
+      const rot = typeof wall.rotation === "number" ? wall.rotation : 0;
+      const lengthMm = Math.max(10, wall.lengthCm * 10);
+      const heightMm = Math.max(10, wall.heightCm * 10);
+      const thicknessMm = Math.max(10, wall.thicknessCm * 10);
+      const openings = (wall.openings ?? []).map((o) => ({
+        id: o.id,
+        type: o.type,
+        widthMm: o.widthMm ?? 900,
+        heightMm: o.heightMm ?? 2100,
+        floorOffsetMm: o.floorOffsetMm ?? 0,
+        horizontalOffsetMm: o.horizontalOffsetMm ?? 0,
+        modelId: o.modelId,
+      }));
+      return {
+        id: wall.id,
+        position: { x: pos.x / 100, z: pos.z / 100 },
+        rotation: rot,
+        lengthMm,
+        heightMm,
+        thicknessMm,
+        color: wall.color,
+        openings,
+      };
+    });
+
+    viewerApi.createRoom({
+      numWalls,
+      walls: roomWalls,
+      selectedWallId: selectedWallId ?? null,
+    });
+  }, [viewerApi, isRoomOpen, walls, selectedWallId]);
 
   // MultiBoxManager: sincroniza workspaceBoxes ↔ viewer; addBox/removeBox delegam a actions
   useMultiBoxManager({
@@ -67,9 +145,105 @@ export default function Workspace({
     viewerApi.setOnBoxSelected((boxId) => {
       if (boxId) {
         actions.selectBox(boxId);
+        setSelectedTool("home");
+        setSelectedObject({ type: "box", id: boxId });
+        return;
       }
+      actions.clearSelection();
+      clearUiSelection();
     });
-  }, [actions, viewerApi]);
+  }, [actions, viewerApi, clearUiSelection, setSelectedObject, setSelectedTool]);
+
+  useEffect(() => {
+    viewerApi.setOnWallSelected?.((wallIndex) => {
+      if (wallIndex == null) {
+        wallStore.getState().selectWall(null);
+        return;
+      }
+      const wall = walls[wallIndex];
+      if (!wall) return;
+      actions.clearSelection();
+      wallStore.getState().setOpen(true);
+      wallStore.getState().selectWall(wall.id);
+      setSelectedTool("layout");
+      setSelectedObject({ type: "wall", id: wall.id });
+    });
+  }, [actions, viewerApi, walls, setSelectedObject, setSelectedTool]);
+
+  useEffect(() => {
+    if (!isRoomOpen || !viewerApi.selectWallByIndex) return;
+    const index = selectedWallId ? walls.findIndex((w) => w.id === selectedWallId) : -1;
+    viewerApi.selectWallByIndex(index >= 0 ? index : null);
+  }, [viewerApi, isRoomOpen, selectedWallId, walls]);
+
+  useEffect(() => {
+    if (selectedObject?.type === "roomElement" && selectedObject?.id) {
+      viewerApi.selectRoomElementById?.(selectedObject.id);
+    }
+  }, [viewerApi, selectedObject?.type, selectedObject?.id]);
+
+  useEffect(() => {
+    viewerApi.setOnWallTransform?.((wallIndex, position, rotation) => {
+      const wall = walls[wallIndex];
+      if (!wall) return;
+      wallStore.getState().updateWall(wall.id, {
+        position: { x: position.x * 100, z: position.z * 100 },
+        rotation,
+      });
+    });
+  }, [viewerApi, walls]);
+
+  useEffect(() => {
+    viewerApi.setOnRoomElementSelected?.((roomElement) => {
+      if (roomElement == null) {
+        clearUiSelection();
+        return;
+      }
+      actions.clearSelection();
+      const wall = walls[roomElement.wallId];
+      if (wall) {
+        wallStore.getState().setOpen(true);
+        wallStore.getState().selectWall(wall.id);
+      }
+      setSelectedTool("layout");
+      setSelectedObject({ type: "roomElement", id: roomElement.elementId });
+    });
+  }, [actions, viewerApi, walls, clearUiSelection, setSelectedObject, setSelectedTool]);
+
+  useEffect(() => {
+    viewerApi.setOnRoomElementTransform?.((elementId, config) => {
+      const wall = walls.find((w) => (w.openings ?? []).some((o) => o.id === elementId));
+      if (!wall) return;
+      const wallLengthMm = wall.lengthCm * 10;
+      const wallHeightMm = wall.heightCm * 10;
+      const { horizontalOffsetMm, floorOffsetMm } = clampOpeningNoOverlap(
+        config,
+        elementId,
+        wall.openings ?? [],
+        wallLengthMm,
+        wallHeightMm
+      );
+      const finalConfig = {
+        ...config,
+        horizontalOffsetMm,
+        floorOffsetMm,
+      };
+      wallStore.getState().updateWall(wall.id, {
+        openings: (wall.openings ?? []).map((o) =>
+          o.id === elementId
+            ? {
+                ...o,
+                widthMm: finalConfig.widthMm,
+                heightMm: finalConfig.heightMm,
+                floorOffsetMm: finalConfig.floorOffsetMm,
+                horizontalOffsetMm: finalConfig.horizontalOffsetMm,
+              }
+            : o
+        ),
+      });
+      viewerApi.updateRoomElementConfig?.(elementId, finalConfig);
+    });
+  }, [viewerApi, walls]);
 
   useEffect(() => {
     if (project.selectedWorkspaceBoxId) {
@@ -100,7 +274,10 @@ export default function Workspace({
     const next = !lockEnabled;
     setLockEnabledState(next);
     viewerSync.setLockEnabled(next);
-  }, [lockEnabled, viewerSync]);
+    if (!next && project.selectedWorkspaceBoxId) {
+      actions.updateWorkspaceBoxTransform(project.selectedWorkspaceBoxId, { manualPosition: true });
+    }
+  }, [lockEnabled, viewerSync, project.selectedWorkspaceBoxId, actions]);
 
   const [selectedBoxDimensions, setSelectedBoxDimensions] = useState<{ width: number; height: number; depth: number } | null>(null);
   const isSelectMode = (project.activeViewerTool ?? "select") === "select";

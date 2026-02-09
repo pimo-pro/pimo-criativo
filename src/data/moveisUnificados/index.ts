@@ -41,6 +41,7 @@ const normalize = (value: string) =>
 const resolveCategoriaId = (categoria?: string | null): string => {
   const cat = normalize(categoria ?? "");
   if (!cat) return "outros";
+  if (cat.includes("base")) return "cozinha";
   if (cat.includes("cozinha")) return "cozinha";
   if (cat.includes("roupeiro") || cat.includes("guarda-roupa") || cat.includes("guarda roupa")) return "roupeiro";
   if (cat.includes("banheiro") || cat.includes("wc")) return "banheiro";
