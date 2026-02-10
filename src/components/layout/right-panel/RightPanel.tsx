@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useProject } from "../../../context/useProject";
+import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import {
   cutlistComPrecoFromBoxes,
 } from "../../../core/manufacturing/cutlistFromBoxes";
@@ -12,8 +13,7 @@ import GerarArquivoModal from "./GerarArquivoModal";
 
 export default function RightPanel() {
   const { project, actions } = useProject();
-  const selectedId = project.selectedWorkspaceBoxId;
-  const workspaceBoxes = project.workspaceBoxes;
+  const { openModal } = useToolbarModal();
   const boxes = project.boxes ?? [];
   const hasBoxes = boxes.length > 0;
   const slug = (project.projectName || "projeto").replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
@@ -152,24 +152,14 @@ const cnc = exportCncFiles(project, layoutResult, drillOps);
           {project.estaCarregando ? "A Calcular..." : "Gerar Design 3D"}
         </button>
 
-        <div className="row row-gap-sm" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {/* Adicionar caixote: cria um novo card na lista; o Viewer recebe via sync */}
-          <button
-            onClick={() => actions.addWorkspaceBox()}
-            className="button button-ghost"
-            style={{ flex: 1 }}
-          >
-            Adicionar caixote
-          </button>
-          <button
-            onClick={() => actions.duplicateWorkspaceBox()}
-            disabled={!selectedId || workspaceBoxes.length === 0}
-            className="button button-ghost"
-            style={{ flex: 1, opacity: selectedId ? 1 : 0.6 }}
-          >
-            Duplicar
-          </button>
-        </div>
+        <button
+          type="button"
+          className="button button-ghost"
+          style={{ width: "100%", marginBottom: 8 }}
+          onClick={() => openModal("image")}
+        >
+          Abrir Photo Mode
+        </button>
 
         <button
           onClick={() => setShowGerarArquivoModal(true)}

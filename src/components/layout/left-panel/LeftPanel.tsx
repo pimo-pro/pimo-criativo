@@ -309,7 +309,21 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     <div className="left-panel-content">
       <div className="left-panel-scroll">
     <aside className="panel-content panel-content--side">
-      <div className="section-title">
+      <div className="section-title">Início</div>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+        Crie novas caixas a partir daqui para começar o seu projeto.
+      </p>
+      
+      <button
+        type="button"
+        onClick={() => actions.addWorkspaceBox()}
+        className="button button-primary"
+        style={{ width: "100%", marginBottom: 16 }}
+      >
+        Adicionar Caixote
+      </button>
+
+      <div className="section-title" style={{ marginTop: 20 }}>
         {selectedBox
           ? `Caixa selecionada: ${selectedBox.nome}`
           : "Definições"}

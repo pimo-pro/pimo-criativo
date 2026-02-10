@@ -6,7 +6,6 @@ import {
   cutlistComPrecoFromBoxes,
   ferragensFromBoxes,
 } from "../../../core/manufacturing/cutlistFromBoxes";
-import { validateProject } from "../../../core/validation/validateProject";
 import {
   calcularPrecoTotalPecas,
   calcularPrecoTotalProjeto,
@@ -275,28 +274,7 @@ export default function RightToolsBar() {
   return (
     <>
       <aside className="right-tools-bar" aria-label="Resultados e modais">
-        <div
-          className="right-tools-card"
-          style={{ display: "flex", flexDirection: "column", gap: 10 }}
-        >
-          <button
-            type="button"
-            className="modal-action"
-            style={{ width: "100%", fontWeight: 600 }}
-            onClick={() => openModal("validation")}
-          >
-            Verificar Projeto
-          </button>
-          <button
-            type="button"
-            className="modal-action"
-            style={{ width: "100%", fontWeight: 600 }}
-            onClick={() => openModal("image")}
-          >
-            Abrir Photo Mode
-          </button>
-        </div>
-        <div className="right-tools-card" style={{ marginTop: 12 }}>
+        <div className="right-tools-card" style={{ marginTop: 0 }}>
           <div className="right-tools-card-title">Resultados Atuais</div>
           <div className="right-tools-card-row">
             <span>Peças</span>
@@ -884,48 +862,6 @@ export default function RightToolsBar() {
                   Preparar envio
                 </button>
               </div>
-            ) : modal === "validation" ? (
-              (() => {
-                const result = validateProject({
-                  workspaceBoxes: project.workspaceBoxes,
-                  boxes: project.boxes ?? [],
-                  roomConfig: null,
-                });
-                return (
-                  <div className="modal-list">
-                    {result.items.length === 0 ? (
-                      <div className="modal-empty">Nenhum problema encontrado.</div>
-                    ) : (
-                      result.items.map((item) => (
-                        <div key={item.id} className="modal-list-item">
-                          <div className="modal-list-info">
-                            <div
-                              className="modal-list-title"
-                              style={{
-                                color: item.severity === "error" ? "var(--red)" : "var(--warning)",
-                              }}
-                            >
-                              {item.message}
-                            </div>
-                          </div>
-                          {item.boxId && (
-                            <button
-                              type="button"
-                              className="modal-action"
-                              onClick={() => {
-                                actions.selectBox(item.boxId!);
-                                closeModal();
-                              }}
-                            >
-                              Selecionar Caixa
-                            </button>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                );
-              })()
             ) : modal === "integration" ? (
               <div className="modal-placeholder">{integrationMessage}</div>
             ) : null}

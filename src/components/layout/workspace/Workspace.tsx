@@ -21,7 +21,7 @@ import { mToMm } from "../../../utils/units";
 import { getModelo } from "../../../core/cad/cadModels";
 import { validateProjectLight } from "../../../core/validation/validateProject";
 import { getRoomDimensionsCm, useWallStore, wallStore } from "../../../stores/wallStore";
-import { useUiStore } from "../../../stores/uiStore";
+import { useUiStore, uiStore } from "../../../stores/uiStore";
 import { clampOpeningNoOverlap } from "../../../utils/openingConstraints";
 
 type WorkspaceProps = {
@@ -142,10 +142,14 @@ export default function Workspace({
   });
 
   useEffect(() => {
-viewerApi.setOnBoxSelected((boxId) => {
+    viewerApi.setOnBoxSelected((boxId) => {
       if (boxId) {
         actions.selectBox(boxId);
-        setSelectedTool("home");
+        // Restaurar comportamento da aba "Móveis": não voltar para HOME se estiver em Móveis
+        const currentTool = uiStore.getState().selectedTool;
+        if (currentTool !== "moveis") {
+          setSelectedTool("home");
+        }
         setSelectedObject({ type: "box", id: boxId });
         return;
       }
