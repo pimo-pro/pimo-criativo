@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProject } from "../../../context/useProject";
 import UnifiedPopover, { StepperPopover } from "../../ui/UnifiedPopover";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
@@ -16,7 +16,7 @@ export type LeftPanelProps = {
 /** Tab interno da página Info: "geral" | "tecnica" */
 const INFO_INNER_TABS = ["geral", "tecnica"] as const;
 
-function InfoPanelContent({ footer }: { footer: React.ReactNode }) {
+function InfoPanelContent() {
   const [infoInnerTab, setInfoInnerTab] = useState<"geral" | "tecnica">("geral");
 
   return (
@@ -81,7 +81,6 @@ function InfoPanelContent({ footer }: { footer: React.ReactNode }) {
           )}
         </aside>
       </div>
-      {footer}
     </div>
   );
 }
@@ -100,18 +99,7 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   const [editingBoxName, setEditingBoxName] = useState("");
   const { viewerApi } = usePimoViewerContext();
 
-  const footer = (
-    <div className="left-panel-footer">
-      <button
-        type="button"
-        onClick={() => actions.addWorkspaceBox()}
-        className="button button-ghost"
-        style={{ width: "100%" }}
-      >
-        Criar Caixa
-      </button>
-    </div>
-  );
+  // Footer removed - buttons now in main content area
 
   const resolvedTabRaw = selectedTool ?? activeTab;
   const resolvedTab =
@@ -129,7 +117,6 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         <div className="left-panel-scroll">
           <PainelModelosDaCaixa />
         </div>
-        {footer}
       </div>
     );
   }
@@ -244,7 +231,6 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         </button>
       </aside>
         </div>
-        {footer}
       </div>
     );
   }
@@ -284,7 +270,7 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   // Info — ajuda / como funciona (estrutura com tabs para futura Info Técnica)
   if (resolvedTab === LEFT_TOOLBAR_IDS.INFO) {
     return (
-      <InfoPanelContent footer={null} />
+      <InfoPanelContent />
     );
   }
 
@@ -293,13 +279,26 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
       <div className="left-panel-content">
         <div className="left-panel-scroll">
           <aside className="panel-content panel-content--side">
-            <div className="section-title">Seleção</div>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
-              Nenhum item selecionado.
+            <div className="section-title">Início</div>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+              Nenhuma caixa selecionada. Defina o nome do projeto abaixo.
             </p>
+
+            <Panel title="NOME DE PROJETO">
+              <input
+                type="text"
+                value={project.projectName}
+                onChange={(e) => actions.setProjectName(e.target.value)}
+                placeholder="Nome do projeto"
+                className="input input-sm"
+              />
+            </Panel>
+
+            <Panel title="Notas">
+              <NotesField projectName={project.projectName} />
+            </Panel>
           </aside>
         </div>
-        {footer}
       </div>
     );
   }
@@ -314,14 +313,26 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         Crie novas caixas a partir daqui para começar o seu projeto.
       </p>
       
-      <button
-        type="button"
-        onClick={() => actions.addWorkspaceBox()}
-        className="button button-primary"
-        style={{ width: "100%", marginBottom: 16 }}
-      >
-        Adicionar Caixote
-      </button>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => actions.addWorkspaceBox()}
+          className="button button-primary"
+          style={{ flex: 1, minWidth: 140 }}
+        >
+          Adicionar Caixote
+        </button>
+        {selectedBox && (
+          <button
+            type="button"
+            onClick={() => actions.duplicateWorkspaceBox()}
+            className="button button-ghost"
+            style={{ flex: 1, minWidth: 140 }}
+          >
+            Duplicar Caixa
+          </button>
+        )}
+      </div>
 
       <div className="section-title" style={{ marginTop: 20 }}>
         {selectedBox
@@ -477,7 +488,46 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
 
     </aside>
       </div>
-      {footer}
+    </div>
+  );
+}
+
+function NotesField({ projectName }: { projectName: string }) {
+  const storageKey = `pimo_project_notes:${projectName}`;
+  const [notes, setNotes] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey) ?? "";
+      setNotes(saved);
+    } catch (e) {
+      /* ignore */
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, notes);
+    } catch (e) {
+      /* ignore */
+    }
+  }, [storageKey, notes]);
+
+  return (
+    <div>
+      <textarea
+        className="input input-sm"
+        style={{ width: "100%", minHeight: 80 }}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Notas do projeto (local)"
+      />
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>Nota atual:</div>
+        <div style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "var(--text-main)", background: "var(--surface)", padding: 8, borderRadius: 6, border: "1px solid var(--border)" }}>
+          {notes || (<span style={{ color: "var(--text-muted)" }}>Nenhuma nota</span>)}
+        </div>
+      </div>
     </div>
   );
 }

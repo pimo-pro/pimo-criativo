@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useProject } from "../../../context/useProject";
 import Panel from "../../ui/Panel";
 import { useCadModels } from "../../../hooks/useCadModels";
@@ -7,6 +7,7 @@ import {
   getCategoriasMoveis,
   type UnifiedModelItem,
 } from "../../../data/moveisUnificados";
+// keep this file UI-only; do not change selectedTool here
 
 const PAGE_SIZE = 10;
 
@@ -48,7 +49,7 @@ export default function PainelMoveisUnificado() {
     setItensVisiveis(PAGE_SIZE);
   }, [categoriaSelecionada, termoBusca]);
 
-  const handleAddItem = (item: UnifiedModelItem) => {
+  const handleAddItem = useCallback((item: UnifiedModelItem) => {
     if (item.tipo === "pronto") {
       actions.addTemplateAsNewBox(item.sourceId);
       return;
@@ -58,7 +59,7 @@ export default function PainelMoveisUnificado() {
       return;
     }
     actions.addCadModelAsNewBox(item.sourceId);
-  };
+  }, [actions]);
 
   const itensPaginados = itensFiltrados.slice(0, itensVisiveis);
   const podeCarregarMais = itensFiltrados.length > itensVisiveis;

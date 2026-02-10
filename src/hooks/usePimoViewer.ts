@@ -373,6 +373,11 @@ export const usePimoViewer = (
     []
   );
 
+  const getSelectedBoxScreenPosition = useCallback(
+    () => viewerRef.current?.getSelectedBoxScreenPosition?.() ?? null,
+    []
+  );
+
   const getRightmostX = useCallback(
     () => viewerRef.current?.getRightmostX?.() ?? -0.1,
     []
@@ -460,6 +465,7 @@ export const usePimoViewer = (
       getSelectedBoxDimensions,
       setDimensionsOverlayVisible,
       getDimensionsOverlayVisible,
+      getSelectedBoxScreenPosition,
       getRightmostX,
       setManualWallHidden,
       getManualWallHidden,
@@ -511,6 +517,7 @@ export const usePimoViewer = (
       getSelectedBoxDimensions,
       setDimensionsOverlayVisible,
       getDimensionsOverlayVisible,
+      getSelectedBoxScreenPosition,
       getRightmostX,
       setManualWallHidden,
       getManualWallHidden,

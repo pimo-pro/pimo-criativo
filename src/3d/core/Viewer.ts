@@ -459,6 +459,32 @@ export class Viewer {
     return this.dimensionsOverlayVisible;
   }
 
+  /**
+   * Posição em pixels (relativa ao container do viewer) do topo-centro da caixa selecionada.
+   * Usado para posicionar o overlay de texto (dimensões + rotação) acima da caixa.
+   */
+  getSelectedBoxScreenPosition(): { x: number; y: number } | null {
+    if (!this.selectedBoxId || !this.container) return null;
+    const entry = this.boxes.get(this.selectedBoxId);
+    if (!entry) return null;
+    entry.mesh.updateMatrixWorld(true);
+    this._boundingBox.setFromObject(entry.mesh);
+    const min = this._boundingBox.min;
+    const max = this._boundingBox.max;
+    const topCenter = new THREE.Vector3(
+      (min.x + max.x) * 0.5,
+      max.y,
+      (min.z + max.z) * 0.5
+    );
+    topCenter.project(this.cameraManager.camera);
+    const w = this.container.clientWidth || 1;
+    const h = this.container.clientHeight || 1;
+    const x = (topCenter.x + 1) * 0.5 * w;
+    const y = (1 - topCenter.y) * 0.5 * h;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    return { x, y };
+  }
+
   private createDimensionsOverlay(): void {
     if (this.dimensionsOverlayGroup) return;
     this.dimensionsOverlayGroup = new THREE.Group();

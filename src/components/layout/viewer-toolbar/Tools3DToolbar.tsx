@@ -49,8 +49,11 @@ export default function Tools3DToolbar({
   const enabledTools: Tool3DId[] = ["select", "move", "rotate"];
   const selectedBoxId = project.selectedWorkspaceBoxId;
   const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [showRotationPopup, setShowRotationPopup] = useState(false);
   
   const cameraMenuRef = useRef<HTMLDivElement>(null);
+  const rotationPopupRef = useRef<HTMLDivElement>(null);
+  const rotationInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!showCameraMenu) return;
@@ -60,6 +63,19 @@ export default function Tools3DToolbar({
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, [showCameraMenu]);
+
+  useEffect(() => {
+    if (!showRotationPopup) return;
+    const close = (e: MouseEvent) => {
+      if (rotationPopupRef.current && !rotationPopupRef.current.contains(e.target as Node)) setShowRotationPopup(false);
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [showRotationPopup]);
+
+  useEffect(() => {
+    if (showRotationPopup) rotationInputRef.current?.focus();
+  }, [showRotationPopup]);
 
   
 
@@ -181,7 +197,6 @@ export default function Tools3DToolbar({
       
       {selectedBoxId && (
         <>
-          
           <button
             type="button"
             title="Rotar 90° à direita"
@@ -204,6 +219,93 @@ export default function Tools3DToolbar({
           >
             ⟳
           </button>
+          <div ref={rotationPopupRef} style={{ position: "relative", display: "inline-flex", marginLeft: 2 }}>
+            <button
+              type="button"
+              title="Definir rotação (graus)"
+              aria-label="Definir rotação em graus"
+              aria-expanded={showRotationPopup}
+              onClick={() => setShowRotationPopup((v) => !v)}
+              style={{
+                ...btnStyle,
+                background: showRotationPopup ? "rgba(59, 130, 246, 0.25)" : "transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!showRotationPopup) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              }}
+              onMouseLeave={(e) => {
+                if (!showRotationPopup) e.currentTarget.style.background = "transparent";
+              }}
+            >
+              ∠
+            </button>
+            {showRotationPopup && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  marginTop: 4,
+                  padding: 8,
+                  background: "rgba(15, 23, 42, 0.98)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 6,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  minWidth: 120,
+                  zIndex: 1000,
+                }}
+              >
+                <label style={{ fontSize: 11, color: "var(--text-muted)" }}>Rotação (°)</label>
+                <input
+                  ref={rotationInputRef}
+                  type="number"
+                  min={-360}
+                  max={360}
+                  step={1}
+                  defaultValue={
+                    Math.round(
+                      ((project.workspaceBoxes.find((b) => b.id === selectedBoxId)?.rotacaoY ?? 0) * 180) / Math.PI
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const v = Number((e.target as HTMLInputElement).value);
+                      if (Number.isFinite(v)) {
+                        actions.updateWorkspaceBoxTransform(selectedBoxId, {
+                          rotacaoY_rad: (v * Math.PI) / 180,
+                          manualPosition: true,
+                        });
+                        setShowRotationPopup(false);
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) {
+                      actions.updateWorkspaceBoxTransform(selectedBoxId, {
+                        rotacaoY_rad: (v * Math.PI) / 180,
+                        manualPosition: true,
+                      });
+                    }
+                    setShowRotationPopup(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "4px 6px",
+                    fontSize: 12,
+                    color: "var(--text-main)",
+                    background: "rgba(0,0,0,0.3)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: 4,
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

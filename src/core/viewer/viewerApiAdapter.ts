@@ -124,6 +124,9 @@ export function createViewerApiAdapter(
     getDimensionsOverlayVisible: (): boolean => {
       return pimoApi.getDimensionsOverlayVisible?.() ?? false;
     },
+    getSelectedBoxScreenPosition: (): { x: number; y: number } | null => {
+      return pimoApi.getSelectedBoxScreenPosition?.() ?? null;
+    },
     getRightmostX: (): number => {
       return pimoApi.getRightmostX?.() ?? -0.1;
     },

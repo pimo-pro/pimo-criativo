@@ -284,6 +284,7 @@ export default function Workspace({
   }, [lockEnabled, viewerSync, project.selectedWorkspaceBoxId, actions]);
 
   const [selectedBoxDimensions, setSelectedBoxDimensions] = useState<{ width: number; height: number; depth: number } | null>(null);
+  const [selectedBoxOverlayPosition, setSelectedBoxOverlayPosition] = useState<{ x: number; y: number } | null>(null);
   const isSelectMode = (project.activeViewerTool ?? "select") === "select";
 
   useEffect(() => {
@@ -293,11 +294,14 @@ export default function Workspace({
   useEffect(() => {
     if (!isSelectMode) {
       setSelectedBoxDimensions(null);
+      setSelectedBoxOverlayPosition(null);
       return;
     }
     const t = setInterval(() => {
       const dims = viewerSync.getSelectedBoxDimensions();
       setSelectedBoxDimensions(dims ?? null);
+      const pos = viewerSync.getSelectedBoxScreenPosition();
+      setSelectedBoxOverlayPosition(pos ?? null);
     }, 150);
     return () => clearInterval(t);
   }, [isSelectMode, viewerSync]);
@@ -393,8 +397,8 @@ export default function Workspace({
     return () => viewerApi.setOnModelLoaded(null);
   }, [actions, viewerApi]);
 
-  return (
-    <main className="workspace-root">
+return (
+    <main className="workspace-root" style={{ position: "relative", zIndex: 99999 }}>
       <div className="workspace-canvas">
         <div className="workspace-toolbars" style={{ display: "flex", flexDirection: "column" }}>
           <ViewerToolbar />
@@ -409,7 +413,7 @@ export default function Workspace({
             onToggleLock={toggleLock}
           />
         </div>
-        <div className="workspace-viewer" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", position: "relative" }}>
+<div className="workspace-viewer" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", position: "relative" }}>
           <div
             ref={containerRef}
             style={{
@@ -419,30 +423,48 @@ export default function Workspace({
               height: typeof viewerHeight === "number" ? `${viewerHeight}px` : "100%",
             }}
           />
-          {isSelectMode && selectedBoxDimensions && (
-            <div
-              className="dimensions-overlay"
-              style={{
-                position: "absolute",
-                bottom: 12,
-                left: 12,
-                padding: "6px 10px",
-                background: "rgba(15, 23, 42, 0.85)",
-                borderRadius: 6,
-                fontSize: 12,
-                color: "var(--text-main, #f1f5f9)",
-                fontFamily: "var(--font-sans)",
-                display: "flex",
-                gap: 12,
-                pointerEvents: "none",
-              }}
-            >
-              <span>L {selectedBoxDimensions.width.toFixed(2)} m</span>
-              <span>A {selectedBoxDimensions.height.toFixed(2)} m</span>
-              <span>P {selectedBoxDimensions.depth.toFixed(2)} m</span>
-            </div>
-          )}
         </div>
+{isSelectMode && (selectedBoxDimensions || project.selectedWorkspaceBoxId) && selectedBoxOverlayPosition && (() => {
+            const selectedBox = project.workspaceBoxes.find((b) => b.id === project.selectedWorkspaceBoxId);
+            const rotacaoY_rad = selectedBox?.rotacaoY ?? 0;
+            const rotacaoGraus = rotacaoY_rad * (180 / Math.PI);
+const { x, y } = selectedBoxOverlayPosition;
+            console.log('Overlay rendering:', { x, y, selectedBoxOverlayPosition, selectedBoxDimensions, projectSelectedBoxId: project.selectedWorkspaceBoxId });
+            console.log('Overlay position:', { left: x, top: y - 4, transform: "translate(-50%, -100%)" });
+            return (
+              <div
+                className="dimensions-overlay"
+                style={{
+                  position: "absolute",
+                  left: x,
+                  top: y - 4,
+                  transform: "translate(-50%, -100%)",
+                  padding: "6px 10px",
+                  background: "rgba(15, 23, 42, 0.85)",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: "var(--text-main, #f1f5f9)",
+                  fontFamily: "var(--font-sans)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  pointerEvents: "none",
+                  whiteSpace: "nowrap",
+                  zIndex: 9999,
+                }}
+              >
+                <span>DEBUG: Overlay Rendered</span>
+                <span>Rotação: {rotacaoGraus.toFixed(0)}°</span>
+                {selectedBoxDimensions && (
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <span>L {selectedBoxDimensions.width.toFixed(2)} m</span>
+                    <span>A {selectedBoxDimensions.height.toFixed(2)} m</span>
+                    <span>P {selectedBoxDimensions.depth.toFixed(2)} m</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
       </div>
     </main>
   );

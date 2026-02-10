@@ -71,6 +71,8 @@ export type PimoViewerApi = {
   getSelectedBoxDimensions?: () => { width: number; height: number; depth: number } | null;
   setDimensionsOverlayVisible?: (_visible: boolean) => void;
   getDimensionsOverlayVisible?: () => boolean;
+  /** Posição em pixels (relativa ao container) do topo da caixa selecionada, para overlay de texto. */
+  getSelectedBoxScreenPosition?: () => { x: number; y: number } | null;
   getRightmostX?: () => number;
   /** Reposiciona a câmera numa vista pré-definida (top, bottom, front, back, right, left, isometric). */
   setCameraView?: (_preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric") => void;
