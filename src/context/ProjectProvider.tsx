@@ -26,103 +26,19 @@ import {
   recomputeState,
 } from "./projectState";
 import { getTemplateById } from "../templates/templatesIndex";
-import { getCatalogItemById } from "../catalog/catalogIndex";
 import { getBaseCabinetById, modelToPortaTipo } from "../core/baseCabinets";
 import { ensureBoxPanelIds } from "../core/box/panelIds";
 import { safeGetItem, safeParseJson, safeSetItem } from "../utils/storage";
 import { useViewerSync } from "../hooks/useViewerSync";
-import { wallStore, getRoomDimensionsCm } from "../stores/wallStore";
 
 const PROJECTS_STORAGE_KEY = "pimo_saved_projects";
 const AUTOSAVE_STORAGE_KEY = "pimo_autosave";
 const AUTO_SAVE_INTERVAL_MS = 3000;
 const MAX_HISTORY = 40;
 
-const WALL_SPAWN_MARGIN_M = 0.06;
-
-const getRotationForWallIndex = (wallIndex: number) => {
-  if (wallIndex === 0) return 0;
-  if (wallIndex === 1) return Math.PI / 2;
-  if (wallIndex === 2) return Math.PI;
-  return -Math.PI / 2;
-};
-
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-
-const getSafeCenterAlongWall = (
-  lengthM: number,
-  boxWidthM: number,
-  openings: Array<{ widthMm?: number; horizontalOffsetMm?: number }>
-) => {
-  const half = boxWidthM / 2;
-  const min = half + WALL_SPAWN_MARGIN_M;
-  const max = Math.max(min, lengthM - half - WALL_SPAWN_MARGIN_M);
-  let center = lengthM / 2;
-  if (!openings?.length) return clamp(center, min, max);
-  const blocked = openings
-    .filter((o) => (o.widthMm ?? 0) > 0)
-    .map((o) => {
-      const start = (o.horizontalOffsetMm ?? 0) / 1000;
-      const end = start + (o.widthMm ?? 0) / 1000;
-      return {
-        start: start - (half + WALL_SPAWN_MARGIN_M),
-        end: end + (half + WALL_SPAWN_MARGIN_M),
-      };
-    });
-  for (const b of blocked) {
-    if (center >= b.start && center <= b.end) {
-      const left = clamp(b.start - 0.001, min, max);
-      const right = clamp(b.end + 0.001, min, max);
-      center = Math.abs(center - left) <= Math.abs(center - right) ? left : right;
-    }
-  }
-  return clamp(center, min, max);
-};
-
-const getSpawnFromSelectedWall = (dimensoes: { largura: number; profundidade: number; altura: number }) => {
-  const wallState = wallStore.getState();
-  const selectedWallId = wallState.selectedWallId;
-  if (!selectedWallId) return null;
-  const walls = wallState.walls ?? [];
-  const wallIndex = walls.findIndex((w) => w.id === selectedWallId);
-  if (wallIndex < 0) return null;
-  const dims = getRoomDimensionsCm(walls);
-  if (!dims) return null;
-
-  const widthM = dims.widthCm / 100;
-  const depthM = dims.depthCm / 100;
-  const minX = 0;
-  const minZ = 0;
-  const maxX = widthM;
-  const maxZ = depthM;
-
-  const rotationY = getRotationForWallIndex(wallIndex);
-  const boxDepthM = (dimensoes.profundidade ?? 0) / 1000;
-  const boxWidthM = (dimensoes.largura ?? 0) / 1000;
-
-  const isFrontBack = wallIndex === 0 || wallIndex === 2;
-  const wallLengthM = isFrontBack ? widthM : depthM;
-  const openings = walls[wallIndex]?.openings ?? [];
-  const along = getSafeCenterAlongWall(wallLengthM, boxWidthM, openings);
-
-  let posX = widthM / 2;
-  let posZ = depthM / 2;
-  if (isFrontBack) {
-    posX = minX + along;
-    const targetZ = wallIndex === 0 ? minZ : maxZ;
-    posZ = wallIndex === 0 ? targetZ + boxDepthM / 2 : targetZ - boxDepthM / 2;
-  } else {
-    posZ = minZ + along;
-    const targetX = wallIndex === 1 ? maxX : minX;
-    posX = wallIndex === 1 ? targetX - boxDepthM / 2 : targetX + boxDepthM / 2;
-  }
-
-  return {
-    posicaoX_mm: posX * 1000,
-    posicaoZ_mm: posZ * 1000,
-    rotacaoY: rotationY,
-  };
-};
+const getSpawnFromSelectedWall = (
+  _dimensoes: { largura: number; profundidade: number; altura: number }
+): { posicaoX_mm: number; posicaoZ_mm: number; rotacaoY: number } | null => null;
 
 type AutosaveEntry = {
   snapshot: ProjectSnapshot;
@@ -315,11 +231,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       snap && typeof snap === "object" && "viewerSnapshot" in snap
         ? (snap as ProjectSnapshot).viewerSnapshot
         : null;
-    const roomSnapshot =
-      snap && typeof snap === "object" && "roomSnapshot" in snap
-        ? (snap as ProjectSnapshot).roomSnapshot
-        : null;
-    if (roomSnapshot) wallStore.getState().loadRoomConfig(roomSnapshot);
     const restored = reviveState(projectState);
     if (restored) setProject(applyResultados(restored));
     if (viewerSnapshot) viewerSync.restoreViewerSnapshot(viewerSnapshot);
@@ -329,12 +240,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const tick = () => {
       const proj = projectRef.current;
-      const room = wallStore.getState();
-      if (proj.workspaceBoxes.length === 0 && room.walls.length === 0) return;
+      if (proj.workspaceBoxes.length === 0) return;
       const snapshot: ProjectSnapshot = {
         projectState: serializeState(proj),
         viewerSnapshot: viewerSync.saveViewerSnapshot(),
-        roomSnapshot: { walls: room.walls, selectedWallId: room.selectedWallId, mainWallIndex: room.mainWallIndex },
       };
       safeSetItem(
         AUTOSAVE_STORAGE_KEY,
@@ -348,9 +257,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // Aviso antes de fechar/atualizar/navegar para fora
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
-      const ws = wallStore.getState();
       const proj = projectRef.current;
-      if (proj.workspaceBoxes.length > 0 || ws.walls.length > 0) {
+      if (proj.workspaceBoxes.length > 0) {
         e.preventDefault();
         e.returnValue = "Você perderá o seu projeto atual. Deseja continuar?";
       }
@@ -530,6 +438,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         newBox.manualPosition = true;
         newBox.posicaoZ_mm = spawn?.posicaoZ_mm ?? 0;
         newBox.cabinetType = "lower";
+        newBox.feetEnabled = true;
         newBox.posicaoY_mm = 10 * 10 + dimensoes.altura / 2;
         if (spawn) {
           newBox.rotacaoY = spawn.rotacaoY;
@@ -1024,6 +933,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           if (partial.rotacaoY_rad !== undefined) next.rotacaoY = partial.rotacaoY_rad;
           if (partial.manualPosition !== undefined) next.manualPosition = partial.manualPosition;
           if (partial.autoRotateEnabled !== undefined) next.autoRotateEnabled = partial.autoRotateEnabled;
+          if (partial.feetEnabled !== undefined) next.feetEnabled = partial.feetEnabled;
           return next;
         });
         return { ...prev, workspaceBoxes };
@@ -1331,14 +1241,9 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
       );
     },
     saveProjectSnapshot: () => {
-      const roomState = wallStore.getState();
       const snapshot: ProjectSnapshot = {
         projectState: serializeState(project),
         viewerSnapshot: viewerSync.saveViewerSnapshot(),
-        roomSnapshot: {
-          walls: roomState.walls,
-          selectedWallId: roomState.selectedWallId,
-        },
       };
       const name = project.projectName?.trim() || "Projeto";
       const timestamp = new Date().toISOString();
@@ -1375,11 +1280,6 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
         writeStoredProjects(nextStored);
       }
       viewerSync.restoreViewerSnapshot(viewerSnapshot ?? null);
-      const roomSnapshot =
-        snapshot && typeof snapshot === "object" && "roomSnapshot" in snapshot
-          ? (snapshot as ProjectSnapshot).roomSnapshot
-          : null;
-      wallStore.getState().loadRoomConfig(roomSnapshot ?? null);
       const restored = reviveState(projectState);
       if (!restored) return;
       updateProject(() => applyResultados(restored));
@@ -1387,7 +1287,6 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
     loadProjectFromTemplate: (templateId) => {
       const template = getTemplateById(templateId);
       if (!template || !template.boxes.length) return;
-      viewerSync.removeRoom();
       const espessura = template.materialPadrao?.espessura ?? 19;
       const workspaceBoxes = template.boxes.map((b) => {
         const prateleiras = b.prateleiras ?? 0;

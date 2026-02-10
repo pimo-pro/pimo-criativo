@@ -16,7 +16,7 @@ export interface UiStoreState {
 }
 
 export const uiStore = createStore<UiStoreState>((set) => ({
-  selectedTool: "layout",
+  selectedTool: "home",
   selectedObject: { type: "none" },
   setSelectedTool: (toolId) => {
     set({ selectedTool: toolId });

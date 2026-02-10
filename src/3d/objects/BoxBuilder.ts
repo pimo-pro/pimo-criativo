@@ -45,9 +45,11 @@ export type BoxOptions = {
   /** Se true, o viewer não reposiciona esta caixa no reflow. */
   manualPosition?: boolean;
   /** Tipo de armário para altura automática: inferior (base) ou superior (parede). */
-  cabinetType?: "lower" | "upper";
+  cabinetType?: "lower" | "upper" | null;
   /** Altura do pé (PE) em cm para caixas inferiores; base da caixa fica a PE cm do piso (default 10). */
   pe_cm?: number;
+  /** Ativa/desativa os pés de 10 cm para caixas inferiores. */
+  feetEnabled?: boolean;
   /** Se false, o viewer não altera rotation.y (modo manual; botão RODAR). Default true. */
   autoRotateEnabled?: boolean;
 };

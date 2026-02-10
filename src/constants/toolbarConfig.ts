@@ -5,6 +5,7 @@
 
 export type ToolbarActionId =
   | "projeto"
+  | "novo"
   | "salvar"
   | "desfazer"
   | "refazer"
@@ -21,6 +22,7 @@ export const VIEWER_TOOLBAR_ITEMS: Array<{
   tooltip: string;
 }> = [
   { id: "projeto", label: "PROJETO", icon: "P", tooltip: "Projetos salvos" },
+  { id: "novo", label: "NOVO", icon: "N", tooltip: "Limpar dados locais e iniciar sessão nova" },
   { id: "salvar", label: "SALVAR", icon: "S", tooltip: "Guardar snapshot" },
   { id: "desfazer", label: "DESFAZER", icon: "⟲", tooltip: "Desfazer" },
   { id: "refazer", label: "REFAZER", icon: "⟳", tooltip: "Refazer" },

@@ -97,8 +97,12 @@ export const useCalculadoraSync = (
       const shelves = Number.isFinite(box.prateleiras) ? Math.max(0, box.prateleiras) : undefined;
       const cabinetType = wsBox?.cabinetType === "lower" || wsBox?.cabinetType === "upper" ? wsBox.cabinetType : undefined;
       const pe_cm = wsBox?.pe_cm;
+      const feetEnabled = wsBox?.feetEnabled ?? true;
       const autoRotateEnabled = wsBox?.autoRotateEnabled;
-      const cabinetOpts = cabinetType ? { cabinetType, pe_cm } : {};
+      const useCabinetLock = cabinetType === "lower" && feetEnabled;
+      const cabinetOpts: Partial<BoxOptions> = useCabinetLock
+        ? { cabinetType, pe_cm, feetEnabled }
+        : { cabinetType: null, feetEnabled };
       const rotateOpts = autoRotateEnabled === false ? { autoRotateEnabled: false } : {};
       if (!stateRef.current.has(box.id)) {
         api.addBox(box.id, {

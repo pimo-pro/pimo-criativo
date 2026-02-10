@@ -5,6 +5,7 @@ import type { ViewerOptions } from "../3d/core/Viewer";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
 import type {
   DoorWindowConfig,
+  RoomConfig,
   ViewerRenderOptions,
   ViewerRenderResult,
 } from "../context/projectTypes";
@@ -53,6 +54,36 @@ type PimoViewerAPI = {
   renderScene: (_options: ViewerRenderOptions) => Promise<ViewerRenderResult | null>;
   setUltraPerformanceMode: (_active: boolean) => void;
   getUltraPerformanceMode: () => boolean;
+  createRoom: (_config: RoomConfig) => void;
+  removeRoom: () => void;
+  selectWallByIndex: (_index: number | null) => void;
+  selectRoomElementById: (_elementId: string | null) => void;
+  setPlacementMode: (_mode: "door" | "window" | null) => void;
+  addDoorToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
+  addWindowToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
+  setOnRoomElementPlaced: (
+    _cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
+  ) => void;
+  setOnRoomElementSelected: (
+    _cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
+  ) => void;
+  updateRoomElementConfig: (_elementId: string, _config: DoorWindowConfig) => boolean;
+  setLockEnabled: (_enabled: boolean) => void;
+  getLockEnabled: () => boolean;
+  getCombinedBoundingBox: () => {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+    size: { x: number; y: number; z: number };
+    width: number;
+    height: number;
+    depth: number;
+  } | null;
+  getSelectedBoxDimensions: () => { width: number; height: number; depth: number } | null;
+  setDimensionsOverlayVisible: (_visible: boolean) => void;
+  getDimensionsOverlayVisible: () => boolean;
+  getRightmostX: () => number;
+  setManualWallHidden?: (_active: boolean) => void;
+  getManualWallHidden?: () => boolean;
 };
 
 export const usePimoViewer = (

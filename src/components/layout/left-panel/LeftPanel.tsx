@@ -7,10 +7,6 @@ import { mmToM } from "../../../utils/units";
 import { LEFT_TOOLBAR_IDS } from "../left-toolbar/LeftToolbar";
 import PainelMoveisUnificado from "./PainelMoveisUnificado";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
-import SidebarWalls from "../../walls/SidebarWalls";
-import RoomSetupPanel from "../../walls/RoomSetupPanel";
-import OpeningSettings from "../../walls/OpeningSettings";
-import { useWallStore } from "../../../stores/wallStore";
 import { useUiStore } from "../../../stores/uiStore";
 
 export type LeftPanelProps = {
@@ -91,10 +87,7 @@ function InfoPanelContent({ footer }: { footer: React.ReactNode }) {
 }
 
 export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
-  const isRoomOpen = useWallStore((state) => state.isOpen);
-  const walls = useWallStore((state) => state.walls);
   const selectedTool = useUiStore((state) => state.selectedTool);
-  const selectedObject = useUiStore((state) => state.selectedObject);
   const setSelectedObject = useUiStore((state) => state.setSelectedObject);
   const setSelectedTool = useUiStore((state) => state.setSelectedTool);
   const { project, actions } = useProject();
@@ -120,29 +113,9 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     </div>
   );
 
-  const resolvedTab = selectedTool ?? activeTab;
-
-  // Layout = configurações da Sala (paredes, aberturas, Reiniciar Sala)
-  if (resolvedTab === LEFT_TOOLBAR_IDS.LAYOUT) {
-    if (selectedObject?.type === "roomElement" && selectedObject?.id) {
-      const wallWithOpening = walls.find((w) =>
-        (w.openings ?? []).some((o) => o.id === selectedObject.id)
-      );
-      const opening = wallWithOpening?.openings?.find((o) => o.id === selectedObject.id) ?? null;
-      return (
-        <OpeningSettings
-          opening={opening}
-          wallId={wallWithOpening?.id ?? null}
-        />
-      );
-    }
-    const isInitialRoomView =
-      selectedObject?.type === "none" && project.workspaceBoxes.length === 0;
-    if (isInitialRoomView) {
-      return <RoomSetupPanel onClear={() => viewerApi?.removeRoom?.()} />;
-    }
-    return <SidebarWalls />;
-  }
+  const resolvedTabRaw = selectedTool ?? activeTab;
+  const resolvedTab =
+    resolvedTabRaw === LEFT_TOOLBAR_IDS.LAYOUT ? LEFT_TOOLBAR_IDS.HOME : resolvedTabRaw;
 
   // Móveis = painel unificado
   if (resolvedTab === LEFT_TOOLBAR_IDS.MOVEIS) {
@@ -421,6 +394,44 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
           </div>
         </div>
       </Panel>
+
+      {selectedBox?.cabinetType === "lower" && (
+        <Panel title="Pés">
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 12,
+              color: "var(--text-main)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={selectedBox.feetEnabled !== false}
+              onChange={(e) => {
+                const nextEnabled = e.target.checked;
+                const partial: {
+                  feetEnabled: boolean;
+                  y_mm?: number;
+                  manualPosition?: boolean;
+                } = { feetEnabled: nextEnabled };
+                if (nextEnabled) {
+                  partial.y_mm = ((selectedBox.pe_cm ?? 10) * 10) + selectedBox.dimensoes.altura / 2;
+                  partial.manualPosition = false;
+                } else {
+                  partial.manualPosition = true;
+                }
+                actions.updateWorkspaceBoxTransform(selectedBox.id, partial);
+              }}
+            />
+            Ativar pés (10 cm)
+          </label>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
+            Com pés desativados, a caixa move livremente no eixo Y (sem atravessar o chão).
+          </p>
+        </Panel>
+      )}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         <StepperPopover

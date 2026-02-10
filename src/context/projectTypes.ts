@@ -189,6 +189,8 @@ export type ViewerApi = {
   getUltraPerformanceMode: () => boolean;
   createRoom: (_config: RoomConfig) => void;
   removeRoom: () => void;
+  selectWallByIndex: (_index: number | null) => void;
+  selectRoomElementById: (_elementId: string | null) => void;
   setPlacementMode: (_mode: "door" | "window" | null) => void;
   addDoorToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
   addWindowToRoom: (_wallId: number, _config: DoorWindowConfig) => string;
@@ -230,6 +232,8 @@ export type RoomSnapshot = {
     }>;
   }>;
   selectedWallId: string | null;
+  /** Índice da parede principal (0..3). */
+  mainWallIndex?: number;
 };
 
 export type ProjectSnapshot = {
@@ -324,6 +328,7 @@ export interface ProjectActions {
       rotacaoY_rad?: number;
       manualPosition?: boolean;
       autoRotateEnabled?: boolean;
+      feetEnabled?: boolean;
     }
   ) => void;
   /** Atualiza dimensões da caixa a partir do bbox do GLB (caixas CAD-only). */

@@ -100,6 +100,7 @@ export type CreateWorkspaceBoxOverrides = {
   panelIds?: WorkspaceBox["panelIds"];
   cabinetType?: "lower" | "upper";
   pe_cm?: number;
+  feetEnabled?: boolean;
 };
 
 export const createWorkspaceBox = (
@@ -120,9 +121,11 @@ export const createWorkspaceBox = (
   const panelIds = ensureBoxPanelIds(overrides?.panelIds, { prateleiras, portaTipo, gavetas });
   const cabinetType = overrides?.cabinetType;
   const pe_cm = overrides?.pe_cm;
+  const feetEnabled =
+    overrides?.feetEnabled ?? (cabinetType === "lower" ? true : undefined);
   const alturaMm = dimensoes?.altura ?? 0;
   const posicaoY_mm =
-    cabinetType === "lower"
+    cabinetType === "lower" && feetEnabled !== false
       ? (pe_cm ?? 10) * 10 + alturaMm / 2
       : cabinetType === "upper"
         ? 1500 + alturaMm / 2
@@ -148,6 +151,7 @@ export const createWorkspaceBox = (
     catalogItemId,
     cabinetType,
     pe_cm,
+    feetEnabled,
     autoRotateEnabled: true,
     panelIds,
   };

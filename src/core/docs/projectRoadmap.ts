@@ -454,7 +454,7 @@ const basePhases: Phase[] = [
       {
         id: "phase6_config_unificar",
         title: "Unificar padrões de viewer e sincronização",
-        description: "Padrões consistentes em Workspace, DevActions e demais módulos.",
+        description: "Padrões consistentes em Workspace e demais módulos.",
         status: "todo",
       },
     ],

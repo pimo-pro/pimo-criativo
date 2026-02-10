@@ -203,6 +203,8 @@ export interface WorkspaceBox {
   cabinetType?: "lower" | "upper";
   /** Altura do pé (PE) em cm para caixas inferiores; base da caixa fica a PE cm do piso (default 10). */
   pe_cm?: number;
+  /** Ativa/desativa os pés de 10 cm para caixas inferiores. */
+  feetEnabled?: boolean;
   /** Se false, o viewer não altera rotation.y (modo manual; ativado pelo botão RODAR). Default true. */
   autoRotateEnabled?: boolean;
   /** IDs únicos e estáveis por peça (cima, fundo, laterais, costa, prateleiras, portas, gavetas). Evita duplicate key no React. */

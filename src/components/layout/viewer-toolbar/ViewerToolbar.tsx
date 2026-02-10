@@ -29,6 +29,11 @@ export default function ViewerToolbar() {
       openModal("projects");
       return;
     }
+    if (id === "novo") {
+      localStorage.clear();
+      window.location.reload();
+      return;
+    }
     if (id === "salvar") {
       actions.saveProjectSnapshot();
       return;

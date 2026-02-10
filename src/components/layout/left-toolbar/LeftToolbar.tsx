@@ -22,7 +22,6 @@ const toolbarItems: LeftToolbarItem[] = [
   { id: LEFT_TOOLBAR_IDS.MOVEIS, label: "Móveis", icon: "M" },
   { id: LEFT_TOOLBAR_IDS.MODELOS, label: "Modelos", icon: "◫" },
   { id: LEFT_TOOLBAR_IDS.CALCULADORA, label: "Calculadora", icon: "⊕" },
-  { id: LEFT_TOOLBAR_IDS.LAYOUT, label: "Layout", icon: "▦" },
   { id: LEFT_TOOLBAR_IDS.ELETRO, label: "Eletro", icon: "E" },
   { id: LEFT_TOOLBAR_IDS.ACESSORIOS, label: "Acessórios", icon: "A" },
   { id: LEFT_TOOLBAR_IDS.INFO, label: "Info", icon: "?" },

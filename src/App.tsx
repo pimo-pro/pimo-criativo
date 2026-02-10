@@ -13,7 +13,6 @@ import Documentacao from "./pages/Documentacao";
 import AdminPanel from "./pages/AdminPanel";
 import ProjectProgress from "./pages/ProjectProgress";
 import DevPimoTest from "./pages/DevPimoTest";
-import DevActionsTest from "./pages/DevActionsTest";
 import { PimoViewerProvider } from "./context/PimoViewerContext";
 import { ProjectProvider } from "./context/ProjectProvider";
 import { MaterialProvider } from "./context/materialContext";
@@ -22,7 +21,6 @@ import { ToastProvider } from "./context/ToastContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "./constants/viewerOptions";
 import { useUiStore } from "./stores/uiStore";
-import { wallStore } from "./stores/wallStore";
 
 export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
@@ -65,7 +63,6 @@ export default function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProjectProgress, setShowProjectProgress] = useState(false);
   const [showDevTest, setShowDevTest] = useState(false);
-  const [showDevActions, setShowDevActions] = useState(false);
   const viewerOptions = useMemo(() => DEFAULT_VIEWER_OPTIONS, []);
 
   useEffect(() => {
@@ -75,14 +72,12 @@ export default function App() {
       const isAdmin = window.location.pathname === "/admin";
       const isProjectProgress = window.location.pathname === "/project-progress";
       const isDevTest = window.location.pathname === "/dev-test";
-      const isDevActions = window.location.pathname === "/dev-actions";
       const isPainelReferencia = window.location.pathname === "/painel-referencia";
       setShowAbout(isAbout);
       setShowSystemDocs(isSystemDocs);
       setShowAdmin(isAdmin);
       setShowProjectProgress(isProjectProgress);
       setShowDevTest(isDevTest);
-      setShowDevActions(isDevActions);
       setShowPainelReferencia(isPainelReferencia);
     };
     syncRoute();
@@ -135,7 +130,6 @@ export default function App() {
     setShowAdmin(false);
     setShowProjectProgress(false);
     setShowDevTest(false);
-    setShowDevActions(false);
     setShowPainelReferencia(false);
   };
 
@@ -176,8 +170,6 @@ export default function App() {
             <ProjectProgress />
           ) : showDevTest ? (
             <DevPimoTest />
-          ) : showDevActions ? (
-            <DevActionsTest />
           ) : showAbout ? (
             <SobreNos />
           ) : (
