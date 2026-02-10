@@ -107,12 +107,6 @@ const reviveState = (snapshot: unknown): ProjectState | null => {
     ...restored,
     workspaceBoxes,
     selectedWorkspaceBoxId: workspaceBoxes.length ? (restored.selectedWorkspaceBoxId ?? workspaceBoxes[0].id) : "",
-    selectedWorkspaceBoxIds:
-      workspaceBoxes.length
-        ? Array.isArray(restored.selectedWorkspaceBoxIds) && restored.selectedWorkspaceBoxIds.length > 0
-          ? restored.selectedWorkspaceBoxIds.filter((id) => workspaceBoxes.some((box) => box.id === id))
-          : (restored.selectedWorkspaceBoxId ? [restored.selectedWorkspaceBoxId] : [workspaceBoxes[0].id])
-        : [],
     selectedCaixaId: workspaceBoxes.length ? (restored.selectedCaixaId ?? workspaceBoxes[0].id) : "",
     selectedBoxId: workspaceBoxes.length ? (restored.selectedBoxId ?? "") : "",
     material: { ...defaultState.material, ...restored.material },
@@ -602,7 +596,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           prev,
           {
             selectedWorkspaceBoxId: boxId,
-            selectedWorkspaceBoxIds: [boxId],
+
             selectedBoxId: prev.boxes.find((box) => box.id === boxId)
               ? boxId
               : prev.selectedBoxId,
@@ -616,38 +610,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       });
     },
 
-    setWorkspaceSelection: (boxIds, primaryId) => {
-      updateProject((prev) => {
-        const validIds = Array.from(new Set(boxIds)).filter((id) =>
-          prev.workspaceBoxes.some((box) => box.id === id)
-        );
-        const primary =
-          (primaryId && validIds.includes(primaryId) ? primaryId : validIds[0]) ?? "";
-        return recomputeState(
-          prev,
-          {
-            selectedWorkspaceBoxId: primary,
-            selectedWorkspaceBoxIds: validIds,
-            selectedCaixaId: primary,
-            selectedBoxId: primary ? primary : prev.selectedBoxId,
-            selectedCaixaModelUrl: null,
-            selectedModelInstanceId: null,
-            dimensoes:
-              prev.workspaceBoxes.find((box) => box.id === primary)?.dimensoes ??
-              prev.dimensoes,
-          },
-          true
-        );
-      });
-    },
-
     clearSelection: () => {
       updateProject((prev) =>
         recomputeState(
           prev,
           {
             selectedWorkspaceBoxId: "",
-            selectedWorkspaceBoxIds: [],
+
             selectedCaixaId: "",
             selectedBoxId: "",
             selectedCaixaModelUrl: null,
@@ -967,7 +936,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           if (partial.manualPosition !== undefined) next.manualPosition = partial.manualPosition;
           if (partial.autoRotateEnabled !== undefined) next.autoRotateEnabled = partial.autoRotateEnabled;
           if (partial.feetEnabled !== undefined) next.feetEnabled = partial.feetEnabled;
-          if (partial.pe_cm !== undefined) next.pe_cm = partial.pe_cm;
+
           return next;
         });
         return { ...prev, workspaceBoxes };

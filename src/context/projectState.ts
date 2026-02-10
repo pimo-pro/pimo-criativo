@@ -170,7 +170,7 @@ export const defaultState: ProjectState = {
   selectedBoxId: "",
   workspaceBoxes: defaultWorkspaceBoxes,
   selectedWorkspaceBoxId: "",
-  selectedWorkspaceBoxIds: [],
+
   selectedCaixaId: "",
   selectedCaixaModelUrl: null,
   selectedModelInstanceId: null,
@@ -288,15 +288,10 @@ export const recomputeState = (
   partial: Partial<ProjectState>,
   withLoading: boolean
 ): ProjectState => {
-  const nextSelectionIds =
-    partial.selectedWorkspaceBoxIds ??
-    (partial.selectedWorkspaceBoxId !== undefined
-      ? (partial.selectedWorkspaceBoxId ? [partial.selectedWorkspaceBoxId] : [])
-      : prev.selectedWorkspaceBoxIds);
   const nextState: ProjectState = {
     ...prev,
     ...partial,
-    selectedWorkspaceBoxIds: nextSelectionIds ?? [],
+
     ...(withLoading ? { estaCarregando: true } : null),
   };
 

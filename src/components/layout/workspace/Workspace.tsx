@@ -21,14 +21,8 @@ import { mToMm } from "../../../utils/units";
 import { getModelo } from "../../../core/cad/cadModels";
 import { validateProjectLight } from "../../../core/validation/validateProject";
 import { getRoomDimensionsCm, useWallStore, wallStore } from "../../../stores/wallStore";
-import { useUiStore, uiStore } from "../../../stores/uiStore";
+import { useUiStore } from "../../../stores/uiStore";
 import { clampOpeningNoOverlap } from "../../../utils/openingConstraints";
-
-function selectionIdsEqual(a: string[] | undefined, b: string[]): boolean {
-  const aa = a ?? [];
-  if (aa.length !== b.length) return false;
-  return aa.every((id, i) => id === b[i]);
-}
 
 type WorkspaceProps = {
   viewerBackground?: string;
@@ -61,11 +55,6 @@ export default function Workspace({
   const setSelectedObject = useUiStore((state) => state.setSelectedObject);
   const clearUiSelection = useUiStore((state) => state.clearSelection);
   const setSelectedTool = useUiStore((state) => state.setSelectedTool);
-
-  const lastSelectionSyncedRef = useRef<{ ids: string[]; primaryId: string | null }>({
-    ids: [],
-    primaryId: null,
-  });
 
   useEffect(() => {
     registerViewerApi(viewerApi);
@@ -156,46 +145,19 @@ export default function Workspace({
     viewerApi.setOnBoxSelected((boxId) => {
       if (boxId) {
         if (
-          (project.selectedWorkspaceBoxIds?.length !== 1 || project.selectedWorkspaceBoxIds[0] !== boxId) ||
+          false ||
           project.selectedWorkspaceBoxId !== boxId
         ) {
           actions.selectBox(boxId);
         }
         return;
       }
-      if ((project.selectedWorkspaceBoxIds?.length ?? 0) > 0 || project.selectedWorkspaceBoxId != null) {
+      if (project.selectedWorkspaceBoxId != null) {
         actions.clearSelection();
         clearUiSelection();
       }
     });
-  }, [actions, viewerApi, clearUiSelection, project.selectedWorkspaceBoxIds, project.selectedWorkspaceBoxId]);
-
-  useEffect(() => {
-    viewerApi.setOnSelectionChanged?.((ids, primaryId, primarySelectionId) => {
-      const primary = primaryId ?? null;
-      const curIds = project.selectedWorkspaceBoxIds ?? [];
-      const curPrimary = project.selectedWorkspaceBoxId ?? null;
-      const same =
-        selectionIdsEqual(curIds, ids) && curPrimary === primary;
-      if (same) return;
-      lastSelectionSyncedRef.current = { ids: [...ids], primaryId: primary };
-      actions.setWorkspaceSelection(ids, primaryId ?? undefined);
-      if (ids.length === 0) {
-        clearUiSelection();
-      } else if (primaryId && (primarySelectionId === undefined || primarySelectionId === primaryId)) {
-        setSelectedTool("moveis");
-        setSelectedObject({ type: "box", id: primaryId });
-      }
-    });
-  }, [
-    actions,
-    viewerApi,
-    clearUiSelection,
-    setSelectedObject,
-    setSelectedTool,
-    project.selectedWorkspaceBoxIds,
-    project.selectedWorkspaceBoxId,
-  ]);
+  }, [actions, viewerApi, clearUiSelection, project.selectedWorkspaceBoxId]);
 
   useEffect(() => {
     viewerApi.setOnWallSelected?.((wallIndex) => {
@@ -289,19 +251,12 @@ export default function Workspace({
   }, [viewerApi, walls]);
 
   useEffect(() => {
-    const ids = project.selectedWorkspaceBoxIds ?? [];
-    const primary = project.selectedWorkspaceBoxId ?? null;
-    const last = lastSelectionSyncedRef.current;
-    if (selectionIdsEqual(last.ids, ids) && last.primaryId === primary) return;
-    lastSelectionSyncedRef.current = { ids: [...ids], primaryId: primary };
-    if (ids.length > 0) {
-      viewerApi.setSelectedBoxIds?.(ids, primary ?? undefined);
-    } else if (primary == null) {
-      viewerApi.selectBox(null);
+    if (project.selectedWorkspaceBoxId) {
+      viewerApi.selectBox(project.selectedWorkspaceBoxId);
     } else {
-      viewerApi.selectBox(primary);
+      viewerApi.selectBox(null);
     }
-  }, [project.selectedWorkspaceBoxIds, project.selectedWorkspaceBoxId, viewerApi]);
+  }, [project.selectedWorkspaceBoxId, viewerApi]);
 
   useEffect(() => {
     viewerApi.setOnBoxTransform((boxId, position, rotationY) => {
@@ -507,11 +462,10 @@ return (
             }}
           />
         </div>
-{isSelectMode && (selectedBoxDimensions || project.selectedWorkspaceBoxId || (project.selectedWorkspaceBoxIds?.length ?? 0) > 0) && selectedBoxOverlayPosition && (() => {
+{isSelectMode && (selectedBoxDimensions || project.selectedWorkspaceBoxId) && selectedBoxOverlayPosition && (() => {
             const selectedBox = project.workspaceBoxes.find((b) => b.id === project.selectedWorkspaceBoxId);
             const rotacaoY_rad = selectedBox?.rotacaoY ?? 0;
             const rotacaoGraus = rotacaoY_rad * (180 / Math.PI);
-            const multiCount = project.selectedWorkspaceBoxIds?.length ?? 0;
 const { x, y } = selectedBoxOverlayPosition;
             return (
 <div
@@ -541,7 +495,6 @@ const { x, y } = selectedBoxOverlayPosition;
                 }}
               >
                 <span>DEBUG: Overlay Rendered</span>
-                {multiCount > 1 && <span>{multiCount} selecionados</span>}
                 <span>Rotação: {rotacaoGraus.toFixed(0)}°</span>
                 {selectedBoxDimensions && (
                   <div style={{ display: "flex", gap: 12 }}>
