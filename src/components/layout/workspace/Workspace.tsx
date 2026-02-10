@@ -142,7 +142,7 @@ export default function Workspace({
   });
 
   useEffect(() => {
-    viewerApi.setOnBoxSelected((boxId) => {
+viewerApi.setOnBoxSelected((boxId) => {
       if (boxId) {
         actions.selectBox(boxId);
         setSelectedTool("home");

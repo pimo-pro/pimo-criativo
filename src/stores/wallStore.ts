@@ -73,11 +73,9 @@ const DEFAULT_WALL: Omit<Wall, "id"> = {
 function computeConnectedLayout(walls: Wall[]): Array<{ x: number; z: number; rotation: number }> {
   if (walls.length === 0) return [];
   const n = Math.min(4, walls.length);
-  const lengths = walls.map((wall) => wall.lengthCm ?? DEFAULT_WALL.lengthCm);
+const lengths = walls.map((wall) => wall.lengthCm ?? DEFAULT_WALL.lengthCm);
   const L0 = lengths[0];
   const L1 = lengths[1] ?? L0;
-  const L2 = n >= 3 ? (lengths[2] ?? L0) : L0;
-  const L3 = n >= 4 ? (lengths[3] ?? L1) : L1;
   const W = L0;
   const D = L1;
 
@@ -203,7 +201,7 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
       });
     });
 
-    if (bestSnap !== null) {
+if (bestSnap !== null) {
       const dx = bestSnap.to.x - bestSnap.from.x;
       const dz = bestSnap.to.z - bestSnap.from.z;
       isSnapping = true;
