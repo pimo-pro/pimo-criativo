@@ -13,6 +13,7 @@ export type ProjectForPdf = {
   projectName: string;
   boxes: BoxModule[];
   rules: RulesConfig;
+  materialId?: string;
   extractedPartsByBoxId?: Record<string, Record<string, CutListItemComPreco[]>>;
 };
 
@@ -21,7 +22,7 @@ const HEADER_COLOR: [number, number, number] = [15, 23, 42];
 
 /** Junta cutlist paramétrica + peças extraídas (GLB). */
 function getFullCutlist(project: ProjectForPdf): Array<CutListItemComPreco & { boxNome: string; tipoBorda?: string }> {
-  const parametric = cutlistComPrecoFromBoxes(project.boxes, project.rules);
+  const parametric = cutlistComPrecoFromBoxes(project.boxes, project.rules, project.materialId);
   const boxById = new Map(project.boxes.map((b) => [b.id, b]));
 
   const rows: Array<CutListItemComPreco & { boxNome: string; tipoBorda?: string }> = parametric.map((p) => {

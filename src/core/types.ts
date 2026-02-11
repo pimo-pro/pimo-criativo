@@ -21,6 +21,33 @@ export type TipoFundo = "integrado" | "recuado" | "sem_fundo";
 /** Origem da peça na lista de corte (paramétrica da caixa ou importada de GLB). */
 export type CutListSourceType = "parametric" | "glb_importado";
 
+/** Direção do veio (grain) para UV e textura. */
+export type GrainDirection = "horizontal" | "vertical" | "none";
+
+/**
+ * Estrutura de material visual por face (Layout Engine / MaterialLibrary v2).
+ * Alinhada com VisualMaterial; usada em CutListItem.faceMaterials.
+ */
+export interface LayoutVisualMaterial {
+  color: string;
+  textureUrl?: string;
+  uvScale: { x: number; y: number };
+  uvRotation: number;
+  roughness: number;
+  metallic: number;
+  normalMapUrl?: string;
+}
+
+/** Materiais por face (preparação para texturas por face). */
+export interface PieceFaceMaterials {
+  top?: LayoutVisualMaterial;
+  bottom?: LayoutVisualMaterial;
+  left?: LayoutVisualMaterial;
+  right?: LayoutVisualMaterial;
+  front?: LayoutVisualMaterial;
+  back?: LayoutVisualMaterial;
+}
+
 export interface CutListItem {
   id: string;
   nome: string;
@@ -39,6 +66,18 @@ export interface CutListItem {
   modelInstanceId?: string;
   /** ID da caixa (para agrupamento). */
   boxId?: string;
+  /** ID do material no CRUD (Layout Engine / MaterialLibrary v2). */
+  materialId?: string;
+  /** Material visual completo para a peça (cor, UV, roughness, metallic). */
+  visualMaterial?: LayoutVisualMaterial;
+  /** Direção do veio: horizontal (tampos), vertical (laterais), none. */
+  grainDirection?: GrainDirection;
+  /** Override de escala UV por peça (opcional). */
+  uvScaleOverride?: { x: number; y: number };
+  /** Override de rotação UV por peça em graus (opcional). */
+  uvRotationOverride?: number;
+  /** Materiais por face (preparação para texturas por face). */
+  faceMaterials?: PieceFaceMaterials;
 }
 
 /** Instância de um modelo CAD (GLB) associada a uma caixa. */
@@ -209,6 +248,8 @@ export interface WorkspaceBox {
   autoRotateEnabled?: boolean;
   /** IDs únicos e estáveis por peça (cima, fundo, laterais, costa, prateleiras, portas, gavetas). Evita duplicate key no React. */
   panelIds?: BoxPanelIds;
+  /** Id do material (CRUD) ou label legado. Usado para resolver material no Viewer e em exports. */
+  material?: string;
 }
 
 export interface ProjetoConfig {

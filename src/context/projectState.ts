@@ -164,6 +164,7 @@ export const defaultState: ProjectState = {
   projectName: "Novo Projeto",
   tipoProjeto: "Estante de Parede – 3 Portas",
   material: defaultMaterial,
+  materialId: "",
   dimensoes: defaultDimensoes,
   quantidade: 1,
   boxes: [],
@@ -415,6 +416,7 @@ const convertWorkspaceToBox = (box: WorkspaceBox): BoxModule => {
     gavetas: box.gavetas,
     alturaGaveta: box.alturaGaveta,
     panelIds,
+    material: box.material,
   };
 };
 

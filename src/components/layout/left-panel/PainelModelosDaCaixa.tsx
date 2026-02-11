@@ -17,6 +17,7 @@ import LayoutWarningsAlert from "../../ui/LayoutWarningsAlert";
 import { autoArrangeModels } from "../../../core/layout/smartArrange";
 import { snapPosition } from "../../../core/rules/positioning";
 import { positionMmToLocalM } from "../../../core/layout/viewerLayoutAdapter";
+import { getViewerMaterialId } from "../../../core/materials/service";
 export default function PainelModelosDaCaixa() {
   const { project, actions } = useProject();
   const { viewerApi } = usePimoViewerContext();
@@ -203,7 +204,11 @@ export default function PainelModelosDaCaixa() {
                 onChange={(e) => {
                   const value = e.target.value;
                   actions.setMaterial({ ...project.material, tipo: value });
-                  if (project.selectedWorkspaceBoxId) viewerApi?.updateBox(project.selectedWorkspaceBoxId, { materialName: value });
+                  if (project.selectedWorkspaceBoxId) {
+                    viewerApi?.updateBox(project.selectedWorkspaceBoxId, {
+                      materialName: getViewerMaterialId(value),
+                    });
+                  }
                 }}
                 className="select"
                 style={{ width: "100%" }}

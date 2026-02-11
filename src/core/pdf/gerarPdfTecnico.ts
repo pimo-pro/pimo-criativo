@@ -12,6 +12,7 @@ import { gerarModeloIndustrial } from "../manufacturing/boxManufacturing";
 import { safeGetItem } from "../../utils/storage";
 import { COMPONENT_TYPES_DEFAULT } from "../components/componentTypes";
 import { MATERIAIS_INDUSTRIAIS, MATERIAIS_PBR_OPCOES, getMaterial, type MaterialIndustrial } from "../manufacturing/materials";
+import { getMaterialForBox, getMaterialDisplayInfo } from "../materials/service";
 
 const MARGIN = 12;
 const HEADER_COLOR: [number, number, number] = [15, 23, 42];
@@ -117,7 +118,8 @@ function construirLinhas(
   boxes: BoxModule[],
   rules: RulesConfig,
   componentTypes: ComponentType[],
-  materials: MaterialIndustrial[]
+  materials: MaterialIndustrial[],
+  projectMaterialId?: string
 ): LinhaPeca[] {
   const ctById = Object.fromEntries(componentTypes.map((c) => [c.id, c]));
   let nQr = 1;
@@ -137,7 +139,8 @@ function construirLinhas(
   for (let boxIdx = 0; boxIdx < boxes.length; boxIdx++) {
     const box = boxes[boxIdx];
     const modelo = gerarModeloIndustrial(box, rules);
-    const material = box.material ?? "MDF Branco";
+    const materialId = getMaterialForBox(box, projectMaterialId);
+    const material = getMaterialDisplayInfo(materialId || "MDF Branco").label;
     const boxNum = boxIdx + 1;
     let prateleiraCount = 0;
     let gavetaCount = 0;
@@ -262,16 +265,22 @@ function adicionarCustosPorCaixa(doc: jsPDF, boxes: BoxModule[], rules: RulesCon
   void rules;
 }
 
-function getAcabamentosUnicos(boxes: BoxModule[], materials: MaterialIndustrial[]): string[] {
+function getAcabamentosUnicos(
+  boxes: BoxModule[],
+  materials: MaterialIndustrial[],
+  projectMaterialId?: string
+): string[] {
   const seen = new Set<string>();
   const acc: string[] = [];
   for (const box of boxes) {
-    const mat = box.material ?? "MDF Branco";
-    const esp = box.espessura > 0 ? box.espessura : 18;
-    const matInfo = materials.find((m) => m.nome === mat) ?? getMaterial(mat);
-    const acabamento = matInfo.materialPbrId
-      ? MATERIAIS_PBR_OPCOES.find((p) => p.id === matInfo.materialPbrId)?.label ?? matInfo.materialPbrId
-      : matInfo.cor ?? "";
+    const materialId = getMaterialForBox(box, projectMaterialId);
+    const matInfo = getMaterialDisplayInfo(materialId || "MDF Branco");
+    const mat = matInfo.label;
+    const esp = box.espessura > 0 ? box.espessura : matInfo.espessura;
+    const matIndustrial = materials.find((m) => m.nome === mat) ?? getMaterial(mat);
+    const acabamento = matIndustrial.materialPbrId
+      ? MATERIAIS_PBR_OPCOES.find((p) => p.id === matIndustrial.materialPbrId)?.label ?? matIndustrial.materialPbrId
+      : matIndustrial.cor ?? "";
     const s = `${mat}${acabamento ? " " + acabamento : ""} ${esp}mm`;
     if (!seen.has(s)) {
       seen.add(s);
@@ -289,11 +298,12 @@ export function gerarPdfTecnicoCompleto(
   boxes: BoxModule[],
   rules: RulesConfig,
   projectName: string,
-  opcoes?: { incluirPaginaPrecos?: boolean }
+  opcoes?: { incluirPaginaPrecos?: boolean; materialId?: string }
 ): jsPDF {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const componentTypes = loadComponentTypesFromStorage();
   const materials = loadMaterialsFromStorage();
+  const projectMaterialId = opcoes?.materialId;
 
   let y = MARGIN;
 
@@ -308,12 +318,12 @@ export function gerarPdfTecnicoCompleto(
   doc.text(`PROJETO / MÓVEL: ${projectName || "Projeto"}`, MARGIN, y);
   y += 6;
 
-  const acabamentos = getAcabamentosUnicos(boxes, materials);
+  const acabamentos = getAcabamentosUnicos(boxes, materials, projectMaterialId);
   doc.text(`Acabamento: ${acabamentos.length > 0 ? acabamentos.join(" | ") : "—"}`, MARGIN, y);
   y += 12;
 
   // ——— Tabela industrial ———
-  const linhas = construirLinhas(boxes, rules, componentTypes, materials);
+  const linhas = construirLinhas(boxes, rules, componentTypes, materials, projectMaterialId);
 
   const head = [
     "REF PEÇA",

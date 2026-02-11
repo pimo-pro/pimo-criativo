@@ -9,7 +9,7 @@ export const projectProgressStyles = {
     background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0b0f17 100%)",
     color: "#e2e8f0",
     padding: "2rem",
-    direction: "rtl" as const,
+    direction: "ltr" as const,
   },
 
   header: {

@@ -30,6 +30,7 @@ import { getBaseCabinetById, modelToPortaTipo } from "../core/baseCabinets";
 import { ensureBoxPanelIds } from "../core/box/panelIds";
 import { safeGetItem, safeParseJson, safeSetItem } from "../utils/storage";
 import { useViewerSync } from "../hooks/useViewerSync";
+import { getMaterialByIdOrLabel } from "../core/materials/service";
 
 const PROJECTS_STORAGE_KEY = "pimo_saved_projects";
 const AUTOSAVE_STORAGE_KEY = "pimo_autosave";
@@ -102,6 +103,13 @@ const reviveState = (snapshot: unknown): ProjectState | null => {
       })()
     : defaultState.workspaceBoxes;
 
+  const materialId =
+    restored.materialId !== undefined && restored.materialId !== null
+      ? restored.materialId
+      : (restored.material?.tipo
+          ? getMaterialByIdOrLabel(restored.material.tipo)?.id ?? ""
+          : "");
+
   return {
     ...defaultState,
     ...restored,
@@ -110,6 +118,7 @@ const reviveState = (snapshot: unknown): ProjectState | null => {
     selectedCaixaId: workspaceBoxes.length ? (restored.selectedCaixaId ?? workspaceBoxes[0].id) : "",
     selectedBoxId: workspaceBoxes.length ? (restored.selectedBoxId ?? "") : "",
     material: { ...defaultState.material, ...restored.material },
+    materialId,
     dimensoes: { ...defaultState.dimensoes, ...restored.dimensoes },
     extractedPartsByBoxId,
     selectedModelInstanceId: restored.selectedModelInstanceId ?? null,
@@ -300,6 +309,19 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
     setMaterial: (material) => {
       recalcular({ material }, true);
+    },
+
+    setProjectMaterial: (materialId) => {
+      updateProject((prev) => {
+        const prevMaterialId = prev.materialId ?? "";
+        const workspaceBoxes = prev.workspaceBoxes.map((box) => {
+          if (box.material === undefined || box.material === null || box.material === prevMaterialId) {
+            return { ...box, material: materialId };
+          }
+          return box;
+        });
+        return recomputeState(prev, { materialId, workspaceBoxes }, true);
+      });
     },
 
     setEspessura: (espessura) => {
@@ -957,6 +979,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       });
     },
 
+    setWorkspaceBoxMaterial: (boxId, materialId) => {
+      updateProject((prev) => {
+        const workspaceBoxes = prev.workspaceBoxes.map((box) =>
+          box.id === boxId ? { ...box, material: materialId } : box
+        );
+        return { ...prev, workspaceBoxes };
+      });
+    },
+
     toggleWorkspaceRotation: (boxId) => {
       updateProject((prev) => {
         const workspaceBoxes = prev.workspaceBoxes.map((box) => {
@@ -1076,7 +1107,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 const projectName = currentProject.projectName?.trim() || "Projeto";
 const safeName = projectName.replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s+/g, "_") || "projeto";
 const { gerarPdfTecnicoCompleto } = await import("../core/pdf/gerarPdfTecnico");
-const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName, {});
+      const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, projectName, {
+        materialId: currentProject.materialId,
+      });
       doc.save(`${safeName}_tecnico.pdf`);
     },
 
@@ -1093,6 +1126,7 @@ const doc = gerarPdfTecnicoCompleto(boxesToExport, currentProject.rules, project
         projectName,
         boxes: boxesToExport,
         rules: currentProject.rules,
+        materialId: currentProject.materialId,
         extractedPartsByBoxId: currentProject.extractedPartsByBoxId ?? {},
       };
       const doc = buildUnifiedPdf(pdfProject);

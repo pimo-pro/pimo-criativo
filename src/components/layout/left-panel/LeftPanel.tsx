@@ -9,6 +9,7 @@ import PainelMoveisUnificado from "./PainelMoveisUnificado";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
 import { useUiStore } from "../../../stores/uiStore";
 import { useToast } from "../../../context/ToastContext";
+import { listMaterials, getViewerMaterialId, getMaterialByIdOrLabel } from "../../../core/materials";
 
 export type LeftPanelProps = {
   activeTab?: string;
@@ -99,7 +100,9 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   const selectedGavetas = selectedBox?.gavetas ?? 0;
   const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
   const [editingBoxName, setEditingBoxName] = useState("");
+  const [materialModalOpen, setMaterialModalOpen] = useState(false);
   const { viewerApi } = usePimoViewerContext();
+  const materialsList = listMaterials();
 
   // Footer removed - buttons now in main content area
 
@@ -373,6 +376,16 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         </Panel>
       )}
 
+      {!selectedBox && (
+        <Panel title="Material do projeto" description="Material padrão (somente leitura)">
+          <div style={{ fontSize: 12, color: "var(--text-main)" }}>
+            {project.materialId
+              ? (getMaterialByIdOrLabel(project.materialId)?.label ?? project.material.tipo)
+              : project.material.tipo}
+          </div>
+        </Panel>
+      )}
+
       <Panel title="Dimensões" description="Valores em milímetros">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div className="panel-field-row">
@@ -443,17 +456,93 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
           type="button"
           className="button button-ghost"
           style={{ width: "100%", marginBottom: 8 }}
-          onClick={() => {
-            const el = document.querySelector("[data-material-panel]");
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "start" });
-            } else {
-              showToast("Seletor de materiais: use o painel direito ou Admin → Materiais.", "info");
-            }
-          }}
+          onClick={() => setMaterialModalOpen(true)}
         >
           Selecionar Material
         </button>
+      )}
+
+      {materialModalOpen && selectedBox && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setMaterialModalOpen(false)}
+        >
+          <div
+            className="modal-card"
+            style={{ maxWidth: 360, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title">Selecionar Material</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setMaterialModalOpen(false)}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ padding: "0 16px 16px", overflowY: "auto", flex: 1 }}>
+              {materialsList.length === 0 ? (
+                <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Nenhum material no registo. Adicione em Admin → Materials.
+                </p>
+              ) : (
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {materialsList.map((m) => (
+                    <li key={m.id}>
+                      <button
+                        type="button"
+                        className="card"
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "10px 12px",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          background: "rgba(255,255,255,0.04)",
+                        }}
+                        onClick={() => {
+                          actions.setWorkspaceBoxMaterial(selectedBox.id, m.id);
+                          viewerApi?.updateBox(selectedBox.id, {
+                            materialName: getViewerMaterialId(m.id),
+                          });
+                          showToast("Material aplicado à caixa.", "info");
+                          setMaterialModalOpen(false);
+                        }}
+                      >
+                        {m.color && (
+                          <span
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 4,
+                              background: m.color,
+                              border: "1px solid rgba(255,255,255,0.2)",
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-main)" }}>{m.label}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                            {m.espessura ?? "—"} mm · {m.precoPorM2 ?? "—"} €/m²
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {selectedBox?.cabinetType === "lower" && (

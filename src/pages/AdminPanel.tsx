@@ -1,5 +1,5 @@
 import { useState } from "react";
-import MaterialsManager from "../components/admin/MaterialsManager";
+import GestaoMateriaisPage from "./admin/materials/GestaoMateriaisPage";
 import TemplatesManager from "../components/admin/TemplatesManager";
 import CADModelsManager from "../components/admin/CADModelsManager";
 import MaterialsManufacturing from "../components/admin/MaterialsManufacturing";
@@ -10,6 +10,8 @@ import RulesProfilesPage from "../components/admin/RulesProfilesPage";
 import DeployAdminPage from "../components/admin/DeployAdminPage";
 import ComponentTypesAdminPage from "../components/admin/ComponentTypesAdminPage";
 import FerragensAdminPage from "../components/admin/FerragensAdminPage";
+import ProjectProgress from "./ProjectProgress";
+import PainelReferencia from "./PainelReferencia";
 
 const sidebarItems = [
   "Dashboard",
@@ -23,6 +25,8 @@ const sidebarItems = [
   "Perfis de Regras",
   "Component Types",
   "Gestor de Ficheiros",
+  "Project Progress",
+  "Painel Referência",
   "Pricing",
   "System Settings",
   "Users",
@@ -105,7 +109,7 @@ export default function AdminPanel() {
           </div>
 
           {active === "Materials" ? (
-            <MaterialsManager />
+            <GestaoMateriaisPage />
           ) : active === "Materiais & Fabricação" ? (
             <MaterialsManufacturing />
           ) : active === "Ferragens" ? (
@@ -126,6 +130,10 @@ export default function AdminPanel() {
             <FileManager />
           ) : active === "Deploy" ? (
             <DeployAdminPage />
+          ) : active === "Project Progress" ? (
+            <ProjectProgress />
+          ) : active === "Painel Referência" ? (
+            <PainelReferencia />
           ) : (
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
               Módulo em construção.

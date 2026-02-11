@@ -1,6 +1,7 @@
 import type { BoxModule } from "../types";
 import { getMaterial } from "./materials";
 import type { RulesConfig } from "../rules/rulesConfig";
+import { getMaterialForBox, getIndustrialMaterial } from "../materials/service";
 import { getNumDobradicas } from "../rules/rulesConfig";
 import { SYSTEM_THICKNESS_MM, SYSTEM_BACK_MM } from "../baseCabinets";
 
@@ -93,7 +94,9 @@ function getArrayPanelId(box: BoxModule, kind: "prateleiras" | "portas" | "gavet
 
 /** Espessura estrutural padrão 19 mm (spec). */
 const getEspessura = (box: BoxModule) => (box.espessura > 0 ? box.espessura : SYSTEM_THICKNESS_MM);
-const getNomeMaterial = (box: BoxModule) => box.material ?? "MDF Branco";
+/** Nome do material (CRUD ou legado) para painéis/custos. */
+const getNomeMaterial = (box: BoxModule) =>
+  getIndustrialMaterial(getMaterialForBox(box, undefined) || "MDF Branco").nome;
 /** Profundidade útil (sem costa): profundidade_total - 10 mm. */
 const PROFUNDIDADE_UTIL_MM = SYSTEM_BACK_MM;
 
@@ -292,7 +295,7 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
     }
   }
 
-  const materialInfo = getMaterial(material);
+  const materialInfo = getIndustrialMaterial(getMaterialForBox(box, undefined) || "MDF Branco");
   return paineis.map((painel) => ({
     ...painel,
     custo: calcularCustoPainel(painel, materialInfo) * painel.quantidade,
@@ -359,7 +362,7 @@ export function gerarPortas(box: BoxModule, rules: RulesConfig): PortaIndustrial
   const folga = 2;
   const tipoPorta: PortaIndustrial["tipo"] = "overlay";
   const { larguraInterna, alturaInterna } = getDimensoesInternas(box, espessura);
-  const material = getMaterial(getNomeMaterial(box));
+  const material = getIndustrialMaterial(getMaterialForBox(box, undefined) || "MDF Branco");
   const larguraBase =
     tipoPorta === "overlay"
       ? larguraInterna + folga * 2
@@ -426,7 +429,7 @@ export function gerarGavetas(box: BoxModule, _rules: RulesConfig): GavetaIndustr
   const folga = 2;
   const tipoPorta: "overlay" | "inset" = "overlay";
   const { larguraInterna, alturaInterna } = getDimensoesInternas(box, espessura);
-  const material = getMaterial(getNomeMaterial(box));
+  const material = getIndustrialMaterial(getMaterialForBox(box, undefined) || "MDF Branco");
   const larguraGaveta = clampPositive(larguraInterna - recuoLateral * 2);
   const alturaGaveta = clampPositive(alturaInterna - 40);
   const profundidadeTotal = Number(box.dimensoes.profundidade) || 0;

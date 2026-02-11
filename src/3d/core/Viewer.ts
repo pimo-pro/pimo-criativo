@@ -33,6 +33,10 @@ import type {
 } from "../../context/projectTypes";
 import { loadGLB } from "../../core/glb/glbLoader";
 import { snapHorizontalOffset } from "../../utils/openingConstraints";
+import {
+  applyVisualMaterialToMesh as applyVisualMaterialToMeshV2,
+  type VisualMaterial,
+} from "../../core/materials/materialLibraryV2";
 
 /**
  * Interface multi-box do Viewer:
@@ -641,6 +645,14 @@ export class Viewer {
     if (this.selectedBoxId === id) {
       this.refreshOutlineTarget();
     }
+  }
+
+  /**
+   * Aplica material visual (MaterialLibrary v2) a um mesh: cor base, roughness, metallic, e opcionalmente textura/UV.
+   * Não substitui updateBoxMaterial; uso opcional para integração com presets e texturas.
+   */
+  applyVisualMaterialToMesh(mesh: THREE.Mesh, visualMaterial: VisualMaterial): void {
+    applyVisualMaterialToMeshV2(mesh, visualMaterial);
   }
 
   updateBoxDimensions(

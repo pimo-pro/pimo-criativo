@@ -62,7 +62,8 @@ export function useMultiBoxManager({
     api,
     gap,
     project.material.tipo,
-    viewerReady
+    viewerReady,
+    project.materialId
   );
 
   useCadModelsSync(

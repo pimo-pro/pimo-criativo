@@ -7,11 +7,14 @@ import jsPDF from "jspdf";
 import type { BoxModule } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { cutlistComPrecoFromBoxes } from "../manufacturing/cutlistFromBoxes";
+import { getMaterialForBox, getMaterialDisplayInfo } from "../materials/service";
 
 export type ProjectForPdf = {
   projectName: string;
   boxes: BoxModule[];
   rules: RulesConfig;
+  /** Id do material do projeto (CRUD); usado quando box não tem material próprio. */
+  materialId?: string;
 };
 
 const MARGIN = 14;
@@ -55,7 +58,7 @@ export function renderProjectSummary(doc: jsPDF, project: ProjectForPdf): void {
   doc.text(`Total de caixas: ${project.boxes.length}`, MARGIN, y);
   y += 6;
 
-  const cutlist = cutlistComPrecoFromBoxes(project.boxes, project.rules);
+  const cutlist = cutlistComPrecoFromBoxes(project.boxes, project.rules, project.materialId);
   const totalPecas = cutlist.reduce((s, i) => s + i.quantidade, 0);
   doc.text(`Total de peças: ${totalPecas > 0 ? totalPecas : "—"}`, MARGIN, y);
   y += 10;
@@ -72,8 +75,10 @@ export function renderProjectSummary(doc: jsPDF, project: ProjectForPdf): void {
       y = MARGIN;
     }
     const dims = box.dimensoes;
+    const materialId = getMaterialForBox(box, project.materialId);
+    const matInfo = getMaterialDisplayInfo(materialId || "MDF Branco");
     doc.text(
-      `${i + 1}. ${box.nome} — ${dims.largura}×${dims.altura}×${dims.profundidade} mm | ${box.material ?? "MDF"} | ${box.espessura} mm`,
+      `${i + 1}. ${box.nome} — ${dims.largura}×${dims.altura}×${dims.profundidade} mm | ${matInfo.label} | ${box.espessura ?? matInfo.espessura} mm`,
       MARGIN,
       y
     );
@@ -84,7 +89,12 @@ export function renderProjectSummary(doc: jsPDF, project: ProjectForPdf): void {
 /**
  * Renderiza página técnica de uma caixa.
  */
-export function renderBoxTechnicalPage(doc: jsPDF, box: BoxModule, boxIndex: number): void {
+export function renderBoxTechnicalPage(
+  doc: jsPDF,
+  box: BoxModule,
+  boxIndex: number,
+  projectMaterialId?: string
+): void {
   let y = MARGIN;
 
   doc.setFontSize(16);
@@ -99,7 +109,10 @@ export function renderBoxTechnicalPage(doc: jsPDF, box: BoxModule, boxIndex: num
   doc.text(`Dimensões: ${dims.largura} × ${dims.altura} × ${dims.profundidade} mm`, MARGIN, y);
   y += 7;
 
-  doc.text(`Material: ${box.material ?? "MDF Branco"} | Espessura: ${box.espessura} mm`, MARGIN, y);
+  const materialId = getMaterialForBox(box, projectMaterialId);
+  const matInfo = getMaterialDisplayInfo(materialId || "MDF Branco");
+  const espessura = box.espessura ?? matInfo.espessura;
+  doc.text(`Material: ${matInfo.label} | Espessura: ${espessura} mm | Preço: ${matInfo.precoPorM2} €/m²`, MARGIN, y);
   y += 7;
 
   doc.text(`Tipo de borda: ${box.tipoBorda ?? "reta"} | Tipo de fundo: ${box.tipoFundo ?? "recuado"}`, MARGIN, y);
@@ -151,7 +164,7 @@ export function buildTechnicalPdf(project: ProjectForPdf): jsPDF {
 
   project.boxes.forEach((box, i) => {
     doc.addPage("a4", "portrait");
-    renderBoxTechnicalPage(doc, box, i + 1);
+    renderBoxTechnicalPage(doc, box, i + 1, project.materialId);
   });
 
   return doc;

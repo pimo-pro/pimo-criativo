@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { BoxModule } from "../types";
 import { gerarModeloIndustrial, getPieceLabel } from "../manufacturing/boxManufacturing";
 import type { RulesConfig } from "../rules/rulesConfig";
+import { getMaterialForBox, getMaterialDisplayInfo } from "../materials/service";
 
 const formatCurrency = (value: number) => `${value.toFixed(2)} €`;
 
@@ -22,7 +23,11 @@ const addSectionTitle = (doc: jsPDF, title: string, y: number) => {
  * Gera PDF com TODAS as caixas de project.boxes (mesma fonte que Cutlist Industrial e Resumo Financeiro).
  * Percorre todos os boxes; cada caixa numa página (ou secção) própria.
  */
-export function gerarPdfIndustrial(boxes: BoxModule[], rules: RulesConfig) {
+export function gerarPdfIndustrial(
+  boxes: BoxModule[],
+  rules: RulesConfig,
+  projectMaterialId?: string
+) {
   const doc = new jsPDF();
   const allBoxes = Array.isArray(boxes) ? boxes : [];
 
@@ -50,6 +55,8 @@ export function gerarPdfIndustrial(boxes: BoxModule[], rules: RulesConfig) {
       0
     );
 
+    const materialId = getMaterialForBox(box, projectMaterialId);
+    const matInfo = getMaterialDisplayInfo(materialId || "MDF Branco");
     autoTable(doc, {
       head: [[
         "Material",
@@ -63,7 +70,7 @@ export function gerarPdfIndustrial(boxes: BoxModule[], rules: RulesConfig) {
         "Custo total",
       ]],
       body: [[
-        box.material ?? "MDF Branco",
+        matInfo.label,
         formatArea(modelo.cutlist.areaTotal_mm2),
         totalPecas,
         totalFerragens,

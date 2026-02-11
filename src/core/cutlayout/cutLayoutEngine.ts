@@ -10,6 +10,7 @@ import type {
   SheetResult,
   CutLayoutResult,
 } from "./cutLayoutTypes";
+import type { LayoutVisualMaterial } from "../types";
 
 const DEFAULT_KERF_MM = 3;
 
@@ -19,19 +20,23 @@ export type CutLayoutEngineOptions = {
   kerf_mm?: number;
 };
 
-/** Converte cutlist em peças 2D (face = duas maiores dimensões). */
-export function cutlistToPieces(
-  items: Array<{
-    dimensoes: { largura: number; altura: number; profundidade: number };
-    espessura: number;
-    quantidade: number;
-    boxId?: string;
-    nome: string;
-    material?: string;
-    materialId?: string;
-    grainDirection?: "length" | "width";
-  }>
-): CutPiece[] {
+/** Item de cutlist com campos opcionais de material/UV (Layout Engine). */
+export type CutlistItemForPieces = {
+  dimensoes: { largura: number; altura: number; profundidade: number };
+  espessura: number;
+  quantidade: number;
+  boxId?: string;
+  nome: string;
+  material?: string;
+  materialId?: string;
+  grainDirection?: "length" | "width" | "horizontal" | "vertical" | "none";
+  visualMaterial?: LayoutVisualMaterial;
+  uvScaleOverride?: { x: number; y: number };
+  uvRotationOverride?: number;
+};
+
+/** Converte cutlist em peças 2D (face = duas maiores dimensões). Preserva materialId, visualMaterial, grain e UV. */
+export function cutlistToPieces(items: CutlistItemForPieces[]): CutPiece[] {
   return items.flatMap((item) => {
     const dims = [item.dimensoes.largura, item.dimensoes.altura, item.dimensoes.profundidade]
       .filter((n) => Number.isFinite(n))
@@ -40,6 +45,9 @@ export function cutlistToPieces(
     const largura = dims[0] ?? 1;
     const altura = dims[1] ?? 1;
     const esp = item.espessura ?? 19;
+    const g = item.grainDirection;
+    const grainDirection: "length" | "width" | undefined =
+      g === "length" || g === "width" ? g : g === "horizontal" ? "length" : g === "vertical" ? "width" : undefined;
     const pieces: CutPiece[] = [];
     for (let i = 0; i < item.quantidade; i++) {
       pieces.push({
@@ -51,7 +59,10 @@ export function cutlistToPieces(
         partName: item.nome,
         materialId: item.materialId ?? item.material,
         materialName: item.material,
-        grainDirection: item.grainDirection,
+        grainDirection,
+        visualMaterial: item.visualMaterial,
+        uvScaleOverride: item.uvScaleOverride,
+        uvRotationOverride: item.uvRotationOverride,
       });
     }
     return pieces;

@@ -43,6 +43,7 @@ export default function RightPanel() {
     projectName: project.projectName ?? "Projeto",
     boxes,
     rules: project.rules,
+    materialId: project.materialId,
     extractedPartsByBoxId: project.extractedPartsByBoxId ?? {},
   });
 
@@ -79,7 +80,7 @@ export default function RightPanel() {
       alert("Nenhuma caixa no projeto. Gere o design primeiro.");
       return;
     }
-    const parametric = cutlistComPrecoFromBoxes(boxes, project.rules);
+    const parametric = cutlistComPrecoFromBoxes(boxes, project.rules, project.materialId);
     const extracted = boxes.flatMap((b) =>
       Object.values(project.extractedPartsByBoxId?.[b.id] ?? {}).flat()
     );
@@ -100,7 +101,7 @@ const doc = buildCutLayoutPdf(result);
       alert("Nenhuma caixa no projeto. Gere o design primeiro.");
       return;
     }
-    const parametric = cutlistComPrecoFromBoxes(boxes, project.rules);
+    const parametric = cutlistComPrecoFromBoxes(boxes, project.rules, project.materialId);
     const extracted = boxes.flatMap((b) =>
       Object.values(project.extractedPartsByBoxId?.[b.id] ?? {}).flat()
     );

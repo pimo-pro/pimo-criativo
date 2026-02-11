@@ -25,7 +25,10 @@ export default function BottomPanel() {
   // Single Source of Truth: Resumo Financeiro 100% de project.boxes (não project.resultados/design)
   // boxes em useMemo para referência estável e evitar reexecução dos useMemo abaixo a cada render
   const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
-  const cutlist = useMemo(() => cutlistComPrecoFromBoxes(boxes, project.rules), [boxes, project.rules]);
+  const cutlist = useMemo(
+    () => cutlistComPrecoFromBoxes(boxes, project.rules, project.materialId),
+    [boxes, project.rules, project.materialId]
+  );
   const ferragens = useMemo(() => ferragensFromBoxes(boxes, project.rules), [boxes, project.rules]);
   const totalPecas = cutlist.reduce((sum, item) => sum + item.quantidade, 0);
   const totalFerragens = ferragens.reduce((sum, a) => sum + a.quantidade, 0);

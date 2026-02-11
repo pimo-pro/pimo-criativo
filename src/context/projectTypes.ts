@@ -21,7 +21,10 @@ import type { RulesProfilesConfig } from "../core/rules/rulesProfiles";
 export interface ProjectState {
   projectName: string;
   tipoProjeto: string;
+  /** Material legado (compatibilidade); não usar como fonte principal. */
   material: Material;
+  /** Id do material no CRUD; fonte principal. Vazio = usar material.tipo para resolução. */
+  materialId?: string;
   dimensoes: Dimensoes;
   quantidade: number;
   boxes: BoxModule[];
@@ -283,6 +286,8 @@ export interface ProjectActions {
   setProjectName: (_name: string) => void;
   setTipoProjeto: (_tipo: string) => void;
   setMaterial: (_material: Material) => void;
+  /** Define o material do projeto por id do CRUD; propaga às caixas que usam o padrão. */
+  setProjectMaterial: (_materialId: string) => void;
   setEspessura: (_espessura: number) => void;
   setDimensoes: (_dimensoes: Partial<Dimensoes>) => void;
   setQuantidade: (_quantidade: number) => void;
@@ -336,6 +341,8 @@ export interface ProjectActions {
   setWorkspaceBoxDimensoes: (_boxId: string, _dimensoes: { largura: number; altura: number; profundidade: number }) => void;
   /** Atualiza o nome da caixa (ex.: nome do modelo CAD). */
   setWorkspaceBoxNome: (_boxId: string, _nome: string) => void;
+  /** Define o material da caixa (id do CRUD ou label legado). */
+  setWorkspaceBoxMaterial: (_boxId: string, _materialId: string) => void;
   toggleWorkspaceRotation: (_boxId: string) => void;
   rotateWorkspaceBox: (_boxId: string) => void;
   gerarDesign: () => void;

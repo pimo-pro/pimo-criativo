@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { BoxModule, WorkspaceBox } from "../core/types";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
 import { mmToM } from "../utils/units";
+import { getViewerMaterialId } from "../core/materials/service";
 
 type ViewerApi = {
   addBox: (_id: string, _options?: BoxOptions) => boolean;
@@ -44,13 +45,20 @@ export const useCalculadoraSync = (
   gap?: number,
   materialName?: string,
   /** Quando true, o viewer está montado e pronto para receber caixas. */
-  viewerReady?: boolean
+  viewerReady?: boolean,
+  /** Id do material do projeto (CRUD); usado quando a caixa não tem material próprio. */
+  projectMaterialId?: string
 ) => {
   const boxesRef = useRef<BoxModule[]>(boxes);
   const workspaceBoxesRef = useRef<WorkspaceBox[]>(workspaceBoxes);
   const viewerApiRef = useRef(viewerApi);
+  const projectMaterialIdRef = useRef<string | undefined>(projectMaterialId);
   const stateRef = useRef<Map<string, BoxState>>(new Map());
   const prevViewerReadyRef = useRef<boolean | undefined>(false);
+
+  useEffect(() => {
+    projectMaterialIdRef.current = projectMaterialId;
+  }, [projectMaterialId]);
 
   useEffect(() => {
     viewerApiRef.current = viewerApi;
@@ -90,7 +98,12 @@ export const useCalculadoraSync = (
       const depth = depthMm !== undefined ? mmToM(depthMm) : undefined;
       const thicknessMm = Number.isFinite(box.espessura) ? box.espessura : undefined;
       const thickness = thicknessMm !== undefined ? mmToM(thicknessMm) : undefined;
-      const resolvedMaterialName = box.material ?? materialName ?? "MDF Branco";
+      const effectiveMaterial =
+        box.material ??
+        projectMaterialIdRef.current ??
+        materialName ??
+        "MDF Branco";
+      const resolvedMaterialName = getViewerMaterialId(effectiveMaterial);
       const cadOnly =
         (box.models?.length ?? 0) > 0 && box.prateleiras === 0 && box.gavetas === 0;
 
@@ -141,7 +154,7 @@ export const useCalculadoraSync = (
     });
 
     stateRef.current = nextState;
-  }, [materialName]);
+  }, [materialName, projectMaterialId]);
 
   useEffect(() => {
     // Só sincronizar quando o viewer estiver explicitamente pronto
