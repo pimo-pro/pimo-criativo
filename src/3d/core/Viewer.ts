@@ -33,6 +33,7 @@ import type {
 } from "../../context/projectTypes";
 import { loadGLB } from "../../core/glb/glbLoader";
 import { snapHorizontalOffset } from "../../utils/openingConstraints";
+import { applyImageWatermark } from "../../utils/watermark";
 import {
   applyVisualMaterialToMesh as applyVisualMaterialToMeshV2,
   type VisualMaterial,
@@ -2686,19 +2687,11 @@ export class Viewer {
       context.putImageData(imageData, 0, 0);
 
       if (applyWatermark) {
-        const padding = Math.max(16, width * 0.02);
-        const fontSize = Math.max(24, Math.round(width * 0.04));
-        context.globalAlpha = 0.55;
-        context.fillStyle = "#0f172a";
-        context.font = `bold ${fontSize}px 'Segoe UI', 'Inter', sans-serif`;
-        context.textAlign = "right";
-        context.textBaseline = "bottom";
-        context.fillText("PIMO", width - padding + 2, height - padding + 2);
-        context.fillStyle = "#1e293b";
-        context.fillText("PIMO", width - padding + 1, height - padding + 1);
-        context.fillStyle = "#38bdf8";
-        context.fillText("PIMO", width - padding, height - padding);
-        context.globalAlpha = 1;
+        await applyImageWatermark(canvas, {
+          opacity: 0.15,
+          position: "bottom-right",
+          widthPercent: 0.12,
+        });
       }
 
       const dataUrl =

@@ -1,3 +1,5 @@
+import logoPimo from "../../../assets/logo-pi.png";
+
 interface HeaderProps {
   onTogglePainelReferencia: () => void;
   painelReferenciaOpen: boolean;
@@ -22,31 +24,24 @@ export default function Header({
         padding: "0 20px",
       }}
     >
-      {/* Logótipo */}
-      <div 
+      {/* Logótipo oficial */}
+      <div
         style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
         onClick={() => {
           window.history.pushState({}, "", "/");
           window.dispatchEvent(new PopStateEvent("popstate"));
         }}
       >
-        <div
+        <img
+          src={logoPimo}
+          alt="PIMO"
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background:
-              "radial-gradient(circle at 20% 20%, var(--blue-light), var(--black) 70%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 700,
-            fontSize: 18,
-            color: "white",
+            height: 42,
+            width: "auto",
+            display: "block",
+            objectFit: "contain",
           }}
-        >
-          π
-        </div>
+        />
         <div>
           <div style={{ fontSize: 16, fontWeight: 600 }}>PIMO‑Criativo</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
