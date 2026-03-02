@@ -86,7 +86,7 @@ const SHELF_DEPTH_CLEARANCE_M = SYSTEM_BACK_MM / 1000;
 const DOOR_ANIMATION_DURATION_MS = 2000;
 const DRAWER_ANIMATION_DURATION_MS = 1500;
 const doorOpenState = new Map<string, boolean>();
-const doorRotationState = new Map<string, number>();
+const doorRotationState = new Map<string, { x: number; y: number }>();
 const doorAnimationRaf = new Map<string, number>();
 const drawerOpenState = new Map<string, boolean>();
 const drawerPositionState = new Map<string, number>();
@@ -338,8 +338,24 @@ function createDoorObject(spec: DoorSpec, material: THREE.Material): THREE.Objec
 
   const pivot = new THREE.Group();
   pivot.name = `door-layer-${spec.id}`;
-  const resolvedHingeSide = spec.hingeSide;
-  if (spec.pivot === "left-edge" || resolvedHingeSide === "left") {
+  const resolvedOpenDirection =
+    spec.openDirection === "left" ||
+    spec.openDirection === "right" ||
+    spec.openDirection === "up" ||
+    spec.openDirection === "down"
+      ? spec.openDirection
+      : "left";
+  const resolvedHingeSide =
+    spec.hingeSide === "left" || spec.hingeSide === "right"
+      ? spec.hingeSide
+      : spec.openDirection === "right"
+        ? "right"
+        : "left";
+  if (spec.pivot === "top-edge" || resolvedOpenDirection === "up") {
+    mesh.position.set(0, -spec.heightM / 2, 0);
+  } else if (spec.pivot === "bottom-edge" || resolvedOpenDirection === "down") {
+    mesh.position.set(0, spec.heightM / 2, 0);
+  } else if (spec.pivot === "left-edge" || resolvedHingeSide === "left") {
     mesh.position.set(spec.widthM / 2, 0, 0);
   } else if (spec.pivot === "right-edge" || resolvedHingeSide === "right") {
     mesh.position.set(-spec.widthM / 2, 0, 0);
@@ -349,44 +365,62 @@ function createDoorObject(spec: DoorSpec, material: THREE.Material): THREE.Objec
   pivot.position.set(spec.x, spec.y, spec.z);
   if (spec.rotY !== 0) pivot.rotation.y = spec.rotY;
   const baseRotationY = pivot.rotation.y;
-  const openSign = resolvedHingeSide === "right" ? 1 : -1;
-  const targetRotationY = spec.isOpen
-    ? baseRotationY + openSign * (Math.PI / 2)
-    : baseRotationY;
+  const baseRotationX = pivot.rotation.x;
+  const targetRotation = {
+    x:
+      resolvedOpenDirection === "up"
+        ? (spec.isOpen ? baseRotationX - Math.PI / 2 : baseRotationX)
+        : resolvedOpenDirection === "down"
+          ? (spec.isOpen ? baseRotationX + Math.PI / 2 : baseRotationX)
+          : baseRotationX,
+    y:
+      resolvedOpenDirection === "left" || resolvedOpenDirection === "right"
+        ? (spec.isOpen
+            ? baseRotationY + (resolvedHingeSide === "right" ? 1 : -1) * (Math.PI / 2)
+            : baseRotationY)
+        : baseRotationY,
+  };
   const prevIsOpen = doorOpenState.get(spec.id);
   const prevRotation = doorRotationState.get(spec.id);
-  const startRotation: number = Number.isFinite(prevRotation) ? (prevRotation as number) : baseRotationY;
+  const startRotation = prevRotation ?? { x: baseRotationX, y: baseRotationY };
   const shouldAnimate = prevIsOpen === undefined ? spec.isOpen : prevIsOpen !== spec.isOpen;
 
-  if (Number.isFinite(prevRotation)) {
-    pivot.rotation.y = startRotation;
+  if (prevRotation) {
+    pivot.rotation.x = startRotation.x;
+    pivot.rotation.y = startRotation.y;
   }
 
   if (shouldAnimate) {
     const existingRaf = doorAnimationRaf.get(spec.id);
     if (existingRaf != null) cancelAnimationFrame(existingRaf);
     const start = performance.now();
-    console.log("door animation start", { id: spec.id, targetRotationY });
+    console.log("door animation start", { id: spec.id, targetRotation });
     const animate = (now: number) => {
       const t = Math.min(1, (now - start) / DOOR_ANIMATION_DURATION_MS);
       const eased = easeInOutCubic(t);
-      pivot.rotation.y = startRotation + (targetRotationY - startRotation) * eased;
+      pivot.rotation.x = startRotation.x + (targetRotation.x - startRotation.x) * eased;
+      pivot.rotation.y = startRotation.y + (targetRotation.y - startRotation.y) * eased;
       if (t < 1) {
         doorAnimationRaf.set(spec.id, requestAnimationFrame(animate));
       } else {
         doorAnimationRaf.delete(spec.id);
-        console.log("door animation end", { id: spec.id, targetRotationY });
+        console.log("door animation end", { id: spec.id, targetRotation });
       }
     };
     doorAnimationRaf.set(spec.id, requestAnimationFrame(animate));
   } else {
-    pivot.rotation.y = targetRotationY;
+    pivot.rotation.x = targetRotation.x;
+    pivot.rotation.y = targetRotation.y;
   }
 
   doorOpenState.set(spec.id, spec.isOpen);
-  doorRotationState.set(spec.id, targetRotationY);
+  doorRotationState.set(spec.id, targetRotation);
   pivot.userData.doorLayerId = spec.id;
+  pivot.userData.openDirection = resolvedOpenDirection;
+  pivot.userData.hingeSide = resolvedHingeSide;
   mesh.userData.doorLayerId = spec.id;
+  mesh.userData.openDirection = resolvedOpenDirection;
+  mesh.userData.hingeSide = resolvedHingeSide;
   pivot.add(mesh);
   if (import.meta.env.DEV) {
     const finalCenter = new THREE.Vector3()
@@ -924,11 +958,15 @@ const PANEL_NAMES = ["left", "right", "top", "bottom", "back"] as const;
 
 /**
  * Atualiza um grupo criado por buildBoxGroup: geometria e posição de cada painel por nome (regras de marcenaria).
+ * Todas as peças estruturais (laterais, base, tampo, fundo) são recalculadas a partir das dimensões atuais.
  * Sincroniza também prateleiras (shelf-0, shelf-1, ...) quando options.shelves é fornecido.
  */
 export function updateBoxGroup(group: THREE.Group, options?: BoxOptions | null): { width: number; height: number; depth: number } {
   const opts = options ?? {};
   const { width, height, depth } = resolveDimensions(opts);
+  if (import.meta.env.DEV) {
+    console.warn("[BoxBuilder.updateBoxGroup] chamado — dimensões", { width, height, depth, childNames: group.children.map((c) => c.name) });
+  }
   const specs = getPanelSpecs(width, height, depth);
 
   const toRemove: THREE.Object3D[] = [];
@@ -939,24 +977,27 @@ export function updateBoxGroup(group: THREE.Group, options?: BoxOptions | null):
     name.startsWith("drawer-layer-") ||
     name.startsWith("drawer-front-") ||
     name.startsWith("drawer-body-");
-  group.children.forEach((child) => {
-    const name = child.name;
-    if (child instanceof THREE.Mesh && child.geometry && PANEL_NAMES.includes(name as (typeof PANEL_NAMES)[number])) {
-      const spec = specs[name as keyof typeof specs];
-      if (spec) {
-        updatePanelGeometry(child, spec.size[0], spec.size[1], spec.size[2]);
-        child.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
-        const oldMarkers = child.children.filter((c) => c.userData?.isDrillMarker);
-        oldMarkers.forEach((m) => child.remove(m));
-      }
-      return;
-    }
-    if (isGeneratedLayerName(name)) {
-      toRemove.push(child);
-    }
-  });
 
+  // Marcar e remover elementos gerados (prateleiras, portas, gavetas) para recriar depois
+  group.children.forEach((child) => {
+    if (isGeneratedLayerName(child.name)) toRemove.push(child);
+  });
   toRemove.forEach((c) => group.remove(c));
+
+  // Atualizar cada painel estrutural explicitamente por nome: geometria e posição sempre derivadas das dimensões atuais
+  for (const panelName of PANEL_NAMES) {
+    const child = group.children.find((c) => c.name === panelName);
+    if (!(child instanceof THREE.Mesh) || !child.geometry) continue;
+    const spec = specs[panelName];
+    if (!spec) continue;
+    updatePanelGeometry(child, spec.size[0], spec.size[1], spec.size[2]);
+    child.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+    // Limpar base da vista explodida para que o Viewer use esta nova posição (evita que applyExplodedViewForObject restaure posição antiga).
+    delete (child.userData as Record<string, unknown>).explodedBasePosition;
+    child.updateMatrix();
+    const oldMarkers = child.children.filter((c) => c.userData?.isDrillMarker);
+    oldMarkers.forEach((m) => child.remove(m));
+  }
   const shelfCount = Math.max(0, Math.floor(opts.shelves ?? 0));
   const shelfSpecs = getShelfSpecs(width, height, depth, shelfCount);
   const baseMaterial = group.children[0] instanceof THREE.Mesh ? (group.children[0] as THREE.Mesh).material : getFallbackPBRMaterial();
@@ -986,6 +1027,7 @@ export function updateBoxGroup(group: THREE.Group, options?: BoxOptions | null):
   doorSpecs.forEach((spec) => group.add(createDoorObject(spec, mat as THREE.Material)));
   drawerSpecs.forEach((spec) => group.add(createDrawerObject(spec, mat as THREE.Material)));
 
+  group.updateMatrixWorld(true);
   return { width, height, depth };
 }
 

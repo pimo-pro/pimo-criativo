@@ -241,12 +241,6 @@ export const defaultState: ProjectState = {
   precoTotalProjeto: null,
   activeViewerTool: "select",
   viewerSettings: defaultViewerSettings,
-  projectValidation: {
-    items: [],
-    hasErrors: false,
-    hasWarnings: false,
-    updatedAt: null,
-  },
   rulesProfiles: loadProfiles(),
   rules: getRulesFromProfiles(loadProfiles()),
   rulesProfileId: undefined,

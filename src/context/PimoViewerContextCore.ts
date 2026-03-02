@@ -82,6 +82,8 @@ export type PimoViewerApi = {
   getRightmostX?: () => number;
   /** Reposiciona a câmera numa vista pré-definida (top, bottom, front, back, right, left, isometric). */
   setCameraView?: (_preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric") => void;
+  /** Reposiciona a câmera para o enquadramento padrão. */
+  resetCamera?: () => void;
   /** Esconde/mostra manualmente uma parede (auto-hide continua ativo). */
   setManualWallHidden?: (_active: boolean) => void;
   getManualWallHidden?: () => boolean;

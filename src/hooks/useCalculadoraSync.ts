@@ -15,6 +15,53 @@ type ViewerApi = {
 
 type BoxState = { index: number };
 
+/** Fingerprint da estrutura da caixa (dimensões, portas, gavetas, etc.) para evitar updateBox completo quando só posição/rotação mudou (ex.: após drag). */
+function getStructureFingerprint(wsBox: WorkspaceBox): string {
+  const d = wsBox.dimensoes;
+  const doors = wsBox.doorsLayer ?? [];
+  const drawers = wsBox.drawersLayer ?? [];
+  const doorSig = doors.map((door) => ({
+    id: door.id,
+    width: door.width,
+    height: door.height,
+    thickness: door.thickness,
+    posX: door.posX,
+    posY: door.posY,
+    posZ: door.posZ,
+    rotY: door.rotY,
+    isOpen: door.isOpen,
+    openDirection: door.openDirection,
+    hingeSide: door.hingeSide,
+    pivot: door.pivot,
+  }));
+  const drawerSig = drawers.map((drawer) => ({
+    id: drawer.id,
+    width: drawer.width,
+    height: drawer.height,
+    depth: drawer.depth,
+    frontThickness: drawer.frontThickness,
+    posX: drawer.posX,
+    posY: drawer.posY,
+    posZ: drawer.posZ,
+    rotY: drawer.rotY,
+    isOpen: drawer.isOpen,
+    pullDistanceMm: drawer.pullDistanceMm,
+  }));
+  return JSON.stringify({
+    w: d?.largura,
+    h: d?.altura,
+    p: d?.profundidade,
+    shelves: wsBox.prateleiras,
+    doors: doorSig,
+    drawers: drawerSig,
+    material: wsBox.material,
+    espessura: wsBox.espessura,
+    cabinetType: wsBox.cabinetType,
+    feetEnabled: wsBox.feetEnabled,
+    pe_cm: wsBox.pe_cm,
+  });
+}
+
 /** Posição EXCLUSIVAMENTE do projeto. manualPosition === true: X = rightmost+100mm, Y = altura/2, Z = 0 (definidos no ProjectProvider). */
 function getBoxPositionAndRotation(workspaceBox: WorkspaceBox | undefined): Partial<BoxOptions> {
   if (!workspaceBox) return {};
@@ -56,6 +103,8 @@ export const useCalculadoraSync = (
   const projectMaterialIdRef = useRef<string | undefined>(projectMaterialId);
   const stateRef = useRef<Map<string, BoxState>>(new Map());
   const prevViewerReadyRef = useRef<boolean | undefined>(false);
+  /** Última estrutura conhecida por box id; quando igual, só enviamos position/rotation para evitar rebuild no Viewer. */
+  const lastStructureFingerprintRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     projectMaterialIdRef.current = projectMaterialId;
@@ -139,29 +188,47 @@ export const useCalculadoraSync = (
           drillMarkersByPanel,
           ...posRot,
         });
+        lastStructureFingerprintRef.current.set(wsBox.id, getStructureFingerprint(wsBox));
       } else {
-        api.updateBox(wsBox.id, {
-          width,
-          height,
-          depth,
-          thickness,
-          panelIds: wsBox.panelIds,
-          shelves,
-          materialName: resolvedMaterialName,
-          index,
-          ...cabinetOpts,
-          ...rotateOpts,
-          doorLayerItems,
-          drawerLayerItems,
-          drillMarkersByPanel,
-          ...posRot,
-        });
+        const structureFingerprint = getStructureFingerprint(wsBox);
+        const lastFingerprint = lastStructureFingerprintRef.current.get(wsBox.id);
+        if (lastFingerprint === structureFingerprint) {
+          // Apenas posição/rotação mudaram (ex.: drag no viewer). Só atualizar transform para não disparar rebuild (updateBoxGroup/createDoorObject).
+          api.updateBox(wsBox.id, { ...posRot });
+        } else {
+          if (import.meta.env.DEV) {
+            console.log("[useCalculadoraSync] estrutura mudou, chamando updateBox com dimensões", {
+              boxId: wsBox.id,
+              width,
+              height,
+              depth,
+            });
+          }
+          api.updateBox(wsBox.id, {
+            width,
+            height,
+            depth,
+            thickness,
+            panelIds: wsBox.panelIds,
+            shelves,
+            materialName: resolvedMaterialName,
+            index,
+            ...cabinetOpts,
+            ...rotateOpts,
+            doorLayerItems,
+            drawerLayerItems,
+            drillMarkersByPanel,
+            ...posRot,
+          });
+          lastStructureFingerprintRef.current.set(wsBox.id, structureFingerprint);
+        }
       }
     });
 
     Array.from(stateRef.current.keys()).forEach((id) => {
       if (!currentIds.has(id)) {
         api.removeBox(id);
+        lastStructureFingerprintRef.current.delete(id);
       }
     });
 

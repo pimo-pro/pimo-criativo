@@ -1,9 +1,13 @@
 /**
  * Configuração centralizada da toolbar do Viewer.
  * Ícones, ações, tooltips e IDs para ViewerToolbar e Tools3DToolbar.
+ *
+ * Novos botões (ex.: Reset Camera): adicionar em VIEWER_TOOLBAR_ITEMS
+ * respeitando a ordem definida para a toolbar.
  */
 
 export type ToolbarActionId =
+  | "reset-camera"
   | "projeto"
   | "novo"
   | "salvar"
@@ -28,6 +32,7 @@ export const VIEWER_TOOLBAR_ITEMS: Array<{
   { id: "refazer", label: "REFAZER", icon: "⟳", tooltip: "Refazer" },
   { id: "2d", label: "2D", icon: "2D", tooltip: "Vista 2D" },
   { id: "imagem", label: "PHOTO", icon: "📷", tooltip: "Photo Mode" },
+  { id: "reset-camera", label: "RESET", icon: "⌖", tooltip: "Reset Camera – Vista frontal centralizada" },
   { id: "enviar", label: "ENVIAR", icon: "↗", tooltip: "Enviar pacote" },
 ];
 

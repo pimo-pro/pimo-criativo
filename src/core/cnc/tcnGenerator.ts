@@ -11,6 +11,7 @@
 
 import type { SheetResult } from "../cutlayout/cutLayoutTypes";
 import type { CncDrillOperation } from "./cncTypes";
+import { getSettings } from "../settings/settingsService";
 
 const HEADER = "TPA\\ALBATROS\\EDICAD\\00.00:0";
 
@@ -33,15 +34,62 @@ function buildContourPoints(
   y: number,
   w: number,
   h: number,
-  z: number
+  z: number,
+  toolRadiusMm: number
 ): Array<{ x: number; y: number; z: number }> {
+  const offset = Math.max(0, toolRadiusMm);
+  const ox = x - offset;
+  const oy = y - offset;
+  const ow = w + offset * 2;
+  const oh = h + offset * 2;
   return [
-    { x, y, z },
-    { x: x + w, y, z },
-    { x: x + w, y: y + h, z },
-    { x, y: y + h, z },
-    { x, y, z },
+    { x: ox, y: oy, z },
+    { x: ox + ow, y: oy, z },
+    { x: ox + ow, y: oy + oh, z },
+    { x: ox, y: oy + oh, z },
+    { x: ox, y: oy, z },
   ];
+}
+
+function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): boolean {
+  return a.x < b.x + b.w - EPSILON_MM && a.x + a.w > b.x + EPSILON_MM && a.y < b.y + b.h - EPSILON_MM && a.y + a.h > b.y + EPSILON_MM;
+}
+
+function sanitizePlacementsForTcn(
+  placements: SheetResult["placements"],
+  sheet: SheetResult["sheet"],
+  toolRadiusMm: number
+): SheetResult["placements"] {
+  const unique: SheetResult["placements"] = [];
+  const contourRects: Array<{ x: number; y: number; w: number; h: number }> = [];
+  const signatures = new Set<string>();
+
+  for (const pl of placements) {
+    const x = pl.x_mm;
+    const y = pl.y_mm;
+    const w = pl.largura_mm;
+    const h = pl.altura_mm;
+    const signature = `${Math.round(x * 1000)}:${Math.round(y * 1000)}:${Math.round(w * 1000)}:${Math.round(h * 1000)}`;
+    if (signatures.has(signature)) continue;
+
+    if (!isPlacementInsideSheet(x, y, w, h, sheet.largura_mm, sheet.altura_mm)) continue;
+
+    const contourRect = {
+      x: x - toolRadiusMm,
+      y: y - toolRadiusMm,
+      w: w + toolRadiusMm * 2,
+      h: h + toolRadiusMm * 2,
+    };
+
+    const hasOverlap = contourRects.some((r) => rectsOverlap(r, contourRect));
+    if (hasOverlap) continue;
+
+    signatures.add(signature);
+    contourRects.push(contourRect);
+    unique.push(pl);
+  }
+
+  return unique;
 }
 
 function isPlacementInsideSheet(
@@ -180,6 +228,11 @@ export function generateTcnForPanel(
   lines.push("OPTI{");
   lines.push("}OPTI");
 
+  const runtimeSettings = getSettings();
+  const cutterDiameterMm = Math.max(0, Number(runtimeSettings.nesting.kerfPadraoMm) || 0);
+  const effectiveCutterDiameterMm = cutterDiameterMm > 0 ? cutterDiameterMm : 3;
+  const toolRadiusMm = effectiveCutterDiameterMm / 2;
+
   const placements = sheetResult.placements.filter((pl) =>
     isPlacementInsideSheet(
       pl.x_mm,
@@ -190,11 +243,12 @@ export function generateTcnForPanel(
       sheet.altura_mm
     )
   );
+  const sanitizedPlacements = sanitizePlacementsForTcn(placements, sheet, toolRadiusMm);
   const sideInnerLines: string[] = [];
   const drills: CncDrillOperation[] = [];
   
   // Primeiro: coletar apenas furos superiores (topDrillable) de todas as peças
-  placements.forEach((pl) => {
+  sanitizedPlacements.forEach((pl) => {
     for (const hole of pl.holes ?? []) {
       const topDrillable = (hole as { topDrillable?: boolean }).topDrillable;
       if (!topDrillable) continue;
@@ -213,12 +267,12 @@ export function generateTcnForPanel(
   sideInnerLines.push(...buildDrillLines(drills));
   
   // Terceiro: operações de corte para cada peça
-  placements.forEach((pl) => {
+  sanitizedPlacements.forEach((pl) => {
     const w = pl.largura_mm;
     const h = pl.altura_mm;
     const x = pl.x_mm;
     const y = pl.y_mm;
-    const points = buildContourPoints(x, y, w, h, zCut);
+    const points = buildContourPoints(x, y, w, h, zCut, toolRadiusMm);
     const firstPoint = points[0];
     sideInnerLines.push(buildW81(points, Z_SAFETY_MM));
     sideInnerLines.push(buildToolBlock(firstPoint.x, firstPoint.y, zTool));

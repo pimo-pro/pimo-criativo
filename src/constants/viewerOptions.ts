@@ -31,7 +31,7 @@ export const DEFAULT_VIEWER_OPTIONS: Omit<ViewerOptions, "background" | "skipIni
     enableDamping: true,
     dampingFactor: 0.08,
     minDistance: 1.0,
-    maxDistance: 12,
+    maxDistance: 40,
     minPolarAngle: Math.PI * 0.12,
     maxPolarAngle: Math.PI * 0.48,
   },

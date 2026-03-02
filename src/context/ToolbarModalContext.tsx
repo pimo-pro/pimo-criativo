@@ -8,7 +8,7 @@
 
 import { createContext, useCallback, useContext, useState } from "react";
 
-export type ToolbarModalType = "projects" | "2d" | "image" | "send" | "integration" | "validation" | null;
+export type ToolbarModalType = "projects" | "2d" | "image" | "send" | "integration" | null;
 
 type ToolbarModalContextValue = {
   modal: ToolbarModalType;

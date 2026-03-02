@@ -20,6 +20,7 @@ type PimoViewerAPI = {
   selectedBoxId: string | null;
   onBoxSelected: (_callback: (_id: string | null) => void) => void;
   setOnBoxSelected: (_callback: (_id: string | null) => void) => void;
+  setOnDoorLayerDoubleClick: (_callback: ((_boxId: string, _doorLayerId: string) => void) | null) => void;
   selectBox: (_id: string | null) => void;
   addBox: (_id: string, _options?: BoxOptions) => boolean;
   removeBox: (_id: string) => boolean;
@@ -51,6 +52,7 @@ type PimoViewerAPI = {
   }) => void;
   clearRoomBounds: () => void;
   setCameraView: (_preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric") => void;
+  resetCamera: () => void;
   setShowcaseMode: (_active: boolean, _turntable?: boolean) => void;
   getShowcaseMode: () => boolean;
   getCurrentMode: () => "performance" | "showcase";
@@ -134,6 +136,7 @@ export const usePimoViewer = (
   const [viewerReady, setViewerReady] = useState(false);
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const onBoxSelectedRef = useRef<((_id: string | null) => void) | null>(null);
+  const onDoorLayerDoubleClickRef = useRef<((_boxId: string, _doorLayerId: string) => void) | null>(null);
   const preReadyRotationAttemptsRef = useRef<Map<string, number>>(new Map());
   const preReadyLastLogRef = useRef(0);
 
@@ -157,6 +160,9 @@ export const usePimoViewer = (
       setSelectedBoxId(id);
       onBoxSelectedRef.current?.(id);
     });
+    viewerRef.current.setOnDoorLayerDoubleClick((boxId, doorLayerId) => {
+      onDoorLayerDoubleClickRef.current?.(boxId, doorLayerId);
+    });
     // Marcar viewer como pronto após um frame para garantir que o canvas foi dimensionado
     const raf = requestAnimationFrame(() => {
       setViewerReady(true);
@@ -173,6 +179,13 @@ export const usePimoViewer = (
   const setOnBoxSelected = useCallback((_callback: (_id: string | null) => void) => {
     onBoxSelectedRef.current = _callback;
   }, []);
+
+  const setOnDoorLayerDoubleClick = useCallback(
+    (_callback: ((_boxId: string, _doorLayerId: string) => void) | null) => {
+      onDoorLayerDoubleClickRef.current = _callback;
+    },
+    []
+  );
 
   const logPreReadyRotationAttempt = useCallback((pseudoUuid: string) => {
     if (!import.meta.env.DEV) return;
@@ -212,7 +225,13 @@ export const usePimoViewer = (
   const updateBox = useCallback(
     (id: string, boxOptions: Partial<BoxOptions>) => {
       const viewer = viewerRef.current;
-      if (!viewer || !viewerReady) {
+      if (!viewer) return false;
+      const hasDimensionOpts =
+        boxOptions.width !== undefined ||
+        boxOptions.height !== undefined ||
+        boxOptions.depth !== undefined ||
+        boxOptions.size !== undefined;
+      if (!viewerReady && !hasDimensionOpts) {
         if (boxOptions.rotationY != null && Number.isFinite(boxOptions.rotationY)) {
           logPreReadyRotationAttempt(`pending:${id}`);
         }
@@ -260,6 +279,10 @@ export const usePimoViewer = (
     },
     []
   );
+
+  const resetCamera = useCallback(() => {
+    viewerRef.current?.resetCamera?.();
+  }, []);
 
   const setBoxGap = useCallback((gap: number) => {
     viewerRef.current?.setBoxGap(gap);
@@ -644,6 +667,7 @@ export const usePimoViewer = (
       selectedBoxId,
       onBoxSelected: setOnBoxSelected,
       setOnBoxSelected,
+      setOnDoorLayerDoubleClick,
       selectBox,
       addBox,
       removeBox,
@@ -669,6 +693,7 @@ export const usePimoViewer = (
     setRoomBounds,
     clearRoomBounds,
     setCameraView,
+    resetCamera,
     setShowcaseMode,
       getShowcaseMode,
       getCurrentMode,
@@ -735,6 +760,7 @@ export const usePimoViewer = (
       viewerReady,
       selectedBoxId,
       setOnBoxSelected,
+      setOnDoorLayerDoubleClick,
       selectBox,
       addBox,
       removeBox,
@@ -760,6 +786,7 @@ export const usePimoViewer = (
       setRoomBounds,
       clearRoomBounds,
       setCameraView,
+      resetCamera,
       setShowcaseMode,
       getShowcaseMode,
       getCurrentMode,

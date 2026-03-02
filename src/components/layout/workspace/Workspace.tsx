@@ -19,10 +19,11 @@ import {
 } from "../../../core/layout/viewerLayoutAdapter";
 import { mToMm } from "../../../utils/units";
 import { getModelo } from "../../../core/cad/cadModels";
-import { validateProjectLight } from "../../../core/validation/validateProject";
 import { useWallStore, wallStore } from "../../../stores/wallStore";
 import { useUiStore } from "../../../stores/uiStore";
 import { clampOpeningNoOverlap } from "../../../utils/openingConstraints";
+import { useGerarArquivoHandlers } from "../../../hooks/useGerarArquivoHandlers";
+import GerarArquivoModal from "../right-panel/GerarArquivoModal";
 
 type WorkspaceProps = {
   viewerBackground?: string;
@@ -37,6 +38,8 @@ export default function Workspace({
 }: WorkspaceProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { project, actions, viewerSync } = useProject();
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
   const { showToast, startLoading, stopLoading } = useToast();
   const viewerOptionsStable = useMemo(
     () => ({
@@ -56,15 +59,31 @@ export default function Workspace({
   const clearUiSelection = useUiStore((state) => state.clearSelection);
   const setSelectedTool = useUiStore((state) => state.setSelectedTool);
 
+  const [showGerarArquivoModal, setShowGerarArquivoModal] = useState(false);
+  const gerarArquivoHandlers = useGerarArquivoHandlers();
+
+  useEffect(() => {
+    const handleOpenGerarArquivo = () => setShowGerarArquivoModal(true);
+    window.addEventListener("pimo:open-gerar-arquivo-modal", handleOpenGerarArquivo);
+    return () => window.removeEventListener("pimo:open-gerar-arquivo-modal", handleOpenGerarArquivo);
+  }, []);
+
+  // Registrar no PimoViewerContext apenas quando viewerApi muda (não quando viewerSync muda, para evitar loop ao rotacionar/atualizar projeto).
   useEffect(() => {
     registerViewerApi(viewerApi);
+    return () => {
+      registerViewerApi(null);
+    };
+  }, [registerViewerApi, viewerApi]);
+
+  // Manter viewerSync com o adapter atual; roda quando viewerApi ou viewerSync mudam, sem chamar setState no contexto.
+  useEffect(() => {
     const adapter = createViewerApiAdapter(viewerApi);
     viewerSync.registerViewerApi(adapter);
     return () => {
-      registerViewerApi(null);
       viewerSync.registerViewerApi(null);
     };
-  }, [registerViewerApi, viewerSync, viewerApi]);
+  }, [viewerApi, viewerSync]);
 
   // Fluxo da sala é controlado exclusivamente pelo PainelSala (RoomManager).
   // Evita remoção/criação implícita da sala em mudanças de seleção do wallStore.
@@ -90,6 +109,25 @@ export default function Workspace({
       }
     });
   }, [actions, viewerApi, clearUiSelection, project.selectedWorkspaceBoxId]);
+
+  useEffect(() => {
+    viewerApi.setOnDoorLayerDoubleClick((boxId, doorLayerId) => {
+      const box = project.workspaceBoxes.find((workspaceBox) => workspaceBox.id === boxId);
+      const door = box?.doorsLayer?.find((item) => item.id === doorLayerId);
+      if (!box || !door) return;
+
+      const nextIsOpen = !door.isOpen;
+      if (project.selectedWorkspaceBoxId === boxId) {
+        actions.setDoorLayerItemOpen(doorLayerId, nextIsOpen);
+        return;
+      }
+
+      actions.selectBox(boxId);
+      requestAnimationFrame(() => {
+        actionsRef.current.setDoorLayerItemOpen(doorLayerId, nextIsOpen);
+      });
+    });
+  }, [actions, project.workspaceBoxes, project.selectedWorkspaceBoxId, viewerApi]);
 
   useEffect(() => {
     viewerApi.setOnWallSelected?.((wallIndex) => {
@@ -192,7 +230,7 @@ export default function Workspace({
 
   useEffect(() => {
     viewerApi.setOnBoxTransform((boxId, position, rotationY) => {
-      actions.updateWorkspaceBoxTransform(boxId, {
+      actionsRef.current.updateWorkspaceBoxTransform(boxId, {
         x_mm: mToMm(position.x),
         y_mm: mToMm(position.y),
         z_mm: mToMm(position.z),
@@ -200,13 +238,15 @@ export default function Workspace({
         manualPosition: true,
       });
     });
-  }, [actions, viewerApi]);
+  }, [viewerApi]);
 
-  // Aplicar ferramenta 3D ativa ao Viewer (select/move/rotate) e reaplicar quando o adapter ou a ferramenta mudar
+  // Aplicar ferramenta 3D ativa ao Viewer (select/move/rotate). Só depender de activeViewerTool para não reaplicar a cada mudança de viewerSync (ex.: após rotacionar) e permitir que o gizmo desapareça ao clicar em "Selecionar".
+  const viewerSyncRef = useRef(viewerSync);
+  viewerSyncRef.current = viewerSync;
   useEffect(() => {
     const mode = project.activeViewerTool ?? "select";
-    viewerSync.setActiveTool(mode);
-  }, [project.activeViewerTool, viewerSync]);
+    viewerSyncRef.current.setActiveTool(mode);
+  }, [project.activeViewerTool]);
 
   const [lockEnabled, setLockEnabledState] = useState(false);
   const [mouseMenuPosition, setMouseMenuPosition] = useState<{ x: number; y: number } | null>(null);
@@ -228,7 +268,6 @@ const [selectedBoxDimensions, setSelectedBoxDimensions] = useState<{ width: numb
   const [selectedBoxOverlayPosition, setSelectedBoxOverlayPosition] = useState<{ x: number; y: number } | null>(null);
   const isSelectMode = (project.activeViewerTool ?? "select") === "select";
   const hasShownViewerReadyToastRef = useRef(false);
-  const lastValidationToastRef = useRef<string>("");
 
   useEffect(() => {
     viewerSync.setDimensionsOverlayVisible(isSelectMode);
@@ -340,33 +379,8 @@ const [selectedBoxDimensions, setSelectedBoxDimensions] = useState<{ width: numb
       prevBoxesRef.current = key;
       return;
     }
-    if (prevBoxesRef.current && prevBoxesRef.current !== key) {
-      const errors = validateProjectLight({
-        workspaceBoxes: project.workspaceBoxes,
-        boxes: project.boxes ?? [],
-        roomConfig: null,
-      });
-      const msg = errors[0]?.message;
-      if (msg) {
-        const toastMessage = errors.some((e) => e.type === "out_of_room")
-          ? "Peça fora da sala"
-          : errors.some((e) => e.type === "collision")
-            ? "Colisão detectada"
-            : errors.some((e) => e.type === "missing_ferragens")
-              ? "Ferragens incompletas"
-              : msg;
-        if (lastValidationToastRef.current !== toastMessage) {
-          lastValidationToastRef.current = toastMessage;
-          if (errors.some((e) => e.type === "out_of_room" || e.type === "collision")) {
-            showToast(toastMessage, "error");
-          } else {
-            showToast(toastMessage, "warning");
-          }
-        }
-      }
-    }
     prevBoxesRef.current = key;
-  }, [workspacePositionKey, project.estaCarregando, project.workspaceBoxes, project.boxes, showToast]);
+  }, [workspacePositionKey, project.estaCarregando]);
 
   useEffect(() => {
     if (viewerApi.viewerReady) {
@@ -453,6 +467,7 @@ const [selectedBoxDimensions, setSelectedBoxDimensions] = useState<{ width: numb
   }, [actions, viewerApi, startLoading, stopLoading, showToast]);
 
 return (
+    <>
     <main
       className="workspace-root"
       style={{ position: "relative", zIndex: 0 }}
@@ -550,6 +565,7 @@ const { x, y } = selectedBoxOverlayPosition;
                   left: x,
                   top: y - 4,
                   transform: "translate(-50%, -115%)",
+                  pointerEvents: "none",
                   padding: "8px 12px",
                   background: "rgba(15, 23, 42, 0.55)",
                   backdropFilter: "blur(6px)",
@@ -563,7 +579,6 @@ const { x, y } = selectedBoxOverlayPosition;
                   display: "flex",
                   flexDirection: "column",
                   gap: 6,
-                  pointerEvents: "none",
                   whiteSpace: "nowrap",
                   zIndex: 10,
                   boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
@@ -582,5 +597,19 @@ const { x, y } = selectedBoxOverlayPosition;
           })()}
       </div>
     </main>
+      {showGerarArquivoModal && (
+        <GerarArquivoModal
+          onClose={() => setShowGerarArquivoModal(false)}
+          onConfirm={gerarArquivoHandlers.handleGerarArquivoConfirm}
+          hasBoxes={gerarArquivoHandlers.hasBoxes}
+          onPdfTecnico={gerarArquivoHandlers.onPdfTecnico}
+          onCutlist={gerarArquivoHandlers.onCutlist}
+          onAmbos={gerarArquivoHandlers.onAmbos}
+          onLayoutCorte={gerarArquivoHandlers.onLayoutCorte}
+          onEtiquetas={gerarArquivoHandlers.onEtiquetas}
+          onExportarCnc={gerarArquivoHandlers.onExportarCnc}
+        />
+      )}
+    </>
   );
 }

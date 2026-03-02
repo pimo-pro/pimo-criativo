@@ -49,20 +49,23 @@ export default function Tools3DToolbar({
   const enabledTools: Tool3DId[] = ["select", "move", "rotate"];
   const selectedBoxId = project.selectedWorkspaceBoxId;
   const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [showExplodedMenu, setShowExplodedMenu] = useState(false);
   const [showRotationPopup, setShowRotationPopup] = useState(false);
   
   const cameraMenuRef = useRef<HTMLDivElement>(null);
+  const explodedMenuRef = useRef<HTMLDivElement>(null);
   const rotationPopupRef = useRef<HTMLDivElement>(null);
   const rotationInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!showCameraMenu) return;
+    if (!showCameraMenu && !showExplodedMenu) return;
     const close = (e: MouseEvent) => {
       if (cameraMenuRef.current && !cameraMenuRef.current.contains(e.target as Node)) setShowCameraMenu(false);
+      if (explodedMenuRef.current && !explodedMenuRef.current.contains(e.target as Node)) setShowExplodedMenu(false);
     };
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
-  }, [showCameraMenu]);
+  }, [showCameraMenu, showExplodedMenu]);
 
   useEffect(() => {
     if (!showRotationPopup) return;
@@ -137,7 +140,7 @@ export default function Tools3DToolbar({
       {onToggleLock != null && (
         <button
           type="button"
-          title={lockEnabled ? "Desbloquear (permitir sobreposição)" : "Bloquear (impedir colisão)"}
+          title={lockEnabled ? "Desbloquear (permitir sobreposição e atravessar paredes/chão)" : "Bloquear (impedir colisão entre caixas, paredes e chão)"}
           aria-label={lockEnabled ? "Desbloquear" : "Bloquear"}
           aria-pressed={lockEnabled}
           onClick={onToggleLock}
@@ -156,7 +159,10 @@ export default function Tools3DToolbar({
           title="Selecionar vista da câmera"
           aria-label="Selecionar vista da câmera"
           aria-expanded={showCameraMenu}
-          onClick={() => setShowCameraMenu(true)}
+          onClick={() => {
+            setShowExplodedMenu(false);
+            setShowCameraMenu(true);
+          }}
           style={{
             ...toolbarButtonStyle,
             background: showCameraMenu ? "rgba(59, 130, 246, 0.25)" : "transparent",
@@ -181,6 +187,74 @@ export default function Tools3DToolbar({
             }}
             onClose={() => setShowCameraMenu(false)}
           />
+        )}
+      </div>
+      <div ref={explodedMenuRef} style={{ position: "relative", display: "inline-flex", marginLeft: 2 }}>
+        <button
+          type="button"
+          title="Exploded View"
+          aria-label="Exploded View"
+          aria-expanded={showExplodedMenu}
+          onClick={() => {
+            setShowCameraMenu(false);
+            setShowExplodedMenu((prev) => !prev);
+          }}
+          style={{
+            ...toolbarButtonStyle,
+            background: showExplodedMenu ? "rgba(59, 130, 246, 0.25)" : "transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (!showExplodedMenu) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+          }}
+          onMouseLeave={(e) => {
+            if (!showExplodedMenu) e.currentTarget.style.background = "transparent";
+          }}
+        >
+          🧩
+        </button>
+        {showExplodedMenu && (
+          <div
+            role="dialog"
+            aria-label="Exploded View"
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              marginTop: 4,
+              minWidth: 240,
+              padding: 10,
+              background: "rgba(15, 23, 42, 0.98)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              zIndex: 1000,
+            }}
+          >
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: 8 }}>
+              <input
+                type="checkbox"
+                checked={project.viewerSettings.explodedViewEnabled}
+                onChange={(e) => actions.setViewerSettings({ explodedViewEnabled: e.target.checked })}
+              />
+              Exploded View
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12 }}>
+              Intensidade Exploded ({Math.round(project.viewerSettings.explodedViewIntensity * 100)}%)
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={project.viewerSettings.explodedViewIntensity}
+                disabled={!project.viewerSettings.explodedViewEnabled}
+                onChange={(e) =>
+                  actions.setViewerSettings({
+                    explodedViewIntensity: Math.max(0, Math.min(1, Number.parseFloat(e.target.value) || 0)),
+                  })
+                }
+              />
+            </label>
+          </div>
         )}
       </div>
       

@@ -138,6 +138,7 @@ export class Viewer {
   private pointer = new THREE.Vector2();
   private selectedBoxId: string | null = null;
   private onBoxSelected: ((_id: string | null) => void) | null = null;
+  private onDoorLayerDoubleClick: ((_boxId: string, _doorLayerId: string) => void) | null = null;
   private onModelLoaded: ((_boxId: string, _modelId: string, _object: THREE.Object3D) => void) | null = null;
   private onBoxTransform: ((_boxId: string, _position: { x: number; y: number; z: number }, _rotationY: number) => void) | null = null;
   private transformControls: TransformControls | null = null;
@@ -147,6 +148,9 @@ export class Viewer {
   private readonly _boundingBox = new THREE.Box3();
   private readonly _center = new THREE.Vector3();
   private readonly _size = new THREE.Vector3();
+  private readonly _boxSingle = new THREE.Box3();
+  private readonly _frustum = new THREE.Frustum();
+  private readonly _projScreenMatrix = new THREE.Matrix4();
   private _initialCanvasSizeDone = false;
   private readonly isMobile: boolean;
   private hoveredBoxId: string | null = null;
@@ -202,6 +206,13 @@ export class Viewer {
   /** Gizmo para mover e rotacionar paredes (handles X/Z e rotação). */
   private wallGizmo: WallGizmo | null = null;
   private wallGizmoDragging = false;
+  private transformControlsDragging = false;
+  private suppressNextCanvasClick = false;
+  private transformDiagnosticsEnabled = false;
+
+  /** Vista escolhida pelo utilizador (Selecionar Vista). Quando definida, updateCameraTarget/ToBox só atualizam o alvo, não a orientação. */
+  private cameraViewPreset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric" | null = null;
+
   /** Gestor da sala única (4 paredes principais + extras + piso + lock). */
   private roomManager: RoomManager | null = null;
   /** Overlay de debug do snapping (somente DEV). */
@@ -332,11 +343,30 @@ export class Viewer {
       this.rendererManager.renderer.domElement
     );
     this.transformControls.setSpace("world");
+    this.transformControls.enabled = true;
+    this.transformControls.showX = true;
+    this.transformControls.showY = true;
+    this.transformControls.showZ = true;
+    this.transformControls.addEventListener("mouseDown", () => {
+      this.transformControlsDragging = true;
+      this.logTransformDiagnostic("dragStart(mouseDown)");
+    });
+    this.transformControls.addEventListener("mouseUp", () => {
+      this.transformControlsDragging = false;
+      this.suppressNextCanvasClick = true;
+      this.clampTransform();
+      this.notifyBoxTransform();
+      this.notifyWallTransform();
+      this.notifyRoomElementTransform();
+      this.logTransformDiagnostic("dragEnd(mouseUp)");
+    });
     this.transformControls.addEventListener("dragging-changed", (event) => {
-      if (this.controls?.controls) {
-        this.controls.controls.enabled = !event.value;
-      }
+      this.transformControlsDragging = Boolean(event.value);
+      this.logTransformDiagnostic("dragging-changed", {
+        value: Boolean(event.value),
+      });
       if (!event.value) {
+        this.suppressNextCanvasClick = true;
         this.clampTransform();
         this.notifyBoxTransform();
         this.notifyWallTransform();
@@ -345,10 +375,15 @@ export class Viewer {
     });
     this.transformControls.addEventListener("objectChange", () => {
       this.clampTransform();
+      this.logTransformDiagnostic("drag(objectChange)");
     });
     this.transformControlsHelper = this.transformControls.getHelper();
     this.transformControlsHelper.visible = false;
     this.sceneManager.scene.add(this.transformControlsHelper);
+    this.logTransformDiagnostic("transform-listeners-ready", {
+      domTag: this.rendererManager.renderer.domElement.tagName,
+      helperVisible: this.transformControlsHelper.visible,
+    });
 
     this.wallGizmo = new WallGizmo(this.cameraManager.camera);
     this.wallGizmo.setOnTransform(() => this.notifyWallTransform());
@@ -363,6 +398,7 @@ export class Viewer {
     this.updateCameraTarget();
 
     this.rendererManager.renderer.domElement.addEventListener("click", this.handleCanvasClick);
+    this.rendererManager.renderer.domElement.addEventListener("dblclick", this.handleCanvasDoubleClick);
     this.rendererManager.renderer.domElement.addEventListener("pointerdown", this.handleCanvasPointerDown);
     this.rendererManager.renderer.domElement.addEventListener("pointermove", this.handleCanvasPointerMove);
     this.rendererManager.renderer.domElement.addEventListener("pointerup", this.handleCanvasPointerUp);
@@ -548,6 +584,9 @@ export class Viewer {
 
   setLockEnabled(enabled: boolean): void {
     this.lockEnabled = enabled;
+    if (!enabled) {
+      this.boxes.forEach((entry) => this.clearSnapState(entry.mesh));
+    }
     this.updateBoxesIntersectingWalls();
     this.refreshOutlineTarget();
   }
@@ -881,9 +920,64 @@ export class Viewer {
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
   }
 
+  private applyTransformControlsMouseGuard(): void {
+    const controls = this.controls?.controls;
+    if (!controls) return;
+    const hasActiveTransform = Boolean(this.transformMode && this.transformControls?.object);
+    if (hasActiveTransform) {
+      controls.mouseButtons.LEFT = -1 as unknown as THREE.MOUSE;
+      this.logTransformDiagnostic("orbit-mouse-guard", {
+        hasActiveTransform,
+        leftButton: controls.mouseButtons.LEFT,
+        middleButton: controls.mouseButtons.MIDDLE,
+        rightButton: controls.mouseButtons.RIGHT,
+      });
+      return;
+    }
+    this.applyMousePresetToControls();
+    this.logTransformDiagnostic("orbit-mouse-guard", {
+      hasActiveTransform,
+      leftButton: controls.mouseButtons.LEFT,
+      middleButton: controls.mouseButtons.MIDDLE,
+      rightButton: controls.mouseButtons.RIGHT,
+    });
+  }
+
+  private logTransformDiagnostic(event: string, payload?: Record<string, unknown>): void {
+    if (!this.transformDiagnosticsEnabled) return;
+    const orbit = this.controls?.controls;
+    const target = this.transformControls?.object ?? null;
+    console.log(`[Viewer][TransformDiag] ${event}`, {
+      mode: this.transformMode,
+      dragging: this.transformControlsDragging,
+      selectedBoxId: this.selectedBoxId,
+      orbitEnabled: orbit?.enabled ?? null,
+      transformAttached: Boolean(target),
+      targetUuid: target?.uuid ?? null,
+      targetName: target?.name ?? null,
+      targetMatrixAutoUpdate: target?.matrixAutoUpdate ?? null,
+      targetPosition: target
+        ? {
+            x: Number(target.position.x.toFixed(4)),
+            y: Number(target.position.y.toFixed(4)),
+            z: Number(target.position.z.toFixed(4)),
+          }
+        : null,
+      ...(payload ?? {}),
+    });
+  }
+
+  private getTransformGizmoIntersections(event: { clientX: number; clientY: number }): number {
+    if (!this.transformControlsHelper || !this.transformControlsHelper.visible) return 0;
+    const { x, y } = this.getPointerNdc(event);
+    this.pointer.set(x, y);
+    this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
+    return this.raycaster.intersectObject(this.transformControlsHelper, true).length;
+  }
+
   setMousePreset(preset: ViewerMousePreset): void {
     this.mousePreset = preset === "classic" ? "classic" : "cad";
-    this.applyMousePresetToControls();
+    this.applyTransformControlsMouseGuard();
   }
 
   getMousePreset(): ViewerMousePreset {
@@ -1336,7 +1430,14 @@ export class Viewer {
     }
 
     box.frustumCulled = false;
+    box.matrixAutoUpdate = true;
+    box.visible = true;
+    box.layers.set(0);
     box.userData.boxId = id;
+    // Garantir que todos os descendentes estejam na layer 0 para o raycaster detectar clique.
+    box.traverse((child) => {
+      child.layers.set(0);
+    });
     box.userData.costaRotationY =
       opts.costaRotationY != null && Number.isFinite(opts.costaRotationY) ? opts.costaRotationY : 0;
     const baseY = height / 2;
@@ -1387,16 +1488,25 @@ export class Viewer {
       // this.applyAutoRotateToRoom(box, { snapPosition: this.lockEnabled });
       if (this.lockEnabled) this.applyRoomConstraint(box, { ignoreY: manualPosition });
     }
-    // reflowBoxes não altera caixas com manualPosition; clampTransform só em objectChange (arraste).
+    // Base do box em Y=0 (após exploded view) e câmera no centro do bbox real — só após box totalmente construído.
+    this.ensureBoxesBaseAtFloor();
     this.reflowBoxes();
-    this.updateCameraTarget();
+    if (this.boxes.size === 1) {
+      this.updateCameraTargetToBox(id, { onlyMovePositionIfOutOfFrame: true });
+    } else {
+      this.updateCameraTarget();
+    }
     return true;
   }
 
   updateBox(id: string, options: Partial<BoxOptions> = {}): boolean {
     const entry = this.boxes.get(id);
-    if (!entry) return false;
     const opts = options ?? {};
+    const hasDimOpts = opts.width !== undefined || opts.height !== undefined || opts.depth !== undefined || opts.size !== undefined;
+    if (import.meta.env.DEV && hasDimOpts) {
+      console.log("[Viewer.updateBox] chamado com dimensões", { id, entry: !!entry, width: opts.width, height: opts.height, depth: opts.depth });
+    }
+    if (!entry) return false;
     if (
       (opts.size !== undefined && (!Number.isFinite(opts.size) || opts.size <= 0)) ||
       (opts.width !== undefined && (!Number.isFinite(opts.width) || opts.width <= 0)) ||
@@ -1416,6 +1526,53 @@ export class Viewer {
     if (opts.index !== undefined && (!Number.isFinite(opts.index) || opts.index < 0)) {
       return false;
     }
+
+    // Atualização apenas de posição/rotação (ex.: após drag ou sync do projeto). Não fazer rebuild (updateBoxGroup/createDoorObject).
+    const onlyTransform =
+      opts.position !== undefined ||
+      opts.rotationY !== undefined ||
+      opts.manualPosition !== undefined ||
+      opts.costaRotationY !== undefined;
+    const hasStructureOpts =
+      opts.width !== undefined ||
+      opts.height !== undefined ||
+      opts.depth !== undefined ||
+      opts.size !== undefined ||
+      opts.shelves !== undefined ||
+      opts.doorLayerItems !== undefined ||
+      opts.drawerLayerItems !== undefined ||
+      opts.thickness !== undefined;
+    if (onlyTransform && !hasStructureOpts) {
+      if (entry.manualPosition && !opts.position) {
+        // nada a alterar
+      } else if (opts.position && !this.shouldUseFeetLock(entry)) {
+        entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
+      } else if (this.shouldUseFeetLock(entry)) {
+        const fixedY = this.getFixedYForCabinet({
+          height: entry.height,
+          cabinetType: entry.cabinetType,
+          pe_cm: entry.pe_cm,
+        });
+        if (opts.position) {
+          entry.mesh.position.set(opts.position.x, fixedY, opts.position.z);
+        } else {
+          entry.mesh.position.y = fixedY;
+        }
+      } else if (opts.position) {
+        entry.mesh.position.set(opts.position.x, opts.position.y, opts.position.z);
+      }
+      this.applyRotationIfNeeded(entry.mesh, opts.rotationY);
+      if (opts.costaRotationY !== undefined) {
+        (entry.mesh as THREE.Object3D & { userData: { costaRotationY?: number } }).userData.costaRotationY =
+          Number.isFinite(opts.costaRotationY) ? opts.costaRotationY : 0;
+      }
+      if (opts.manualPosition !== undefined) {
+        entry.manualPosition = opts.manualPosition;
+      }
+      entry.mesh.updateMatrixWorld(true);
+      return true;
+    }
+
     let width = entry.width;
     let height = entry.height;
     let depth = entry.depth;
@@ -1452,20 +1609,31 @@ export class Viewer {
       heightChanged = height !== entry.height;
       const hasLayerUpdate =
         opts.doorLayerItems !== undefined || opts.drawerLayerItems !== undefined;
-      if (entry.cadOnly && !hasLayerUpdate) {
+      // Só pular updateBoxGroup para caixa CAD-only quando não há alteração de dimensões nem de portas/gavetas.
+      if (entry.cadOnly && !hasLayerUpdate && !dimensionsChanged) {
         if (!entry.manualPosition) {
           entry.mesh.position.y = height / 2;
         }
       } else {
+        // Dimensões já resolvidas acima (width/height/depth); garantir que o BoxBuilder receba sempre os valores atuais para recalcular todas as peças.
         const fullOpts: Partial<BoxOptions> = {
-          width: opts.width ?? width,
-          height: opts.height ?? height,
-          depth: opts.depth ?? depth,
+          width,
+          height,
+          depth,
           thickness: opts.thickness,
           shelves: opts.shelves,
           doorLayerItems: opts.doorLayerItems,
           drawerLayerItems: opts.drawerLayerItems,
         };
+        if (import.meta.env.DEV && dimensionsChanged) {
+          console.log("[Viewer.updateBox] updateBoxGroup chamado (dimensões alteradas)", {
+            boxId: id,
+            width,
+            height,
+            depth,
+            isGroup: entry.mesh instanceof THREE.Group,
+          });
+        }
         if (
           import.meta.env.DEV &&
           (opts.doorLayerItems !== undefined || opts.drawerLayerItems !== undefined)
@@ -1523,6 +1691,9 @@ export class Viewer {
     } else if (!entry.manualPosition) {
       entry.mesh.position.y = height / 2;
     }
+    if (dimensionsChanged && !entry.manualPosition && !this.shouldUseFeetLock(entry)) {
+      entry.mesh.position.y = height / 2;
+    }
     this.applyRotationIfNeeded(entry.mesh, opts.rotationY);
     this.applyPanelIdsToBox(entry.mesh, id, opts.panelIds);
     this.applyExplodedViewForObject(entry.mesh);
@@ -1534,9 +1705,11 @@ export class Viewer {
       entry.manualPosition = opts.manualPosition;
     }
     entry.mesh.updateMatrixWorld();
+    entry.mesh.matrixAutoUpdate = true;
     entry.width = width;
     entry.height = height;
     entry.depth = depth;
+    if (this.lockEnabled) this.applyFloorConstraint(entry.mesh);
     if (dimensionsChanged && entry.cadOnly) {
       entry.cadModels.forEach((model) => {
         if (model.object.userData?.isCatalogGlb) {
@@ -1548,7 +1721,10 @@ export class Viewer {
       indexChanged || (dimensionsChanged && entry.cadOnly);
     if (reflowNeeded) {
       this.reflowBoxes();
-      this.updateCameraTarget();
+      if (!structureChanged) this.updateCameraTarget();
+    }
+    if (structureChanged) {
+      this.updateCameraTargetToBox(id, { onlyMovePositionIfOutOfFrame: true });
     }
     if (heightChanged && !entry.cadOnly) {
       this.updateModelsVerticalPosition(entry);
@@ -1878,53 +2054,81 @@ export class Viewer {
   }
 
   /**
-   * Reposiciona a câmera numa vista pré-definida (lookAt no centro da sala).
-   * Sem sala: usa centro (0, 0, 0) e dimensões padrão.
+   * Reposiciona a câmera numa vista pré-definida.
+   * Target sempre no centro do bounding box combinado (ou sala/origem).
+   * Orientações: Frontal = -Z, Traseira = +Z, Esquerda = +X, Direita = -X, Superior = -Y, Inferior = +Y.
+   * Nenhum auto-follow deve sobrescrever a orientação enquanto esta vista estiver ativa.
    */
   setCameraView(
     preset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric"
   ): void {
-    const centerX = this.roomBounds?.centerX ?? 0;
-    const centerZ = this.roomBounds?.centerZ ?? 0;
-    const minX = this.roomBounds?.minX ?? -2;
-    const maxX = this.roomBounds?.maxX ?? 2;
-    const minZ = this.roomBounds?.minZ ?? -1.5;
-    const maxZ = this.roomBounds?.maxZ ?? 1.5;
-    const roomHeight = this.roomBounds ? this.roomBounds.maxY - this.roomBounds.minY : 2.8;
-    const roomWidth = maxX - minX;
-    const roomDepth = maxZ - minZ;
-    const dist = Math.max(roomWidth, roomDepth, roomHeight) * 1.2;
+    const bounds = this.getCombinedBoundingBox();
+    let cx: number;
+    let cy: number;
+    let cz: number;
+    let dist: number;
 
-    this.cameraManager.setTarget(centerX, 0, centerZ);
+    if (bounds) {
+      cx = (bounds.min.x + bounds.max.x) * 0.5;
+      cy = (bounds.min.y + bounds.max.y) * 0.5;
+      cz = (bounds.min.z + bounds.max.z) * 0.5;
+      dist = Math.max(bounds.width, bounds.height, bounds.depth, 0.1) * 1.2;
+    } else if (this.roomBounds) {
+      cx = this.roomBounds.centerX;
+      cy = (this.roomBounds.minY + this.roomBounds.maxY) * 0.5;
+      cz = this.roomBounds.centerZ;
+      const roomHeight = this.roomBounds.maxY - this.roomBounds.minY;
+      const roomWidth = this.roomBounds.maxX - this.roomBounds.minX;
+      const roomDepth = this.roomBounds.maxZ - this.roomBounds.minZ;
+      dist = Math.max(roomWidth, roomDepth, roomHeight, 0.1) * 1.2;
+    } else {
+      cx = 0;
+      cy = 0;
+      cz = 0;
+      dist = 2.5;
+    }
+
+    this.cameraManager.setTarget(cx, cy, cz);
 
     switch (preset) {
-      case "top":
-        this.cameraManager.setPosition(centerX, roomHeight * 2, centerZ);
-        break;
-      case "bottom":
-        this.cameraManager.setPosition(centerX, -roomHeight * 0.5, centerZ);
-        break;
       case "front":
-        this.cameraManager.setPosition(centerX, roomHeight * 0.8, minZ - dist);
+        this.cameraManager.setPosition(cx, cy, cz + dist);
         break;
       case "back":
-        this.cameraManager.setPosition(centerX, roomHeight * 0.8, maxZ + dist);
-        break;
-      case "right":
-        this.cameraManager.setPosition(maxX + dist, roomHeight * 0.8, centerZ);
+        this.cameraManager.setPosition(cx, cy, cz - dist);
         break;
       case "left":
-        this.cameraManager.setPosition(minX - dist, roomHeight * 0.8, centerZ);
+        this.cameraManager.setPosition(cx - dist, cy, cz);
+        break;
+      case "right":
+        this.cameraManager.setPosition(cx + dist, cy, cz);
+        break;
+      case "top":
+        this.cameraManager.setPosition(cx, cy + dist, cz);
+        break;
+      case "bottom":
+        this.cameraManager.setPosition(cx, cy - dist, cz);
         break;
       case "isometric":
-      default:
-        this.cameraManager.setPosition(
-          minX + roomWidth * 0.8,
-          roomHeight * 1.2,
-          minZ + roomDepth * 0.8
-        );
+      default: {
+        const d = dist * 0.9;
+        this.cameraManager.setPosition(cx + d, cy + d * 0.8, cz + d);
         break;
+      }
     }
+
+    if (this.controls) {
+      this.controls.controls.target.set(cx, cy, cz);
+      this.controls.update();
+    }
+
+    this.cameraViewPreset = preset;
+  }
+
+  /** Aplica apenas a vista frontal padrão e limpa o preset (permite que auto-follow volte a atuar). */
+  resetCamera(): void {
+    this.cameraViewPreset = null;
+    this.setCameraView("front");
   }
 
   setPlacementMode(mode: "door" | "window" | null): void {
@@ -1997,6 +2201,10 @@ export class Viewer {
     this.onBoxSelected = callback;
   }
 
+  setOnDoorLayerDoubleClick(callback: ((_boxId: string, _doorLayerId: string) => void) | null): void {
+    this.onDoorLayerDoubleClick = callback;
+  }
+
   setOnModelLoaded(callback: ((_boxId: string, _modelId: string, _object: THREE.Object3D) => void) | null): void {
     this.onModelLoaded = callback;
   }
@@ -2008,18 +2216,27 @@ export class Viewer {
   setTransformMode(mode: "translate" | "rotate" | null): void {
     this.transformMode = mode;
     this.refreshTransformControlsAttachment();
+    this.applyTransformControlsMouseGuard();
   }
 
-  /** Anexa ou desanexa TransformControls conforme seleção (caixa, parede ou abertura). */
+  /** Anexa ou desanexa TransformControls conforme seleção (caixa, parede ou abertura). Em modo "select" (transformMode null) o gizmo fica oculto. */
   private refreshTransformControlsAttachment(): void {
     if (!this.transformControls) return;
     const mode = this.transformMode;
     if (this.selectedBoxId && mode) {
       const entry = this.boxes.get(this.selectedBoxId);
       if (entry) {
+        entry.mesh.matrixAutoUpdate = true;
+        entry.mesh.updateMatrixWorld(true);
         this.transformControls.detach();
         this.transformControls.attach(entry.mesh);
         this.transformControls.setMode(mode);
+        this.transformControls.setSize(this.getTransformGizmoSizeForBox(entry));
+        this.applyTransformControlsMouseGuard();
+        this.logTransformDiagnostic("attach-box", {
+          boxId: this.selectedBoxId,
+          attachedUuid: entry.mesh.uuid,
+        });
         if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
         return;
       }
@@ -2028,6 +2245,10 @@ export class Viewer {
       const wall = this.roomBoxWalls.find((w) => w.id === this.selectedWallIndex)?.mesh;
       if (wall) {
         this.transformControls.detach();
+        this.applyTransformControlsMouseGuard();
+        this.logTransformDiagnostic("detach-wall-selected", {
+          wallId: this.selectedWallIndex,
+        });
         if (this.transformControlsHelper) this.transformControlsHelper.visible = false;
         return;
       }
@@ -2035,14 +2256,26 @@ export class Viewer {
     if (this.selectedRoomElementId && mode) {
       const element = this.roomBuilder.getElementById(this.selectedRoomElementId);
       if (element) {
+        element.matrixAutoUpdate = true;
+        element.updateMatrixWorld(true);
         this.transformControls.detach();
         this.transformControls.attach(element);
         this.transformControls.setMode(mode);
+        this.transformControls.setSize(0.65);
+        this.applyTransformControlsMouseGuard();
+        this.logTransformDiagnostic("attach-room-element", {
+          elementId: this.selectedRoomElementId,
+          attachedUuid: element.uuid,
+        });
         if (this.transformControlsHelper) this.transformControlsHelper.visible = true;
         return;
       }
     }
     this.transformControls.detach();
+    this.applyTransformControlsMouseGuard();
+    this.logTransformDiagnostic("detach-none", {
+      reason: "no-selected-target-or-transform-mode",
+    });
     if (this.transformControlsHelper) this.transformControlsHelper.visible = false;
   }
 
@@ -2219,6 +2452,41 @@ export class Viewer {
   }
 
   /**
+   * Com lock ATIVADO: garante que o mesh não penetre abaixo de Y = 0.
+   * Com lock DESATIVADO: não altera posição (permite atravessar o chão).
+   */
+  private applyFloorConstraint(mesh: THREE.Object3D): void {
+    if (!this.lockEnabled) return;
+    mesh.updateMatrixWorld(true);
+    this._boundingBox.setFromObject(mesh);
+    if (this._boundingBox.min.y < 0) {
+      mesh.position.y += -this._boundingBox.min.y;
+      mesh.updateMatrixWorld(true);
+    }
+  }
+
+  /**
+   * Garante que a base de todas as caixas (sem manualPosition) fique em Y = 0.
+   * Recalcula o bounding box real após exploded view e ajusta position.y para que min.y >= 0.
+   * Chamado após o box estar totalmente construído (ex.: após applyExplodedViewForObject).
+   */
+  private ensureBoxesBaseAtFloor(): void {
+    if (this.boxes.size === 0) return;
+    this.boxes.forEach((entry) => entry.mesh.updateMatrixWorld(true));
+    this._boundingBox.makeEmpty();
+    this.boxes.forEach((entry) => this._boundingBox.expandByObject(entry.mesh));
+    const minY = this._boundingBox.min.y;
+    if (minY >= 0) return;
+    const shiftUp = -minY;
+    this.boxes.forEach((entry) => {
+      if (!entry.manualPosition) {
+        entry.mesh.position.y += shiftUp;
+      }
+    });
+    this.boxes.forEach((entry) => entry.mesh.updateMatrixWorld(true));
+  }
+
+  /**
    * Posiciona caixas sem manualPosition lado a lado em X/Z.
    * manualPosition === true: NUNCA alterar position.x, position.y nem position.z.
    */
@@ -2249,11 +2517,13 @@ export class Viewer {
 
   private updateCameraTarget() {
     if (this.boxes.size === 0) {
-      this.cameraManager.setTarget(0, 0, 0);
-      if (this.controls) {
-        this.controls.controls.target.set(0, 0, 0);
-        this.cameraManager.camera.lookAt(0, 0, 0);
-        this.controls.update();
+      if (this.cameraViewPreset == null) {
+        this.cameraManager.setTarget(0, 0, 0);
+        if (this.controls) {
+          this.controls.controls.target.set(0, 0, 0);
+          this.cameraManager.camera.lookAt(0, 0, 0);
+          this.controls.update();
+        }
       }
       return;
     }
@@ -2262,11 +2532,106 @@ export class Viewer {
       this._boundingBox.expandByObject(entry.mesh);
     });
     this._boundingBox.getCenter(this._center);
+
+    if (this.cameraViewPreset != null) {
+      this.cameraManager.getTarget().copy(this._center);
+      if (this.controls) {
+        this.controls.controls.target.copy(this._center);
+        this.controls.update();
+      }
+      return;
+    }
+
     this.cameraManager.setTarget(this._center.x, this._center.y, this._center.z);
     if (this.controls) {
       this.controls.controls.target.copy(this._center);
       this.cameraManager.camera.lookAt(this._center);
       this.controls.update();
+    }
+  }
+
+  /**
+   * Centro do bounding box real do box em mundo (atualiza matriz antes).
+   */
+  private getBoxBoundingBoxCenter(boxId: string): THREE.Vector3 | null {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return null;
+    entry.mesh.updateMatrixWorld(true);
+    this._boxSingle.setFromObject(entry.mesh);
+    this._boxSingle.getCenter(this._center);
+    return this._center.clone();
+  }
+
+  /**
+   * True se o box está (parcialmente) dentro do frustum da câmera.
+   */
+  private isBoxInCameraFrame(boxId: string): boolean {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return false;
+    entry.mesh.updateMatrixWorld(true);
+    this.cameraManager.camera.updateMatrixWorld(true);
+    this._projScreenMatrix.multiplyMatrices(
+      this.cameraManager.camera.projectionMatrix,
+      this.cameraManager.camera.matrixWorldInverse
+    );
+    this._frustum.setFromProjectionMatrix(this._projScreenMatrix);
+    this._boxSingle.setFromObject(entry.mesh);
+    return this._frustum.intersectsBox(this._boxSingle);
+  }
+
+  /**
+   * Ajusta a posição da câmera para que o box entre no enquadramento (sem saltos bruscos).
+   * Só altera a distância ao alvo para caber o box no FOV.
+   */
+  private adjustCameraPositionToIncludeBox(boxId: string): void {
+    const entry = this.boxes.get(boxId);
+    if (!entry) return;
+    entry.mesh.updateMatrixWorld(true);
+    this._boxSingle.setFromObject(entry.mesh);
+    this._boxSingle.getCenter(this._center);
+    this._boxSingle.getSize(this._size);
+    const cam = this.cameraManager.camera;
+    const dir = new THREE.Vector3().subVectors(cam.position, this._center).normalize();
+    const maxDim = Math.max(this._size.x, this._size.y, this._size.z, 0.1);
+    const fovRad = (cam.fov * Math.PI) / 180;
+    const distance = Math.max(0.3, maxDim / (2 * Math.tan(fovRad * 0.5)) * 1.1);
+    cam.position.copy(this._center).addScaledVector(dir, distance);
+    this.cameraManager.setTarget(this._center.x, this._center.y, this._center.z);
+    if (this.controls) {
+      this.controls.controls.target.copy(this._center);
+      this.controls.update();
+    }
+  }
+
+  /**
+   * Auto-follow: atualiza o alvo da câmera para o centro do box (sempre o objeto editado).
+   * Só move a posição da câmera se onlyMovePositionIfOutOfFrame e o box estiver fora do enquadramento.
+   * Com vista pré-definida ativa, só atualiza o alvo (não altera orientação nem posição).
+   */
+  private updateCameraTargetToBox(
+    boxId: string,
+    options?: { onlyMovePositionIfOutOfFrame?: boolean }
+  ): void {
+    const center = this.getBoxBoundingBoxCenter(boxId);
+    if (!center) return;
+
+    if (this.cameraViewPreset != null) {
+      this.cameraManager.getTarget().copy(center);
+      if (this.controls) {
+        this.controls.controls.target.copy(center);
+        this.controls.update();
+      }
+      return;
+    }
+
+    this.cameraManager.setTarget(center.x, center.y, center.z);
+    if (this.controls) {
+      this.controls.controls.target.copy(center);
+      this.controls.controls.update();
+    }
+    const onlyIfOut = options?.onlyMovePositionIfOutOfFrame === true;
+    if (onlyIfOut && !this.isBoxInCameraFrame(boxId)) {
+      this.adjustCameraPositionToIncludeBox(boxId);
     }
   }
 
@@ -2371,6 +2736,11 @@ export class Viewer {
   }
 
   private handleCanvasClick = (event: MouseEvent) => {
+    if (this.transformControlsDragging) return;
+    if (this.suppressNextCanvasClick) {
+      this.suppressNextCanvasClick = false;
+      return;
+    }
     if (this.placementMode && this.onRoomElementPlaced) {
       const hit = this.getWallHitAtPointer(event);
       if (hit) {
@@ -2442,6 +2812,38 @@ export class Viewer {
   }
 
   private handleCanvasPointerDown = (event: PointerEvent) => {
+    this.logTransformDiagnostic("pointerDown", {
+      pointerType: event.pointerType,
+      button: event.button,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+    if (event.button === 0) {
+      const boxId = this.getBoxIdAtPointer(event);
+      if (boxId != null && boxId !== this.selectedBoxId) {
+        const previousSelected = this.selectedBoxId;
+        event.preventDefault();
+        event.stopPropagation();
+        this.setHoveredBox(boxId);
+        this.setSelectedBox(boxId);
+        this.onRoomElementSelected?.(null);
+        this.onWallSelected?.(null);
+        this.logTransformDiagnostic("box-selected-pointerDown-other-box", {
+          boxId,
+          previousSelected,
+        });
+        return;
+      }
+      if (boxId != null) {
+        this.setHoveredBox(boxId);
+        this.setSelectedBox(boxId);
+        this.onRoomElementSelected?.(null);
+        this.onWallSelected?.(null);
+        this.logTransformDiagnostic("box-selected-pointerDown", {
+          boxId,
+        });
+      }
+    }
     if (this.selectedWallIndex === null || !this.wallGizmo) return;
     const { x, y } = this.getPointerNdc(event);
     if (this.wallGizmo.onPointerDown(x, y)) {
@@ -2449,8 +2851,23 @@ export class Viewer {
     }
   };
 
+  private handleCanvasDoubleClick = (event: MouseEvent) => {
+    if (event.button !== 0) return;
+    const hit = this.getDoorHitAtPointer(event);
+    if (!hit) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.onDoorLayerDoubleClick?.(hit.boxId, hit.doorLayerId);
+  };
+
   private handleCanvasPointerUp = (event: PointerEvent) => {
-    void event;
+    this.logTransformDiagnostic("pointerUp", {
+      pointerType: event.pointerType,
+      button: event.button,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      gizmoHits: this.getTransformGizmoIntersections(event),
+    });
     if (this.wallGizmoDragging && this.wallGizmo) {
       this.wallGizmo.onPointerUp();
       this.wallGizmoDragging = false;
@@ -2458,6 +2875,14 @@ export class Viewer {
   };
 
   private handleCanvasPointerMove = (event: PointerEvent) => {
+    this.logTransformDiagnostic("pointerMove", {
+      pointerType: event.pointerType,
+      buttons: event.buttons,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      gizmoHits: this.getTransformGizmoIntersections(event),
+    });
+    if (this.transformControlsDragging) return;
     const id = this.getBoxIdAtPointer(event);
     this.setHoveredBox(id);
   };
@@ -2516,26 +2941,24 @@ export class Viewer {
           snapData.lastSnapPosition = obj.position.clone();
 
           obj.updateMatrixWorld(true);
-          this._boundingBox.setFromObject(obj);
-          if (this._boundingBox.min.y < 0) obj.position.y -= this._boundingBox.min.y;
+          this.applyFloorConstraint(obj);
           if (this.lockEnabled) {
             this.applyCollisionConstraint(obj);
           }
-          if (this.roomBounds && this.isMeshInsideOrTouchingRoom(obj)) {
+          if (this.roomBounds && this.lockEnabled && this.isMeshInsideOrTouchingRoom(obj)) {
             const wallsMain = this.roomBoxWalls
               .map((w) => w.mesh)
               .filter((w) => w.userData?.isMainWall === true);
             const allRoomWalls = this.roomBoxWalls.map((w) => w.mesh);
 
-            // Ordem pedida: movimento normal -> snapping -> colisão/limites.
             const snapResult = snapModelToNearestWall(obj, wallsMain);
             this.lastSnapDebugData = snapResult.debug;
             preventModelWallIntersection(obj, allRoomWalls);
             keepModelInsideRoom(obj, this.roomBounds);
-
-            if (this.lockEnabled) {
-              this.applyRoomConstraint(obj, { ignoreY: entry.manualPosition });
-            }
+            this.applyRoomConstraint(obj, { ignoreY: entry.manualPosition });
+          } else {
+            this.clearSnapState(obj);
+            this.lastSnapDebugData = null;
           }
           if (this.shouldUseFeetLock(entry) && !entry.manualPosition) {
             obj.position.y = this.getFixedYForCabinet(entry);
@@ -2746,6 +3169,19 @@ export class Viewer {
     this.onBoxTransform?.(this.selectedBoxId, { x, y, z }, entry.mesh.rotation.y);
   }
 
+  private clearSnapState(object: THREE.Object3D): void {
+    const snapData = object.userData as Record<string, unknown>;
+    delete snapData.currentWallId;
+    delete snapData.lastWallId;
+    delete snapData.movementDirection;
+    delete snapData.lastSnapPosition;
+  }
+
+  private getTransformGizmoSizeForBox(entry: { width: number; height: number; depth: number }): number {
+    const maxDimension = Math.max(entry.width, entry.height, entry.depth);
+    return THREE.MathUtils.clamp(maxDimension * 0.45, 0.22, 0.5);
+  }
+
   private notifyWallTransform() {
     if (this.selectedWallIndex === null) return;
     const wall = this.roomBoxWalls.find((w) => w.id === this.selectedWallIndex)?.mesh;
@@ -2842,19 +3278,55 @@ export class Viewer {
   private getBoxIdAtPointer(event: { clientX: number; clientY: number }) {
     const canvas = this.rendererManager.renderer.domElement;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
     const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.pointer.set(x, y);
     this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
-    const allMeshes: THREE.Object3D[] = [];
+    this.raycaster.layers.set(0);
+    const roots: THREE.Object3D[] = [];
     this.boxes.forEach((entry) => {
-      entry.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) allMeshes.push(child);
-      });
+      roots.push(entry.mesh);
     });
-    const hits = this.raycaster.intersectObjects(allMeshes, false);
+    const hits = this.raycaster.intersectObjects(roots, true);
     if (!hits.length) return null;
     return this.getBoxIdByMesh(hits[0].object);
+  }
+
+  private getDoorLayerIdByMesh(mesh: THREE.Object3D): string | null {
+    let current: THREE.Object3D | null = mesh;
+    while (current) {
+      const doorLayerId = current.userData?.doorLayerId;
+      if (typeof doorLayerId === "string" && doorLayerId.length > 0) {
+        return doorLayerId;
+      }
+      current = current.parent;
+    }
+    return null;
+  }
+
+  private getDoorHitAtPointer(event: { clientX: number; clientY: number }): { boxId: string; doorLayerId: string } | null {
+    const canvas = this.rendererManager.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.pointer.set(x, y);
+    this.raycaster.setFromCamera(this.pointer, this.cameraManager.camera);
+    this.raycaster.layers.set(0);
+    const roots: THREE.Object3D[] = [];
+    this.boxes.forEach((entry) => {
+      roots.push(entry.mesh);
+    });
+    const hits = this.raycaster.intersectObjects(roots, true);
+    for (const hit of hits) {
+      const doorLayerId = this.getDoorLayerIdByMesh(hit.object);
+      if (!doorLayerId) continue;
+      const boxId = this.getBoxIdByMesh(hit.object);
+      if (!boxId) continue;
+      return { boxId, doorLayerId };
+    }
+    return null;
   }
 
   private getWallIdAtPointer(event: { clientX: number; clientY: number }): number | null {
@@ -3285,6 +3757,7 @@ export class Viewer {
     }
     const canvas = this.rendererManager.renderer.domElement;
     canvas.removeEventListener("click", this.handleCanvasClick);
+    canvas.removeEventListener("dblclick", this.handleCanvasDoubleClick);
     canvas.removeEventListener("pointerdown", this.handleCanvasPointerDown);
     canvas.removeEventListener("pointermove", this.handleCanvasPointerMove);
     canvas.removeEventListener("pointerup", this.handleCanvasPointerUp);

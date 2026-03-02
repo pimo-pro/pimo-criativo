@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useProject } from "../../../context/useProject";
 import UnifiedPopover, { StepperPopover } from "../../ui/UnifiedPopover";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
@@ -9,10 +9,12 @@ import { mmToM } from "../../../utils/units";
 import { LEFT_TOOLBAR_IDS } from "../left-toolbar/LeftToolbar";
 import PainelMoveisUnificado from "./PainelMoveisUnificado";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
+import BoxLayersPanel from "./BoxLayersPanel";
 import { useUiStore } from "../../../stores/uiStore";
 import { useWallStore } from "../../../stores/wallStore";
 import { useToast } from "../../../context/ToastContext";
 import { listMaterials, getViewerMaterialId, getMaterialByIdOrLabel } from "../../../core/materials";
+import { cutlistComPrecoFromBoxes, ferragensFromBoxes } from "../../../core/manufacturing/cutlistFromBoxes";
 
 export type LeftPanelProps = {
   activeTab?: string;
@@ -311,6 +313,26 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   const [materialModalOpen, setMaterialModalOpen] = useState(false);
   const { viewerApi } = usePimoViewerContext();
   const materialsList = listMaterials();
+  const boxes = useMemo(() => project.boxes ?? [], [project.boxes]);
+  const cutlistFromBoxes = useMemo(() => {
+    const parametric = cutlistComPrecoFromBoxes(
+      boxes,
+      project.rules,
+      project.materialId,
+      project.projectName
+    );
+    const extracted = boxes.flatMap((box) =>
+      Object.values(project.extractedPartsByBoxId?.[box.id] ?? {}).flat()
+    );
+    return [...parametric, ...extracted];
+  }, [boxes, project.extractedPartsByBoxId, project.materialId, project.projectName, project.rules]);
+  const ferragensFromBoxesList = useMemo(
+    () => ferragensFromBoxes(boxes, project.rules),
+    [boxes, project.rules]
+  );
+  const totalPecas = cutlistFromBoxes.reduce((sum, item) => sum + item.quantidade, 0);
+  const totalFerragens = ferragensFromBoxesList.reduce((sum, item) => sum + item.quantidade, 0);
+  const totalItens = totalPecas + totalFerragens;
 
   // Footer removed - buttons now in main content area
 
@@ -340,15 +362,27 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
       <div className="left-panel-content">
         <div className="left-panel-scroll">
       <aside className="panel-content panel-content--side">
+        <Panel title="Resultados Atuais" description="Resumo rápido do projeto em edição.">
+          <div className="panel-field-row">
+            <span className="panel-label">Peças</span>
+            <strong style={{ fontSize: 12, fontWeight: 600 }}>{totalPecas}</strong>
+          </div>
+          <div className="panel-field-row">
+            <span className="panel-label">Ferragens</span>
+            <strong style={{ fontSize: 12, fontWeight: 600 }}>{totalFerragens}</strong>
+          </div>
+          <div className="panel-field-row">
+            <span className="panel-label">Total de itens</span>
+            <strong style={{ fontSize: 12, fontWeight: 600 }}>{totalItens}</strong>
+          </div>
+        </Panel>
+
         <div className="design-panel-header">
           <div className="section-title">Calculadora</div>
           <p className="design-panel-subtitle">
             Criar, renomear e organizar caixas do projeto.
           </p>
         </div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Criar e gerir caixas do projeto.
-        </p>
         <Panel title="Caixas">
           <button
             type="button"
@@ -818,33 +852,39 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
         </Panel>
       )}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <StepperPopover
-          id="prateleiras-popover"
-          label="Prateleiras"
-          value={selectedPrateleiras}
-          onChange={(v) => actions.setPrateleiras(v)}
-        />
-        <StepperPopover
-          id="gavetas-popover"
-          label="Gavetas"
-          value={selectedGavetas}
-          onChange={(v) => actions.setGavetas(v)}
-        />
-        <UnifiedPopover trigger={<span>Tipo de porta: <strong>{selectedBox?.portaTipo === "sem_porta" ? "Sem" : selectedBox?.portaTipo === "porta_simples" ? "Simples" : selectedBox?.portaTipo === "porta_correr" ? "Correr" : "Dupla"}</strong></span>}>
-          <select
-            value={selectedBox?.portaTipo ?? "sem_porta"}
-            onChange={(e) => actions.setPortaTipo(e.target.value as "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr")}
-            className="select"
-            style={{ width: "100%" }}
-          >
-            <option value="sem_porta">Sem porta</option>
-            <option value="porta_simples">Porta simples</option>
-            <option value="porta_dupla">Porta dupla</option>
-            <option value="porta_correr">Porta de correr</option>
-          </select>
-        </UnifiedPopover>
-      </div>
+      {selectedBox && (
+        <Panel title="Opções do box" description="Prateleiras, portas e gavetas no mesmo local.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <StepperPopover
+              id="prateleiras-popover"
+              label="Prateleiras"
+              value={selectedPrateleiras}
+              onChange={(v) => actions.setPrateleiras(v)}
+            />
+            <StepperPopover
+              id="gavetas-popover"
+              label="Gavetas"
+              value={selectedGavetas}
+              onChange={(v) => actions.setGavetas(v)}
+            />
+            <UnifiedPopover trigger={<span>Tipo de porta: <strong>{selectedBox?.portaTipo === "sem_porta" ? "Sem" : selectedBox?.portaTipo === "porta_simples" ? "Simples" : selectedBox?.portaTipo === "porta_correr" ? "Correr" : "Dupla"}</strong></span>}>
+              <select
+                value={selectedBox?.portaTipo ?? "sem_porta"}
+                onChange={(e) => actions.setPortaTipo(e.target.value as "sem_porta" | "porta_simples" | "porta_dupla" | "porta_correr")}
+                className="select"
+                style={{ width: "100%" }}
+              >
+                <option value="sem_porta">Sem porta</option>
+                <option value="porta_simples">Porta simples</option>
+                <option value="porta_dupla">Porta dupla</option>
+                <option value="porta_correr">Porta de correr</option>
+              </select>
+            </UnifiedPopover>
+          </div>
+
+          <BoxLayersPanel embedded />
+        </Panel>
+      )}
 
     </aside>
       </div>

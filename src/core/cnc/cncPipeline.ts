@@ -11,6 +11,7 @@ export const DEFAULT_CNC_SHEET: SheetDefinition = {
 };
 
 export const DEFAULT_CNC_LAYOUT_OPTIONS: CutLayoutEngineOptions = {
+  kerf_mm: 15,
   groupByThicknessOnly: false,
   rotationPreferenceMode: "aggressive",
   rotationWeight: 0.8,
@@ -39,7 +40,11 @@ export function buildCncFromCutlistItems(
     return null;
   }
 
-  const layoutResult = runCutLayout(pieces, resolvedSheet, layoutOptions);
+  const enforcedLayoutOptions: CutLayoutEngineOptions = {
+    ...layoutOptions,
+    kerf_mm: 15,
+  };
+  const layoutResult = runCutLayout(pieces, resolvedSheet, enforcedLayoutOptions);
   const cnc = exportCncFiles(project, layoutResult, []);
   return { pieces, layoutResult, cnc };
 }

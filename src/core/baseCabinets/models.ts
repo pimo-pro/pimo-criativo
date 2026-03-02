@@ -12,7 +12,7 @@ const BASE_DEPTH_MM = 600;
 export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   {
     id: "base-200-garravera",
-    nome: "200mm Garravera",
+    nome: "A1 20cm 0 portas",
     widthMm: 200,
     heightMm: 800,
     depthMm: BASE_DEPTH_MM,
@@ -23,7 +23,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-300-porta-2prateleiras",
-    nome: "300mm 1 porta + 2 prateleiras",
+    nome: "A2 30cm 1 porta",
     widthMm: 300,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -34,7 +34,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-300-3gavetas",
-    nome: "300mm 3 gavetas",
+    nome: "A3 30cm 3 gavetas",
     widthMm: 300,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -45,7 +45,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-400-3gavetas",
-    nome: "400mm 3 gavetas",
+    nome: "A4 40cm 3 gavetas",
     widthMm: 400,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -56,7 +56,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-400-porta-3gavetas-2prateleiras",
-    nome: "400mm 1 porta + 3 gavetas + 2 prateleiras",
+    nome: "A5 40cm 3 gavetas",
     widthMm: 400,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -67,7 +67,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-500-3gavetas",
-    nome: "500mm 3 gavetas",
+    nome: "A6 50cm 3 gavetas",
     widthMm: 500,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -78,7 +78,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-500-porta-2prateleiras",
-    nome: "500mm 1 porta + 2 prateleiras",
+    nome: "A7 50cm 1 porta",
     widthMm: 500,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -89,7 +89,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-600-2portas-2prateleiras",
-    nome: "600mm 2 portas + 2 prateleiras",
+    nome: "A8 60cm 2 portas",
     widthMm: 600,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -100,7 +100,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-600-3gavetas",
-    nome: "600mm 3 gavetas",
+    nome: "A9 60cm 3 gavetas",
     widthMm: 600,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -111,7 +111,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-700-2portas-2prateleiras",
-    nome: "700mm 2 portas + 2 prateleiras",
+    nome: "A10 70cm 2 portas",
     widthMm: 700,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -122,7 +122,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-800-2portas-2prateleiras",
-    nome: "800mm 2 portas + 2 prateleiras",
+    nome: "A11 80cm 2 portas",
     widthMm: 800,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -133,7 +133,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-900-2portas-2prateleiras",
-    nome: "900mm 2 portas + 2 prateleiras",
+    nome: "A12 90cm 2 portas",
     widthMm: 900,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -144,7 +144,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-1000-2portas-2prateleiras",
-    nome: "1000mm 2 portas + 2 prateleiras",
+    nome: "A13 100cm 2 portas",
     widthMm: 1000,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -155,7 +155,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-1100-2portas-2prateleiras",
-    nome: "1100mm 2 portas + 2 prateleiras",
+    nome: "A14 110cm 2 portas",
     widthMm: 1100,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -166,7 +166,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-1200-2portas-2prateleiras",
-    nome: "1200mm 2 portas + 2 prateleiras",
+    nome: "A15 120cm 2 portas",
     widthMm: 1200,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -177,7 +177,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-1200-3portas-divisor-2prateleiras",
-    nome: "1200mm 3 portas + divisor + 2 prateleiras",
+    nome: "A16 120cm 3 portas",
     widthMm: 1200,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -189,7 +189,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-1200-canto-direito",
-    nome: "1200mm canto direito (1 porta + 2 prateleiras)",
+    nome: "A17 120cm 1 porta",
     widthMm: 1200,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
@@ -201,7 +201,7 @@ export const BASE_CABINET_MODELS: BaseCabinetModel[] = [
   },
   {
     id: "base-1200-canto-esquerdo",
-    nome: "1200mm canto esquerdo (1 porta + 2 prateleiras)",
+    nome: "A18 120cm 1 porta",
     widthMm: 1200,
     heightMm: BASE_HEIGHT_MM,
     depthMm: BASE_DEPTH_MM,
