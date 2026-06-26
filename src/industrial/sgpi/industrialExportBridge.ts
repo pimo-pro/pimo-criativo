@@ -3,6 +3,7 @@
  * NÃO modifica useGerarArquivoHandlers nem o pipeline interno do botão.
  */
 import { getCurrentProjectUser } from "../../core/projects/currentUser";
+import { industrialMesApiUrl } from "../../config/industrialApp";
 import { devLogger } from "../../utils/devLogger";
 
 export type SgpiPrepareResult = {
@@ -21,7 +22,7 @@ type IndustrialProjectSlice = {
 
 async function prepareIndustrialExport(project: IndustrialProjectSlice): Promise<SgpiPrepareResult | null> {
   const currentUser = getCurrentProjectUser();
-  const res = await fetch("/api/industrial/sgpi/prepare", {
+  const res = await fetch(industrialMesApiUrl("/sgpi/prepare"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -40,7 +41,7 @@ async function finalizeIndustrialExport(
   prepared: SgpiPrepareResult,
   sourceProjectId?: string | null
 ): Promise<void> {
-  await fetch("/api/industrial/sgpi/register", {
+  await fetch(industrialMesApiUrl("/sgpi/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
