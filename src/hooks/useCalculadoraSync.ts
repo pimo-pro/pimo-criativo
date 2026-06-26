@@ -12,7 +12,7 @@ import { mmToM } from "../utils/units";
 import { devLogger } from "../utils/devLogger";
 import { getViewerMaterialId } from "../core/materials/service";
 import { resolveDrawerFrontMaterialId } from "../core/drawers/drawerFrontMaterial";
-import { syncDrawerFrontMaterialToViewer } from "../industrial/viewerIntegration";
+import { syncDrawerFrontMaterialToViewer } from "../core/viewer/viewerIntegration";
 import { buildViewerDrillMarkersByPanel } from "../modules/drilling/drillingAdapter";
 import { cutlistComPrecoFromBox } from "../core/manufacturing/cutlistFromBoxes";
 import { isIndustrialFileGenerationActive } from "../core/fabrication/industrialGenerationSuspend";

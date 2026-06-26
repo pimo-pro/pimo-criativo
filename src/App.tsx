@@ -47,33 +47,8 @@ import Card from "./components/ui/Card";
 import PageContainer from "./components/ui/PageContainer";
 import { IconGallery } from "@/components/icons";
 import "./components/ui/ui.css";
+import { industrialProjectsUrl } from "./config/industrialApp";
 import type { V3Piece } from "./nesting-v3/nestingV3Types";
-import IndustrialHomePage from "./app/industrial/index";
-import IndustrialWorkOrdersPage from "./app/industrial/work-orders/index";
-import WorkOrderExecutionPage from "./app/industrial/work-orders/WorkOrderExecutionPage";
-import StationExecutionPage from "./app/industrial/work-orders/StationExecutionPage";
-import WarehouseWorkOrderPage from "./app/industrial/work-orders/warehouse";
-import NestingWorkOrderPage from "./app/industrial/work-orders/nesting";
-import DrillWorkOrderPage from "./app/industrial/work-orders/drill";
-import OrlarWorkOrderPage from "./app/industrial/work-orders/orlar";
-import MontagemWorkOrderPage from "./app/industrial/work-orders/montagem";
-import EmbalagemWorkOrderPage from "./app/industrial/work-orders/embalagem";
-import IndustrialTrackingPage from "./app/industrial/tracking/index";
-import IndustrialEventsPage from "./app/industrial/events/index";
-import IndustrialQualityPage from "./app/industrial/quality/index";
-import IndustrialReworkPage from "./app/industrial/rework/index";
-import IndustrialTimeTrackingPage from "./app/industrial/time-tracking/index";
-import IndustrialOperationsPage from "./app/industrial/operations/index";
-import IndustrialCncPage from "./app/industrial/operations/cnc/index";
-import IndustrialNestingPage from "./app/industrial/operations/nesting/index";
-import IndustrialDrillPage from "./app/industrial/operations/drill/index";
-import IndustrialOrlarPage from "./app/industrial/operations/orlar/index";
-import IndustrialMontagemPage from "./app/industrial/operations/montagem/index";
-import IndustrialEmbalagemPage from "./app/industrial/operations/embalagem/index";
-import IndustrialAdminSettingsPage from "./app/admin/settings/industrial/index";
-import RealtimeAlertsAdminPage from "./app/admin/system-settings/industrial/realtime-alerts";
-import PieceMainView from "./app/industrial/piece/PieceMainView";
-import IndustrialSupervisorDashboardPage from "./app/industrial/supervisor/index";
 
 const Documentacao = lazy(() => import("./pages/Documentacao"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
@@ -412,8 +387,18 @@ function AppChromeLayout() {
 
 function PieceAliasRedirect() {
   const { id } = useParams();
-  if (!id) return <Navigate to="/industrial" replace />;
-  return <Navigate to={`/industrial/piece/${id}`} replace />;
+  useEffect(() => {
+    if (!id) return;
+    window.location.replace(industrialProjectsUrl(`/PROJETOS/${encodeURIComponent(id)}`));
+  }, [id]);
+  if (!id) return <Navigate to="/" replace />;
+  return (
+    <PageContainer centered>
+      <Card maxWidth={420}>
+        <p style={{ margin: 0 }}>A redirecionar para o PIMO Industrial…</p>
+      </Card>
+    </PageContainer>
+  );
 }
 
 function PermissionRoute({
@@ -532,32 +517,6 @@ export default function App() {
               }
             />
             <Route path="/nesting_v3" element={<NestingV3RoutePage />} />
-            <Route path="/industrial" element={<IndustrialHomePage />} />
-            <Route path="/industrial/supervisor" element={<IndustrialSupervisorDashboardPage />} />
-            <Route path="/industrial/work-orders" element={<IndustrialWorkOrdersPage />} />
-            <Route path="/industrial/work-orders/warehouse" element={<WarehouseWorkOrderPage />} />
-            <Route path="/industrial/work-orders/nesting" element={<NestingWorkOrderPage />} />
-            <Route path="/industrial/work-orders/drill" element={<DrillWorkOrderPage />} />
-            <Route path="/industrial/work-orders/orlar" element={<OrlarWorkOrderPage />} />
-            <Route path="/industrial/work-orders/montagem" element={<MontagemWorkOrderPage />} />
-            <Route path="/industrial/work-orders/embalagem" element={<EmbalagemWorkOrderPage />} />
-            <Route path="/industrial/work-orders/order/:workOrderId" element={<WorkOrderExecutionPage />} />
-            <Route path="/industrial/stations/:station" element={<StationExecutionPage />} />
-            <Route path="/industrial/tracking" element={<IndustrialTrackingPage />} />
-            <Route path="/industrial/events" element={<IndustrialEventsPage />} />
-            <Route path="/industrial/quality" element={<IndustrialQualityPage />} />
-            <Route path="/industrial/rework" element={<IndustrialReworkPage />} />
-            <Route path="/industrial/time-tracking" element={<IndustrialTimeTrackingPage />} />
-            <Route path="/industrial/piece/:pieceId" element={<PieceMainView />} />
-            <Route path="/industrial/operations" element={<IndustrialOperationsPage />} />
-            <Route path="/industrial/operations/cnc" element={<IndustrialCncPage />} />
-            <Route path="/industrial/operations/nesting" element={<IndustrialNestingPage />} />
-            <Route path="/industrial/operations/drill" element={<IndustrialDrillPage />} />
-            <Route path="/industrial/operations/orlar" element={<IndustrialOrlarPage />} />
-            <Route path="/industrial/operations/montagem" element={<IndustrialMontagemPage />} />
-            <Route path="/industrial/operations/embalagem" element={<IndustrialEmbalagemPage />} />
-            <Route path="/admin/settings/industrial" element={<IndustrialAdminSettingsPage />} />
-            <Route path="/admin/system-settings/industrial/realtime-alerts" element={<RealtimeAlertsAdminPage />} />
           </Route>
           <Route path="/v4" element={<V4Page />} /> {/* TEMPORARY — remove before production */}
         </Route>

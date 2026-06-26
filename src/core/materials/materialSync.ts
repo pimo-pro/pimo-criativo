@@ -10,7 +10,7 @@ import {
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import { decodeSelectionId } from "../viewer/selectionIds";
 import { getIndustrialMaterial } from "./service";
-import { refreshViewerAfterMaterialSync } from "../../industrial/viewerIntegration";
+import { refreshViewerAfterMaterialSync } from "../viewer/viewerIntegration";
 import { isCaixaFornoBox, syncCaixaFornoOnDimensoesChange } from "../moveis/generators/caixaFornoGenerator";
 
 export type MaterialSyncTarget =
@@ -365,4 +365,4 @@ export function propagateMaterialSyncEffects(
   refreshViewerAfterMaterialSync(sync);
 }
 
-export { refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer } from "../../industrial/viewerIntegration";
+export { refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer } from "../viewer/viewerIntegration";

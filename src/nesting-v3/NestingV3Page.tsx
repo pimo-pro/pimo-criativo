@@ -33,7 +33,7 @@ import type { CutPiece } from "../core/cutlayout/cutLayoutTypes";
 import { Icon } from "../components/icons/Icon";
 import { useProject } from "../context/useProject";
 import { convertProjectToV3Pieces } from "./utils/convertProjectToV3Pieces";
-import { IndustrialThreeColumnLayout } from "@/industrial/ui/layouts/IndustrialThreeColumnLayout";
+import { NestingThreeColumnLayout } from "../ui/layouts/nesting/NestingThreeColumnLayout";
 import NestingV3StationSidebar from "./components/NestingV3StationSidebar";
 import NestingV3SettingsPanel from "./components/NestingV3SettingsPanel";
 import type { V3Sheet } from "./nestingV3Types";
@@ -940,7 +940,7 @@ export default function NestingV3Page({
 
   if (layout === "station") {
     return (
-      <IndustrialThreeColumnLayout
+      <NestingThreeColumnLayout
         title="Layout de Corte MANUAL"
         description={`Nesting V3 — ${resolvedProjectName}`}
         sidebarOpen={false}

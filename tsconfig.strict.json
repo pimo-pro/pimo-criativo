@@ -12,10 +12,7 @@
     "alwaysStrict": true
   },
   "include": [
-    "src/industrial/config/**/*.ts",
-    "src/industrial/operations/**/*.ts",
-    "src/industrial/tracking/buildTrackingSnapshot.ts",
-    "src/industrial/work-orders/woIdempotencyConfig.ts"
+    "src/industrial/sgpi/**/*.ts"
   ],
   "exclude": [
     "src/**/*.test.ts",

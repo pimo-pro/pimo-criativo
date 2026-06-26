@@ -21,7 +21,7 @@ import {
 } from "../3d/objects/DrawerFactory";
 import { generateDrawerGroup, drawerGroupToLayerItems } from "../core/drawers";
 import { settingsDefaults } from "../core/settings/settingsSchema";
-import { syncDrawerFrontMaterialToViewer } from "../industrial/viewerIntegration";
+import { syncDrawerFrontMaterialToViewer } from "../core/viewer/viewerIntegration";
 
 vi.mock("../3d/objects/BoxMaterialApplier", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../3d/objects/BoxMaterialApplier")>();

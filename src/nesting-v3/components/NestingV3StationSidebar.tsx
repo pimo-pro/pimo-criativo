@@ -1,7 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 
-import { INDUSTRIAL_STATIONS, STATION_LABELS } from "@/industrial/work-orders/types";
-import { industrialBtnStyle } from "@/industrial/ui/layouts/industrialStyles";
+import { industrialProjectsUrl } from "../../config/industrialApp";
+import { nestingBtnStyle } from "../../ui/layouts/nesting/nestingLayoutStyles";
+
+const STATIONS = [
+  { key: "warehouse", label: "Armazém" },
+  { key: "nesting", label: "Nesting" },
+  { key: "drill", label: "Furação" },
+  { key: "orlar", label: "Orlar" },
+  { key: "montagem", label: "Montagem" },
+  { key: "embalagem", label: "Embalagem" },
+] as const;
 
 function StationIcon({ label }: { label: string }) {
   return (
@@ -23,13 +32,13 @@ export default function NestingV3StationSidebar() {
         justifyItems: "center",
         alignContent: "start",
       }}
-      aria-label="Navegação industrial"
+      aria-label="Navegação"
     >
       <Link
         to="/nesting_v3"
         title="Layout de Corte MANUAL (Nesting V3)"
         style={{
-          ...industrialBtnStyle(onNestingV3),
+          ...nestingBtnStyle(onNestingV3),
           width: 40,
           height: 40,
           display: "grid",
@@ -43,36 +52,32 @@ export default function NestingV3StationSidebar() {
 
       <div style={{ height: 1, width: "100%", background: "var(--border, #334155)", margin: "4px 0" }} />
 
-      {INDUSTRIAL_STATIONS.map((station) => {
-        const path = `/industrial/work-orders/${station}`;
-        const active = !onNestingV3 && location.pathname === path;
-        return (
-          <Link
-            key={station}
-            to={path}
-            title={STATION_LABELS[station]}
-            style={{
-              ...industrialBtnStyle(active),
-              width: 40,
-              height: 40,
-              display: "grid",
-              placeItems: "center",
-              textDecoration: "none",
-              padding: 0,
-            }}
-          >
-            <StationIcon label={STATION_LABELS[station]} />
-          </Link>
-        );
-      })}
+      {STATIONS.map((station) => (
+        <a
+          key={station.key}
+          href={industrialProjectsUrl()}
+          title={`${station.label} (PIMO Industrial)`}
+          style={{
+            ...nestingBtnStyle(false),
+            width: 40,
+            height: 40,
+            display: "grid",
+            placeItems: "center",
+            textDecoration: "none",
+            padding: 0,
+          }}
+        >
+          <StationIcon label={station.label} />
+        </a>
+      ))}
 
       <div style={{ height: 1, width: "100%", background: "var(--border, #334155)", margin: "4px 0" }} />
 
-      <Link
-        to="/industrial"
-        title="PIMO Industrial"
+      <a
+        href={industrialProjectsUrl()}
+        title="PIMO Industrial (MES)"
         style={{
-          ...industrialBtnStyle(false),
+          ...nestingBtnStyle(false),
           width: 40,
           height: 40,
           display: "grid",
@@ -83,12 +88,12 @@ export default function NestingV3StationSidebar() {
         }}
       >
         ⌂
-      </Link>
+      </a>
       <Link
         to="/"
         title="Workspace criativo"
         style={{
-          ...industrialBtnStyle(false),
+          ...nestingBtnStyle(false),
           width: 40,
           height: 40,
           display: "grid",
