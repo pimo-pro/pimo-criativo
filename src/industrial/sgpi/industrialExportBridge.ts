@@ -18,6 +18,8 @@ export type SgpiPrepareResult = {
 type IndustrialProjectSlice = {
   projectName?: string;
   currentProjectId?: string | null;
+  /** Snapshot completo para registo MES quando a API remota ainda não tem o projecto. */
+  getProjectRecord?: () => Record<string, unknown> | null;
 };
 
 async function prepareIndustrialExport(project: IndustrialProjectSlice): Promise<SgpiPrepareResult | null> {
@@ -32,23 +34,34 @@ async function prepareIndustrialExport(project: IndustrialProjectSlice): Promise
       sourceProjectId: project.currentProjectId ?? null,
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    devLogger.warn("[SGPI] prepare HTTP", res.status);
+    return null;
+  }
   const data = (await res.json()) as { prepared?: SgpiPrepareResult };
   return data.prepared ?? null;
 }
 
 async function finalizeIndustrialExport(
   prepared: SgpiPrepareResult,
-  sourceProjectId?: string | null
+  project: IndustrialProjectSlice
 ): Promise<void> {
-  await fetch(industrialMesApiUrl("/sgpi/register"), {
+  const sourceProjectId = project.currentProjectId ?? prepared.sourceProjectId;
+  const projectRecord = project.getProjectRecord?.() ?? null;
+
+  const res = await fetch(industrialMesApiUrl("/sgpi/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       prepared,
-      sourceProjectId: sourceProjectId ?? prepared.sourceProjectId,
+      sourceProjectId,
+      projectRecord,
     }),
   });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(err?.error ?? `SGPI register HTTP ${res.status}`);
+  }
 }
 
 /**
@@ -71,7 +84,7 @@ export function wrapArquivoCompletoWithSgpi(
 
     if (!prepared) return;
     try {
-      await finalizeIndustrialExport(prepared, project.currentProjectId);
+      await finalizeIndustrialExport(prepared, project);
     } catch (err) {
       devLogger.warn("[SGPI] register falhou", err);
     }

@@ -8,22 +8,27 @@ export const INDUSTRIAL_DASHBOARD_URL =
 /** @deprecated Use INDUSTRIAL_DASHBOARD_URL */
 export const INDUSTRIAL_APP_URL = INDUSTRIAL_DASHBOARD_URL;
 
-/** API central industrial (Render) — piece, session, factory floor, WebSocket */
+/** API central industrial (Render) — piece, session, factory floor, WebSocket, SGPI */
 export const INDUSTRIAL_API_URL =
-  (import.meta.env.VITE_INDUSTRIAL_API_URL as string | undefined)?.replace(/\/$/, '') ??
-  '';
+  (
+    (import.meta.env.VITE_INDUSTRIAL_API_URL as string | undefined) ??
+    'https://pimo-pro-industrial-api.onrender.com'
+  ).replace(/\/$/, '');
 
 /** Base REST central: URL absoluta Render ou relativa `/api` em dev */
 export function industrialCentralApiBase(): string {
   return INDUSTRIAL_API_URL ? `${INDUSTRIAL_API_URL}/api` : '/api';
 }
 
-/** SGPI / work orders locais — servido pelo MES (`/api/industrial`) */
+/**
+ * SGPI / MES — em produção usa API Render directamente (CORS pimo.pro).
+ * Em dev usa middleware Vite `/api/industrial`.
+ */
 export function industrialMesApiBase(): string {
-  if (import.meta.env.PROD) {
-    return `${INDUSTRIAL_DASHBOARD_URL}/api/industrial`;
+  if (import.meta.env.DEV) {
+    return '/api/industrial';
   }
-  return '/api/industrial';
+  return `${INDUSTRIAL_API_URL}/api/industrial`;
 }
 
 export function industrialProjectsUrl(path = '/PROJETOS'): string {
