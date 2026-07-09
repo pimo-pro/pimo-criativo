@@ -5,6 +5,7 @@
 import type { CutLayoutResult, CutPlacement } from "../cutLayoutTypes";
 import type { NestingV3State, V3Piece, V3Placement, V3Sheet } from "../../../nesting-v3/nestingV3Types";
 import { cutPlacementToV3Placement } from "./layoutCoordinateAdapter";
+import { isNestingRotationLocked } from "../../materials/nestingGrainLock";
 
 function normalizeV3Rotation(rotacao: number): 0 | 90 | 180 | 270 {
   const r = ((Math.round(rotacao) % 360) + 360) % 360;
@@ -51,7 +52,16 @@ export function cutLayoutResultToV3State(result: CutLayoutResult, baseState: Nes
 
       const piece = piecesById.get(pieceId);
       if (piece) {
-        piece.rotation = normalizeV3Rotation(pl.rotacao);
+        const locked = isNestingRotationLocked({
+          materialId: piece.materialId,
+          industrialGrainCode: piece.industrialGrainCode,
+          pieceTipo: piece.pieceTipo,
+          allowPieceRotation: piece.allowPieceRotation,
+          lockWoodGrain: piece.lockWoodGrain,
+        });
+        if (!locked) {
+          piece.rotation = normalizeV3Rotation(pl.rotacao);
+        }
         placedIds.add(pieceId);
       }
     }

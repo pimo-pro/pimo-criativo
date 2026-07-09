@@ -6,6 +6,7 @@ import { listOfficialMaterials } from "../../../core/materials/materials.api";
 import type {
   RemateCompletoRules,
   RemateMountSlot,
+  RematePiece,
   RemateProductOptions,
   RemateProductType,
 } from "../../../core/remate/rematePieceTypes";
@@ -88,6 +89,41 @@ function useNumericField(
 const MOUNT_SLOTS: RemateMountSlot[] = ["FRENTE", "DIR", "ESQ", "CIMA", "FUNDO"];
 const PRODUCTS: RemateProductType[] = ["AVISTA", "COMPLETO", "L", "RODAPE", "RODAPE_L"];
 
+function RemateMeasureFields({
+  title,
+  piece,
+  onUpdate,
+}: {
+  title: string;
+  piece: RematePiece;
+  onUpdate: (patch: { width?: number; height?: number }) => void;
+}) {
+  const widthField = useNumericField(piece.width, (width) => onUpdate({ width }));
+  const heightField = useNumericField(piece.height, (height) => onUpdate({ height }));
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: "10px 12px",
+        borderRadius: 8,
+        border: "1px solid var(--border-muted, #333)",
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 600 }}>{title}</div>
+      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+        Comprimento (mm)
+        <input className="input input-sm" type="number" min={1} {...widthField} />
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+        Largura (mm)
+        <input className="input input-sm" type="number" min={1} {...heightField} />
+      </label>
+    </div>
+  );
+}
+
 export default function RematePropertiesPanel({ remateId }: Props) {
   const { project, actions } = useProject();
   const setSelectedObject = useUiStore((s) => s.setSelectedObject);
@@ -141,6 +177,19 @@ export default function RematePropertiesPanel({ remateId }: Props) {
     if (!remate) return;
     actions.updateRemate(remate.id, { height });
   });
+
+  const lGroupPieces = useMemo(() => {
+    if (!remate) return null;
+    const productType = remate.productType ?? inferProductTypeFromLegacy(remate);
+    if (productType !== "L" || !remate.parentGroupId) return null;
+    const group = (project.remates ?? []).filter(
+      (r) => r.parentGroupId === remate.parentGroupId && (r.productType ?? inferProductTypeFromLegacy(r)) === "L"
+    );
+    const ext = group.find((r) => r.partIndex === 1);
+    const int = group.find((r) => r.partIndex === 2);
+    if (!ext || !int) return null;
+    return { ext, int };
+  }, [remate, project.remates]);
 
   const boxNameById = useMemo(() => {
     const out: Record<string, string> = {};
@@ -308,25 +357,36 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           </p>
         ) : null}
 
-        {productType === "L" && remate.partIndex === 2 ? (
-          <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>
-            Peça int (rem_L_int) — unida geometricamente à ext (rem_L_ext)
-          </p>
-        ) : null}
-
+        {lGroupPieces ? (
+          <>
+            <RemateMeasureFields
+              title="Medidas EXT (L_ext)"
+              piece={lGroupPieces.ext}
+              onUpdate={(patch) => actions.updateRemate(lGroupPieces.ext.id, patch)}
+            />
+            <RemateMeasureFields
+              title="Medidas INT (L_int)"
+              piece={lGroupPieces.int}
+              onUpdate={(patch) => actions.updateRemate(lGroupPieces.int.id, patch)}
+            />
+          </>
+        ) : (
+          <>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+              Comprimento (mm)
+              <input className="input input-sm" type="number" min={1} {...widthField} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+              Largura (mm)
+              <input className="input input-sm" type="number" min={1} {...heightField} />
+            </label>
+          </>
+        )}
         {remate.placementMode === "FREE" ? (
           <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>Posição livre</p>
         ) : null}
 
-        {/* Dimensões de chapa — comprimento/largura editáveis; espessura do material */}
-        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
-          Comprimento (mm)
-          <input className="input input-sm" type="number" min={1} {...widthField} />
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
-          Largura (mm)
-          <input className="input input-sm" type="number" min={1} {...heightField} />
-        </label>
+        {/* espessura do material */}
         <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>
           Espessura: {thicknessMm} mm (material)
         </p>

@@ -3,6 +3,7 @@ import { createRematePieces } from "./rematePieceFactory";
 import {
   buildRemateIndustrialViewerMetadata,
   readRotationSnapIndexFromMetadata,
+  resolveV3RotationFromIndustrialMetadata,
   rotationSnapIndexToV3Rotation,
 } from "./remateIndustrialMetadata";
 import { makeDivSepTestBox } from "../divSep/divSepTestHelpers";
@@ -52,5 +53,17 @@ describe("remateIndustrialMetadata", () => {
         faceOffsets: { offsetAlongNormalMm: 0, offsetTangentUMm: 0, offsetTangentVMm: 0, rotationSnapIndex: 3 },
       })
     ).toBe(3);
+  });
+
+  it("resolveV3RotationFromIndustrialMetadata preserva snap com veio activo", () => {
+    const out = resolveV3RotationFromIndustrialMetadata({
+      rotationSnapIndex: 1,
+      materialId: "carvalho-19",
+      lockWoodGrain: true,
+      pieceTipo: "porta_simples",
+      industrialGrainCode: "YY",
+    });
+    expect(out.rotation).toBe(90);
+    expect(out.rotationSnapIndex).toBe(1);
   });
 });

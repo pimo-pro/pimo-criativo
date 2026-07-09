@@ -223,6 +223,9 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
                 } else {
                   nextRemate = { ...nextRemate, depth: thicknessMm };
                 }
+                if (patch.placementMode === "FREE" || patch.placementMode === "SNAPPED") {
+                  nextRemate = { ...nextRemate, placementMode: patch.placementMode };
+                }
                 if (patch.followBox === true) {
                   nextRemate = { ...nextRemate, placementMode: "SNAPPED" };
                 } else if (patch.followBox === false) {

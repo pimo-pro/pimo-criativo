@@ -207,7 +207,8 @@ import {
   isViewerRemateRotationAllowed,
   isViewerRodapeRotationAllowed,
 } from "./utils/viewerPieceRotationPolicy";
-import { resolveViewerRematePlacementMode } from "./utils/viewerRematePose";
+import type { RemateFaceOffsets } from "../../core/remate/rematePieceTypes";
+import { buildViewerRemateTransformPatch } from "./utils/viewerRematePose";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
 import { mToMm, mmToM } from "../../utils/units";
@@ -5265,12 +5266,14 @@ export class ViewerCore {
       const heightMm = Math.max(1, size.y * mesh.scale.y * 1000);
       const depthMm = Math.max(1, size.z * mesh.scale.z * 1000);
       mesh.scale.set(1, 1, 1);
-      this.onRemateTransform?.(remateId, {
-        width: widthMm,
-        height: heightMm,
-        depth: depthMm,
-        placementMode: resolveViewerRematePlacementMode(piece),
-      });
+      this.onRemateTransform?.(
+        remateId,
+        buildViewerRemateTransformPatch("scale", {
+          width: widthMm,
+          height: heightMm,
+          depth: depthMm,
+        })
+      );
       return;
     }
 
@@ -5292,51 +5295,51 @@ export class ViewerCore {
       const rotation = { xRad: euler.x, yRad: euler.y, zRad: euler.z };
 
       if (piece && isLRematePiece(piece)) {
-        this.onRemateTransform?.(remateId, {
-          position,
-          rotation,
-          placementMode: resolveViewerRematePlacementMode(piece),
-        });
+        this.onRemateTransform?.(
+          remateId,
+          buildViewerRemateTransformPatch(tool, { position, rotation })
+        );
         return;
       }
 
-      let faceOffsets = piece?.faceOffsets;
-      if (piece?.parentBoxId) {
+      let faceOffsets: RemateFaceOffsets | undefined;
+      if (tool === "rotate" && piece?.parentBoxId && piece && isViewerRemateRotationAllowed(piece)) {
         const cfg = this.remateVisualBridge?.getBoxConfig(boxId);
         if (cfg) {
           const bounds = getRemateEnvelopeBoundsM(cfg.widthM, cfg.heightM, cfg.depthM, cfg.box ?? null);
           const slot = piece.mountSlot ?? resolveMountSlot(piece);
           const frame = computeMountFrameM(bounds, slot);
-          const snapIdx =
-            tool === "rotate" && piece && isViewerRemateRotationAllowed(piece)
-              ? rotationSnapIndexFromLocalY(rotation.yRad)
-              : piece?.faceOffsets?.rotationSnapIndex ?? 0;
+          const snapIdx = rotationSnapIndexFromLocalY(rotation.yRad);
           faceOffsets = faceOffsetsFromPositionM(frame, position, snapIdx);
         }
       }
 
-      this.onRemateTransform?.(remateId, {
-        position,
-        rotation,
-        placementMode: resolveViewerRematePlacementMode(piece),
-        ...(faceOffsets ? { faceOffsets } : {}),
-      });
+      this.onRemateTransform?.(
+        remateId,
+        buildViewerRemateTransformPatch(tool, {
+          position,
+          rotation,
+          faceOffsets,
+        })
+      );
       return;
     }
 
-    this.onRemateTransform?.(remateId, {
-      position: {
-        xMm: mesh.position.x * 1000,
-        yMm: mesh.position.y * 1000,
-        zMm: mesh.position.z * 1000,
-      },
-      rotation: {
-        xRad: mesh.rotation.x,
-        yRad: mesh.rotation.y,
-        zRad: mesh.rotation.z,
-      },
-      placementMode: resolveViewerRematePlacementMode(piece),
-    });
+    this.onRemateTransform?.(
+      remateId,
+      buildViewerRemateTransformPatch(tool, {
+        position: {
+          xMm: mesh.position.x * 1000,
+          yMm: mesh.position.y * 1000,
+          zMm: mesh.position.z * 1000,
+        },
+        rotation: {
+          xRad: mesh.rotation.x,
+          yRad: mesh.rotation.y,
+          zRad: mesh.rotation.z,
+        },
+      })
+    );
   }
 
   private notifyHematiTransform(): void {

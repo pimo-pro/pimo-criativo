@@ -17,6 +17,7 @@ import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import CameraViewMenu from "../viewer-toolbar/CameraViewMenu";
 import { useUiStore, uiStore } from "../../../stores/uiStore";
 import { resolveLRemateCompositeLeadId } from "../../../core/remate/remateLGeometry";
+import { isViewerRemateRotationAllowed } from "../../../3d/viewer-engine/utils/viewerPieceRotationPolicy";
 import DisplayMenuButton from "../topbar/DisplayMenuButton";
 import RoomIconButton from "../../viewer/toolbar/RoomIconButton";
 import WorkspaceToolbar from "../workspace/WorkspaceToolbar";
@@ -139,6 +140,7 @@ export default function UnifiedTopToolbar({
   const selectedRemate = selectedRemateId
     ? (project.remates ?? []).find((r) => r.id === selectedRemateId)
     : undefined;
+  const remateRotationAllowed = selectedRemate ? isViewerRemateRotationAllowed(selectedRemate) : true;
   const isPieceLocked = selectedBox?.locked === true;
   const enabledTools: Tool3DId[] =
     isPieceLocked && !selectedRemateId ? ["select"] : ["select", "move", "rotate"];
@@ -281,6 +283,29 @@ export default function UnifiedTopToolbar({
               </button>
               {isRotate && (selectedBoxId || selectedRemateId) && showRotationMenu && (() => {
                 if (selectedRemateId && selectedRemate) {
+                  if (!remateRotationAllowed) {
+                    return (
+                      <div
+                        role="dialog"
+                        aria-label="Rotação do remate"
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          marginTop: 4,
+                          padding: 12,
+                          background: "var(--popover-bg)",
+                          border: "1px solid var(--popover-border)",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          minWidth: 200,
+                          zIndex: 1000,
+                        }}
+                      >
+                        Rotação bloqueada (veio da madeira activo).
+                      </div>
+                    );
+                  }
                   const radToDeg = (r: number) => Math.round((r * 180) / Math.PI);
                   const degToRad = (d: number) => (d * Math.PI) / 180;
                   const rotX = selectedRemate.rotation.xRad;

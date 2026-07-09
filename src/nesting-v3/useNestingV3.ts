@@ -19,7 +19,7 @@ import { findValidPlacement } from "./nestingV3Placement";
 import { isMaterialMadeira } from "../core/materials/nestingGrainLock";
 import {
   readRotationSnapIndexFromMetadata,
-  rotationSnapIndexToV3Rotation,
+  resolveV3RotationFromIndustrialMetadata,
 } from "../core/remate/remateIndustrialMetadata";
 import type { RemateFaceOffsets } from "../core/remate/rematePieceTypes";
 
@@ -79,6 +79,14 @@ export function cutPieceToV3(
           : undefined);
   const meta = cp.metadata ?? {};
   const rotationSnapIndex = readRotationSnapIndexFromMetadata(meta);
+  const rotationResolved = resolveV3RotationFromIndustrialMetadata({
+    rotationSnapIndex,
+    materialId: cp.materialId,
+    industrialGrainCode: cp.industrialGrainCode,
+    pieceTipo: cp.pieceTipo,
+    allowPieceRotation,
+    lockWoodGrain,
+  });
   const faceOffsets = meta.faceOffsets as RemateFaceOffsets | undefined;
   const remateId = typeof meta.remateId === "string" ? meta.remateId : undefined;
   const remateKind = typeof meta.remateKind === "string" ? meta.remateKind : undefined;
@@ -98,7 +106,7 @@ export function cutPieceToV3(
     materialId: cp.materialId,
     materialName: cp.materialName,
     originalHoles: holes,
-    rotation: rotationSnapIndexToV3Rotation(rotationSnapIndex),
+    rotation: rotationResolved.rotation,
     color: getPieceColor(cp.materialId, index),
     sourceBoxId: cp.boxId,
     industrialGrainCode: cp.industrialGrainCode,
@@ -110,7 +118,7 @@ export function cutPieceToV3(
     remateKind,
     followBox,
     placementMode,
-    rotationSnapIndex,
+    rotationSnapIndex: rotationResolved.rotationSnapIndex,
     faceOffsets,
   };
 }
@@ -182,7 +190,8 @@ export function useNestingV3(initialCutPieces: CutPiece[] = []) {
           );
           const placed = result.placements.some((pl) => pl.pieceId === piece.id);
           if (!placed) return piece;
-          return { ...piece, rotation: rotated ? 90 : 0 };
+          if (!allowRotationForPiece(piece, prev.settings)) return piece;
+          return { ...piece, rotation: rotated ? 90 : piece.rotation };
         });
       return {
         ...prev,

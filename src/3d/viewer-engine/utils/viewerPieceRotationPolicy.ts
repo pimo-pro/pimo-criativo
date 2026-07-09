@@ -4,6 +4,7 @@ import {
 } from "../../../core/materials/nestingGrainLock";
 import type { RematePiece } from "../../../core/remate/rematePieceTypes";
 import type { ProjectRodape } from "../../../core/rodape/rodapeTypes";
+import type { IndustrialGrainCode } from "../../../core/types";
 
 /** Viewer: a peça pode ser rodada com gizmo/teclado? */
 export function isViewerPieceRotationAllowed(input: {
@@ -11,12 +12,14 @@ export function isViewerPieceRotationAllowed(input: {
   allowPieceRotation?: boolean;
   lockWoodGrain?: boolean;
   pieceTipo?: string;
+  industrialGrainCode?: IndustrialGrainCode;
 }): boolean {
   return !isNestingRotationLocked({
     materialId: input.materialId,
     allowPieceRotation: input.allowPieceRotation,
     lockWoodGrain: input.lockWoodGrain,
     pieceTipo: input.pieceTipo,
+    industrialGrainCode: input.industrialGrainCode,
   });
 }
 
@@ -26,6 +29,21 @@ export function isViewerRemateRotationAllowed(piece: RematePiece): boolean {
     allowPieceRotation: piece.allowPieceRotation,
     lockWoodGrain: piece.lockWoodGrain,
     pieceTipo: "remate",
+    industrialGrainCode: undefined,
+  });
+}
+
+export function isViewerDoorRotationAllowed(input: {
+  materialId?: string;
+  allowPieceRotation?: boolean;
+  lockWoodGrain?: boolean;
+}): boolean {
+  return isViewerPieceRotationAllowed({
+    materialId: input.materialId,
+    allowPieceRotation: input.allowPieceRotation,
+    lockWoodGrain: input.lockWoodGrain,
+    pieceTipo: "porta_simples",
+    industrialGrainCode: "YY",
   });
 }
 
@@ -50,6 +68,7 @@ export function resolveViewerGrainSnapIndex(
       materialId,
       lockWoodGrain,
       allowPieceRotation,
+      industrialGrainCode: "YY",
     })
   ) {
     return 0;

@@ -1,6 +1,8 @@
 import type { RemateFaceOffsets, RematePiece, RematePlacementMode } from "./rematePieceTypes";
 import { isLRematePiece } from "./remateLGeometry";
 import { rotationSnapIndexFromLocalY } from "./remateRotationSnap";
+import { isNestingRotationLocked } from "../materials/nestingGrainLock";
+import type { IndustrialGrainCode } from "../types";
 
 export type RemateIndustrialViewerMetadata = {
   rotationSnapIndex: 0 | 1 | 2 | 3;
@@ -61,4 +63,34 @@ export function rotationSnapIndexToV3Rotation(
   if (idx === 2) return 180;
   if (idx === 3) return 270;
   return 0;
+}
+
+/** Rotação V3 inicial preservando orientação viewer quando veio está bloqueado. */
+export function resolveV3RotationFromIndustrialMetadata(input: {
+  rotationSnapIndex?: 0 | 1 | 2 | 3;
+  materialId?: string;
+  industrialGrainCode?: IndustrialGrainCode;
+  pieceTipo?: string;
+  allowPieceRotation?: boolean;
+  lockWoodGrain?: boolean;
+}): { rotation: 0 | 90 | 180 | 270; rotationSnapIndex?: 0 | 1 | 2 | 3 } {
+  const snap = input.rotationSnapIndex;
+  const locked = isNestingRotationLocked({
+    materialId: input.materialId,
+    industrialGrainCode: input.industrialGrainCode,
+    pieceTipo: input.pieceTipo,
+    allowPieceRotation: input.allowPieceRotation,
+    lockWoodGrain: input.lockWoodGrain,
+  });
+  if (locked) {
+    const preserved = (snap ?? 0) as 0 | 1 | 2 | 3;
+    return {
+      rotation: rotationSnapIndexToV3Rotation(preserved),
+      rotationSnapIndex: preserved,
+    };
+  }
+  return {
+    rotation: rotationSnapIndexToV3Rotation(snap),
+    rotationSnapIndex: snap,
+  };
 }

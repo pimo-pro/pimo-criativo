@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isViewerDoorRotationAllowed,
   isViewerRemateRotationAllowed,
   isViewerRodapeRotationAllowed,
 } from "./viewerPieceRotationPolicy";
@@ -21,6 +22,15 @@ describe("viewerPieceRotationPolicy", () => {
       materialId: "carvalho-19",
     } as ProjectRodape;
     expect(isViewerRodapeRotationAllowed(rodape)).toBe(false);
+  });
+
+  it("bloqueia rotação de porta de madeira com lockWoodGrain", () => {
+    expect(
+      isViewerDoorRotationAllowed({
+        materialId: "carvalho-19",
+        lockWoodGrain: true,
+      })
+    ).toBe(false);
   });
 });
 

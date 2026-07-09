@@ -16,6 +16,8 @@ import { Icon } from "@/components/icons";
 import SelecionarMaterialSection from "../../settings/material/SelecionarMaterialSection";
 import { resolveNoBackPanel } from "../../../core/box/backPanelFlags";
 import CostaMaterialControl from "./CostaMaterialControl";
+import { useUiStore } from "../../../stores/uiStore";
+import RematePropertiesPanel from "../../settings/remate/RematePropertiesPanel";
 import BoxRemateDrawer from "../../settings/remate/BoxRemateDrawer";
 import CornerOrientationPanel from "../../settings/corner/CornerOrientationPanel";
 import { SectionTitleWithHelp } from "../../ui/MiniHelpTooltip";
@@ -38,6 +40,8 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
   void materialsPicker;
   const { viewerApi } = usePimoViewerContext();
   const [remateDrawerOpen, setRemateDrawerOpen] = useState(false);
+  const selectedObject = useUiStore((s) => s.selectedObject);
+  const selectedRemateId = selectedObject.type === "remate" ? selectedObject.id : null;
 
   const profundidadeLeitura = useMemo(
     () => (selectedBox ? computeBoxProfundidadeLeituraMm(selectedBox, project.rules) : null),
@@ -450,6 +454,10 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
               </div>
             </>
           )}
+
+          {selectedRemateId ? (
+            <RematePropertiesPanel remateId={selectedRemateId} />
+          ) : null}
 
           {selectedBox && (
             <BoxRemateDrawer
