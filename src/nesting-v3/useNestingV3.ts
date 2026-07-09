@@ -58,7 +58,11 @@ function nextPieceId() { return `v3p-${_pieceIdCounter++}`; }
 export function cutPieceToV3(
   cp: CutPiece,
   index: number,
-  options?: { allowPieceRotation?: boolean; lockWoodGrain?: boolean }
+  options?: {
+    allowPieceRotation?: boolean;
+    lockWoodGrain?: boolean;
+    rotationSnapIndex?: 0 | 1 | 2 | 3;
+  }
 ): V3Piece {
   const holes = (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
     x: h.x, y: h.y, diameter: h.diameter, depth: h.depth, holeType: h.holeType,
@@ -78,7 +82,8 @@ export function cutPieceToV3(
           ? true
           : undefined);
   const meta = cp.metadata ?? {};
-  const rotationSnapIndex = readRotationSnapIndexFromMetadata(meta);
+  const rotationSnapIndex =
+    options?.rotationSnapIndex ?? readRotationSnapIndexFromMetadata(meta);
   const rotationResolved = resolveV3RotationFromIndustrialMetadata({
     rotationSnapIndex,
     materialId: cp.materialId,

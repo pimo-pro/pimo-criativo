@@ -89,6 +89,15 @@ export function resolveNestingLayoutGrainDirection(
   return "length";
 }
 
+/** Preserva largura×altura do viewer/cutlist — proíbe “optimização” por troca de eixos. */
+export function shouldPreserveCutlistViewerOrientation(
+  input: NestingGrainLockInput & { pieceTipo?: string }
+): boolean {
+  const tipo = String(input.pieceTipo ?? "").trim().toLowerCase();
+  if (tipo === "remate") return true;
+  return isNestingRotationLocked(input);
+}
+
 /** Índice de snap 1 ou 3 → peça “virada” 90°/270° no viewer (veio invertido). */
 export function isViewerGrainFlipped(rotationSnapIndex?: number): boolean {
   return rotationSnapIndex === 1 || rotationSnapIndex === 3;

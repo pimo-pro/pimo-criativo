@@ -6,6 +6,7 @@ import {
   isViewerGrainFlipped,
   resolveNestingLayoutGrainDirection,
   resolveViewerGrainUvScale,
+  shouldPreserveCutlistViewerOrientation,
 } from "./nestingGrainLock";
 
 describe("inferMaterialMadeiraFromRecord", () => {
@@ -109,5 +110,37 @@ describe("viewer grain UV", () => {
 
   it("isMaterialMadeira false sem id", () => {
     expect(isMaterialMadeira(undefined)).toBe(false);
+  });
+});
+
+describe("shouldPreserveCutlistViewerOrientation", () => {
+  it("preserva orientação para porta de madeira (YY)", () => {
+    expect(
+      shouldPreserveCutlistViewerOrientation({
+        materialId: "carvalho-19",
+        industrialGrainCode: "YY",
+        pieceTipo: "porta_simples",
+      })
+    ).toBe(true);
+  });
+
+  it("preserva orientação para frente de gaveta de madeira", () => {
+    expect(
+      shouldPreserveCutlistViewerOrientation({
+        materialId: "carvalho-19",
+        industrialGrainCode: "YY",
+        pieceTipo: "gaveta_frente_ext",
+      })
+    ).toBe(true);
+  });
+
+  it("permite reordenação em MDF sem bloqueio", () => {
+    expect(
+      shouldPreserveCutlistViewerOrientation({
+        materialId: "mdf_branco",
+        industrialGrainCode: "XX",
+        pieceTipo: "prateleira",
+      })
+    ).toBe(false);
   });
 });

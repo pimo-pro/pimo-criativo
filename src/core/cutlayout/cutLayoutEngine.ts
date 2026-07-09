@@ -21,6 +21,7 @@ import type { LayoutVisualMaterial, OperationResult, IndustrialGrainCode } from 
 import { industrialGrainToLayoutAxis } from "../materials/grainDirection";
 import {
   resolveNestingLayoutGrainDirection,
+  shouldPreserveCutlistViewerOrientation,
 } from "../materials/nestingGrainLock";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
@@ -667,7 +668,6 @@ export function cutlistToPieces(
     const dims = raw.length >= 2 ? [...raw].sort((a, b) => b - a) : [Math.max(raw[0] ?? 1, 1), 1];
     const tipoToken = String((item as { tipo?: unknown }).tipo ?? "").trim().toLowerCase();
     const nomeToken = String(item.nome ?? "").trim().toLowerCase();
-    const isRemate = tipoToken === "remate";
     const isCosta = tipoToken === "costa" || nomeToken === "costa";
     const isDrawerSideOrBack =
       tipoToken === "gaveta_lat_esq" ||
@@ -741,6 +741,26 @@ export function cutlistToPieces(
     const sheetThicknessMm = Number.isFinite(explicitSheetThickness) && explicitSheetThickness > 0
       ? explicitSheetThickness
       : esp;
+    const industrialCode = item.grainDirection;
+    const itemMeta = (item as { metadata?: Record<string, unknown> }).metadata;
+    const metaAllow = itemMeta?.allowPieceRotation;
+    const metaLock = itemMeta?.lockWoodGrain;
+    const rotationMeta = buildCutlistRotationMetadata({
+      allowPieceRotation:
+        metaAllow === true ? true : metaAllow === false ? false : undefined,
+      lockWoodGrain:
+        metaLock === true ? true : metaLock === false ? false : undefined,
+      materialId: pieceMaterialId,
+    });
+    const origL = Number(item.dimensoes?.largura) || 0;
+    const origA = Number(item.dimensoes?.altura) || 0;
+    const preserveViewerOrientation = shouldPreserveCutlistViewerOrientation({
+      materialId: pieceMaterialId,
+      industrialGrainCode: industrialCode,
+      pieceTipo: item.tipo,
+      allowPieceRotation: rotationMeta.allowPieceRotation,
+      lockWoodGrain: rotationMeta.lockWoodGrain,
+    });
     const seen = new Set<string>();
     const normalizedHoles: NormalizedHoleForPiece[] = [];
     const add = (x: number, y: number, d: number, dep: number, ht?: string, td?: boolean) => {
@@ -749,12 +769,9 @@ export function cutlistToPieces(
       seen.add(k);
       normalizedHoles.push({ x, y, diameter: d, depth: dep, holeType: ht, topDrillable: td });
     };
-    // Quando as dimensões são reordenadas (largura < altura → peça fica altura×largura no layout),
-    // as coordenadas locais precisam acompanhar a mesma rotação do retângulo, não apenas trocar eixos.
-    // A conversão preserva a origem industrial bottom-left: (x, y) → (y, larguraOriginal - x).
-    const origL = Number(item.dimensoes?.largura) || 0;
-    const origA = Number(item.dimensoes?.altura) || 0;
-    const dimensionsSwapped = !isRemate && origL > 0 && origA > 0 && origL < origA;
+    // Só reordena dimensões/furos quando rotação está permitida (sem veio bloqueado).
+    const dimensionsSwapped =
+      !preserveViewerOrientation && origL > 0 && origA > 0 && origL < origA;
     for (const h of item.drillHoles ?? []) {
       if ((h as { holeType?: string }).holeType === "cavilha" && (h as { topDrillable?: boolean }).topDrillable === false) continue;
       let x = Number(h?.x);
@@ -768,17 +785,6 @@ export function cutlistToPieces(
         add(x, y, diameter, depth, (h as { holeType?: string })?.holeType, (h as { topDrillable?: boolean })?.topDrillable);
       }
     }
-    const industrialCode = item.grainDirection;
-    const itemMeta = (item as { metadata?: Record<string, unknown> }).metadata;
-    const metaAllow = itemMeta?.allowPieceRotation;
-    const metaLock = itemMeta?.lockWoodGrain;
-    const rotationMeta = buildCutlistRotationMetadata({
-      allowPieceRotation:
-        metaAllow === true ? true : metaAllow === false ? false : undefined,
-      lockWoodGrain:
-        metaLock === true ? true : metaLock === false ? false : undefined,
-      materialId: pieceMaterialId,
-    });
     const nestingGrain = resolveNestingLayoutGrainDirection({
       materialId: pieceMaterialId,
       industrialGrainCode: industrialCode,
@@ -789,10 +795,10 @@ export function cutlistToPieces(
     const grainDirection =
       nestingGrain ??
       (industrialCode === "YY" ? industrialGrainToLayoutAxis("YY", item.tipo) : undefined);
-    const largura = isRemate
+    const largura = preserveViewerOrientation
       ? Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1))
       : Math.round(Math.max(dims[0] ?? 1, 1));
-    const altura = isRemate
+    const altura = preserveViewerOrientation
       ? Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1))
       : Math.round(Math.max(dims[1] ?? 1, 1));
     const pieces: CutPiece[] = [];
