@@ -351,12 +351,6 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           </>
         ) : null}
 
-        {productType === "L" && remate.partIndex !== 2 ? (
-          <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>
-            Remate L — posição CIMA (topo). Variantes DIR/ESQ/FUNDO serão reintroduzidas numa fase posterior.
-          </p>
-        ) : null}
-
         {lGroupPieces ? (
           <>
             <RemateMeasureFields
@@ -382,8 +376,44 @@ export default function RematePropertiesPanel({ remateId }: Props) {
             </label>
           </>
         )}
-        {remate.placementMode === "FREE" ? (
-          <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>Posição livre</p>
+        {productType === "L" || remate.placementMode === "FREE" || gapMeasure ? (
+          <details
+            style={{
+              fontSize: 11,
+              color: "var(--text-muted)",
+              border: "1px solid var(--border-muted, #333)",
+              borderRadius: 6,
+              padding: "6px 10px",
+            }}
+          >
+            <summary style={{ cursor: "pointer", userSelect: "none" }}>Informação técnica</summary>
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              {productType === "L" && remate.partIndex !== 2 ? (
+                <p style={{ margin: 0 }}>
+                  Remate L — posição CIMA (topo). Variantes DIR/ESQ/FUNDO serão reintroduzidas numa fase
+                  posterior.
+                </p>
+              ) : null}
+              {remate.placementMode === "FREE" ? (
+                <p style={{ margin: 0 }}>Posição livre</p>
+              ) : null}
+              {gapMeasure ? (
+                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                    Distância ({gapMeasure.targetLabel})
+                  </div>
+                  {gapMeasure.overlapping ? (
+                    <span>Peças sobrepostas (0 mm nos eixos)</span>
+                  ) : (
+                    <>
+                      <div>Distância X: {gapMeasure.gapXMm} mm</div>
+                      <div>Distância Y: {gapMeasure.gapYMm} mm</div>
+                    </>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </details>
         ) : null}
 
         {/* espessura do material */}
@@ -391,34 +421,16 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           Espessura: {thicknessMm} mm (material)
         </p>
 
-        {gapMeasure ? (
-          <div
-            style={{
-              padding: "8px 10px",
-              borderRadius: 6,
-              border: "1px solid var(--border-muted, #333)",
-              fontSize: 12,
-              lineHeight: 1.5,
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Distância ({gapMeasure.targetLabel})</div>
-            {gapMeasure.overlapping ? (
-              <span style={{ color: "var(--text-muted)" }}>Peças sobrepostas (0 mm nos eixos)</span>
-            ) : (
-              <>
-                <div>Distância X: {gapMeasure.gapXMm} mm</div>
-                <div>Distância Y: {gapMeasure.gapYMm} mm</div>
-              </>
-            )}
-          </div>
-        ) : null}
-
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           Material
           <select
             className="select input-sm"
-            value={remate.materialPresetId}
-            onChange={(e) => actions.updateRemate(remate.id, { materialPresetId: e.target.value })}
+            value={(lGroupPieces?.ext ?? remate).materialPresetId}
+            onChange={(e) =>
+              actions.updateRemate((lGroupPieces?.ext ?? remate).id, {
+                materialPresetId: e.target.value,
+              })
+            }
           >
             {materials.map((m) => (
               <option key={m.canonicalId} value={m.canonicalId}>
@@ -429,15 +441,19 @@ export default function RematePropertiesPanel({ remateId }: Props) {
         </label>
 
         <WoodGrainRotationToggle
-          materialId={remate.materialPresetId}
-          allowPieceRotation={remate.allowPieceRotation}
-          onChange={(allow) => actions.updateRemate(remate.id, { allowPieceRotation: allow })}
+          materialId={(lGroupPieces?.ext ?? remate).materialPresetId}
+          allowPieceRotation={(lGroupPieces?.ext ?? remate).allowPieceRotation}
+          onChange={(allow) =>
+            actions.updateRemate((lGroupPieces?.ext ?? remate).id, { allowPieceRotation: allow })
+          }
         />
 
         <WoodGrainLockToggle
-          materialId={remate.materialPresetId}
-          lockWoodGrain={remate.lockWoodGrain}
-          onChange={(lock) => actions.updateRemate(remate.id, { lockWoodGrain: lock })}
+          materialId={(lGroupPieces?.ext ?? remate).materialPresetId}
+          lockWoodGrain={(lGroupPieces?.ext ?? remate).lockWoodGrain}
+          onChange={(lock) =>
+            actions.updateRemate((lGroupPieces?.ext ?? remate).id, { lockWoodGrain: lock })
+          }
         />
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>

@@ -10,6 +10,7 @@ import {
   lRemateCenterToCornerMm,
   lRemateCornerToCenterMm,
   lSecondaryMountSlot,
+  hasLRemateCustomSheetDimensions,
   normalizeLRemateGroupToCima,
   normalizeLRemateTransformPatch,
   REMATE_L_CIMA_INT_ROTATION,
@@ -389,5 +390,59 @@ describe("remate L geometry — khaled-pro (CIMA only)", () => {
     expect(remateLIndustrialSuffix(2)).toBe("L_int");
     expect(remateLIndustrialName(1, "MOD1")).toBe("MOD1_REMATE_L_ext");
     expect(remateLIndustrialName(2, "MOD1")).toBe("MOD1_REMATE_L_int");
+  });
+
+  it("normalizeLRemateGroupToCima preserva medidas personalizadas em CIMA", () => {
+    const ext: RematePiece = {
+      id: "ext-custom",
+      tipo: "L",
+      productType: "L",
+      partIndex: 1,
+      parentGroupId: "g-custom",
+      mountSlot: "CIMA",
+      width: 750,
+      height: 120,
+      depth: 19,
+      materialPresetId: "m",
+      position: { xMm: 0, yMm: 0, zMm: 0 },
+      rotation: { xRad: 0, yRad: 0, zRad: 0 },
+      followBox: true,
+      name: "ext",
+    };
+    const int: RematePiece = { ...ext, id: "int-custom", partIndex: 2, mountSlot: "DIR", height: 80 };
+    const ctx = { boxLarguraMm: 600, boxAlturaMm: 720, thicknessMm: 19 };
+    expect(hasLRemateCustomSheetDimensions(ext, int, ctx)).toBe(true);
+    const normalized = normalizeLRemateGroupToCima(ext, int, ctx);
+    expect(normalized.ext.width).toBe(750);
+    expect(normalized.ext.height).toBe(120);
+    expect(normalized.int.width).toBe(750);
+    expect(normalized.int.height).toBe(80);
+  });
+
+  it("snapLRemateGroupCorners com ctx preserva medidas personalizadas", () => {
+    const bounds = getRemateEnvelopeBoundsM(0.9, 0.72, 0.6, null);
+    const ctx = { boxLarguraMm: 900, boxAlturaMm: 720, thicknessMm: 19 };
+    const ext: RematePiece = {
+      id: "ext-custom-snap",
+      tipo: "L",
+      productType: "L",
+      partIndex: 1,
+      parentGroupId: "g-snap",
+      mountSlot: "CIMA",
+      width: 850,
+      height: 130,
+      depth: 19,
+      materialPresetId: "m",
+      position: { xMm: 0, yMm: 0, zMm: 0 },
+      rotation: { xRad: 0, yRad: 0, zRad: 0 },
+      followBox: true,
+      name: "ext",
+    };
+    const int: RematePiece = { ...ext, id: "int-custom-snap", partIndex: 2, mountSlot: "DIR", height: 90 };
+    const snapped = snapLRemateGroupCorners(ext, int, bounds, ctx);
+    expect(snapped.ext.width).toBe(850);
+    expect(snapped.ext.height).toBe(130);
+    expect(snapped.int.width).toBe(850);
+    expect(snapped.int.height).toBe(90);
   });
 });

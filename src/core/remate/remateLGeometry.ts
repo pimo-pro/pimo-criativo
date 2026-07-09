@@ -252,6 +252,34 @@ export function computeLRemateExtCornerFromInt(
   };
 }
 
+function isLegacyLRemateSlotMigration(
+  piece: Pick<RematePiece, "mountSlot" | "partIndex">
+): boolean {
+  const slot = piece.mountSlot ?? REMATE_L_PRIMARY_SLOT;
+  if (slot === "FRENTE") return true;
+  if (piece.partIndex === 2) {
+    return slot !== REMATE_L_SECONDARY_SLOT;
+  }
+  return slot !== REMATE_L_PRIMARY_SLOT;
+}
+
+/** Verdadeiro quando ext ou int têm comprimento/largura diferentes do padrão industrial CIMA. */
+export function hasLRemateCustomSheetDimensions(
+  ext: RematePiece,
+  int: RematePiece,
+  ctx: { boxLarguraMm: number; boxAlturaMm: number; thicknessMm: number }
+): boolean {
+  const defaultDims = computeLRemateSheetDimensions({
+    partIndex: 1,
+    boxAlturaMm: ctx.boxAlturaMm,
+    boxLarguraMm: ctx.boxLarguraMm,
+    thicknessMm: ctx.thicknessMm,
+  });
+  const differs = (piece: RematePiece) =>
+    piece.width !== defaultDims.width || piece.height !== defaultDims.height;
+  return differs(ext) || differs(int);
+}
+
 /** Normaliza peças L legadas (DIR/ESQ/FUNDO) para o modelo CIMA. */
 export function normalizeLRemateGroupToCima(
   ext: RematePiece,
@@ -259,9 +287,7 @@ export function normalizeLRemateGroupToCima(
   ctx: { boxLarguraMm: number; boxAlturaMm: number; thicknessMm: number }
 ): { ext: RematePiece; int: RematePiece } {
   const legacy =
-    isRemovedLRematePrimarySlot(ext.mountSlot ?? "CIMA") ||
-    ext.mountSlot === "FRENTE" ||
-    ext.height !== REMATE_L_STRIP_WIDTH_MM;
+    isLegacyLRemateSlotMigration(ext) || isLegacyLRemateSlotMigration(int);
   if (!legacy) {
     return { ext, int };
   }
@@ -313,7 +339,7 @@ export function snapLRemateGroupCorners(
 ): { ext: RematePiece; int: RematePiece } {
   let nextExt = ext;
   let nextInt = int;
-  if (ctx) {
+  if (ctx && !hasLRemateCustomSheetDimensions(ext, int, ctx)) {
     const normalized = normalizeLRemateGroupToCima(ext, int, ctx);
     nextExt = normalized.ext;
     nextInt = normalized.int;

@@ -257,18 +257,47 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
               remates = applyLRemateGroupCoupling(remates, transformTargetId);
             }
 
+            if (patch.materialPresetId != null) {
+              const materialTarget = remates.find((r) => r.id === remateId);
+              if (
+                materialTarget &&
+                isLRematePiece(materialTarget) &&
+                materialTarget.parentGroupId
+              ) {
+                const mat = getMaterialByIdOrLabel(patch.materialPresetId);
+                const thicknessMm =
+                  Number(mat?.espessura ?? prev.material.espessura) || 19;
+                const groupId = materialTarget.parentGroupId;
+                remates = remates.map((r) =>
+                  r.parentGroupId === groupId && isLRematePiece(r)
+                    ? { ...r, materialPresetId: patch.materialPresetId!, depth: thicknessMm }
+                    : r
+                );
+              }
+            }
+
             const next = applyResultados({
               ...prev,
               remates,
             });
             projectRef.current = next;
             if (patch.materialPresetId != null) {
-              const remate = next.remates?.find((r) => r.id === remateId);
+              const materialTarget = next.remates?.find((r) => r.id === remateId);
+              const affectedRemateIds =
+                materialTarget &&
+                isLRematePiece(materialTarget) &&
+                materialTarget.parentGroupId
+                  ? (next.remates ?? [])
+                      .filter(
+                        (r) =>
+                          r.parentGroupId === materialTarget.parentGroupId && isLRematePiece(r)
+                      )
+                      .map((r) => r.id)
+                  : [remateId];
               refreshViewerAfterMaterialSync({
-                affectedRemateIds: [remateId],
+                affectedRemateIds,
                 affectedRodapeIds: [],
               });
-              void remate;
             }
             return next;
           },
