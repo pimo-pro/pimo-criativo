@@ -1,10 +1,13 @@
 import * as THREE from "three";
 import type { RematePiece } from "../../../core/remate/rematePieceTypes";
-import { applyMaterialToMesh } from "../materials/MaterialEngine";
+import {
+  applyFinishMaterialToMesh,
+} from "../materials/viewerFinishMaterial";
 import type { RemateBoxMeta } from "../../../core/remate/remateDimensions";
 import { remateGeometryExtentsM } from "../../../core/remate/remateGeometryExtents";
 import { resolveRematePoseLocal } from "../../../core/remate/remateMountFrame";
 import { getRemateEnvelopeBoundsM } from "../../../core/remate/rematePlacement";
+import { effectiveRemateForViewerPose } from "../utils/viewerRematePose";
 import {
   applyRemateLCompositeChildUserData,
   applyRemateLCompositeUserData,
@@ -295,7 +298,11 @@ export class RematePieceVisualizer {
   }
 
   private applyMaterialPreset(mesh: THREE.Mesh, piece: RematePiece): void {
-    applyMaterialToMesh(mesh, piece.materialPresetId);
+    applyFinishMaterialToMesh(mesh, piece.materialPresetId, {
+      allowPieceRotation: piece.allowPieceRotation,
+      lockWoodGrain: piece.lockWoodGrain,
+      rotationSnapIndex: piece.faceOffsets?.rotationSnapIndex,
+    });
   }
 
   private applyMaterial(mesh: THREE.Mesh, piece: RematePiece): void {
@@ -305,12 +312,13 @@ export class RematePieceVisualizer {
   }
 
   private applyWorldTransform(mesh: THREE.Mesh, piece: RematePiece): void {
-    if (piece.parentBoxId) {
-      const cfg = this.bridge?.getBoxConfig(piece.parentBoxId);
-      const worldMatrix = this.bridge?.getBoxWorldMatrix(piece.parentBoxId);
+    const posePiece = effectiveRemateForViewerPose(piece);
+    if (posePiece.parentBoxId) {
+      const cfg = this.bridge?.getBoxConfig(posePiece.parentBoxId);
+      const worldMatrix = this.bridge?.getBoxWorldMatrix(posePiece.parentBoxId);
       if (cfg) {
         const bounds = getRemateEnvelopeBoundsM(cfg.widthM, cfg.heightM, cfg.depthM, cfg.box ?? null);
-        const pose = resolveRematePoseLocal(piece, bounds);
+        const pose = resolveRematePoseLocal(posePiece, bounds);
         if (worldMatrix) {
           const local = new THREE.Vector3(
             pose.position.xMm / 1000,

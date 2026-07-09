@@ -203,6 +203,11 @@ import {
   applyRemateRotationSnapToMesh,
   rotationSnapIndexFromLocalY,
 } from "../../core/remate/remateRotationSnap";
+import {
+  isViewerRemateRotationAllowed,
+  isViewerRodapeRotationAllowed,
+} from "./utils/viewerPieceRotationPolicy";
+import { resolveViewerRematePlacementMode } from "./utils/viewerRematePose";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
 import { mToMm, mmToM } from "../../utils/units";
@@ -1314,6 +1319,11 @@ export class ViewerCore {
     const tool = this.viewerState.getCurrentTool();
     if (tool === "scale") return false;
 
+    const piece = pieces.find((p) => p.id === leadId || p.id === remateId);
+    if (tool === "rotate" && piece && !isViewerRemateRotationAllowed(piece)) {
+      return false;
+    }
+
     const stepMm = options?.stepMm ?? 1;
     const stepDeg = options?.stepDeg ?? 1;
     const shiftKey = options?.shiftKey ?? false;
@@ -1472,6 +1482,14 @@ export class ViewerCore {
 
   getRodapeMesh(rodapeId: string): THREE.Object3D | null {
     return this.rodapeVisualizer.getMeshByRodapeId(rodapeId) ?? null;
+  }
+
+  private findRodapeById(rodapeId: string): import("../../core/rodape/rodapeTypes").ProjectRodape | undefined {
+    for (const cfg of this.rodapeVisualBridge?.listBoxRodapeConfigs() ?? []) {
+      const found = cfg.rodapes.find((r) => r.id === rodapeId);
+      if (found) return found;
+    }
+    return undefined;
   }
 
   getHematiIdAtPointer(event: { clientX: number; clientY: number }): string | null {
@@ -5069,6 +5087,14 @@ export class ViewerCore {
       },
       getGroupTransformMemberIds: () => this.viewerState.getGroupTransformMemberIds(),
       resolveMemberMesh: (encoded) => this.resolveMemberMesh(encoded),
+      isRemateRotationAllowed: (remateId) => {
+        const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === remateId);
+        return piece ? isViewerRemateRotationAllowed(piece) : true;
+      },
+      isRodapeRotationAllowed: (rodapeId) => {
+        const rodape = this.findRodapeById(rodapeId);
+        return rodape ? isViewerRodapeRotationAllowed(rodape) : true;
+      },
       applyGroupPivotTransform: () => this.applyGroupPivotTransform(),
       notifyGroupTransform: () => this.notifyGroupTransform(),
       clampGroupTransform: () => this.clampGroupTransform(),
@@ -5217,6 +5243,7 @@ export class ViewerCore {
   private notifyRemateTransform(): void {
     const remateId = this.viewerState.getSelectedRemate();
     if (!remateId) return;
+    const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === remateId);
     const rawMesh = this.remateVisualizer.getMeshByRemateId(remateId);
     const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
     if (!mesh) return;
@@ -5242,7 +5269,7 @@ export class ViewerCore {
         width: widthMm,
         height: heightMm,
         depth: depthMm,
-        placementMode: "FREE",
+        placementMode: resolveViewerRematePlacementMode(piece),
       });
       return;
     }
@@ -5264,12 +5291,11 @@ export class ViewerCore {
       };
       const rotation = { xRad: euler.x, yRad: euler.y, zRad: euler.z };
 
-      const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === remateId);
       if (piece && isLRematePiece(piece)) {
         this.onRemateTransform?.(remateId, {
           position,
           rotation,
-          placementMode: "FREE",
+          placementMode: resolveViewerRematePlacementMode(piece),
         });
         return;
       }
@@ -5282,9 +5308,9 @@ export class ViewerCore {
           const slot = piece.mountSlot ?? resolveMountSlot(piece);
           const frame = computeMountFrameM(bounds, slot);
           const snapIdx =
-            tool === "rotate"
+            tool === "rotate" && piece && isViewerRemateRotationAllowed(piece)
               ? rotationSnapIndexFromLocalY(rotation.yRad)
-              : piece?.faceOffsets?.rotationSnapIndex;
+              : piece?.faceOffsets?.rotationSnapIndex ?? 0;
           faceOffsets = faceOffsetsFromPositionM(frame, position, snapIdx);
         }
       }
@@ -5292,7 +5318,7 @@ export class ViewerCore {
       this.onRemateTransform?.(remateId, {
         position,
         rotation,
-        placementMode: "FREE",
+        placementMode: resolveViewerRematePlacementMode(piece),
         ...(faceOffsets ? { faceOffsets } : {}),
       });
       return;
@@ -5309,7 +5335,7 @@ export class ViewerCore {
         yRad: mesh.rotation.y,
         zRad: mesh.rotation.z,
       },
-      placementMode: "FREE",
+      placementMode: resolveViewerRematePlacementMode(piece),
     });
   }
 
@@ -5341,6 +5367,7 @@ export class ViewerCore {
   private notifyRodapeTransform(): void {
     const rodapeId = this.viewerState.getSelectedRodape();
     if (!rodapeId) return;
+    const rodape = this.findRodapeById(rodapeId);
     const mesh = this.rodapeVisualizer.getMeshByRodapeId(rodapeId);
     if (!mesh) return;
     const boxId = mesh.userData.boxId as string | undefined;
@@ -5350,17 +5377,21 @@ export class ViewerCore {
     entry.mesh.updateMatrixWorld(true);
     const inv = new THREE.Matrix4().copy(entry.mesh.matrixWorld).invert();
     const local = mesh.position.clone().applyMatrix4(inv);
+    const rotationAllowed = rodape ? isViewerRodapeRotationAllowed(rodape) : true;
     this.onRodapeTransform?.(rodapeId, {
       transform: {
         xMm: local.x * 1000,
         yMm: local.y * 1000,
         zMm: local.z * 1000,
-        rotacaoXRad: mesh.rotation.x,
-        rotacaoYRad: mesh.rotation.y,
-        rotacaoZRad: mesh.rotation.z,
+        rotacaoXRad: rotationAllowed ? mesh.rotation.x : 0,
+        rotacaoYRad: rotationAllowed ? mesh.rotation.y : 0,
+        rotacaoZRad: rotationAllowed ? mesh.rotation.z : 0,
       },
-      placementFree: true,
+      placementFree: rodape?.placementFree ?? false,
     });
+    if (!rotationAllowed) {
+      this.syncRodapeVisuals();
+    }
   }
 
   private notifyDivSepTransform(): void {
@@ -5872,7 +5903,11 @@ export class ViewerCore {
         } else if (currentTool === "translate" && piece && !boxId && !isLCimaComposite) {
           this.remateSmartSnapping.applyStandaloneGridSnap(snapTarget);
         } else if (currentTool === "rotate" && !isLCimaComposite) {
-          applyRemateRotationSnapToMesh(snapTarget, entry?.mesh ?? null);
+          if (piece && !isViewerRemateRotationAllowed(piece)) {
+            this.syncRemateVisuals();
+          } else {
+            applyRemateRotationSnapToMesh(snapTarget, entry?.mesh ?? null);
+          }
         }
 
         if (currentTool === "translate" && !isLCimaComposite) {
@@ -5900,15 +5935,24 @@ export class ViewerCore {
     if (selectedRodapeId) {
       const mesh = this.rodapeVisualizer.getMeshByRodapeId(selectedRodapeId);
       const obj = this.transformControls?.object;
-      if (isDragging && mesh && obj === mesh && currentTool === "translate") {
+      if (isDragging && mesh && obj === mesh) {
         const boxId = mesh.userData.boxId as string | undefined;
-        this.applyDynamicAlignSnap({
-          mesh,
-          entity: { kind: "rodape", id: selectedRodapeId, parentBoxId: boxId },
-          isDragging,
-          currentTool,
-        });
-        this.applyFinishCollisionConstraint(mesh, boxId, undefined, selectedRodapeId);
+        if (currentTool === "rotate") {
+          const rodape = this.findRodapeById(selectedRodapeId);
+          if (rodape && !isViewerRodapeRotationAllowed(rodape)) {
+            this.syncRodapeVisuals();
+            return;
+          }
+        }
+        if (currentTool === "translate") {
+          this.applyDynamicAlignSnap({
+            mesh,
+            entity: { kind: "rodape", id: selectedRodapeId, parentBoxId: boxId },
+            isDragging,
+            currentTool,
+          });
+          this.applyFinishCollisionConstraint(mesh, boxId, undefined, selectedRodapeId);
+        }
       }
       return;
     }

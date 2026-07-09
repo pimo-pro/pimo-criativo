@@ -1,8 +1,11 @@
 import * as THREE from "three";
 import type { ProjectRodape } from "../../../core/rodape/rodapeTypes";
-import { applyMaterialToMesh } from "../materials/MaterialEngine";
+import {
+  applyFinishMaterialToMesh,
+} from "../materials/viewerFinishMaterial";
 import { computeRodapePlacementLocal, getStructuralBoundsM } from "../../../core/rodape/rodapePlacement";
 import { computeRodapeVisualMergeGroups, rodapeIdsInMergeGroup } from "../../../core/rodape/rodapeMerge";
+import { isViewerRodapeRotationAllowed } from "../utils/viewerPieceRotationPolicy";
 
 export type RodapeVisualBoxConfig = {
   boxId: string;
@@ -180,7 +183,13 @@ export class RodapeVisualizer {
   }
 
   private applyMaterialPreset(mesh: THREE.Mesh, rodape: ProjectRodape): void {
-    applyMaterialToMesh(mesh, rodape.materialId);
+    applyFinishMaterialToMesh(mesh, rodape.materialId, {
+      allowPieceRotation: rodape.allowPieceRotation,
+      lockWoodGrain: rodape.lockWoodGrain,
+      rotationSnapIndex: isViewerRodapeRotationAllowed(rodape)
+        ? resolveRodapeRotationSnapIndex(rodape)
+        : 0,
+    });
   }
 
   private applyMaterial(mesh: THREE.Mesh, rodape: ProjectRodape): void {
@@ -203,6 +212,14 @@ export class RodapeVisualizer {
       const local = new THREE.Vector3(t.xMm / 1000, t.yMm / 1000, t.zMm / 1000);
       local.applyMatrix4(worldMatrix);
       mesh.position.copy(local);
+    }
+    if (!isViewerRodapeRotationAllowed(rodape)) {
+      mesh.rotation.set(0, 0, 0);
+      if (worldMatrix) {
+        const quat = new THREE.Quaternion().setFromRotationMatrix(worldMatrix);
+        mesh.quaternion.copy(quat);
+      }
+      return;
     }
     mesh.rotation.set(t.rotacaoXRad ?? 0, t.rotacaoYRad ?? 0, t.rotacaoZRad ?? 0);
   }
@@ -227,4 +244,10 @@ export class RodapeVisualizer {
     );
     mesh.quaternion.copy(quat).multiply(partQuat);
   }
+}
+
+function resolveRodapeRotationSnapIndex(rodape: ProjectRodape): number {
+  const yRad = rodape.transform?.rotacaoYRad ?? 0;
+  const quarter = Math.PI / 2;
+  return ((Math.round(yRad / quarter) % 4) + 4) % 4;
 }

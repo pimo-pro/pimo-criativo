@@ -50,6 +50,8 @@ export interface IViewerToolsEngine {
   getGroupGizmo(): GroupGizmo;
   getGroupTransformMemberIds(): string[];
   resolveMemberMesh(_encodedId: string): THREE.Object3D | null;
+  isRemateRotationAllowed(_remateId: string): boolean;
+  isRodapeRotationAllowed(_rodapeId: string): boolean;
   applyGroupPivotTransform(): void;
   notifyGroupTransform(): void;
   clampGroupTransform(): void;

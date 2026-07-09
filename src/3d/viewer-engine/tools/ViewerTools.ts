@@ -82,7 +82,9 @@ export class ViewerTools {
         rodapeMesh.updateMatrixWorld(true);
         controls.detach();
         controls.attach(rodapeMesh);
-        controls.setMode(mode);
+        const effectiveMode =
+          mode === "rotate" && !e.isRodapeRotationAllowed(selectedRodapeId) ? "translate" : mode;
+        controls.setMode(effectiveMode);
         controls.setSize(0.35);
         e.applyTransformControlsMouseGuard();
         e.logTransformDiagnostic("attach-rodape", { rodapeId: selectedRodapeId, attachedUuid: rodapeMesh.uuid });
@@ -99,7 +101,9 @@ export class ViewerTools {
         remateMesh.updateMatrixWorld(true);
         controls.detach();
         controls.attach(remateMesh);
-        controls.setMode(mode);
+        const effectiveMode =
+          mode === "rotate" && !e.isRemateRotationAllowed(selectedRemateId) ? "translate" : mode;
+        controls.setMode(effectiveMode);
         controls.setSpace("world");
         controls.setSize(0.35);
         e.applyTransformControlsMouseGuard();
