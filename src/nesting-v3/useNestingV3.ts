@@ -17,6 +17,11 @@ import { loadNestingV3SettingsFromGlobal, type NestingV3Settings, allowRotationF
 import { buildInitialSheetsForPieces, cloneDefaultSheet, defaultSheetFromSettings } from "./nestingSheetsFactory";
 import { findValidPlacement } from "./nestingV3Placement";
 import { isMaterialMadeira } from "../core/materials/nestingGrainLock";
+import {
+  readRotationSnapIndexFromMetadata,
+  rotationSnapIndexToV3Rotation,
+} from "../core/remate/remateIndustrialMetadata";
+import type { RemateFaceOffsets } from "../core/remate/rematePieceTypes";
 
 function makeDefaultState(): NestingV3State {
   const settings = loadNestingV3SettingsFromGlobal();
@@ -72,6 +77,18 @@ export function cutPieceToV3(
         : isMaterialMadeira(cp.materialId)
           ? true
           : undefined);
+  const meta = cp.metadata ?? {};
+  const rotationSnapIndex = readRotationSnapIndexFromMetadata(meta);
+  const faceOffsets = meta.faceOffsets as RemateFaceOffsets | undefined;
+  const remateId = typeof meta.remateId === "string" ? meta.remateId : undefined;
+  const remateKind = typeof meta.remateKind === "string" ? meta.remateKind : undefined;
+  const partIndex =
+    meta.partIndex === 1 || meta.partIndex === 2 ? meta.partIndex : undefined;
+  const followBox = meta.followBox === true ? true : meta.followBox === false ? false : undefined;
+  const placementMode =
+    meta.placementMode === "SNAPPED" || meta.placementMode === "FREE"
+      ? meta.placementMode
+      : undefined;
   return {
     id: nextPieceId(),
     name: cp.partName,
@@ -81,13 +98,20 @@ export function cutPieceToV3(
     materialId: cp.materialId,
     materialName: cp.materialName,
     originalHoles: holes,
-    rotation: 0,
+    rotation: rotationSnapIndexToV3Rotation(rotationSnapIndex),
     color: getPieceColor(cp.materialId, index),
     sourceBoxId: cp.boxId,
     industrialGrainCode: cp.industrialGrainCode,
     pieceTipo: cp.pieceTipo,
     allowPieceRotation,
     lockWoodGrain,
+    remateId,
+    partIndex,
+    remateKind,
+    followBox,
+    placementMode,
+    rotationSnapIndex,
+    faceOffsets,
   };
 }
 

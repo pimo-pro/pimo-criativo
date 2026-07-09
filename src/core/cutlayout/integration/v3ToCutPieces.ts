@@ -56,6 +56,13 @@ export function v3PiecesToCutPieces(pieces: V3Piece[], settings: NestingV3Settin
         v3SourceProjectId: piece.sourceProjectId,
         allowPieceRotation: piece.allowPieceRotation,
         lockWoodGrain: piece.lockWoodGrain,
+        remateId: piece.remateId,
+        partIndex: piece.partIndex,
+        remateKind: piece.remateKind,
+        followBox: piece.followBox,
+        placementMode: piece.placementMode,
+        rotationSnapIndex: piece.rotationSnapIndex,
+        faceOffsets: piece.faceOffsets,
       },
     };
   });

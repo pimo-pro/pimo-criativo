@@ -12,6 +12,7 @@ import {
   resolveRemateIndustrialSuffix,
   resolveRematePieceDisplayName,
 } from "./labels";
+import { buildRemateIndustrialViewerMetadata } from "./remateIndustrialMetadata";
 
 function toCutDimensions(remate: RematePiece): CutListItem["dimensoes"] {
   const sheet = resolveRemateSheetCutDimensions(remate);
@@ -51,6 +52,7 @@ export function buildRemateCutlistItems(
       lockWoodGrain: remate.lockWoodGrain,
       materialId,
     });
+    const viewerMeta = buildRemateIndustrialViewerMetadata(remate);
 
     return {
       id: remate.id,
@@ -84,9 +86,7 @@ export function buildRemateCutlistItems(
         industrialLabel,
         remateIndustrialLabel: suffix,
         remateKind: suffix,
-        followBox: remate.followBox,
-        placementMode: remate.placementMode ?? (remate.followBox ? "SNAPPED" : "FREE"),
-        faceOffsets: remate.faceOffsets,
+        ...viewerMeta,
         ...rotationMeta,
       },
     };

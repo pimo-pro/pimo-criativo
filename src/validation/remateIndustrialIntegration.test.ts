@@ -7,6 +7,11 @@ import { resolveObservacoesForCutListItem } from "../core/observacoes/Observacoe
 import { makeDivSepTestBox } from "../core/divSep/divSepTestHelpers";
 import { defaultRulesConfig } from "../core/rules/rulesConfig";
 import { cutlistToPieces } from "../core/cutlayout/cutLayoutEngine";
+import { convertProjectToV3Pieces } from "../nesting-v3/utils/convertProjectToV3Pieces";
+import { v3PiecesToCutPieces } from "../core/cutlayout/integration/v3ToCutPieces";
+import { isRotatablePiece } from "../core/cutlayout/utils/cutLayoutUtils";
+import { loadNestingV3SettingsFromGlobal } from "../nesting-v3/nestingV3Settings";
+import type { ProjectState } from "../context/projectTypes";
 
 function makeWorkspaceBox() {
   const box = makeDivSepTestBox({
@@ -68,6 +73,14 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     expect(int?.grainDirection).toBe("YY");
     expect(ext?.dimensoes).toEqual({ largura: 600, altura: 100, profundidade: 19 });
     expect(int?.dimensoes).toEqual({ largura: 600, altura: 100, profundidade: 19 });
+    expect(ext?.metadata?.followBox).toBe(true);
+    expect(int?.metadata?.followBox).toBe(true);
+    expect(ext?.metadata?.placementMode).toBe("SNAPPED");
+    expect(int?.metadata?.placementMode).toBe("SNAPPED");
+    expect(ext?.metadata?.faceOffsets).toBeDefined();
+    expect(int?.metadata?.faceOffsets).toBeDefined();
+    expect(ext?.metadata?.rotationSnapIndex).toBe(0);
+    expect(int?.metadata?.rotationSnapIndex).toBe(0);
     expect(resolveObservacoesForCutListItem(ext!, {})).toEqual(["ME manual"]);
     expect(resolveObservacoesForCutListItem(int!, {})).toEqual(["ME manual"]);
   });
@@ -169,5 +182,54 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     const dir = pieces.find((p) => p.pieceTipo === "remate");
     expect(dir?.largura_mm).toBe(100);
     expect(dir?.altura_mm).toBe(720);
+  });
+
+  it("L ext/int passam pelo pipeline industrial completo com metadata de veio/rotação", () => {
+    const wsBox = makeWorkspaceBox();
+    const remates = createRematePieces(
+      { productType: "L", mountSlot: "CIMA", parentBoxId: wsBox.id, followBox: true },
+      {
+        box: wsBox,
+        materialPresetId: "carvalho-19",
+        thicknessMm: 19,
+        boxDimsM: { widthM: 0.6, heightM: 0.72, depthM: 0.56 },
+      }
+    ).map((r) =>
+      r.partIndex === 1
+        ? { ...r, lockWoodGrain: true, rotation: { ...r.rotation, yRad: Math.PI / 2 } }
+        : { ...r, lockWoodGrain: true }
+    );
+
+    const project = {
+      boxes: [makeDivSepTestBox({ id: wsBox.id, nome: wsBox.nome })],
+      workspaceBoxes: [wsBox],
+      rules: defaultRulesConfig,
+      materialId: "carvalho-19",
+      projectName: "NP001",
+      remates,
+    } as unknown as ProjectState;
+
+    const v3Pieces = convertProjectToV3Pieces(project);
+    const extV3 = v3Pieces.find((p) => p.remateKind === "L_ext");
+    const intV3 = v3Pieces.find((p) => p.remateKind === "L_int");
+
+    expect(extV3?.lockWoodGrain).toBe(true);
+    expect(intV3?.lockWoodGrain).toBe(true);
+    expect(extV3?.followBox).toBe(true);
+    expect(intV3?.followBox).toBe(true);
+    expect(extV3?.placementMode).toBe("SNAPPED");
+    expect(extV3?.rotation).toBe(90);
+    expect(extV3?.rotationSnapIndex).toBe(1);
+
+    const cutPieces = v3PiecesToCutPieces(v3Pieces, loadNestingV3SettingsFromGlobal());
+    const extCut = cutPieces.find((p) => p.metadata?.remateKind === "L_ext");
+    const intCut = cutPieces.find((p) => p.metadata?.remateKind === "L_int");
+
+    expect(extCut?.metadata?.lockWoodGrain).toBe(true);
+    expect(intCut?.metadata?.lockWoodGrain).toBe(true);
+    expect(extCut?.metadata?.faceOffsets).toBeDefined();
+    expect(extCut?.metadata?.rotationSnapIndex).toBe(1);
+    expect(isRotatablePiece(extCut!)).toBe(false);
+    expect(isRotatablePiece(intCut!)).toBe(false);
   });
 });

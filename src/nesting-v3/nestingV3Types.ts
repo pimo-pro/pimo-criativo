@@ -51,6 +51,19 @@ export interface V3Piece {
   /** ID da origem (boxId do projeto). Opcional para peças adicionadas manualmente. */
   sourceBoxId?: string;
   sourceProjectId?: string;
+  /** Metadata remate propagada da cutlist industrial (viewer → nesting). */
+  remateId?: string;
+  partIndex?: 1 | 2;
+  remateKind?: string;
+  followBox?: boolean;
+  placementMode?: "SNAPPED" | "FREE";
+  rotationSnapIndex?: 0 | 1 | 2 | 3;
+  faceOffsets?: {
+    offsetAlongNormalMm: number;
+    offsetTangentUMm: number;
+    offsetTangentVMm: number;
+    rotationSnapIndex?: 0 | 1 | 2 | 3;
+  };
 }
 
 // ── Placement de uma peça num sheet ──────────────────────────────────────────
