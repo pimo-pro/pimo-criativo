@@ -18,6 +18,8 @@ import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
 import { defaultRulesConfig } from "../rules/rulesConfig";
 import { buildPanelDrillingResult } from "../../modules/drilling/drillingAdapter";
 import { getParafusoDistanceFromCavilhaMm } from "../divSep/cavilhaRules";
+import { getHingeYPositions, getNumDobradicas } from "../rules/rulesConfig";
+import { clearHingeDrillingTraceLog } from "../../modules/drilling/hingeDrillingTrace";
 
 const PIECE_W = 400;
 const PIECE_H = 300;
@@ -299,5 +301,112 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     ]);
     const v3 = cutPieceToV3(piece!, 0);
     expect(v3.originalHoles.every((h) => h.y <= 598.2)).toBe(true);
+  });
+
+  it("TESTE 8 — peça 758×598: todas combinações dobradiça nunca produzem yLocal > 598", () => {
+    clearHingeDrillingTraceLog();
+    const pieceW = 758;
+    const pieceH = 598;
+    const assertHingeBounds = (holes: { x: number; y: number }[]) => {
+      for (const h of holes) {
+        expect(h.y).toBeLessThanOrEqual(pieceH + 0.2);
+        expect(h.y).toBeGreaterThanOrEqual(-0.2);
+        expect(h.x).toBeLessThanOrEqual(pieceW + 0.2);
+        expect(h.x).toBeGreaterThanOrEqual(-0.2);
+      }
+      expect(holes.some((h) => h.y > pieceH)).toBe(false);
+      expect(holes.some((h) => Math.abs(h.y - 658) < 1)).toBe(false);
+    };
+
+    const lateralBase = {
+      tipo: "lateral_esquerda" as const,
+      larguraMm: pieceW,
+      alturaMm: pieceH,
+      espessuraMm: 19,
+      hingeSide: "left" as const,
+      openingHeightMm: 720,
+      portaTipo: "porta_simples" as const,
+      doorsLayerCount: 1,
+    };
+
+    const confusedLarguraOffsets = getHingeYPositions(
+      pieceW,
+      getNumDobradicas(pieceW, defaultRulesConfig),
+      defaultRulesConfig
+    );
+    expect(confusedLarguraOffsets.some((o) => o > pieceH)).toBe(true);
+
+    const cases: Array<{ label: string; input: Parameters<typeof buildPanelDrillingResult>[0] }> = [
+      {
+        label: "offsets getHingeYPositions(largura=758) — confusão largura/altura",
+        input: { ...lateralBase, hingePositionsMm: confusedLarguraOffsets },
+      },
+      {
+        label: "offset global 658 do vão (fora da peça 598)",
+        input: { ...lateralBase, hingePositionsMm: [658] },
+      },
+      {
+        label: "offset global 658 + bottomGap 61",
+        input: { ...lateralBase, hingePositionsMm: [658], bottomGapMm: 61 },
+      },
+      {
+        label: "offsets legado porta [-42,120,450,620]",
+        input: { ...lateralBase, hingePositionsMm: [-42, 120, 450, 620] },
+      },
+      {
+        label: "sem offsets — recálculo por altura da peça",
+        input: { ...lateralBase },
+      },
+      {
+        label: "porta 758×598 hinge left",
+        input: {
+          tipo: "porta_simples",
+          larguraMm: pieceW,
+          alturaMm: pieceH,
+          espessuraMm: 19,
+          hingeSide: "left",
+          openingHeightMm: 720,
+          bottomGapMm: 61,
+          portaTipo: "porta_simples",
+          doorsLayerCount: 1,
+        },
+      },
+      {
+        label: "lateral direita com offsets globais empilhados",
+        input: {
+          ...lateralBase,
+          tipo: "lateral_direita",
+          hingeSide: "right",
+          hingePositionsMm: [100, 379, 658, 720],
+        },
+      },
+    ];
+
+    for (const { label, input } of cases) {
+      const result = buildPanelDrillingResult(input, defaultRulesConfig);
+      expect(result.success, label).toBe(true);
+      const holes = result.data?.drillHoles ?? [];
+      assertHingeBounds(holes);
+    }
+
+    const [piece] = cutlistToPieces([
+      {
+        id: "lat-758x598-contract",
+        nome: "LAT",
+        quantidade: 1,
+        dimensoes: { largura: pieceW, altura: pieceH, profundidade: 19 },
+        espessura: 19,
+        materialId: "mdf_branco",
+        tipo: "lateral_esquerda",
+        drillHoles:
+          buildPanelDrillingResult(
+            { ...lateralBase, hingePositionsMm: confusedLarguraOffsets },
+            defaultRulesConfig
+          ).data?.drillHoles ?? [],
+      },
+    ]);
+    expect(piece?.drillHoles?.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+    const v3 = cutPieceToV3(piece!, 0);
+    expect(v3.originalHoles.every((h) => h.y <= pieceH + 0.2)).toBe(true);
   });
 });

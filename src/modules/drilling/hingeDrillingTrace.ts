@@ -1,7 +1,12 @@
 import { isHolePipelineTraceEnabled } from "../../core/cutlayout/utils/holeGeomInvariant";
 
+export type HingeDrillingTraceStage =
+  | "buildPanelDrillingResult"
+  | "calcDobradica"
+  | "calcDobradicaFixacao";
+
 export type HingeDrillingTraceEntry = {
-  stage: "buildPanelDrillingResult";
+  stage: HingeDrillingTraceStage;
   tipo: string;
   larguraMm: number;
   alturaMm: number;

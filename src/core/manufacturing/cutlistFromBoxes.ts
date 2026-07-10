@@ -16,6 +16,10 @@ import {
   readLabelNumberFromMetadata,
 } from "../qrcode/panelLabelNumber";
 import { buildEffectiveDrillingRules, buildPanelDrillingResult, DRILLING_SSOT_VERSION } from "../../modules/drilling/drillingAdapter";
+import {
+  filterHingePanelDrillHolesToPieceBounds,
+  lateralLocalOffsetsFromOpeningGlobal,
+} from "../../modules/drilling/hingeOffsetUtils";
 import { computeDoorVerticalGaps } from "../doors/doorLayerGeometry";
 import { isPiBaseCabinetId } from "../../data/moveisUnificados/pi/models";
 import { isCornerFixedFrontModel, getCornerFixedFrontHingeSide, isCornerDireitaInferiorModel, computeCornerLayoutForBox, resolveCornerDoorGapSettings, buildCornerFixedFrontDowelHoles, buildCornerFixedFrontHingeHoles, stripCornerFixedFrontHingeHoles, stripCornerLateralHingeHoles, buildCornerDoorLayerItems, getCornerCabinetConfig, syncCornerWorkspaceBoxDoorsLayer } from "../cornerCabinet";
@@ -339,7 +343,7 @@ export function cutlistComPrecoFromBox(
       isLateralLeft && hasDoorLeft ? doorHeightMm : isLateralRight && hasDoorRight ? doorHeightMm : undefined;
     const doorWidthForTopBottom =
       (isTopPanel && hasDoorTop) || (isBottomPanel && hasDoorBottom) ? doorWidthMm : undefined;
-    const hingePositionsForLateral =
+    const hingePositionsForLateralRaw =
       isFixedFront && isCornerBox && !isCornerDireita && (doorHingeSide === "left" || doorHingeSide === "right")
         ? hingePositionsBySide[doorHingeSide]
         : isLateralLeft && hasDoorLeft
@@ -347,6 +351,11 @@ export function cutlistComPrecoFromBox(
           : isLateralRight && hasDoorRight
             ? hingePositionsBySide.right
             : undefined;
+    /** Offsets globais do vão → locais da lateral (altura real da peça); descarta oy fora da peça. */
+    const hingePositionsForLateral =
+      hingePositionsForLateralRaw && hingePositionsForLateralRaw.length > 0
+        ? lateralLocalOffsetsFromOpeningGlobal(hingePositionsForLateralRaw, p.altura_mm, 0)
+        : undefined;
     const openingH = Number.isFinite(openingHeightMm) && Number(openingHeightMm) > 0 ? Number(openingHeightMm) : p.altura_mm;
     const doorLayerForGap = isDoor && doorsLayer[doorIndex] ? doorsLayer[doorIndex] : undefined;
     const { bottomGap, topGap } = doorLayerForGap
@@ -436,6 +445,12 @@ export function cutlistComPrecoFromBox(
 
     const panelIdForDivSep = p.id;
     drillHoles = mergeDrillHoles(drillHoles, divSepDrilling.getExtraHoles(p.tipo, panelIdForDivSep));
+
+    drillHoles = filterHingePanelDrillHolesToPieceBounds(
+      drillHoles,
+      p.largura_mm,
+      p.altura_mm
+    );
 
     let industrialLabel: string | undefined;
     let displayNome = getPieceLabel(p.tipo);

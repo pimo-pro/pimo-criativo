@@ -24,6 +24,7 @@ import type { RulesConfig } from "../rules/rulesConfig";
 import { getNumDobradicas, getHingeYPositions, MIN_MARGEM_DOBRADICA_TOP_BOTTOM_MM } from "../rules/rulesConfig";
 import { getSettings } from "../settings/settingsService";
 import type { DrillFace, DrillType, PanelFace, TechnicalDrillHole } from "../types";
+import { shouldTraceHingePiece, traceHingeDrilling } from "../../modules/drilling/hingeDrillingTrace";
 
 export type PieceType =
   | "cima"
@@ -336,6 +337,23 @@ function calcDobradica(piece: PieceInput, rules: RulesConfig, out: TechnicalDril
     pushHole(out, piece, xFixacao, clampTopDownYMm(yTopDown - halfFix, piece.altura, diametroFixacao), diametroFixacao, profundidadeFixacao, "dobradica_fixacao", face, true);
     pushHole(out, piece, xFixacao, clampTopDownYMm(yTopDown + halfFix, piece.altura, diametroFixacao), diametroFixacao, profundidadeFixacao, "dobradica_fixacao", face, true);
   }
+  if (shouldTraceHingePiece(piece.largura, piece.altura)) {
+    const hingeHoles = out.filter((h) => h.tipo === "dobradica" || h.tipo === "dobradica_fixacao");
+    traceHingeDrilling({
+      stage: "calcDobradica",
+      tipo: piece.tipo,
+      larguraMm: piece.largura,
+      alturaMm: piece.altura,
+      hingeSide: piece.hingeSide,
+      offsetsIn: piece.hingePositionsMm ? [...piece.hingePositionsMm] : undefined,
+      offsetsAfterSanitize: [...offsetsFromBase],
+      oySamples: offsetsFromBase.map((oy) => ({
+        oy,
+        yTopDown: clampTopDownYMm(piece.altura - oy, piece.altura, diametroCaneco),
+      })),
+      holesOut: hingeHoles.map((h) => ({ x: h.x, y: h.y, tipo: h.tipo })),
+    });
+  }
 }
 
 /** Furos de corredica de gaveta: laterais, frente e traseira da gaveta europeia. */
@@ -510,6 +528,32 @@ function calcDobradicaFixacao(piece: PieceInput, rules: RulesConfig, out: Techni
     pushHole(out, piece, xCalco, clampTopDownYMm(yTopDown + halfDist, piece.altura, diametroCalco), diametroCalco, profundidadeCalco, "dobradica_fixacao", face, true);
     pushHole(out, piece, xUniao, yTopDown, DOBRADICA_TERCEIRO_FURO.diametroMm, DOBRADICA_TERCEIRO_FURO.profundidadeMm, "dobradica_parafuso_uniao", face, true);
   }
+  if (
+    shouldTraceHingePiece(piece.largura, piece.altura) &&
+    (piece.tipo === "lateral_esquerda" || piece.tipo === "lateral_direita")
+  ) {
+    const hingeHoles = out.filter(
+      (h) =>
+        h.tipo === "dobradica_fixacao" ||
+        h.tipo === "dobradica_parafuso_uniao" ||
+        h.tipo === "dobradica"
+    );
+    traceHingeDrilling({
+      stage: "calcDobradicaFixacao",
+      tipo: piece.tipo,
+      larguraMm: piece.largura,
+      alturaMm: piece.altura,
+      hingeSide: piece.hingeSide,
+      offsetsIn: piece.hingePositionsMm ? [...piece.hingePositionsMm] : undefined,
+      offsetsAfterSanitize: [...hingesFromBase],
+      oySamples: hingesFromBase.map((oy) => ({
+        oy,
+        yTopDown: clampTopDownYMm(piece.altura - oy, piece.altura, diametroCalco),
+      })),
+      holesOut: hingeHoles.map((h) => ({ x: h.x, y: h.y, tipo: h.tipo })),
+      note: `xCalco=${xCalco} xUniao=${xUniao}`,
+    });
+  }
 }
 
 /** Furação estrutural de montagem das peças de gaveta (cavilha, fixação lateral, rasgos de fundo). */
@@ -577,7 +621,16 @@ export function calculateTechnicalDrillingsForPiece(
   } catch (err) {
     console.warn(`[drillingService] Error calculating drills for ${piece.tipo}:`, err);
   }
-  return out;
+  const hingeTypes = new Set<DrillType>(["dobradica", "dobradica_fixacao", "dobradica_parafuso_uniao"]);
+  return out.filter((h) => {
+    if (!hingeTypes.has(h.tipo)) return true;
+    return (
+      h.x >= -0.2 &&
+      h.y >= -0.2 &&
+      h.x <= piece.largura + 0.2 &&
+      h.y <= piece.altura + 0.2
+    );
+  });
 }
 
 /**

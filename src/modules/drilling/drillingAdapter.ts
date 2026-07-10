@@ -19,6 +19,11 @@ import { getSettings } from "../../core/settings/settingsService";
 import type { PieceType } from "../../core/drilling/drillingService";
 import { calculateTechnicalDrillingsForPiece, clampTopDownYMm, drillFaceToPanelFace, isTopDrillable, sanitizeHingeOffsetsFromPieceHeight } from "../../core/drilling/drillingService";
 import { traceHingeDrilling, shouldTraceHingePiece } from "./hingeDrillingTrace";
+import {
+  filterHingePanelDrillHolesToPieceBounds,
+  offsetFromBaseToTopDownY,
+  remapHingeOffsetsIfLarguraHeightConfusion,
+} from "./hingeOffsetUtils";
 import { devLogger } from "../../utils/devLogger";
 import { isIndustrialDoorPanelTipo } from "../../core/doors/industrialDoorPanels";
 
@@ -147,8 +152,7 @@ function sanitizeHingeOffsetsFromEdge(
 
   return positions
     .map((o) => Number(o))
-    .filter((o) => Number.isFinite(o))
-    .map((o) => clampNumber(o, minO, maxO));
+    .filter((o) => Number.isFinite(o) && o >= minO && o <= maxO);
 }
 
 /** Posições X (mm) para furação top/bottom: porta = master, painel cima/fundo copia. Lógica paralela à de altura da porta, ao longo da largura. */
@@ -176,7 +180,7 @@ function getHingePositionsFromDoorWidth(
 }
 
 /** Versão do motor de furação — invalida cache de cutlist quando a geometria de furos muda. */
-export const DRILLING_SSOT_VERSION = "hinge-piece-height-v3";
+export const DRILLING_SSOT_VERSION = "hinge-piece-height-v4";
 
 const HOLE_DRILLING_TOL_MM = 0.2;
 
@@ -379,10 +383,22 @@ export function buildPanelDrillingResult(
   // Referência vertical SSOT: SEMPRE altura real da peça (nunca openingHeightMm do módulo).
   const pieceAlturaMm = input.alturaMm;
 
+  const verticalHingeAxis =
+    isLateral ||
+    isFixedFront ||
+    input.hingeSide === "left" ||
+    input.hingeSide === "right" ||
+    (isDoor && input.hingeSide !== "top" && input.hingeSide !== "bottom");
+
   if (Array.isArray(input.hingePositionsMm) && input.hingePositionsMm.length > 0) {
-    const refLenMm =
-      input.hingeSide === "top" || input.hingeSide === "bottom" ? input.larguraMm : pieceAlturaMm;
-    const edgeSanitized = sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, refLenMm, distEntreFixacao);
+    const inboundOffsets = remapHingeOffsetsIfLarguraHeightConfusion(
+      input.hingePositionsMm,
+      input.larguraMm,
+      pieceAlturaMm,
+      rules
+    );
+    const refLenMm = verticalHingeAxis ? pieceAlturaMm : input.larguraMm;
+    const edgeSanitized = sanitizeHingeOffsetsFromEdge(inboundOffsets, refLenMm, distEntreFixacao);
     hingePositions = sanitizeHingeOffsetsFromPieceHeight(edgeSanitized, pieceAlturaMm);
   } else if (isDoor) {
     if (input.hingeSide === "top" || input.hingeSide === "bottom") {
@@ -475,11 +491,15 @@ export function buildPanelDrillingResult(
     data: {
       drillHoles: (() => {
         const raw = toPanelDrillHoles(furacoesTecnicas, input.tipo as PieceType);
-        const normalized = normalizePanelDrillHolesToPieceLocal(raw, input.larguraMm, input.alturaMm);
+        const normalized = filterHingePanelDrillHolesToPieceBounds(
+          normalizePanelDrillHolesToPieceLocal(raw, input.larguraMm, input.alturaMm),
+          input.larguraMm,
+          input.alturaMm
+        );
         if (traceEnabled) {
           const oySamples = hingePositions.map((oy) => ({
             oy,
-            yTopDown: clampTopDownYMm(input.alturaMm - oy, input.alturaMm),
+            yTopDown: offsetFromBaseToTopDownY(oy, input.alturaMm),
           }));
           traceHingeDrilling({
             stage: "buildPanelDrillingResult",
