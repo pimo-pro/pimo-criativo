@@ -15,7 +15,7 @@ import {
   hasExplicitMetadataLabelNumber,
   readLabelNumberFromMetadata,
 } from "../qrcode/panelLabelNumber";
-import { buildEffectiveDrillingRules, buildPanelDrillingResult } from "../../modules/drilling/drillingAdapter";
+import { buildEffectiveDrillingRules, buildPanelDrillingResult, DRILLING_SSOT_VERSION } from "../../modules/drilling/drillingAdapter";
 import { computeDoorVerticalGaps } from "../doors/doorLayerGeometry";
 import { isPiBaseCabinetId } from "../../data/moveisUnificados/pi/models";
 import { isCornerFixedFrontModel, getCornerFixedFrontHingeSide, isCornerDireitaInferiorModel, computeCornerLayoutForBox, resolveCornerDoorGapSettings, buildCornerFixedFrontDowelHoles, buildCornerFixedFrontHingeHoles, stripCornerFixedFrontHingeHoles, stripCornerLateralHingeHoles, buildCornerDoorLayerItems, getCornerCabinetConfig, syncCornerWorkspaceBoxDoorsLayer } from "../cornerCabinet";
@@ -141,7 +141,7 @@ export function cutlistComPrecoFromBox(
   }
 
   const syncedBox = syncCornerWorkspaceBoxDoorsLayer(box);
-  const chaveCaixa = `${jsonIndustrialBoxParaCutlist(syncedBox)}\0${JSON.stringify(rules)}\0${projectMaterialId ?? ""}`;
+  const chaveCaixa = `${jsonIndustrialBoxParaCutlist(syncedBox)}\0${JSON.stringify(rules)}\0${projectMaterialId ?? ""}\0${DRILLING_SSOT_VERSION}`;
   const entradaCaixa = cutlistPorCaixaCache.get(syncedBox.id);
   if (entradaCaixa && entradaCaixa.chave === chaveCaixa) {
     return entradaCaixa.items;
@@ -709,7 +709,7 @@ export function cutlistComPrecoFromBoxes(
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((b) => `${b.id}:${jsonIndustrialBoxParaCutlist(b)}`)
     .join("\n");
-  const chaveCompleta = `${projectName}\0${projectMaterialId ?? ""}\0${JSON.stringify(rules)}\0${fpCaixasOrdenado}`;
+  const chaveCompleta = `${projectName}\0${projectMaterialId ?? ""}\0${JSON.stringify(rules)}\0${DRILLING_SSOT_VERSION}\0${fpCaixasOrdenado}`;
 
   if (cutlistCompletaCacheChave === chaveCompleta && cutlistCompletaCache) {
     return cutlistCompletaCache;

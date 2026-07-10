@@ -93,14 +93,19 @@ export function sanitizeHingeOffsetsFromPieceHeight(
   const max = Math.max(min, pieceAlturaMm - marginMm);
   return offsets
     .map((o) => Number(o))
-    .filter((o) => Number.isFinite(o))
-    .map((o) => clamp(o, min, max));
+    .filter((o) => Number.isFinite(o) && o >= min && o <= max);
 }
 
 /** Y no referencial topo→baixo do painel, sempre dentro de [raio .. altura−raio]. */
-function clampTopDownYMm(y: number, alturaMm: number, diameter = 5): number {
+export function clampTopDownYMm(y: number, alturaMm: number, diameter = 5): number {
   const r = Math.max(0.25, diameter / 2);
   return clamp(y, r, Math.max(r, alturaMm - r));
+}
+
+/** X no referencial local do painel, sempre dentro de [raio .. largura−raio]. */
+export function clampLocalXMm(x: number, larguraMm: number, diameter = 5): number {
+  const r = Math.max(0.25, diameter / 2);
+  return clamp(x, r, Math.max(r, larguraMm - r));
 }
 
 /** Centro do furo em relação à borda esquerda/direita em cima/fundo: override em regras, senão metade da espessura do painel. */
@@ -169,11 +174,10 @@ function pushHole(
   profundidade: number,
   tipo: DrillType,
   face: DrillFace,
-  skipClamp?: boolean
+  _skipClamp?: boolean
 ) {
-  const radius = Math.max(0.25, diametro / 2);
-  const xSafe = skipClamp ? x : clamp(x, radius, Math.max(radius, piece.largura - radius));
-  const ySafe = skipClamp ? y : clamp(y, radius, Math.max(radius, piece.altura - radius));
+  const xSafe = clampLocalXMm(x, piece.largura, diametro);
+  const ySafe = clampTopDownYMm(y, piece.altura, diametro);
   out.push({
     x: xSafe,
     y: ySafe,

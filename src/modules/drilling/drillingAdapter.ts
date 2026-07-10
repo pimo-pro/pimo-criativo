@@ -17,7 +17,8 @@ import {
 } from "../../core/rules/rulesConfig";
 import { getSettings } from "../../core/settings/settingsService";
 import type { PieceType } from "../../core/drilling/drillingService";
-import { calculateTechnicalDrillingsForPiece, drillFaceToPanelFace, isTopDrillable, sanitizeHingeOffsetsFromPieceHeight } from "../../core/drilling/drillingService";
+import { calculateTechnicalDrillingsForPiece, clampTopDownYMm, drillFaceToPanelFace, isTopDrillable, sanitizeHingeOffsetsFromPieceHeight } from "../../core/drilling/drillingService";
+import { traceHingeDrilling, shouldTraceHingePiece } from "./hingeDrillingTrace";
 import { devLogger } from "../../utils/devLogger";
 import { isIndustrialDoorPanelTipo } from "../../core/doors/industrialDoorPanels";
 
@@ -174,7 +175,29 @@ function getHingePositionsFromDoorWidth(
   return doorPositions.map((x) => Math.max(xMinSafe, Math.min(xMaxSafe, x + centerOffset)));
 }
 
-/** Converte furação técnica em furos reais do painel (face A/B via drillingService — docs/matriz-faces-A-B-FINAL.md). */
+/** Versão do motor de furação — invalida cache de cutlist quando a geometria de furos muda. */
+export const DRILLING_SSOT_VERSION = "hinge-piece-height-v3";
+
+const HOLE_DRILLING_TOL_MM = 0.2;
+
+function normalizePanelDrillHolesToPieceLocal(
+  holes: PanelDrillHole[],
+  larguraMm: number,
+  alturaMm: number
+): PanelDrillHole[] {
+  return holes.filter((h) => {
+    const x = Number(h.x);
+    const y = Number(h.y);
+    return (
+      Number.isFinite(x) &&
+      Number.isFinite(y) &&
+      x >= -HOLE_DRILLING_TOL_MM &&
+      y >= -HOLE_DRILLING_TOL_MM &&
+      x <= larguraMm + HOLE_DRILLING_TOL_MM &&
+      y <= alturaMm + HOLE_DRILLING_TOL_MM
+    );
+  });
+}
 function toPanelDrillHoles(furacoesTecnicas: TechnicalDrillHole[], pieceType: PieceType): PanelDrillHole[] {
   return furacoesTecnicas.map((h) => {
     const holeType = h.tipo as DrillType;
@@ -349,38 +372,27 @@ export function buildPanelDrillingResult(
     Number.isFinite(input.openingHeightMm) && Number(input.openingHeightMm) > 0
       ? Number(input.openingHeightMm)
       : input.alturaMm;
-  // Folgas podem ser negativas (porta overlay maior que o vão físico do painel lateral).
   const bottomGapMm = Number(input.bottomGapMm ?? 0);
-  // topGapMm é usado apenas para reconstrução de eixo global no caller; aqui não é necessário.
+  const traceEnabled = shouldTraceHingePiece(input.larguraMm, input.alturaMm);
+  const offsetsIn = Array.isArray(input.hingePositionsMm) ? [...input.hingePositionsMm] : undefined;
 
-  // Porta é sempre a fonte primária: se posições vierem do upstream, apenas copiar.
+  // Referência vertical SSOT: SEMPRE altura real da peça (nunca openingHeightMm do módulo).
+  const pieceAlturaMm = input.alturaMm;
+
   if (Array.isArray(input.hingePositionsMm) && input.hingePositionsMm.length > 0) {
     const refLenMm =
-      input.hingeSide === "top" || input.hingeSide === "bottom" ? input.larguraMm : openingHeightMm;
-    const globalOffsets = sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, refLenMm, distEntreFixacao);
-    // Converter offsets globais do vão para offsets locais da peça.
-    // Porta flutua no vão → offsetLocal = offsetGlobal - bottomGap.
-    if (isDoor && (input.hingeSide === "left" || input.hingeSide === "right")) {
-      hingePositions = sanitizeHingeOffsetsFromPieceHeight(
-        globalOffsets.map((o) => o - bottomGapMm),
-        input.alturaMm
-      );
-    } else {
-      // Laterais: offsets devem caber na altura real do painel, não só no vão do módulo.
-      hingePositions = sanitizeHingeOffsetsFromPieceHeight(globalOffsets, input.alturaMm);
-    }
+      input.hingeSide === "top" || input.hingeSide === "bottom" ? input.larguraMm : pieceAlturaMm;
+    const edgeSanitized = sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, refLenMm, distEntreFixacao);
+    hingePositions = sanitizeHingeOffsetsFromPieceHeight(edgeSanitized, pieceAlturaMm);
   } else if (isDoor) {
-    /* Porta: top/bottom = posições ao longo da largura (X); left/right = ao longo da altura (Y). */
     if (input.hingeSide === "top" || input.hingeSide === "bottom") {
       const rawDoorHinges = getHingeYPositions(input.larguraMm, numHinges, rules);
       hingePositions = sanitizeHingeOffsetsFromEdge(rawDoorHinges, input.larguraMm, distEntreFixacao);
     } else {
-      // Offsets SEMPRE em relação ao vão (openingHeightMm), não à altura isolada da porta.
-      const rawGlobal = getHingeYPositions(openingHeightMm, numHinges, rules);
-      const globalOffsets = sanitizeHingeOffsetsFromEdge(rawGlobal, openingHeightMm, distEntreFixacao);
+      const raw = getHingeYPositions(pieceAlturaMm, numHinges, rules);
       hingePositions = sanitizeHingeOffsetsFromPieceHeight(
-        globalOffsets.map((o) => o - bottomGapMm),
-        input.alturaMm
+        sanitizeHingeOffsetsFromEdge(raw, pieceAlturaMm, distEntreFixacao),
+        pieceAlturaMm
       );
     }
   } else if (isLateral || isFixedFront) {
@@ -461,7 +473,34 @@ export function buildPanelDrillingResult(
   return {
     success: true,
     data: {
-      drillHoles: toPanelDrillHoles(furacoesTecnicas, input.tipo as PieceType),
+      drillHoles: (() => {
+        const raw = toPanelDrillHoles(furacoesTecnicas, input.tipo as PieceType);
+        const normalized = normalizePanelDrillHolesToPieceLocal(raw, input.larguraMm, input.alturaMm);
+        if (traceEnabled) {
+          const oySamples = hingePositions.map((oy) => ({
+            oy,
+            yTopDown: clampTopDownYMm(input.alturaMm - oy, input.alturaMm),
+          }));
+          traceHingeDrilling({
+            stage: "buildPanelDrillingResult",
+            tipo: input.tipo,
+            larguraMm: input.larguraMm,
+            alturaMm: input.alturaMm,
+            openingHeightMm,
+            bottomGapMm,
+            hingeSide: input.hingeSide,
+            offsetsIn,
+            offsetsAfterSanitize: [...hingePositions],
+            oySamples,
+            holesOut: normalized.map((h) => ({ x: h.x, y: h.y, tipo: h.holeType })),
+            note:
+              raw.length !== normalized.length
+                ? `filtrados ${raw.length - normalized.length} furos fora de ${input.larguraMm}×${input.alturaMm}`
+                : undefined,
+          });
+        }
+        return normalized;
+      })(),
     },
   };
 }

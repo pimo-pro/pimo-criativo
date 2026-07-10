@@ -248,4 +248,56 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     ]);
     expect(piece?.drillHoles?.every((h) => h.y <= 598.2)).toBe(true);
   });
+
+  it("TESTE 7 — peça 758×598: oy=-42 (legado) nunca gera yLocal=640", () => {
+    const result = buildPanelDrillingResult(
+      {
+        tipo: "lateral_esquerda",
+        larguraMm: 758,
+        alturaMm: 598,
+        espessuraMm: 19,
+        hingeSide: "left",
+        hingePositionsMm: [-42],
+        openingHeightMm: 720,
+        portaTipo: "porta_simples",
+        doorsLayerCount: 1,
+      },
+      defaultRulesConfig
+    );
+    const holes = result.data?.drillHoles ?? [];
+    expect(holes.every((h) => h.y <= 598.2)).toBe(true);
+    expect(holes.some((h) => Math.abs(h.y - 640) < 1)).toBe(false);
+
+    const doorResult = buildPanelDrillingResult(
+      {
+        tipo: "porta_simples",
+        larguraMm: 758,
+        alturaMm: 598,
+        espessuraMm: 19,
+        hingeSide: "left",
+        openingHeightMm: 720,
+        bottomGapMm: 61,
+        portaTipo: "porta_simples",
+        doorsLayerCount: 1,
+      },
+      defaultRulesConfig
+    );
+    const doorHoles = doorResult.data?.drillHoles ?? [];
+    expect(doorHoles.every((h) => h.y <= 598.2)).toBe(true);
+
+    const [piece] = cutlistToPieces([
+      {
+        id: "p-758x598",
+        nome: "PECA",
+        quantidade: 1,
+        dimensoes: { largura: 758, altura: 598, profundidade: 19 },
+        espessura: 19,
+        materialId: "mdf_branco",
+        tipo: "lateral_esquerda",
+        drillHoles: holes,
+      },
+    ]);
+    const v3 = cutPieceToV3(piece!, 0);
+    expect(v3.originalHoles.every((h) => h.y <= 598.2)).toBe(true);
+  });
 });
