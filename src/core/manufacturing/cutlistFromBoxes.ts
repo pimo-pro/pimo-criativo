@@ -104,7 +104,7 @@ function extractDoorHingeOffsetsFromBottomMm(drillHoles: PanelDrillHole[] | unde
   const offs = drillHoles
     .filter((h) => h.holeType === "dobradica")
     .map((h) => doorAlturaMm - Number(h.y))
-    .filter((o) => Number.isFinite(o));
+    .filter((o) => Number.isFinite(o) && o >= 0 && o <= doorAlturaMm);
   if (offs.length === 0) return [];
   const unique = Array.from(new Set(offs.map((o) => Math.round(o * 1000) / 1000)));
   unique.sort((a, b) => a - b);

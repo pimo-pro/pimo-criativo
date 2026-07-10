@@ -16,6 +16,7 @@ import { convertWorkspaceToBox } from "../../context/projectState";
 import type { WorkspaceBox } from "../types";
 import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
 import { defaultRulesConfig } from "../rules/rulesConfig";
+import { buildPanelDrillingResult } from "../../modules/drilling/drillingAdapter";
 import { getParafusoDistanceFromCavilhaMm } from "../divSep/cavilhaRules";
 
 const PIECE_W = 400;
@@ -205,5 +206,46 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     expect(v3.originalHoles).toEqual([]);
     const [roundTrip] = v3PiecesToCutPieces([v3], DEFAULT_NESTING_V3_SETTINGS);
     expect(roundTrip!.drillHoles ?? []).toEqual([]);
+  });
+
+  it("TESTE 6 — lateral 758×598: offsets herdados do vão não produzem yLocal > altura", () => {
+    const result = buildPanelDrillingResult(
+      {
+        tipo: "lateral_esquerda",
+        larguraMm: 758,
+        alturaMm: 598,
+        espessuraMm: 19,
+        hingeSide: "left",
+        hingePositionsMm: [-42, 120, 450, 620],
+        openingHeightMm: 720,
+        portaTipo: "porta_simples",
+        doorsLayerCount: 1,
+      },
+      defaultRulesConfig
+    );
+    expect(result.success).toBe(true);
+    const holes = result.data?.drillHoles ?? [];
+    expect(holes.length).toBeGreaterThan(0);
+    for (const h of holes) {
+      expect(h.y).toBeLessThanOrEqual(598.2);
+      expect(h.y).toBeGreaterThanOrEqual(-0.2);
+      expect(h.x).toBeLessThanOrEqual(758.2);
+      expect(h.x).toBeGreaterThanOrEqual(-0.2);
+    }
+    expect(holes.some((h) => h.y > 598)).toBe(false);
+
+    const [piece] = cutlistToPieces([
+      {
+        id: "lat-regress",
+        nome: "LAT",
+        quantidade: 1,
+        dimensoes: { largura: 758, altura: 598, profundidade: 19 },
+        espessura: 19,
+        materialId: "mdf_branco",
+        tipo: "lateral_esquerda",
+        drillHoles: holes,
+      },
+    ]);
+    expect(piece?.drillHoles?.every((h) => h.y <= 598.2)).toBe(true);
   });
 });

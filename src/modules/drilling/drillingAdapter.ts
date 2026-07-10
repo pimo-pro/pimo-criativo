@@ -17,7 +17,7 @@ import {
 } from "../../core/rules/rulesConfig";
 import { getSettings } from "../../core/settings/settingsService";
 import type { PieceType } from "../../core/drilling/drillingService";
-import { calculateTechnicalDrillingsForPiece, drillFaceToPanelFace, isTopDrillable } from "../../core/drilling/drillingService";
+import { calculateTechnicalDrillingsForPiece, drillFaceToPanelFace, isTopDrillable, sanitizeHingeOffsetsFromPieceHeight } from "../../core/drilling/drillingService";
 import { devLogger } from "../../utils/devLogger";
 import { isIndustrialDoorPanelTipo } from "../../core/doors/industrialDoorPanels";
 
@@ -361,10 +361,13 @@ export function buildPanelDrillingResult(
     // Converter offsets globais do vão para offsets locais da peça.
     // Porta flutua no vão → offsetLocal = offsetGlobal - bottomGap.
     if (isDoor && (input.hingeSide === "left" || input.hingeSide === "right")) {
-      hingePositions = globalOffsets.map((o) => o - bottomGapMm);
+      hingePositions = sanitizeHingeOffsetsFromPieceHeight(
+        globalOffsets.map((o) => o - bottomGapMm),
+        input.alturaMm
+      );
     } else {
-      // Laterais representam o próprio vão (openingHeightMm deve bater com a altura do painel lateral).
-      hingePositions = globalOffsets;
+      // Laterais: offsets devem caber na altura real do painel, não só no vão do módulo.
+      hingePositions = sanitizeHingeOffsetsFromPieceHeight(globalOffsets, input.alturaMm);
     }
   } else if (isDoor) {
     /* Porta: top/bottom = posições ao longo da largura (X); left/right = ao longo da altura (Y). */
@@ -375,18 +378,24 @@ export function buildPanelDrillingResult(
       // Offsets SEMPRE em relação ao vão (openingHeightMm), não à altura isolada da porta.
       const rawGlobal = getHingeYPositions(openingHeightMm, numHinges, rules);
       const globalOffsets = sanitizeHingeOffsetsFromEdge(rawGlobal, openingHeightMm, distEntreFixacao);
-      hingePositions = globalOffsets.map((o) => o - bottomGapMm);
+      hingePositions = sanitizeHingeOffsetsFromPieceHeight(
+        globalOffsets.map((o) => o - bottomGapMm),
+        input.alturaMm
+      );
     }
   } else if (isLateral || isFixedFront) {
     if (isLateral && !lateralModuleAllowsHingeDrilling(input)) {
       hingePositions = [];
     } else if (Array.isArray(input.hingePositionsMm) && input.hingePositionsMm.length > 0) {
-      hingePositions = sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, openingHeightMm, distEntreFixacao);
+      hingePositions = sanitizeHingeOffsetsFromPieceHeight(
+        sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, input.alturaMm, distEntreFixacao),
+        input.alturaMm
+      );
     } else if (isFixedFront) {
       hingePositions = [];
     } else {
-      const raw = getHingeYPositions(openingHeightMm, Math.max(2, getNumDobradicas(openingHeightMm, rules)), rules);
-      hingePositions = sanitizeHingeOffsetsFromEdge(raw, openingHeightMm, distEntreFixacao);
+      const raw = getHingeYPositions(input.alturaMm, Math.max(2, getNumDobradicas(input.alturaMm, rules)), rules);
+      hingePositions = sanitizeHingeOffsetsFromEdge(raw, input.alturaMm, distEntreFixacao);
     }
   } else if ((isTopPanel && input.hingeSide === "top") || (isBottomPanel && input.hingeSide === "bottom")) {
     /* Painel cima/fundo: posições X copiadas da largura da porta (porta = master). Fallback: usar largura do painel. */
@@ -401,7 +410,14 @@ export function buildPanelDrillingResult(
     hingePositions = [];
   }
   if (isFixedFront && hingePositions.length === 0 && Array.isArray(input.hingePositionsMm) && input.hingePositionsMm.length > 0) {
-    hingePositions = sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, openingHeightMm, distEntreFixacao);
+    hingePositions = sanitizeHingeOffsetsFromPieceHeight(
+      sanitizeHingeOffsetsFromEdge(input.hingePositionsMm, input.alturaMm, distEntreFixacao),
+      input.alturaMm
+    );
+  }
+
+  if ((input.hingeSide === "left" || input.hingeSide === "right") && hingePositions.length > 0) {
+    hingePositions = sanitizeHingeOffsetsFromPieceHeight(hingePositions, input.alturaMm);
   }
 
   // Furos de prateleira: regra existente do motor (desativar quando há gavetas no mesmo módulo).

@@ -21,7 +21,7 @@ import { computeDrawerHandleHoles } from "../drawers/drilling/DrawerHandleDrilli
 import { computeDrawerMetalBoxFrontHoles } from "../drawers/drilling/DrawerMetalBoxFrontDrilling";
 import { isMetalBoxCatalogType } from "../drawers/drawerMetalBoxCatalog";
 import type { RulesConfig } from "../rules/rulesConfig";
-import { getNumDobradicas, getHingeYPositions } from "../rules/rulesConfig";
+import { getNumDobradicas, getHingeYPositions, MIN_MARGEM_DOBRADICA_TOP_BOTTOM_MM } from "../rules/rulesConfig";
 import { getSettings } from "../settings/settingsService";
 import type { DrillFace, DrillType, PanelFace, TechnicalDrillHole } from "../types";
 
@@ -78,6 +78,30 @@ type PieceInput = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+/**
+ * Offsets de dobradiça (mm desde a base da peça) válidos para a altura real do painel.
+ * Evita oy negativos (vão maior que porta) ou oy > altura que geram yLocal fora da peça.
+ */
+export function sanitizeHingeOffsetsFromPieceHeight(
+  offsets: number[] | undefined,
+  pieceAlturaMm: number,
+  marginMm: number = MIN_MARGEM_DOBRADICA_TOP_BOTTOM_MM
+): number[] {
+  if (!Array.isArray(offsets) || !Number.isFinite(pieceAlturaMm) || pieceAlturaMm <= 0) return [];
+  const min = marginMm;
+  const max = Math.max(min, pieceAlturaMm - marginMm);
+  return offsets
+    .map((o) => Number(o))
+    .filter((o) => Number.isFinite(o))
+    .map((o) => clamp(o, min, max));
+}
+
+/** Y no referencial topo→baixo do painel, sempre dentro de [raio .. altura−raio]. */
+function clampTopDownYMm(y: number, alturaMm: number, diameter = 5): number {
+  const r = Math.max(0.25, diameter / 2);
+  return clamp(y, r, Math.max(r, alturaMm - r));
+}
 
 /** Centro do furo em relação à borda esquerda/direita em cima/fundo: override em regras, senão metade da espessura do painel. */
 function lateralInsetTopBottomMm(cfgSide: number | undefined, espessuraMm: number): number {
@@ -292,19 +316,21 @@ function calcDobradica(piece: PieceInput, rules: RulesConfig, out: TechnicalDril
 
   /* Laterais (left/right): offsets verticais = mm a partir da base (getHingeYPositions); Y do painel = topo→baixo. */
   const hingeSide = piece.hingeSide === "left" || piece.hingeSide === "right" ? piece.hingeSide : "left";
-  const offsetsFromBase =
+  const offsetsFromBase = sanitizeHingeOffsetsFromPieceHeight(
     piece.hingePositionsMm && piece.hingePositionsMm.length > 0
       ? piece.hingePositionsMm
-      : getHingeYPositions(piece.altura, numHingesClamped, rules);
+      : getHingeYPositions(piece.altura, numHingesClamped, rules),
+    piece.altura
+  );
   if (offsetsFromBase.length === 0) return;
   const xCaneco = hingeSide === "left" ? piece.largura - distCentroCaneco : piece.largura - distCentroCaneco;
   const xFixacao = hingeSide === "left" ? piece.largura - distCentroFixacao : piece.largura - distCentroFixacao;
 
   for (const oy of offsetsFromBase) {
-    const yTopDown = piece.altura - oy;
+    const yTopDown = clampTopDownYMm(piece.altura - oy, piece.altura, diametroCaneco);
     pushHole(out, piece, xCaneco, yTopDown, diametroCaneco, profundidadeCaneco, "dobradica", face, true);
-    pushHole(out, piece, xFixacao, yTopDown - halfFix, diametroFixacao, profundidadeFixacao, "dobradica_fixacao", face, true);
-    pushHole(out, piece, xFixacao, yTopDown + halfFix, diametroFixacao, profundidadeFixacao, "dobradica_fixacao", face, true);
+    pushHole(out, piece, xFixacao, clampTopDownYMm(yTopDown - halfFix, piece.altura, diametroFixacao), diametroFixacao, profundidadeFixacao, "dobradica_fixacao", face, true);
+    pushHole(out, piece, xFixacao, clampTopDownYMm(yTopDown + halfFix, piece.altura, diametroFixacao), diametroFixacao, profundidadeFixacao, "dobradica_fixacao", face, true);
   }
 }
 
@@ -473,11 +499,11 @@ function calcDobradicaFixacao(piece: PieceInput, rules: RulesConfig, out: Techni
   const diametroCalco = cfg.diametro ?? SENSYS_8645I_C00.lateralDiametroMm;
   const profundidadeCalco = cfg.profundidadeFuro ?? SENSYS_8645I_C00.lateralProfundidadeMm;
 
-  const hingesFromBase = piece.hingePositionsMm ?? [];
+  const hingesFromBase = sanitizeHingeOffsetsFromPieceHeight(piece.hingePositionsMm, piece.altura);
   for (const oy of hingesFromBase) {
-    const yTopDown = piece.altura - oy;
-    pushHole(out, piece, xCalco, yTopDown - halfDist, diametroCalco, profundidadeCalco, "dobradica_fixacao", face, true);
-    pushHole(out, piece, xCalco, yTopDown + halfDist, diametroCalco, profundidadeCalco, "dobradica_fixacao", face, true);
+    const yTopDown = clampTopDownYMm(piece.altura - oy, piece.altura, diametroCalco);
+    pushHole(out, piece, xCalco, clampTopDownYMm(yTopDown - halfDist, piece.altura, diametroCalco), diametroCalco, profundidadeCalco, "dobradica_fixacao", face, true);
+    pushHole(out, piece, xCalco, clampTopDownYMm(yTopDown + halfDist, piece.altura, diametroCalco), diametroCalco, profundidadeCalco, "dobradica_fixacao", face, true);
     pushHole(out, piece, xUniao, yTopDown, DOBRADICA_TERCEIRO_FURO.diametroMm, DOBRADICA_TERCEIRO_FURO.profundidadeMm, "dobradica_parafuso_uniao", face, true);
   }
 }
