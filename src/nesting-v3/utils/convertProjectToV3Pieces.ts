@@ -1,6 +1,7 @@
 import type { ProjectState } from "../../context/projectTypes";
 import { buildCutlistItemsForIndustrialExport } from "../../core/fabrication/buildCutlistItemsForIndustrialExport";
 import { cutlistToPieces } from "../../core/cutlayout/cutLayoutEngine";
+import { ensureIndustrialDrillingSsotFresh } from "../../core/manufacturing/drillingSsotCache";
 import { cutPieceToV3 } from "../useNestingV3";
 import type { V3Piece } from "../nestingV3Types";
 import { traceHolePipeline } from "../../core/cutlayout/utils/holeGeomInvariant";
@@ -13,6 +14,7 @@ import {
 export function convertProjectToV3Pieces(project: ProjectState): V3Piece[] {
   if (!project.boxes || project.boxes.length === 0) return [];
 
+  ensureIndustrialDrillingSsotFresh();
   const allItems = buildCutlistItemsForIndustrialExport({
     boxes: project.boxes,
     rules: project.rules,

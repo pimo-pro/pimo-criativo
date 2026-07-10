@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { clearAllCutlistCache } from "../core/manufacturing/cutlistFromBoxes";
+import { resetDrillingSsotFreshCheckForTests } from "../core/manufacturing/drillingSsotCache";
 import { buildCutlistItemsForIndustrialExport } from "../core/fabrication/buildCutlistItemsForIndustrialExport";
 import { buildRemateCutlistItems } from "../core/remate/remateCutlist";
 import { createRematePieces } from "../core/remate/rematePieceFactory";
@@ -24,6 +25,7 @@ function makeWorkspaceBox() {
 describe("Remate — integração industrial (cutlist + QR + layout PRO)", () => {
   beforeEach(() => {
     clearAllCutlistCache();
+    resetDrillingSsotFreshCheckForTests();
   });
 
   it("gera etiquetas BOXNAME_REMATE_* na cutlist", () => {

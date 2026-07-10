@@ -4,6 +4,7 @@ import type { ContextoChapa } from "../scoring/placementScoring";
 import type { GlobalScoreMetrics } from "../scoring/solutionMetrics";
 import { tryFillResidualRects } from "../solver/residualRects";
 import { copyHolesLocalInvariant } from "../utils/holeGeomInvariant";
+import { filterHingeHolesLocalBeforeInvariant } from "../../../modules/drilling/hingeOffsetUtils";
 import {
   applyPairVirtualPieces,
   expandPairPlacement,
@@ -40,7 +41,13 @@ function buildCutPlacement(
   sheetIndex: number
 ): CutPlacement {
   const holes = copyHolesLocalInvariant(
-    piece.drillHoles ?? piece.holes,
+    filterHingeHolesLocalBeforeInvariant(
+      piece.drillHoles ?? piece.holes,
+      piece.largura_mm,
+      piece.altura_mm,
+      "trialRunner_buildCutPlacement",
+      String(piece.metadata?.v3PieceId ?? piece.partName ?? "")
+    ),
     piece.largura_mm,
     piece.altura_mm
   );

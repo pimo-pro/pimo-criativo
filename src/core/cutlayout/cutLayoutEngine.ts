@@ -25,6 +25,7 @@ import {
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
 import { copyDrillHolesLocalUnmodified } from "./utils/cutLayoutGeomRotation";
 import { traceHolePipeline, resolveHoleValidationDims } from "./utils/holeGeomInvariant";
+import { filterHingePanelDrillHolesToPieceBounds } from "../../modules/drilling/hingeOffsetUtils";
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
 import { getIndustrialMaterial, getMaterialByIdOrLabel } from "../materials/service";
 import {
@@ -763,8 +764,13 @@ export function cutlistToPieces(
       altura = holeDims.designAlturaMm;
     }
     const pieceId = String((item as { id?: string }).id ?? item.nome ?? "cutlist-piece");
-    const normalizedHoles = copyDrillHolesLocalUnmodified(
+    const hingeSafeDrillHoles = filterHingePanelDrillHolesToPieceBounds(
       item.drillHoles as never,
+      largura,
+      altura
+    );
+    const normalizedHoles = copyDrillHolesLocalUnmodified(
+      hingeSafeDrillHoles as never,
       largura,
       altura,
       pieceId

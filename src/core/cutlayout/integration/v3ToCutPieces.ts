@@ -10,6 +10,7 @@ import type { NestingV3Settings } from "../../../nesting-v3/nestingV3Settings";
 import { sheetDimsForMaterial } from "../../../nesting-v3/nestingV3Settings";
 import { resolveNestingLayoutGrainDirection } from "../../materials/nestingGrainLock";
 import { copyHolesLocalInvariant } from "../utils/holeGeomInvariant";
+import { filterHingeHolesLocalBeforeInvariant } from "../../../modules/drilling/hingeOffsetUtils";
 
 function mapGrainDirection(piece: V3Piece): CutPiece["grainDirection"] {
   const nestingLock = resolveNestingLayoutGrainDirection({
@@ -38,15 +39,22 @@ export function v3PiecesToCutPieces(pieces: V3Piece[], settings: NestingV3Settin
       materialId: piece.materialId,
       materialName: piece.materialName,
       drillHoles: copyHolesLocalInvariant(
-        piece.originalHoles.map((h) => ({
-          x: h.x,
-          y: h.y,
-          diameter: h.diameter,
-          depth: h.depth,
-          holeType: h.holeType,
-        })),
+        filterHingeHolesLocalBeforeInvariant(
+          piece.originalHoles.map((h) => ({
+            x: h.x,
+            y: h.y,
+            diameter: h.diameter,
+            depth: h.depth,
+            holeType: h.holeType,
+          })),
+          piece.widthMm,
+          piece.heightMm,
+          "v3ToCutPieces",
+          piece.id
+        ),
         piece.widthMm,
-        piece.heightMm
+        piece.heightMm,
+        piece.id
       ),
       industrialGrainCode: piece.industrialGrainCode,
       pieceTipo: piece.pieceTipo,

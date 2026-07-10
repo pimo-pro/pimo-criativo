@@ -409,4 +409,27 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     const v3 = cutPieceToV3(piece!, 0);
     expect(v3.originalHoles.every((h) => h.y <= pieceH + 0.2)).toBe(true);
   });
+
+  it("TESTE 9 — v3ToCutPieces descarta yLocal=658 legado (758×598) sem lançar invariant", () => {
+    const pieceW = 758;
+    const pieceH = 598;
+    const staleV3 = {
+      id: "stale-lat",
+      name: "LAT",
+      widthMm: pieceW,
+      heightMm: pieceH,
+      thicknessMm: 19,
+      materialId: "mdf_branco",
+      originalHoles: [
+        { x: 575.5, y: 658, diameter: 5, depth: 12, holeType: "dobradica_fixacao" as const },
+        { x: 100, y: 100, diameter: 5, depth: 12, holeType: "prateleira" as const },
+      ],
+      rotation: 0 as const,
+      color: "#ccc",
+    };
+    const [cut] = v3PiecesToCutPieces([staleV3 as never], DEFAULT_NESTING_V3_SETTINGS);
+    expect(cut?.drillHoles?.some((h) => h.y > pieceH + 0.2)).toBe(false);
+    expect(cut?.drillHoles?.some((h) => h.holeType === "dobradica_fixacao")).toBe(false);
+    expect(cut?.drillHoles?.some((h) => h.holeType === "prateleira")).toBe(true);
+  });
 });

@@ -16,6 +16,7 @@ import {
   readLabelNumberFromMetadata,
 } from "../qrcode/panelLabelNumber";
 import { buildEffectiveDrillingRules, buildPanelDrillingResult, DRILLING_SSOT_VERSION } from "../../modules/drilling/drillingAdapter";
+import { ensureIndustrialDrillingSsotFresh } from "./drillingSsotCache";
 import {
   filterHingePanelDrillHolesToPieceBounds,
   lateralLocalOffsetsFromOpeningGlobal,
@@ -134,6 +135,7 @@ export function cutlistComPrecoFromBox(
   rules: RulesConfig,
   projectMaterialId?: string
 ): CutListItemComPreco[] {
+  ensureIndustrialDrillingSsotFresh();
   const customCutlist = resolveCustomIndustrialCutlistForBox(box);
   if (customCutlist) {
     const priced = calcularPrecoCutList(customCutlist);

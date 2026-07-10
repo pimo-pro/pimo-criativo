@@ -39,6 +39,51 @@ function assertVersionFilesInSync() {
   console.log("Versao sincronizada: version.json, public/version.json, dist/version.json");
 }
 
+/** Gate: bundle de produção deve conter a versão SSOT de furação actual. */
+function assertDrillingSsotInDist() {
+  const adapterPath = path.join(rootDir, "src", "modules", "drilling", "drillingAdapter.ts");
+  const src = fs.readFileSync(adapterPath, "utf8");
+  const match = src.match(/DRILLING_SSOT_VERSION\s*=\s*"([^"]+)"/);
+  if (!match) {
+    console.error("ERRO: DRILLING_SSOT_VERSION nao encontrado em drillingAdapter.ts");
+    process.exit(1);
+  }
+  const ssotVersion = match[1];
+  const assetsDir = path.join(rootDir, "dist", "assets");
+  if (!fs.existsSync(assetsDir)) {
+    console.error("ERRO: dist/assets ausente apos build.");
+    process.exit(1);
+  }
+  const jsFiles = fs.readdirSync(assetsDir).filter((f) => f.endsWith(".js"));
+  const foundIn = jsFiles.filter((f) => {
+    const content = fs.readFileSync(path.join(assetsDir, f), "utf8");
+    return content.includes(ssotVersion);
+  });
+  if (foundIn.length === 0) {
+    console.error(`ERRO: DRILLING_SSOT_VERSION="${ssotVersion}" ausente em dist/assets/*.js`);
+    process.exit(1);
+  }
+  const hasRemap =
+    foundIn.some((f) => {
+      const content = fs.readFileSync(path.join(assetsDir, f), "utf8");
+      return content.includes("remapHingeOffsetsIfLarguraHeightConfusion") || content.includes("filterHingePanelDrillHolesToPieceBounds");
+    }) ||
+    jsFiles.some((f) => {
+      const content = fs.readFileSync(path.join(assetsDir, f), "utf8");
+      return (
+        content.includes("remapHingeOffsetsIfLarguraHeightConfusion") ||
+        content.includes("filterHingePanelDrillHolesToPieceBounds") ||
+        content.includes("barrier_before_copyHolesLocalInvariant")
+      );
+    });
+  if (!hasRemap) {
+    console.warn(
+      `AVISO: funções hinge remap/filter podem estar minificadas; SSOT "${ssotVersion}" presente em ${foundIn.length} bundle(s).`
+    );
+  }
+  console.log(`Gate SSOT furação OK: "${ssotVersion}" em ${foundIn.length} ficheiro(s) dist/assets`);
+}
+
 function pad2(value) {
   return String(value).padStart(2, "0");
 }
@@ -134,6 +179,7 @@ runStep(
 
 runStep("Executando build...", "npm run build");
 assertVersionFilesInSync();
+assertDrillingSsotInDist();
 // Evitar adicionar repositórios embutidos (ex.: backend/ tem o seu próprio .git)
 // para não criar gitlinks/submodules acidentais no repo principal.
 runStep("Adicionando arquivos ao git...", "git add . \":(exclude)backend\"");

@@ -23,6 +23,7 @@ import {
 } from "../core/remate/remateIndustrialMetadata";
 import type { RemateFaceOffsets } from "../core/remate/rematePieceTypes";
 import { copyHolesLocalInvariant } from "../core/cutlayout/utils/holeGeomInvariant";
+import { filterHingeHolesLocalBeforeInvariant } from "../modules/drilling/hingeOffsetUtils";
 
 function makeDefaultState(): NestingV3State {
   const settings = loadNestingV3SettingsFromGlobal();
@@ -66,13 +67,20 @@ export function cutPieceToV3(
   }
 ): V3Piece {
   const holes = copyHolesLocalInvariant(
-    (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
-      x: h.x,
-      y: h.y,
-      diameter: h.diameter,
-      depth: h.depth,
-      holeType: h.holeType,
-    })),
+    filterHingeHolesLocalBeforeInvariant(
+      (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
+        x: h.x,
+        y: h.y,
+        diameter: h.diameter,
+        depth: h.depth,
+        holeType: h.holeType,
+        topDrillable: h.topDrillable,
+      })),
+      cp.largura_mm,
+      cp.altura_mm,
+      "cutPieceToV3",
+      cp.metadata?.v3PieceId as string | undefined
+    ),
     cp.largura_mm,
     cp.altura_mm
   ) ?? [];
