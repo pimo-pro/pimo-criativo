@@ -127,6 +127,11 @@ console.log(`updatedAt: ${nextData.updatedAt}`);
 console.log("Sincronizado public/version.json antes do build.");
 ensureProductionEnv();
 
+runStep(
+  "Testes contrato furos (anti-regressão)...",
+  "npm test -- --run src/core/cutlayout/holePipelineContract.test.ts src/core/cutlayout/cutlistToPiecesGrain.test.ts"
+);
+
 runStep("Executando build...", "npm run build");
 assertVersionFilesInSync();
 // Evitar adicionar repositórios embutidos (ex.: backend/ tem o seu próprio .git)

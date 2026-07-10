@@ -1,4 +1,71 @@
 /**
+ * Copia furos da cutlist sem reordenar eixos nem aplicar rotação implícita.
+ * Coordenadas permanecem no referencial local [0..largura] × [0..altura] da peça.
+ */
+export function copyDrillHolesLocalUnmodified(
+  holes: DrillHole[] | undefined
+): DrillHole[] | undefined {
+  if (!holes?.length) return undefined;
+  const out: DrillHole[] = [];
+  const seen = new Set<string>();
+  for (const h of holes) {
+    if (h.holeType === "cavilha" && h.topDrillable === false) continue;
+    const x = Number(h.x);
+    const y = Number(h.y);
+    const diameter = Number(h.diameter);
+    const depth = Number(h.depth);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !(diameter > 0) || !(depth > 0)) continue;
+    const key = `${x.toFixed(3)}_${y.toFixed(3)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      x,
+      y,
+      diameter,
+      depth,
+      holeType: h.holeType,
+      topDrillable: h.topDrillable,
+      rotation: h.rotation,
+      rotacao: h.rotacao,
+      angle: h.angle,
+    });
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+/**
+ * Verifica se furos permanecem dentro dos limites locais da peça (anti-regressão).
+ */
+export function assertHolesWithinLocalPieceBounds(
+  holes: Array<{ x: number; y: number; diameter?: number }>,
+  larguraMm: number,
+  alturaMm: number
+): void {
+  for (const h of holes) {
+    const r = Number.isFinite(h.diameter) && (h.diameter ?? 0) > 0 ? (h.diameter ?? 0) / 2 : 0;
+    if (h.x < r - EPS || h.y < r - EPS) {
+      throw new Error(`Furo fora da peça (x=${h.x}, y=${h.y}, largura=${larguraMm})`);
+    }
+    if (h.x > larguraMm - r + EPS || h.y > alturaMm - r + EPS) {
+      throw new Error(`Furo fora da peça (x=${h.x}, y=${h.y}, altura=${alturaMm})`);
+    }
+  }
+}
+
+/**
+ * Posição relativa normalizada dos furos (0..1) para comparação antes/depois do pipeline.
+ */
+export function holeRelativePositions(
+  holes: Array<{ x: number; y: number }>,
+  larguraMm: number,
+  alturaMm: number
+): Array<{ rx: number; ry: number }> {
+  const w = Math.max(1, larguraMm);
+  const h = Math.max(1, alturaMm);
+  return holes.map((hole) => ({ rx: hole.x / w, ry: hole.y / h }));
+}
+
+/**
  * Rotação geométrica real para o motor de nesting.
  *
  * Convenção: 90° CCW, alinhada a layoutCoordinateSystem.holeLocalToSheetOffsetMm:

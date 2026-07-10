@@ -45,7 +45,7 @@ describe("cutlistToPieces — veio bloqueado preserva orientação viewer", () =
     expect(isRotatablePiece(piece!)).toBe(false);
   });
 
-  it("prateleira MDF sem veio pode reordenar dimensões", () => {
+  it("MDF sem veio preserva dimensões e furos locais (rotação só no nesting)", () => {
     const [piece] = cutlistToPieces([
       {
         id: "shelf-1",
@@ -58,9 +58,11 @@ describe("cutlistToPieces — veio bloqueado preserva orientação viewer", () =
         tipo: "prateleira",
         grainDirection: "XX",
         boxId: "box-1",
+        drillHoles: [{ x: 20, y: 30, diameter: 5, depth: 12 }],
       },
     ]);
-    expect(piece?.largura_mm).toBe(560);
-    expect(piece?.altura_mm).toBe(400);
+    expect(piece?.largura_mm).toBe(400);
+    expect(piece?.altura_mm).toBe(560);
+    expect(piece?.drillHoles?.[0]).toMatchObject({ x: 20, y: 30 });
   });
 });

@@ -21,9 +21,9 @@ import type { LayoutVisualMaterial, OperationResult, IndustrialGrainCode } from 
 import { industrialGrainToLayoutAxis } from "../materials/grainDirection";
 import {
   resolveNestingLayoutGrainDirection,
-  shouldPreserveCutlistViewerOrientation,
 } from "../materials/nestingGrainLock";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
+import { copyDrillHolesLocalUnmodified } from "./utils/cutLayoutGeomRotation";
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
 import { getIndustrialMaterial, getMaterialByIdOrLabel } from "../materials/service";
 import {
@@ -754,37 +754,7 @@ export function cutlistToPieces(
     });
     const origL = Number(item.dimensoes?.largura) || 0;
     const origA = Number(item.dimensoes?.altura) || 0;
-    const preserveViewerOrientation = shouldPreserveCutlistViewerOrientation({
-      materialId: pieceMaterialId,
-      industrialGrainCode: industrialCode,
-      pieceTipo: item.tipo,
-      allowPieceRotation: rotationMeta.allowPieceRotation,
-      lockWoodGrain: rotationMeta.lockWoodGrain,
-    });
-    const seen = new Set<string>();
-    const normalizedHoles: NormalizedHoleForPiece[] = [];
-    const add = (x: number, y: number, d: number, dep: number, ht?: string, td?: boolean) => {
-      const k = `${x.toFixed(1)}_${y.toFixed(1)}`;
-      if (seen.has(k)) return;
-      seen.add(k);
-      normalizedHoles.push({ x, y, diameter: d, depth: dep, holeType: ht, topDrillable: td });
-    };
-    // Só reordena dimensões/furos quando rotação está permitida (sem veio bloqueado).
-    const dimensionsSwapped =
-      !preserveViewerOrientation && origL > 0 && origA > 0 && origL < origA;
-    for (const h of item.drillHoles ?? []) {
-      if ((h as { holeType?: string }).holeType === "cavilha" && (h as { topDrillable?: boolean }).topDrillable === false) continue;
-      let x = Number(h?.x);
-      let y = Number(h?.y);
-      if (dimensionsSwapped) {
-        [x, y] = [y, origL - x];
-      }
-      const diameter = Number(h?.diameter);
-      const depth = Number(h?.depth);
-      if (Number.isFinite(x) && Number.isFinite(y) && diameter > 0 && depth > 0) {
-        add(x, y, diameter, depth, (h as { holeType?: string })?.holeType, (h as { topDrillable?: boolean })?.topDrillable);
-      }
-    }
+    const normalizedHoles = copyDrillHolesLocalUnmodified(item.drillHoles as never);
     const nestingGrain = resolveNestingLayoutGrainDirection({
       materialId: pieceMaterialId,
       industrialGrainCode: industrialCode,
@@ -795,12 +765,8 @@ export function cutlistToPieces(
     const grainDirection =
       nestingGrain ??
       (industrialCode === "YY" ? industrialGrainToLayoutAxis("YY", item.tipo) : undefined);
-    const largura = preserveViewerOrientation
-      ? Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1))
-      : Math.round(Math.max(dims[0] ?? 1, 1));
-    const altura = preserveViewerOrientation
-      ? Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1))
-      : Math.round(Math.max(dims[1] ?? 1, 1));
+    const largura = Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1));
+    const altura = Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1));
     const pieces: CutPiece[] = [];
     const itemWithMeta = item as typeof item & { pieceNumber?: number; shortCode?: string };
     const qty = Math.max(1, Number(item.quantidade) || 1);
@@ -817,8 +783,8 @@ export function cutlistToPieces(
         partName: item.nome,
         materialId: pieceMaterialId,
         materialName: pieceMaterialName,
-        drillHoles: normalizedHoles.length > 0 ? normalizedHoles : undefined,
-        holes: normalizedHoles.length > 0 ? normalizedHoles : undefined,
+        drillHoles: normalizedHoles,
+        holes: normalizedHoles,
         grainDirection,
         industrialGrainCode: industrialCode,
         pieceTipo: item.tipo,
