@@ -17,7 +17,7 @@ import {
 } from "../../core/rules/rulesConfig";
 import { getSettings } from "../../core/settings/settingsService";
 import type { PieceType } from "../../core/drilling/drillingService";
-import { calculateTechnicalDrillingsForPiece, clampTopDownYMm, drillFaceToPanelFace, isTopDrillable, sanitizeHingeOffsetsFromPieceHeight } from "../../core/drilling/drillingService";
+import { calculateTechnicalDrillingsForPiece, drillFaceToPanelFace, isTopDrillable, sanitizeHingeOffsetsFromPieceHeight } from "../../core/drilling/drillingService";
 import { traceHingeDrilling, shouldTraceHingePiece } from "./hingeDrillingTrace";
 import {
   filterHingePanelDrillHolesToPieceBounds,

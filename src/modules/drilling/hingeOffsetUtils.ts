@@ -45,7 +45,6 @@ export function remapHingeOffsetsIfLarguraHeightConfusion(
   if (!offsets.length || !Number.isFinite(larguraMm) || !Number.isFinite(alturaMm) || larguraMm === alturaMm) {
     return offsets;
   }
-  const n = Math.max(2, offsets.length);
   const fromLargura = getHingeYPositions(larguraMm, getNumDobradicas(larguraMm, rules), rules);
   if (fromLargura.length === 0) return offsets;
   const matchesLarguraPattern =
