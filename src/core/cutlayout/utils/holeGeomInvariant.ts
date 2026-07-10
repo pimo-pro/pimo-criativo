@@ -145,21 +145,129 @@ export function transformHoleLocalToSheetAbsolute(
   return { xSheet: sheetX + off.px, ySheet: sheetY + off.py };
 }
 
-export function assertHolesWithinLocalPieceBounds(
-  holes: Array<{ x: number; y: number; diameter?: number }>,
+/**
+ * Quando furos excedem largura declarada mas cabem com eixos trocados,
+ * alinha dims de validação ao referencial real dos furos (sem alterar x/y).
+ */
+export function resolveHoleValidationDims(
   larguraMm: number,
   alturaMm: number,
-  context = "peça"
+  holes?: Array<{ x: number; y: number; diameter?: number }>
+): { designLarguraMm: number; designAlturaMm: number; dimsSwapped: boolean } {
+  const w = larguraMm;
+  const h = alturaMm;
+  if (!holes?.length || w <= 0 || h <= 0) {
+    return { designLarguraMm: w, designAlturaMm: h, dimsSwapped: false };
+  }
+
+  let maxX = 0;
+  let maxY = 0;
+  for (const hole of holes) {
+    const r = Number.isFinite(hole.diameter) && (hole.diameter ?? 0) > 0 ? (hole.diameter ?? 0) / 2 : 0;
+    const x = Number(hole.x);
+    const y = Number(hole.y);
+    if (Number.isFinite(x)) maxX = Math.max(maxX, x + r);
+    if (Number.isFinite(y)) maxY = Math.max(maxY, y + r);
+  }
+
+  const xExceedsW = maxX > w + EPS;
+  const xFitsH = maxX <= h + EPS;
+  const yFitsW = maxY <= w + EPS;
+
+  if (xExceedsW && xFitsH && yFitsW) {
+    return { designLarguraMm: h, designAlturaMm: w, dimsSwapped: true };
+  }
+
+  return { designLarguraMm: w, designAlturaMm: h, dimsSwapped: false };
+}
+
+export function assertHolesWithinLocalPieceBounds(
+  holes: Array<{ x: number; y: number; diameter?: number }>,
+  designLarguraMm: number,
+  designAlturaMm: number,
+  context = "peça",
+  pieceId?: string
 ): void {
   for (const h of holes) {
     const r = Number.isFinite(h.diameter) && (h.diameter ?? 0) > 0 ? (h.diameter ?? 0) / 2 : 0;
-    if (h.x < r - EPS || h.y < r - EPS) {
-      throw new Error(`[holeInvariant] Furo fora de ${context} (x=${h.x}, y=${h.y}, largura=${larguraMm})`);
+    const xLocal = h.x;
+    const yLocal = h.y;
+
+    if (xLocal < r - EPS) {
+      logHoleBoundsReject({
+        pieceId,
+        context,
+        axis: "x",
+        bound: "min",
+        xLocal,
+        yLocal,
+        designLarguraMm,
+        designAlturaMm,
+      });
+      throw new Error(
+        `[holeInvariant] Furo fora de ${context}: xLocal=${xLocal} < raio=${r} (designLarguraMm=${designLarguraMm}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+      );
     }
-    if (h.x > larguraMm - r + EPS || h.y > alturaMm - r + EPS) {
-      throw new Error(`[holeInvariant] Furo fora de ${context} (x=${h.x}, y=${h.y}, altura=${alturaMm})`);
+    if (yLocal < r - EPS) {
+      logHoleBoundsReject({
+        pieceId,
+        context,
+        axis: "y",
+        bound: "min",
+        xLocal,
+        yLocal,
+        designLarguraMm,
+        designAlturaMm,
+      });
+      throw new Error(
+        `[holeInvariant] Furo fora de ${context}: yLocal=${yLocal} < raio=${r} (designLarguraMm=${designLarguraMm}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+      );
+    }
+    if (xLocal > designLarguraMm - r + EPS) {
+      logHoleBoundsReject({
+        pieceId,
+        context,
+        axis: "x",
+        bound: "max",
+        xLocal,
+        yLocal,
+        designLarguraMm,
+        designAlturaMm,
+      });
+      throw new Error(
+        `[holeInvariant] Furo fora de ${context}: xLocal=${xLocal} > designLarguraMm=${designLarguraMm} (yLocal=${yLocal}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+      );
+    }
+    if (yLocal > designAlturaMm - r + EPS) {
+      logHoleBoundsReject({
+        pieceId,
+        context,
+        axis: "y",
+        bound: "max",
+        xLocal,
+        yLocal,
+        designLarguraMm,
+        designAlturaMm,
+      });
+      throw new Error(
+        `[holeInvariant] Furo fora de ${context}: yLocal=${yLocal} > designAlturaMm=${designAlturaMm} (xLocal=${xLocal}, designLarguraMm=${designLarguraMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+      );
     }
   }
+}
+
+/** LOG temporário de diagnóstico quando um furo falha bounds (produção / projetos grandes). */
+export function logHoleBoundsReject(details: {
+  pieceId?: string;
+  context: string;
+  axis: "x" | "y";
+  bound: "min" | "max";
+  xLocal: number;
+  yLocal: number;
+  designLarguraMm: number;
+  designAlturaMm: number;
+}): void {
+  console.warn("[holeInvariant:bounds-reject]", JSON.stringify(details));
 }
 
 export function holeRelativePositions(
@@ -175,8 +283,9 @@ export function holeRelativePositions(
 /** Copia furos sem transformação; valida bounds no referencial de desenho. */
 export function copyHolesLocalInvariant(
   holes: HoleLike[] | undefined,
-  designW: number,
-  designH: number
+  designLarguraMm: number,
+  designAlturaMm: number,
+  pieceId?: string
 ): DrillHoleInvariant[] | undefined {
   if (!holes?.length) return undefined;
   const out: DrillHoleInvariant[] = [];
@@ -197,7 +306,7 @@ export function copyHolesLocalInvariant(
     });
   }
   if (out.length === 0) return undefined;
-  assertHolesWithinLocalPieceBounds(out, designW, designH, "copyHolesLocalInvariant");
+  assertHolesWithinLocalPieceBounds(out, designLarguraMm, designAlturaMm, "copyHolesLocalInvariant", pieceId);
   return out;
 }
 

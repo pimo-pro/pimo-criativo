@@ -13,8 +13,9 @@ export { assertHolesWithinLocalPieceBounds, holeRelativePositions };
 
 export function copyDrillHolesLocalUnmodified(
   holes: DrillHole[] | undefined,
-  designW?: number,
-  designH?: number
+  designLarguraMm?: number,
+  designAlturaMm?: number,
+  pieceId?: string
 ): DrillHole[] | undefined {
   if (!holes?.length) return undefined;
   const out: DrillHole[] = [];
@@ -42,8 +43,19 @@ export function copyDrillHolesLocalUnmodified(
     });
   }
   if (out.length === 0) return undefined;
-  if (Number.isFinite(designW) && Number.isFinite(designH) && (designW ?? 0) > 0 && (designH ?? 0) > 0) {
-    assertHolesWithinLocalPieceBounds(out, designW!, designH!, "copyDrillHolesLocalUnmodified");
+  if (
+    Number.isFinite(designLarguraMm) &&
+    Number.isFinite(designAlturaMm) &&
+    (designLarguraMm ?? 0) > 0 &&
+    (designAlturaMm ?? 0) > 0
+  ) {
+    assertHolesWithinLocalPieceBounds(
+      out,
+      designLarguraMm!,
+      designAlturaMm!,
+      "copyDrillHolesLocalUnmodified",
+      pieceId
+    );
   }
   return out;
 }

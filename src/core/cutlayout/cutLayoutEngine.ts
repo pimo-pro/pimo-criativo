@@ -24,7 +24,7 @@ import {
 } from "../materials/nestingGrainLock";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
 import { copyDrillHolesLocalUnmodified } from "./utils/cutLayoutGeomRotation";
-import { traceHolePipeline } from "./utils/holeGeomInvariant";
+import { traceHolePipeline, resolveHoleValidationDims } from "./utils/holeGeomInvariant";
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
 import { getIndustrialMaterial, getMaterialByIdOrLabel } from "../materials/service";
 import {
@@ -755,9 +755,20 @@ export function cutlistToPieces(
     });
     const origL = Number(item.dimensoes?.largura) || 0;
     const origA = Number(item.dimensoes?.altura) || 0;
-    const largura = Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1));
-    const altura = Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1));
-    const normalizedHoles = copyDrillHolesLocalUnmodified(item.drillHoles as never, largura, altura);
+    let largura = Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1));
+    let altura = Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1));
+    const holeDims = resolveHoleValidationDims(largura, altura, item.drillHoles as never);
+    if (holeDims.dimsSwapped) {
+      largura = holeDims.designLarguraMm;
+      altura = holeDims.designAlturaMm;
+    }
+    const pieceId = String((item as { id?: string }).id ?? item.nome ?? "cutlist-piece");
+    const normalizedHoles = copyDrillHolesLocalUnmodified(
+      item.drillHoles as never,
+      largura,
+      altura,
+      pieceId
+    );
     const nestingGrain = resolveNestingLayoutGrainDirection({
       materialId: pieceMaterialId,
       industrialGrainCode: industrialCode,

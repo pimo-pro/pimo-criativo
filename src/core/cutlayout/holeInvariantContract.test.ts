@@ -192,4 +192,31 @@ describe("holeInvariantContract — proteção geométrica permanente", () => {
       );
     }
   });
+
+  it("TESTE E — peça 400×186: furo x=390 valida contra designLarguraMm (não altura)", () => {
+    const holes = [{ x: 390, y: 15, diameter: 5, depth: 12 }];
+    const [piece] = cutlistToPieces([
+      baseCutlistItem({
+        dimensoes: { largura: 400, altura: 186, profundidade: 19 },
+        drillHoles: holes,
+      }),
+    ]);
+    expect(piece?.largura_mm).toBe(400);
+    expect(piece?.altura_mm).toBe(186);
+    expect(piece?.drillHoles?.[0]).toMatchObject({ x: 390, y: 15 });
+    assertHolesWithinLocalPieceBounds(piece!.drillHoles!, 400, 186);
+  });
+
+  it("TESTE F — cutlist com eixos trocados 186×400: furo x=390 alinha dims sem mover furos", () => {
+    const holes = [{ x: 390, y: 15, diameter: 5, depth: 12 }];
+    const [piece] = cutlistToPieces([
+      baseCutlistItem({
+        dimensoes: { largura: 186, altura: 400, profundidade: 19 },
+        drillHoles: holes,
+      }),
+    ]);
+    expect(piece?.largura_mm).toBe(400);
+    expect(piece?.altura_mm).toBe(186);
+    expect(piece?.drillHoles?.[0]).toMatchObject({ x: 390, y: 15 });
+  });
 });
