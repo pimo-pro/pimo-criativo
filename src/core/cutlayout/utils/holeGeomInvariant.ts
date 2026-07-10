@@ -59,6 +59,8 @@ export type HoleTraceEntry = {
 
 const traceLog: HoleTraceEntry[] = [];
 const EPS = 0.001;
+/** Tolerância industrial para furos na borda da peça (gavetas, frentes). */
+export const HOLE_BOUNDS_INDUSTRIAL_TOL_MM = 0.2;
 
 export function isHolePipelineTraceEnabled(): boolean {
   if (typeof globalThis !== "undefined" && (globalThis as { __PIMO_HOLE_TRACE__?: boolean }).__PIMO_HOLE_TRACE__) {
@@ -188,12 +190,17 @@ export function assertHolesWithinLocalPieceBounds(
   context = "peça",
   pieceId?: string
 ): void {
+  const tol = HOLE_BOUNDS_INDUSTRIAL_TOL_MM;
+  const xMin = -tol;
+  const yMin = -tol;
+  const xMax = designLarguraMm + tol;
+  const yMax = designAlturaMm + tol;
+
   for (const h of holes) {
-    const r = Number.isFinite(h.diameter) && (h.diameter ?? 0) > 0 ? (h.diameter ?? 0) / 2 : 0;
     const xLocal = h.x;
     const yLocal = h.y;
 
-    if (xLocal < r - EPS) {
+    if (xLocal < xMin - EPS) {
       logHoleBoundsReject({
         pieceId,
         context,
@@ -205,10 +212,10 @@ export function assertHolesWithinLocalPieceBounds(
         designAlturaMm,
       });
       throw new Error(
-        `[holeInvariant] Furo fora de ${context}: xLocal=${xLocal} < raio=${r} (designLarguraMm=${designLarguraMm}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+        `[holeInvariant] Furo fora de ${context}: xLocal=${xLocal} < ${xMin} (designLarguraMm=${designLarguraMm}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
       );
     }
-    if (yLocal < r - EPS) {
+    if (yLocal < yMin - EPS) {
       logHoleBoundsReject({
         pieceId,
         context,
@@ -220,10 +227,10 @@ export function assertHolesWithinLocalPieceBounds(
         designAlturaMm,
       });
       throw new Error(
-        `[holeInvariant] Furo fora de ${context}: yLocal=${yLocal} < raio=${r} (designLarguraMm=${designLarguraMm}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+        `[holeInvariant] Furo fora de ${context}: yLocal=${yLocal} < ${yMin} (designLarguraMm=${designLarguraMm}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
       );
     }
-    if (xLocal > designLarguraMm - r + EPS) {
+    if (xLocal > xMax + EPS) {
       logHoleBoundsReject({
         pieceId,
         context,
@@ -235,10 +242,10 @@ export function assertHolesWithinLocalPieceBounds(
         designAlturaMm,
       });
       throw new Error(
-        `[holeInvariant] Furo fora de ${context}: xLocal=${xLocal} > designLarguraMm=${designLarguraMm} (yLocal=${yLocal}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+        `[holeInvariant] Furo fora de ${context}: xLocal=${xLocal} > designLarguraMm=${designLarguraMm} (tol=±${tol}, yLocal=${yLocal}, designAlturaMm=${designAlturaMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
       );
     }
-    if (yLocal > designAlturaMm - r + EPS) {
+    if (yLocal > yMax + EPS) {
       logHoleBoundsReject({
         pieceId,
         context,
@@ -250,7 +257,7 @@ export function assertHolesWithinLocalPieceBounds(
         designAlturaMm,
       });
       throw new Error(
-        `[holeInvariant] Furo fora de ${context}: yLocal=${yLocal} > designAlturaMm=${designAlturaMm} (xLocal=${xLocal}, designLarguraMm=${designLarguraMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
+        `[holeInvariant] Furo fora de ${context}: yLocal=${yLocal} > designAlturaMm=${designAlturaMm} (tol=±${tol}, xLocal=${xLocal}, designLarguraMm=${designLarguraMm}${pieceId ? `, pieceId=${pieceId}` : ""})`
       );
     }
   }

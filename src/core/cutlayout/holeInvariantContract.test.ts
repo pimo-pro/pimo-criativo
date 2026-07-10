@@ -219,4 +219,17 @@ describe("holeInvariantContract — proteção geométrica permanente", () => {
     expect(piece?.altura_mm).toBe(186);
     expect(piece?.drillHoles?.[0]).toMatchObject({ x: 390, y: 15 });
   });
+
+  it("TESTE H — peça 390×186, furo Ø5 em xLocal=390 na borda passa (centro, sem raio)", () => {
+    const holes = [{ x: 390, y: 15, diameter: 5, depth: 12 }];
+    const [piece] = cutlistToPieces([
+      baseCutlistItem({
+        dimensoes: { largura: 390, altura: 186, profundidade: 19 },
+        drillHoles: holes,
+      }),
+    ]);
+    expect(piece?.largura_mm).toBe(390);
+    expect(piece?.drillHoles?.[0]).toMatchObject({ x: 390, y: 15 });
+    assertHolesWithinLocalPieceBounds(piece!.drillHoles!, 390, 186);
+  });
 });
