@@ -9,6 +9,7 @@ import type { V3Piece } from "../../../nesting-v3/nestingV3Types";
 import type { NestingV3Settings } from "../../../nesting-v3/nestingV3Settings";
 import { sheetDimsForMaterial } from "../../../nesting-v3/nestingV3Settings";
 import { resolveNestingLayoutGrainDirection } from "../../materials/nestingGrainLock";
+import { copyHolesLocalInvariant } from "../utils/holeGeomInvariant";
 
 function mapGrainDirection(piece: V3Piece): CutPiece["grainDirection"] {
   const nestingLock = resolveNestingLayoutGrainDirection({
@@ -36,13 +37,17 @@ export function v3PiecesToCutPieces(pieces: V3Piece[], settings: NestingV3Settin
       partName: piece.name,
       materialId: piece.materialId,
       materialName: piece.materialName,
-      drillHoles: piece.originalHoles.map((h) => ({
-        x: h.x,
-        y: h.y,
-        diameter: h.diameter,
-        depth: h.depth,
-        holeType: h.holeType,
-      })),
+      drillHoles: copyHolesLocalInvariant(
+        piece.originalHoles.map((h) => ({
+          x: h.x,
+          y: h.y,
+          diameter: h.diameter,
+          depth: h.depth,
+          holeType: h.holeType,
+        })),
+        piece.widthMm,
+        piece.heightMm
+      ),
       industrialGrainCode: piece.industrialGrainCode,
       pieceTipo: piece.pieceTipo,
       grainDirection: mapGrainDirection(piece),
@@ -63,6 +68,8 @@ export function v3PiecesToCutPieces(pieces: V3Piece[], settings: NestingV3Settin
         placementMode: piece.placementMode,
         rotationSnapIndex: piece.rotationSnapIndex,
         faceOffsets: piece.faceOffsets,
+        holeDesignLarguraMm: piece.widthMm,
+        holeDesignAlturaMm: piece.heightMm,
       },
     };
   });

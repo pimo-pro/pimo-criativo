@@ -2,8 +2,19 @@
  * Copia furos da cutlist sem reordenar eixos nem aplicar rotação implícita.
  * Coordenadas permanecem no referencial local [0..largura] × [0..altura] da peça.
  */
+import {
+  assertHolesWithinLocalPieceBounds,
+  holeRelativePositions,
+  tracePlacementHoles,
+  transformHoleLocalToPlacementOffset,
+} from "./holeGeomInvariant";
+
+export { assertHolesWithinLocalPieceBounds, holeRelativePositions };
+
 export function copyDrillHolesLocalUnmodified(
-  holes: DrillHole[] | undefined
+  holes: DrillHole[] | undefined,
+  designW?: number,
+  designH?: number
 ): DrillHole[] | undefined {
   if (!holes?.length) return undefined;
   const out: DrillHole[] = [];
@@ -30,39 +41,11 @@ export function copyDrillHolesLocalUnmodified(
       angle: h.angle,
     });
   }
-  return out.length > 0 ? out : undefined;
-}
-
-/**
- * Verifica se furos permanecem dentro dos limites locais da peça (anti-regressão).
- */
-export function assertHolesWithinLocalPieceBounds(
-  holes: Array<{ x: number; y: number; diameter?: number }>,
-  larguraMm: number,
-  alturaMm: number
-): void {
-  for (const h of holes) {
-    const r = Number.isFinite(h.diameter) && (h.diameter ?? 0) > 0 ? (h.diameter ?? 0) / 2 : 0;
-    if (h.x < r - EPS || h.y < r - EPS) {
-      throw new Error(`Furo fora da peça (x=${h.x}, y=${h.y}, largura=${larguraMm})`);
-    }
-    if (h.x > larguraMm - r + EPS || h.y > alturaMm - r + EPS) {
-      throw new Error(`Furo fora da peça (x=${h.x}, y=${h.y}, altura=${alturaMm})`);
-    }
+  if (out.length === 0) return undefined;
+  if (Number.isFinite(designW) && Number.isFinite(designH) && (designW ?? 0) > 0 && (designH ?? 0) > 0) {
+    assertHolesWithinLocalPieceBounds(out, designW!, designH!, "copyDrillHolesLocalUnmodified");
   }
-}
-
-/**
- * Posição relativa normalizada dos furos (0..1) para comparação antes/depois do pipeline.
- */
-export function holeRelativePositions(
-  holes: Array<{ x: number; y: number }>,
-  larguraMm: number,
-  alturaMm: number
-): Array<{ rx: number; ry: number }> {
-  const w = Math.max(1, larguraMm);
-  const h = Math.max(1, alturaMm);
-  return holes.map((hole) => ({ rx: hole.x / w, ry: hole.y / h }));
+  return out;
 }
 
 /**
@@ -100,6 +83,8 @@ type PlacementLike = {
   rotacao: number;
   largura_mm: number;
   altura_mm: number;
+  partName?: string;
+  metadata?: Record<string, unknown>;
   drillHoles?: DrillHole[];
   holes?: DrillHole[];
   originalDrillHoles?: DrillHole[];
@@ -154,10 +139,8 @@ function holeFinalOffset(
   origW: number,
   origH: number
 ): { x: number; y: number } {
-  if (rotation === 90) return { x: h.y, y: origW - h.x };
-  if (rotation === 180) return { x: origW - h.x, y: origH - h.y };
-  if (rotation === 270) return { x: origH - h.y, y: h.x };
-  return { x: h.x, y: h.y };
+  const off = transformHoleLocalToPlacementOffset(h.x, h.y, rotation, origW, origH);
+  return { x: off.px, y: off.py };
 }
 
 function contourFinalRect(
@@ -238,20 +221,16 @@ function isContourInsidePlacementAndSheet(p: PlacementLike, rect: InnerContour, 
 }
 
 /**
- * Coordenadas que os geradores atuais esperam receber:
- * - rot=90: furos continuam no referencial original, porque o gerador aplica rotacao.
- * - rot=180/270: geradores tratam como offset direto; enviamos já no espaço colocado.
+ * Furos para consumidores: SEMPRE coordenadas locais de desenho (SSOT).
+ * A rotação R+T é aplicada apenas via holeLocalToSheetOffsetMm no export.
  */
 function toConsumerHole(
   h: DrillHole,
   rotation: 0 | 90 | 180 | 270,
-  origW: number,
-  origH: number
+  _origW: number,
+  _origH: number
 ): DrillHole {
-  const withAngle = addRotation({ ...h }, rotation);
-  if (rotation === 0 || rotation === 90) return withAngle;
-  const off = holeFinalOffset(h, rotation, origW, origH);
-  return { ...withAngle, x: off.x, y: off.y };
+  return addRotation({ ...h }, rotation);
 }
 
 function toConsumerContour(
@@ -384,6 +363,12 @@ export function applyRotationGeometryToSheets(sheets: SheetLike[]): void {
       const rotation = normalizeRotation(p.rotacao);
       const { w: origW, h: origH } = originalDimensions(p, rotation);
 
+      p.metadata = {
+        ...(p.metadata ?? {}),
+        holeDesignLarguraMm: origW,
+        holeDesignAlturaMm: origH,
+      };
+
       const origHoles = p.originalDrillHoles ?? rawHoles;
       if (origHoles && origHoles.length > 0) {
         const validOriginalHoles = origHoles.filter((h) =>
@@ -393,6 +378,12 @@ export function applyRotationGeometryToSheets(sheets: SheetLike[]): void {
         p.originalDrillHoles = validOriginalHoles.length > 0 ? validOriginalHoles.map((h) => ({ ...h })) : undefined;
         p.drillHoles = validHoles.length > 0 ? validHoles : undefined;
         if (p.holes !== undefined) p.holes = validHoles.length > 0 ? validHoles : undefined;
+
+        tracePlacementHoles(
+          "D_nestingPlacement",
+          String(p.metadata?.v3PieceId ?? p.partName ?? "piece"),
+          p
+        );
       }
 
       const origContours = p.originalInnerContours ?? p.innerContours;

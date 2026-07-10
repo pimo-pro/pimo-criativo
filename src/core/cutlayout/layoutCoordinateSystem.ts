@@ -30,16 +30,20 @@ export function holeLocalToSheetOffsetMm(
   hy: number,
   rotacaoDeg: number,
   pieceLarguraMm?: number,
-  pieceAlturaMm?: number
+  pieceAlturaMm?: number,
+  designLarguraMm?: number,
+  designAlturaMm?: number
 ): { sx: number; sy: number } {
   const r = ((rotacaoDeg ?? 0) % 360 + 360) % 360;
-  if (r === 90) {
-    // 90° CCW: sx = hy; sy usa altura da peça (referencial dos furos na cutlist), não largura.
-    // Fase 7F-B: L − hx com L=largura gerava sy negativo/incorrecto no Nesting MO / TCN.
-    const H = pieceAlturaMm ?? 0;
-    void pieceLarguraMm;
-    return { sx: hy, sy: H - hx };
-  }
+  const plW = pieceLarguraMm ?? 0;
+  const plH = pieceAlturaMm ?? 0;
+  const swaps = r === 90 || r === 270;
+  const origW = designLarguraMm ?? (swaps ? plH : plW);
+  const origH = designAlturaMm ?? (swaps ? plW : plH);
+
+  if (r === 90) return { sx: hy, sy: origW - hx };
+  if (r === 180) return { sx: origW - hx, sy: origH - hy };
+  if (r === 270) return { sx: origH - hy, sy: hx };
   return { sx: hx, sy: hy };
 }
 

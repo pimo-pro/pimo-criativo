@@ -22,6 +22,7 @@ import {
   resolveV3RotationFromIndustrialMetadata,
 } from "../core/remate/remateIndustrialMetadata";
 import type { RemateFaceOffsets } from "../core/remate/rematePieceTypes";
+import { copyHolesLocalInvariant } from "../core/cutlayout/utils/holeGeomInvariant";
 
 function makeDefaultState(): NestingV3State {
   const settings = loadNestingV3SettingsFromGlobal();
@@ -64,9 +65,17 @@ export function cutPieceToV3(
     rotationSnapIndex?: 0 | 1 | 2 | 3;
   }
 ): V3Piece {
-  const holes = (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
-    x: h.x, y: h.y, diameter: h.diameter, depth: h.depth, holeType: h.holeType,
-  }));
+  const holes = copyHolesLocalInvariant(
+    (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
+      x: h.x,
+      y: h.y,
+      diameter: h.diameter,
+      depth: h.depth,
+      holeType: h.holeType,
+    })),
+    cp.largura_mm,
+    cp.altura_mm
+  ) ?? [];
   const metaAllow = cp.metadata?.allowPieceRotation;
   const metaLock = cp.metadata?.lockWoodGrain;
   const allowPieceRotation =

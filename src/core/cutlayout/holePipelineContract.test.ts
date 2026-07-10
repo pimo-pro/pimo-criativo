@@ -85,7 +85,7 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
       const pl = sheets[0]!.placements[0]!;
       expect(pl.originalDrillHoles?.[0]).toMatchObject({ x: 10, y: 20 });
 
-      const off = holeLocalToSheetOffsetMm(10, 20, rotacao, pl.largura_mm, pl.altura_mm);
+      const off = holeLocalToSheetOffsetMm(10, 20, rotacao, pl.largura_mm, pl.altura_mm, PIECE_W, PIECE_H);
       const absX = pl.x_mm + off.sx;
       const absY = pl.y_mm + off.sy;
       expect(absX).toBeGreaterThanOrEqual(pl.x_mm);
@@ -160,7 +160,7 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
 
     const pl = out.sheets[0]!.placements[0]!;
     expect(pl.originalDrillHoles?.[0]).toMatchObject({ x: 30, y: 40 });
-    const off = holeLocalToSheetOffsetMm(30, 40, 90, pl.largura_mm, pl.altura_mm);
+    const off = holeLocalToSheetOffsetMm(30, 40, 90, pl.largura_mm, pl.altura_mm, PIECE_W, PIECE_H);
     expect(off).toEqual({ sx: 40, sy: PIECE_W - 30 });
   });
 });

@@ -3,6 +3,7 @@ import { buildCutlistItemsForIndustrialExport } from "../../core/fabrication/bui
 import { cutlistToPieces } from "../../core/cutlayout/cutLayoutEngine";
 import { cutPieceToV3 } from "../useNestingV3";
 import type { V3Piece } from "../nestingV3Types";
+import { traceHolePipeline } from "../../core/cutlayout/utils/holeGeomInvariant";
 import { resolveAllowPieceRotationFromProject } from "./resolveAllowPieceRotation";
 import {
   resolveLockWoodGrainFromProject,
@@ -27,11 +28,27 @@ export function convertProjectToV3Pieces(project: ProjectState): V3Piece[] {
     boxes: project.boxes,
   });
 
-  return cutPieces.map((piece, index) =>
-    cutPieceToV3(piece, index, {
+  return cutPieces.map((piece, index) => {
+    const v3 = cutPieceToV3(piece, index, {
       allowPieceRotation: resolveAllowPieceRotationFromProject(project, piece),
       lockWoodGrain: resolveLockWoodGrainFromProject(project, piece),
       rotationSnapIndex: resolveRotationSnapIndexFromProject(project, piece),
-    })
-  );
+    });
+    if (v3.originalHoles.length > 0) {
+      traceHolePipeline({
+        stage: "C_convertProjectToV3",
+        pieceId: v3.id,
+        width: v3.widthMm,
+        height: v3.heightMm,
+        rotation: v3.rotation,
+        holes: v3.originalHoles.map((h) => ({
+          xLocal: h.x,
+          yLocal: h.y,
+          tipo: h.holeType,
+        })),
+        flags: { dimensionsSwapped: false, implicitRotation: false, holesTransformed: false },
+      });
+    }
+    return v3;
+  });
 }

@@ -129,7 +129,7 @@ ensureProductionEnv();
 
 runStep(
   "Testes contrato furos (anti-regressão)...",
-  "npm test -- --run src/core/cutlayout/holePipelineContract.test.ts src/core/cutlayout/cutlistToPiecesGrain.test.ts"
+  "npm test -- --run src/core/cutlayout/holePipelineContract.test.ts src/core/cutlayout/holeInvariantContract.test.ts src/core/cutlayout/cutlistToPiecesGrain.test.ts"
 );
 
 runStep("Executando build...", "npm run build");

@@ -14,6 +14,7 @@ import type { CutLayoutEngineOptions, SheetDefinition } from "../core/cutlayout/
 import { getDefaultCncLayoutOptions } from "../core/cnc/cncPipeline";
 import { v3PiecesToCutPieces } from "../core/cutlayout/integration/v3ToCutPieces";
 import { cutLayoutResultToV3State } from "../core/cutlayout/integration/cutLayoutResultToV3State";
+import { tracePlacementHoles, transformHoleLocalToPlacementOffset } from "../core/cutlayout/utils/holeGeomInvariant";
 import { defaultSheetFromSettings } from "./nestingSheetsFactory";
 import { runHybridNesting } from "../core/nesting3/hybridNesting";
 import type { Nesting3Piece, Nesting3Sheet } from "../core/nesting3/nesting3Types";
@@ -59,6 +60,17 @@ export function runV3IndustrialAutoLayoutPipeline(baseState: NestingV3State): V3
   const layoutOptions = buildIndustrialLayoutOptions(sheetDef, settings);
 
   const layoutResult = runCutLayout(cutPieces, sheetDef, layoutOptions);
+  for (const sheet of layoutResult.sheets) {
+    for (const pl of sheet.placements) {
+      if ((pl.drillHoles?.length ?? 0) > 0 || (pl.originalDrillHoles?.length ?? 0) > 0) {
+        tracePlacementHoles(
+          "D_nestingPlacement",
+          String(pl.metadata?.v3PieceId ?? pl.partName ?? "piece"),
+          pl
+        );
+      }
+    }
+  }
   const newState = cutLayoutResultToV3State(layoutResult, {
     ...baseState,
     sheets: activeSheets,
@@ -201,19 +213,14 @@ export function rotateHoles(
   pieceHeightOriginal: number
 ) {
   return holes.map((h) => {
-    let nx = h.x;
-    let ny = h.y;
-    if (rotation === 90) {
-      nx = h.y;
-      ny = pieceWidthOriginal - h.x;
-    } else if (rotation === 180) {
-      nx = pieceWidthOriginal - h.x;
-      ny = pieceHeightOriginal - h.y;
-    } else if (rotation === 270) {
-      nx = pieceHeightOriginal - h.y;
-      ny = h.x;
-    }
-    return { ...h, x: nx, y: ny };
+    const off = transformHoleLocalToPlacementOffset(
+      h.x,
+      h.y,
+      rotation,
+      pieceWidthOriginal,
+      pieceHeightOriginal
+    );
+    return { ...h, x: off.px, y: off.py };
   });
 }
 
