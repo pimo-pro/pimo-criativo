@@ -11,6 +11,12 @@ import {
 import { holeLocalToSheetOffsetMm } from "./layoutCoordinateSystem";
 import { finalizeIndustrialLayout } from "./integration/industrialLayoutContract";
 import { isRotatablePiece } from "./utils/cutLayoutUtils";
+import { createCaixaForno } from "../moveis/generators/caixaFornoGenerator";
+import { convertWorkspaceToBox } from "../../context/projectState";
+import type { WorkspaceBox } from "../types";
+import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
+import { defaultRulesConfig } from "../rules/rulesConfig";
+import { getParafusoDistanceFromCavilhaMm } from "../divSep/cavilhaRules";
 
 const PIECE_W = 400;
 const PIECE_H = 300;
@@ -162,5 +168,42 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     expect(pl.originalDrillHoles?.[0]).toMatchObject({ x: 30, y: 40 });
     const off = holeLocalToSheetOffsetMm(30, 40, 90, pl.largura_mm, pl.altura_mm, PIECE_W, PIECE_H);
     expect(off).toEqual({ sx: 40, sy: PIECE_W - 30 });
+  });
+
+  it("TESTE 5 — caixa-forno-sep1: parafuso lateral (x=-30) filtrado antes do invariant", () => {
+    const parafusoDist = getParafusoDistanceFromCavilhaMm();
+    const cfg = createCaixaForno({ id: "forno-sep-diag" });
+    const box = convertWorkspaceToBox({
+      ...cfg,
+      models: [],
+      posicaoX_mm: 0,
+      posicaoY_mm: 1275,
+      rotacaoY_90: false,
+      tipoBorda: "reta",
+      locked: false,
+      drawersLayer: [],
+    } as WorkspaceBox);
+    const items = cutlistComPrecoFromBox(box, defaultRulesConfig, "mdf_branco");
+    const sepCutlist = items.find(
+      (i) => i.tipo === "separador" && String(i.metadata?.panelId ?? "").includes("sep1")
+    );
+    expect(sepCutlist).toBeDefined();
+    const larguraSep = sepCutlist!.dimensoes.largura;
+    const alturaSep = sepCutlist!.dimensoes.altura;
+    const ssotHoles = sepCutlist!.drillHoles ?? [];
+    expect(ssotHoles.some((h) => h.holeType === "cavilha" && h.topDrillable === false)).toBe(true);
+    expect(ssotHoles.some((h) => h.holeType === "parafuso" && h.x === -parafusoDist)).toBe(true);
+
+    const pieces = cutlistToPieces(items);
+    const sepPiece = pieces.find((p) => String(p.metadata?.panelId ?? "").includes("sep1"));
+    expect(sepPiece).toBeDefined();
+    expect(sepPiece!.largura_mm).toBe(larguraSep);
+    expect(sepPiece!.altura_mm).toBe(alturaSep);
+    expect(sepPiece!.drillHoles ?? []).toEqual([]);
+
+    const v3 = cutPieceToV3(sepPiece!, 0);
+    expect(v3.originalHoles).toEqual([]);
+    const [roundTrip] = v3PiecesToCutPieces([v3], DEFAULT_NESTING_V3_SETTINGS);
+    expect(roundTrip!.drillHoles ?? []).toEqual([]);
   });
 });

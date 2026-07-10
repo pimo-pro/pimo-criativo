@@ -5,11 +5,33 @@
 import {
   assertHolesWithinLocalPieceBounds,
   holeRelativePositions,
+  HOLE_BOUNDS_INDUSTRIAL_TOL_MM,
   tracePlacementHoles,
   transformHoleLocalToPlacementOffset,
 } from "./holeGeomInvariant";
+import { getParafusoDistanceFromCavilhaMm } from "../../divSep/cavilhaRules";
 
 export { assertHolesWithinLocalPieceBounds, holeRelativePositions };
+
+function isEdgeCavilhaParafusoCompanion(
+  x: number,
+  sourceHoles: DrillHole[],
+  parafusoDist: number,
+  tol: number
+): boolean {
+  for (const h of sourceHoles) {
+    if (h.holeType !== "cavilha" || h.topDrillable !== false) continue;
+    const edgeX = Number(h.x);
+    if (!Number.isFinite(edgeX)) continue;
+    if (
+      Math.abs(x - (edgeX + parafusoDist)) <= tol ||
+      Math.abs(x - (edgeX - parafusoDist)) <= tol
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function copyDrillHolesLocalUnmodified(
   holes: DrillHole[] | undefined,
@@ -20,6 +42,8 @@ export function copyDrillHolesLocalUnmodified(
   if (!holes?.length) return undefined;
   const out: DrillHole[] = [];
   const seen = new Set<string>();
+  const tol = HOLE_BOUNDS_INDUSTRIAL_TOL_MM;
+  const parafusoDist = getParafusoDistanceFromCavilhaMm();
   for (const h of holes) {
     if (h.holeType === "cavilha" && h.topDrillable === false) continue;
     const x = Number(h.x);
@@ -27,6 +51,19 @@ export function copyDrillHolesLocalUnmodified(
     const diameter = Number(h.diameter);
     const depth = Number(h.depth);
     if (!Number.isFinite(x) || !Number.isFinite(y) || !(diameter > 0) || !(depth > 0)) continue;
+    if (
+      Number.isFinite(designLarguraMm) &&
+      Number.isFinite(designAlturaMm) &&
+      (designLarguraMm ?? 0) > 0 &&
+      (designAlturaMm ?? 0) > 0
+    ) {
+      if (x < -tol || y < -tol || x > (designLarguraMm ?? 0) + tol || y > (designAlturaMm ?? 0) + tol) {
+        continue;
+      }
+      if (h.holeType === "parafuso" && isEdgeCavilhaParafusoCompanion(x, holes, parafusoDist, tol)) {
+        continue;
+      }
+    }
     const key = `${x.toFixed(3)}_${y.toFixed(3)}`;
     if (seen.has(key)) continue;
     seen.add(key);
