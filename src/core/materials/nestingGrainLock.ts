@@ -1,6 +1,13 @@
 /**
  * Bloqueio de rotação no nesting por material de madeira (veio).
  * Não altera cutlist / TCN / TXML — apenas decisões de layout Nesting V3.
+ *
+ * Contrato industrial (comportamento definitivo do pipeline):
+ * 1. cutlistToPieces — preserveDesignDimensions: madeira/remate/YY mantém L×A do Viewer
+ * 2. pairPacking — dimensões reais quando !isRotatablePiece; sem merge que inverta L↔A
+ * 3. runCutLayout — isNestingRotationLocked → isRotatablePiece false → só orientação 0°
+ *
+ * Regressão: src/core/cutlayout/cutlistToPiecesGrain.test.ts
  */
 
 import { getMaterialByIdOrLabel } from "./service";

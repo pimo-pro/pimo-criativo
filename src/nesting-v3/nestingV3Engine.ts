@@ -91,6 +91,7 @@ export function runNestingV3AutoLayoutLegacy(
       industrialGrainCode: piece.industrialGrainCode,
       pieceTipo: piece.pieceTipo,
       allowPieceRotation: piece.allowPieceRotation,
+      lockWoodGrain: piece.lockWoodGrain,
     });
     return {
       id: piece.id,

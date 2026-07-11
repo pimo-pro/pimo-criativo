@@ -1,9 +1,13 @@
 /**
  * Fase B (B3) — Pair packing: super-peças virtuais para pares compatíveis.
+ *
+ * Contrato madeira (veio): peças com !isRotatablePiece usam largura_mm/altura_mm reais
+ * (sem max/min landscape). Não formam pares virtuais com peças de rotação bloqueada.
  */
 
 import type { CutPiece } from "../cutLayoutTypes";
 import type { PlacementCandidate } from "../scoring/rotationScoring";
+import { isRotatablePiece } from "../utils/cutLayoutUtils";
 
 const HEIGHT_TOL_MM = 2;
 const NATURAL_PAIR_A = /\b(lateral|lat_|side)\b/i;
@@ -31,10 +35,12 @@ export function getPairPackMeta(piece: CutPiece): PairPackMeta | null {
 }
 
 function piecePairHeight(p: CutPiece): number {
+  if (!isRotatablePiece(p)) return p.altura_mm;
   return Math.min(p.largura_mm, p.altura_mm);
 }
 
 function piecePairWidth(p: CutPiece): number {
+  if (!isRotatablePiece(p)) return p.largura_mm;
   return Math.max(p.largura_mm, p.altura_mm);
 }
 
@@ -109,6 +115,7 @@ export function applyPairVirtualPieces(remaining: CutPiece[], sheetWidth: number
       if (used.has(j)) continue;
       const b = remaining[j]!;
       if (isPairVirtualPiece(b)) continue;
+      if (!isRotatablePiece(a) || !isRotatablePiece(b)) continue;
       const compatible =
         canFormHorizontalPair(a, b, sheetWidth, kerf) ||
         (isNaturalPair(a, b) &&

@@ -20,6 +20,7 @@ import type {
 import type { LayoutVisualMaterial, OperationResult, IndustrialGrainCode } from "../types";
 import { industrialGrainToLayoutAxis } from "../materials/grainDirection";
 import {
+  isNestingRotationLocked,
   resolveNestingLayoutGrainDirection,
 } from "../materials/nestingGrainLock";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
@@ -741,6 +742,30 @@ export function cutlistToPieces(
     const sheetThicknessMm = Number.isFinite(explicitSheetThickness) && explicitSheetThickness > 0
       ? explicitSheetThickness
       : esp;
+    const origL = Number(item.dimensoes?.largura) || 0;
+    const origA = Number(item.dimensoes?.altura) || 0;
+    const industrialCode = item.grainDirection;
+    const itemMeta = (item as { metadata?: Record<string, unknown> }).metadata;
+    const metaAllow = itemMeta?.allowPieceRotation;
+    const metaLock = itemMeta?.lockWoodGrain;
+    const rotationMeta = buildCutlistRotationMetadata({
+      allowPieceRotation:
+        metaAllow === true ? true : metaAllow === false ? false : undefined,
+      lockWoodGrain:
+        metaLock === true ? true : metaLock === false ? false : undefined,
+      materialId: pieceMaterialId,
+    });
+    const preserveDesignDimensions =
+      // Contrato madeira (veio): nunca reordenar L×A — corte fiel ao Viewer.
+      isRemate ||
+      isNestingRotationLocked({
+        materialId: pieceMaterialId,
+        industrialGrainCode: industrialCode,
+        pieceTipo: item.tipo,
+        allowPieceRotation: rotationMeta.allowPieceRotation,
+        lockWoodGrain: rotationMeta.lockWoodGrain,
+      });
+
     const seen = new Set<string>();
     const normalizedHoles: NormalizedHoleForPiece[] = [];
     const add = (x: number, y: number, d: number, dep: number, ht?: string, td?: boolean) => {
@@ -752,9 +777,9 @@ export function cutlistToPieces(
     // Quando as dimensões são reordenadas (largura < altura → peça fica altura×largura no layout),
     // as coordenadas locais precisam acompanhar a mesma rotação do retângulo, não apenas trocar eixos.
     // A conversão preserva a origem industrial bottom-left: (x, y) → (y, larguraOriginal - x).
-    const origL = Number(item.dimensoes?.largura) || 0;
-    const origA = Number(item.dimensoes?.altura) || 0;
-    const dimensionsSwapped = !isRemate && origL > 0 && origA > 0 && origL < origA;
+    // Material de madeira / veio fixo: nunca inverter L↔A (orientação do viewer).
+    const dimensionsSwapped =
+      !preserveDesignDimensions && origL > 0 && origA > 0 && origL < origA;
     for (const h of item.drillHoles ?? []) {
       if ((h as { holeType?: string }).holeType === "cavilha" && (h as { topDrillable?: boolean }).topDrillable === false) continue;
       let x = Number(h?.x);
@@ -768,17 +793,6 @@ export function cutlistToPieces(
         add(x, y, diameter, depth, (h as { holeType?: string })?.holeType, (h as { topDrillable?: boolean })?.topDrillable);
       }
     }
-    const industrialCode = item.grainDirection;
-    const itemMeta = (item as { metadata?: Record<string, unknown> }).metadata;
-    const metaAllow = itemMeta?.allowPieceRotation;
-    const metaLock = itemMeta?.lockWoodGrain;
-    const rotationMeta = buildCutlistRotationMetadata({
-      allowPieceRotation:
-        metaAllow === true ? true : metaAllow === false ? false : undefined,
-      lockWoodGrain:
-        metaLock === true ? true : metaLock === false ? false : undefined,
-      materialId: pieceMaterialId,
-    });
     const nestingGrain = resolveNestingLayoutGrainDirection({
       materialId: pieceMaterialId,
       industrialGrainCode: industrialCode,
@@ -789,10 +803,10 @@ export function cutlistToPieces(
     const grainDirection =
       nestingGrain ??
       (industrialCode === "YY" ? industrialGrainToLayoutAxis("YY", item.tipo) : undefined);
-    const largura = isRemate
+    const largura = preserveDesignDimensions
       ? Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1))
       : Math.round(Math.max(dims[0] ?? 1, 1));
-    const altura = isRemate
+    const altura = preserveDesignDimensions
       ? Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1))
       : Math.round(Math.max(dims[1] ?? 1, 1));
     const pieces: CutPiece[] = [];
