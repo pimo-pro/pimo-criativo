@@ -26,6 +26,8 @@ import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMe
 import { copyDrillHolesLocalUnmodified } from "./utils/cutLayoutGeomRotation";
 import { traceHolePipeline, resolveHoleValidationDims } from "./utils/holeGeomInvariant";
 import { filterHingePanelDrillHolesToPieceBounds } from "../../modules/drilling/hingeOffsetUtils";
+import { sanitizeDoorPanelDrillHoles } from "../../modules/drilling/doorDrillingUtils";
+import { isIndustrialDoorPanelTipo } from "../doors/industrialDoorPanels";
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
 import { getIndustrialMaterial, getMaterialByIdOrLabel } from "../materials/service";
 import {
@@ -764,11 +766,15 @@ export function cutlistToPieces(
       altura = holeDims.designAlturaMm;
     }
     const pieceId = String((item as { id?: string }).id ?? item.nome ?? "cutlist-piece");
-    const hingeSafeDrillHoles = filterHingePanelDrillHolesToPieceBounds(
-      item.drillHoles as never,
-      largura,
-      altura
-    );
+    const hingeSafeDrillHoles = isIndustrialDoorPanelTipo(item.tipo)
+      ? sanitizeDoorPanelDrillHoles(
+          item.drillHoles as never,
+          largura,
+          altura,
+          "cutlistToPieces",
+          pieceId
+        )
+      : filterHingePanelDrillHolesToPieceBounds(item.drillHoles as never, largura, altura);
     const normalizedHoles = copyDrillHolesLocalUnmodified(
       hingeSafeDrillHoles as never,
       largura,

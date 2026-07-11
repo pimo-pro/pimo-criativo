@@ -432,4 +432,50 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     expect(cut?.drillHoles?.some((h) => h.holeType === "dobradica_fixacao")).toBe(false);
     expect(cut?.drillHoles?.some((h) => h.holeType === "prateleira")).toBe(true);
   });
+
+  it("TESTE 10 — port_esq 760×498: prateleira lateral legada (60,750.5) nunca chega ao invariant", () => {
+    const pieceW = 760;
+    const pieceH = 498;
+    const contaminated: Array<{
+      x: number;
+      y: number;
+      diameter: number;
+      depth: number;
+      holeType: "prateleira" | "dobradica_fixacao";
+    }> = [
+      { x: 60, y: 750.5, diameter: 5, depth: 13, holeType: "prateleira" },
+      { x: 730, y: 100, diameter: 10, depth: 12, holeType: "dobradica_fixacao" },
+    ];
+    const [piece] = cutlistToPieces([
+      {
+        id: "port-esq-contract",
+        nome: "port_esq",
+        quantidade: 1,
+        dimensoes: { largura: pieceW, altura: pieceH, profundidade: 19 },
+        espessura: 19,
+        materialId: "mdf_branco",
+        tipo: "porta_simples",
+        metadata: { industrialLabel: "port_esq" },
+        drillHoles: contaminated,
+      },
+    ]);
+    expect(piece?.drillHoles?.some((h) => h.holeType === "prateleira")).toBe(false);
+    expect(piece?.drillHoles?.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+    const v3 = cutPieceToV3(piece!, 0);
+    expect(v3.originalHoles.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+    const [roundTrip] = v3PiecesToCutPieces(
+      [
+        {
+          ...v3,
+          originalHoles: [
+            ...v3.originalHoles,
+            { x: 60, y: 750.5, diameter: 5, depth: 13, holeType: "prateleira" as const },
+          ],
+        },
+      ],
+      DEFAULT_NESTING_V3_SETTINGS
+    );
+    expect(roundTrip?.drillHoles?.some((h) => h.holeType === "prateleira")).toBe(false);
+    expect(roundTrip?.drillHoles?.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+  });
 });

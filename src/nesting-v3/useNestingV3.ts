@@ -24,6 +24,8 @@ import {
 import type { RemateFaceOffsets } from "../core/remate/rematePieceTypes";
 import { copyHolesLocalInvariant } from "../core/cutlayout/utils/holeGeomInvariant";
 import { filterHingeHolesLocalBeforeInvariant } from "../modules/drilling/hingeOffsetUtils";
+import { filterDoorHolesLocalBeforeInvariant } from "../modules/drilling/doorDrillingUtils";
+import { isIndustrialDoorPanelTipo } from "../core/doors/industrialDoorPanels";
 
 function makeDefaultState(): NestingV3State {
   const settings = loadNestingV3SettingsFromGlobal();
@@ -66,24 +68,31 @@ export function cutPieceToV3(
     rotationSnapIndex?: 0 | 1 | 2 | 3;
   }
 ): V3Piece {
-  const holes = copyHolesLocalInvariant(
-    filterHingeHolesLocalBeforeInvariant(
-      (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
-        x: h.x,
-        y: h.y,
-        diameter: h.diameter,
-        depth: h.depth,
-        holeType: h.holeType,
-        topDrillable: h.topDrillable,
-      })),
-      cp.largura_mm,
-      cp.altura_mm,
-      "cutPieceToV3",
-      cp.metadata?.v3PieceId as string | undefined
-    ),
-    cp.largura_mm,
-    cp.altura_mm
-  ) ?? [];
+  const mappedHoles = (cp.drillHoles ?? cp.holes ?? []).map((h) => ({
+    x: h.x,
+    y: h.y,
+    diameter: h.diameter,
+    depth: h.depth,
+    holeType: h.holeType,
+    topDrillable: h.topDrillable,
+  }));
+  const preInvariant = isIndustrialDoorPanelTipo(cp.pieceTipo ?? "")
+    ? filterDoorHolesLocalBeforeInvariant(
+        mappedHoles,
+        cp.largura_mm,
+        cp.altura_mm,
+        cp.pieceTipo,
+        "cutPieceToV3",
+        String(cp.metadata?.v3PieceId ?? cp.partName ?? "")
+      )
+    : filterHingeHolesLocalBeforeInvariant(
+        mappedHoles,
+        cp.largura_mm,
+        cp.altura_mm,
+        "cutPieceToV3",
+        String(cp.metadata?.v3PieceId ?? cp.partName ?? "")
+      );
+  const holes = copyHolesLocalInvariant(preInvariant, cp.largura_mm, cp.altura_mm) ?? [];
   const metaAllow = cp.metadata?.allowPieceRotation;
   const metaLock = cp.metadata?.lockWoodGrain;
   const allowPieceRotation =

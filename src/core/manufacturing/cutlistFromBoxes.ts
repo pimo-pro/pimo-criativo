@@ -21,6 +21,8 @@ import {
   filterHingePanelDrillHolesToPieceBounds,
   lateralLocalOffsetsFromOpeningGlobal,
 } from "../../modules/drilling/hingeOffsetUtils";
+import { sanitizeDoorPanelDrillHoles } from "../../modules/drilling/doorDrillingUtils";
+import { traceDoorDrilling, shouldTraceDoorPiece } from "../../modules/drilling/doorDrillingTrace";
 import { computeDoorVerticalGaps } from "../doors/doorLayerGeometry";
 import { isPiBaseCabinetId } from "../../data/moveisUnificados/pi/models";
 import { isCornerFixedFrontModel, getCornerFixedFrontHingeSide, isCornerDireitaInferiorModel, computeCornerLayoutForBox, resolveCornerDoorGapSettings, buildCornerFixedFrontDowelHoles, buildCornerFixedFrontHingeHoles, stripCornerFixedFrontHingeHoles, stripCornerLateralHingeHoles, buildCornerDoorLayerItems, getCornerCabinetConfig, syncCornerWorkspaceBoxDoorsLayer } from "../cornerCabinet";
@@ -267,6 +269,25 @@ export function cutlistComPrecoFromBox(
     if (isCornerDireitaBox && hingeSide === "left") {
       drillHoles = mirrorDoorHingeHolesX(drillHoles, p.largura_mm);
     }
+    drillHoles = sanitizeDoorPanelDrillHoles(
+      drillHoles,
+      p.largura_mm,
+      p.altura_mm,
+      "cutlistFromBoxes_doorPreCalc",
+      resolveDoorIndustrialLabel(doorsLayer[i], i, doorsLayer)
+    );
+    if (shouldTraceDoorPiece(p.largura_mm, p.altura_mm)) {
+      traceDoorDrilling({
+        stage: "cutlistFromBoxes",
+        context: "doorPreCalc_SSOT",
+        pieceId: resolveDoorIndustrialLabel(doorsLayer[i], i, doorsLayer),
+        tipo: p.tipo,
+        larguraMm: p.largura_mm,
+        alturaMm: p.altura_mm,
+        openingHeightMm: openingH,
+        holesOut: drillHoles.map((h) => ({ x: h.x, y: h.y, tipo: h.holeType })),
+      });
+    }
     doorDrillHolesByIndex.set(i, drillHoles);
     const hingeSideForPositions =
       isCornerDireitaBox && (hingeSide === "left" || hingeSide === "right") ? "right" : drillHingeSide;
@@ -448,11 +469,21 @@ export function cutlistComPrecoFromBox(
     const panelIdForDivSep = p.id;
     drillHoles = mergeDrillHoles(drillHoles, divSepDrilling.getExtraHoles(p.tipo, panelIdForDivSep));
 
-    drillHoles = filterHingePanelDrillHolesToPieceBounds(
-      drillHoles,
-      p.largura_mm,
-      p.altura_mm
-    );
+    if (isDoor) {
+      drillHoles = sanitizeDoorPanelDrillHoles(
+        drillHoles,
+        p.largura_mm,
+        p.altura_mm,
+        "cutlistFromBoxes_doorFinal",
+        resolveDoorIndustrialLabel(doorsLayer[doorIndex], doorIndex, doorsLayer)
+      );
+    } else {
+      drillHoles = filterHingePanelDrillHolesToPieceBounds(
+        drillHoles,
+        p.largura_mm,
+        p.altura_mm
+      );
+    }
 
     let industrialLabel: string | undefined;
     let displayNome = getPieceLabel(p.tipo);

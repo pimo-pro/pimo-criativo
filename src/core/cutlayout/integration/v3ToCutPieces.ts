@@ -11,6 +11,8 @@ import { sheetDimsForMaterial } from "../../../nesting-v3/nestingV3Settings";
 import { resolveNestingLayoutGrainDirection } from "../../materials/nestingGrainLock";
 import { copyHolesLocalInvariant } from "../utils/holeGeomInvariant";
 import { filterHingeHolesLocalBeforeInvariant } from "../../../modules/drilling/hingeOffsetUtils";
+import { filterDoorHolesLocalBeforeInvariant } from "../../../modules/drilling/doorDrillingUtils";
+import { isIndustrialDoorPanelTipo } from "../../../core/doors/industrialDoorPanels";
 
 function mapGrainDirection(piece: V3Piece): CutPiece["grainDirection"] {
   const nestingLock = resolveNestingLayoutGrainDirection({
@@ -39,19 +41,32 @@ export function v3PiecesToCutPieces(pieces: V3Piece[], settings: NestingV3Settin
       materialId: piece.materialId,
       materialName: piece.materialName,
       drillHoles: copyHolesLocalInvariant(
-        filterHingeHolesLocalBeforeInvariant(
-          piece.originalHoles.map((h) => ({
+        (() => {
+          const mapped = piece.originalHoles.map((h) => ({
             x: h.x,
             y: h.y,
             diameter: h.diameter,
             depth: h.depth,
             holeType: h.holeType,
-          })),
-          piece.widthMm,
-          piece.heightMm,
-          "v3ToCutPieces",
-          piece.id
-        ),
+          }));
+          if (isIndustrialDoorPanelTipo(piece.pieceTipo ?? "")) {
+            return filterDoorHolesLocalBeforeInvariant(
+              mapped,
+              piece.widthMm,
+              piece.heightMm,
+              piece.pieceTipo,
+              "v3ToCutPieces",
+              piece.id
+            );
+          }
+          return filterHingeHolesLocalBeforeInvariant(
+            mapped,
+            piece.widthMm,
+            piece.heightMm,
+            "v3ToCutPieces",
+            piece.id
+          );
+        })(),
         piece.widthMm,
         piece.heightMm,
         piece.id

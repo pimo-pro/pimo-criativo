@@ -1,5 +1,6 @@
 import { DRILLING_SSOT_VERSION } from "../../modules/drilling/drillingAdapter";
 import { clearHingeDrillingTraceLog } from "../../modules/drilling/hingeDrillingTrace";
+import { clearDoorDrillingTraceLog } from "../../modules/drilling/doorDrillingTrace";
 import { clearAllCutlistCache } from "./cutlistFromBoxes";
 
 const LS_KEY = "pimo-industrial-drilling-ssot";
@@ -30,6 +31,7 @@ export function ensureIndustrialDrillingSsotFresh(): void {
 
   clearAllCutlistCache();
   clearHingeDrillingTraceLog();
+  clearDoorDrillingTraceLog();
 
   console.info(
     `[PIMO industrial] DRILLING_SSOT_VERSION ${prev ?? "(none)"} → ${DRILLING_SSOT_VERSION}; caches cutlist/hinge invalidados.`

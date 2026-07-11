@@ -622,7 +622,16 @@ export function calculateTechnicalDrillingsForPiece(
     console.warn(`[drillingService] Error calculating drills for ${piece.tipo}:`, err);
   }
   const hingeTypes = new Set<DrillType>(["dobradica", "dobradica_fixacao", "dobradica_parafuso_uniao"]);
+  const isDoorPiece = piece.tipo.startsWith("porta");
   return out.filter((h) => {
+    if (isDoorPiece) {
+      return (
+        h.x >= -0.2 &&
+        h.y >= -0.2 &&
+        h.x <= piece.largura + 0.2 &&
+        h.y <= piece.altura + 0.2
+      );
+    }
     if (!hingeTypes.has(h.tipo)) return true;
     return (
       h.x >= -0.2 &&

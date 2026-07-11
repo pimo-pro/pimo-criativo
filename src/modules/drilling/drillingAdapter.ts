@@ -180,7 +180,7 @@ function getHingePositionsFromDoorWidth(
 }
 
 /** Versão do motor de furação — invalida cache de cutlist quando a geometria de furos muda. */
-export const DRILLING_SSOT_VERSION = "hinge-piece-height-v5";
+export const DRILLING_SSOT_VERSION = "door-panel-holes-v1";
 
 const HOLE_DRILLING_TOL_MM = 0.2;
 
