@@ -27,7 +27,9 @@ function holeToBoxSpace(
   mesh: DesignPanelMeshRef,
   hole: DesignDrillHole
 ): Vec3 {
-  const local = holeMmToLocalMeters(mesh.panelType, mesh.widthM, mesh.heightM, hole.xMm, hole.yMm);
+  const local = holeMmToLocalMeters(mesh.panelType, mesh.widthM, mesh.heightM, hole.xMm, hole.yMm, {
+    face: hole.drillFace,
+  });
   return transformPoint(mesh.matrix, local);
 }
 

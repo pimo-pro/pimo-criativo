@@ -1,4 +1,5 @@
 import type { PanelDrillHole } from "../types";
+import { dedupeDrillHoles } from "../../modules/drilling/drillHoleDedup";
 import type { DivSepRules } from "../../admin/rules/divSepRules/rulesDefaults";
 import {
   clampPanelDrillHolesToPieceBounds,
@@ -239,6 +240,6 @@ export function mergeDrillHoles(
   base: PanelDrillHole[] | undefined,
   extra: PanelDrillHole[]
 ): PanelDrillHole[] {
-  if (!extra.length) return base ?? [];
-  return [...(base ?? []), ...extra];
+  if (!extra.length) return dedupeDrillHoles(base ?? []);
+  return dedupeDrillHoles([...(base ?? []), ...extra]);
 }

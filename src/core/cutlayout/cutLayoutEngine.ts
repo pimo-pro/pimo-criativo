@@ -25,6 +25,7 @@ import {
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
 import { copyDrillHolesLocalUnmodified } from "./utils/cutLayoutGeomRotation";
 import { traceHolePipeline, resolveHoleValidationDims } from "./utils/holeGeomInvariant";
+import { normalizeTallPieceToLandscape } from "./utils/tallPieceNormalization";
 import { filterHingePanelDrillHolesToPieceBounds } from "../../modules/drilling/hingeOffsetUtils";
 import { sanitizeDoorPanelDrillHoles } from "../../modules/drilling/doorDrillingUtils";
 import { isIndustrialDoorPanelTipo } from "../doors/industrialDoorPanels";
@@ -760,7 +761,19 @@ export function cutlistToPieces(
     const origA = Number(item.dimensoes?.altura) || 0;
     let largura = Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1));
     let altura = Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1));
-    const holeDims = resolveHoleValidationDims(largura, altura, item.drillHoles as never);
+
+    const tallNorm = normalizeTallPieceToLandscape(
+      largura,
+      altura,
+      item.drillHoles as never,
+      item.tipo,
+      { lockWoodGrain: rotationMeta.lockWoodGrain }
+    );
+    largura = tallNorm.larguraMm;
+    altura = tallNorm.alturaMm;
+    const drillHolesSource = tallNorm.holes ?? item.drillHoles;
+
+    const holeDims = resolveHoleValidationDims(largura, altura, drillHolesSource as never);
     if (holeDims.dimsSwapped) {
       largura = holeDims.designLarguraMm;
       altura = holeDims.designAlturaMm;
@@ -768,13 +781,13 @@ export function cutlistToPieces(
     const pieceId = String((item as { id?: string }).id ?? item.nome ?? "cutlist-piece");
     const hingeSafeDrillHoles = isIndustrialDoorPanelTipo(item.tipo)
       ? sanitizeDoorPanelDrillHoles(
-          item.drillHoles as never,
+          drillHolesSource as never,
           largura,
           altura,
           "cutlistToPieces",
           pieceId
         )
-      : filterHingePanelDrillHolesToPieceBounds(item.drillHoles as never, largura, altura);
+      : filterHingePanelDrillHolesToPieceBounds(drillHolesSource as never, largura, altura);
     const normalizedHoles = copyDrillHolesLocalUnmodified(
       hingeSafeDrillHoles as never,
       largura,
@@ -822,6 +835,7 @@ export function cutlistToPieces(
           ...rotationMeta,
           holeDesignLarguraMm: largura,
           holeDesignAlturaMm: altura,
+          ...(tallNorm.normalized ? { tallPiecePreNormalized: true } : {}),
         },
       });
       if (normalizedHoles?.length) {
@@ -835,7 +849,11 @@ export function cutlistToPieces(
             yLocal: h.y,
             tipo: h.holeType,
           })),
-          flags: { dimensionsSwapped: false, implicitRotation: false, holesTransformed: false },
+          flags: {
+            dimensionsSwapped: tallNorm.normalized,
+            implicitRotation: tallNorm.normalized,
+            holesTransformed: tallNorm.normalized,
+          },
         });
       }
     }

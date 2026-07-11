@@ -9,6 +9,8 @@ import { wallStore } from "../../stores/wallStore";
 import { applyProjectRoomToWallStore } from "../../3d/viewer-engine/room/RoomEngine";
 import type { ProjectState, ProjectSnapshot, RoomSnapshot } from "../projectTypes";
 import { defaultState } from "../projectState";
+import { applyIndustrialLoadPurge } from "../../core/manufacturing/industrialProductionPurge";
+import { clearAllCutlistCache } from "../../core/manufacturing/cutlistFromBoxes";
 
 const AUTOSAVE_STORAGE_KEY = "pimo_autosave";
 const AUTO_SAVE_BASE_DEBOUNCE_MS = 1200;
@@ -100,9 +102,17 @@ export function useProjectPersistence(
         : undefined;
     const restored = projectState ? api.revive(projectState) : null;
     if (restored) {
+      const { state: afterPurge } = applyIndustrialLoadPurge(restored);
+      clearAllCutlistCache();
       const next = api.applyResultados
-        ? api.applyResultados({ ...restored, lastAutosaveTime: parsed.savedAt ?? restored.lastAutosaveTime ?? null })
-        : { ...restored, lastAutosaveTime: parsed.savedAt ?? restored.lastAutosaveTime ?? null };
+        ? api.applyResultados({
+            ...afterPurge,
+            lastAutosaveTime: parsed.savedAt ?? afterPurge.lastAutosaveTime ?? null,
+          })
+        : {
+            ...afterPurge,
+            lastAutosaveTime: parsed.savedAt ?? afterPurge.lastAutosaveTime ?? null,
+          };
       setProject(next);
       if (next.room) {
         applyProjectRoomToWallStore(next.room);

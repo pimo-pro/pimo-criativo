@@ -23,9 +23,7 @@ import { mergeProjectSnapshotsIntoWorkspace } from "../../core/projects/projectM
 import { defaultState } from "../projectState";
 import { devLogger } from "../../utils/devLogger";
 import { clearAllCutlistCache } from "../../core/manufacturing/cutlistFromBoxes";
-import {
-  purgeIndustrialDrillingIfStale,
-} from "../../core/manufacturing/industrialProjectDrillingPurge";
+import { applyIndustrialLoadPurge } from "../../core/manufacturing/industrialProductionPurge";
 import { useToast } from "../../context/ToastContext";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 
@@ -109,11 +107,7 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
           );
           return;
         }
-        const forceIndustrialPurge =
-          (restored.projectName?.trim() ?? "").toLowerCase().includes("antunes");
-        const { state: afterPurge, purged, report } = purgeIndustrialDrillingIfStale(restored, {
-          force: forceIndustrialPurge,
-        });
+        const { state: afterPurge, purged, report } = applyIndustrialLoadPurge(restored);
         if (purged && report) {
           logProjectIo("industrial-drilling-purge", report);
           showToast(
@@ -162,7 +156,8 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         undoStackRef.current = [];
         redoStackRef.current = [];
         clearAllCutlistCache();
-        updateProject(() => applyResultados(merged), false);
+        const mergedPurged = applyIndustrialLoadPurge(merged);
+        updateProject(() => applyResultados(mergedPurged.state), false);
         logProjectIo("merge-snapshots", { count: ids.length });
       },
       listSavedProjects: async (scope = "mine"): Promise<SavedProjectInfo[]> => {

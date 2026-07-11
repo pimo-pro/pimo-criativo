@@ -1,67 +1,53 @@
 /**
  * Conversão bidirecional entre coordenadas de furo (mm) e posição local do mesh (m).
- * Alinhado com ViewerPanelVisibility.createContourEdgesGeometry.
+ * Delega posicionamento face-aware ao SSOT visual (viewerHighlightGeometry).
  */
 
-const PANEL_THICKNESS_M = 0.019;
-const OVERLAY_INSET_M = 0.00015;
+import type { TechnicalDrillHole } from "../types";
+import type { PanelOutlineKind, PanelOutlineDims } from "../../3d/viewer-engine/highlight/viewerHighlightGeometry";
+import { holeMmToLocalMeters as holeToLocalSsot } from "../../3d/viewer-engine/highlight/viewerHighlightGeometry";
 
 export type HoleLocalMeters = { x: number; y: number; z: number };
+
+function legacyDims(
+  panelType: string,
+  widthM: number,
+  heightM: number,
+  thicknessM = 0.019
+): PanelOutlineDims {
+  if (panelType === "left" || panelType === "right") {
+    return { width: heightM, height: widthM, thickness: thicknessM };
+  }
+  if (panelType === "front" || panelType === "back") {
+    return { width: widthM, height: heightM, thickness: thicknessM, depth: thicknessM };
+  }
+  return { width: widthM, height: heightM, thickness: thicknessM };
+}
 
 export function holeMmToLocalMeters(
   panelType: string,
   widthM: number,
   heightM: number,
   xMm: number,
-  yMm: number
+  yMm: number,
+  hole?: { face?: TechnicalDrillHole["face"]; tipo?: TechnicalDrillHole["tipo"] }
 ): HoleLocalMeters {
-  const t = PANEL_THICKNESS_M;
-  const panelW = widthM;
-  const panelH = heightM;
+  const dims = legacyDims(panelType, widthM, heightM);
+  const technical: TechnicalDrillHole = {
+    x: xMm,
+    y: yMm,
+    diametro: 8,
+    profundidade: 13,
+    tipo: (hole?.tipo as TechnicalDrillHole["tipo"]) ?? "cavilha",
+    face: (hole?.face as TechnicalDrillHole["face"]) ?? "fundo",
+  };
+  const local = holeToLocalSsot(panelType as PanelOutlineKind, dims, technical);
+  if (local) return local;
 
-  if (panelType === "top") {
-    const y0 = -t / 2 - OVERLAY_INSET_M;
-    return {
-      x: xMm / 1000 - panelW / 2,
-      y: y0,
-      z: panelH / 2 - yMm / 1000,
-    };
-  }
-
-  if (panelType === "bottom") {
-    const y0 = t / 2 + OVERLAY_INSET_M;
-    return {
-      x: xMm / 1000 - panelW / 2,
-      y: y0,
-      z: panelH / 2 - yMm / 1000,
-    };
-  }
-
-  if (panelType === "left" || panelType === "right") {
-    const sideH = Math.max(0.001, heightM - 2 * t);
-    const x0 = t / 2 + OVERLAY_INSET_M;
-    return {
-      x: x0,
-      y: sideH / 2 - yMm / 1000,
-      z: xMm / 1000 - panelW / 2,
-    };
-  }
-
-  if (panelType === "back") {
-    const z0 = PANEL_THICKNESS_M / 2 + OVERLAY_INSET_M;
-    return {
-      x: xMm / 1000 - panelW / 2,
-      y: heightM / 2 - yMm / 1000,
-      z: z0,
-    };
-  }
-
-  // front / prateleira / fallback horizontal
-  const y0 = -t / 2 - OVERLAY_INSET_M;
   return {
-    x: xMm / 1000 - panelW / 2,
-    y: y0,
-    z: panelH / 2 - yMm / 1000,
+    x: xMm / 1000 - widthM / 2,
+    y: -dims.thickness / 2,
+    z: heightM / 2 - yMm / 1000,
   };
 }
 
@@ -71,34 +57,30 @@ export function localMetersToHoleMm(
   heightM: number,
   local: HoleLocalMeters
 ): { xMm: number; yMm: number } {
-  const t = PANEL_THICKNESS_M;
-  const panelW = widthM;
-  const panelH = heightM;
-
   if (panelType === "top" || panelType === "bottom") {
     return {
-      xMm: (local.x + panelW / 2) * 1000,
-      yMm: (panelH / 2 - local.z) * 1000,
+      xMm: (local.x + widthM / 2) * 1000,
+      yMm: (heightM / 2 - local.z) * 1000,
     };
   }
 
   if (panelType === "left" || panelType === "right") {
-    const sideH = Math.max(0.001, heightM - 2 * t);
+    const sideH = Math.max(0.001, widthM - 2 * 0.019);
     return {
-      xMm: (local.z + panelW / 2) * 1000,
+      xMm: (local.z + heightM / 2) * 1000,
       yMm: (sideH / 2 - local.y) * 1000,
     };
   }
 
   if (panelType === "back" || panelType === "front") {
     return {
-      xMm: (local.x + panelW / 2) * 1000,
+      xMm: (local.x + widthM / 2) * 1000,
       yMm: (heightM / 2 - local.y) * 1000,
     };
   }
 
   return {
-    xMm: (local.x + panelW / 2) * 1000,
-    yMm: (panelH / 2 - local.z) * 1000,
+    xMm: (local.x + widthM / 2) * 1000,
+    yMm: (heightM / 2 - local.z) * 1000,
   };
 }

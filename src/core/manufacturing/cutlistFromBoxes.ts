@@ -23,6 +23,7 @@ import {
 } from "../../modules/drilling/hingeOffsetUtils";
 import { sanitizeDoorPanelDrillHoles } from "../../modules/drilling/doorDrillingUtils";
 import { clampPanelDrillHolesToPieceBounds } from "../../modules/drilling/panelDrillingBoundsUtils";
+import { dedupeDrillHoles } from "../../modules/drilling/drillHoleDedup";
 import { traceDoorDrilling, shouldTraceDoorPiece } from "../../modules/drilling/doorDrillingTrace";
 import { computeDoorVerticalGaps } from "../doors/doorLayerGeometry";
 import { isPiBaseCabinetId } from "../../data/moveisUnificados/pi/models";
@@ -512,6 +513,8 @@ export function cutlistComPrecoFromBox(
           )
         : hingeFiltered;
     }
+
+    drillHoles = dedupeDrillHoles(drillHoles);
 
     let industrialLabel: string | undefined;
     let displayNome = getPieceLabel(p.tipo);

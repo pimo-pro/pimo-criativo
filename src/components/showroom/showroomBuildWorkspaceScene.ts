@@ -8,7 +8,6 @@ import type { ProjectState } from "../../context/projectTypes";
 import type { WorkspaceBox } from "../../core/types";
 import { convertWorkspaceToBox } from "../../context/projectState";
 import { buildBoxLegacy, type BoxOptions } from "../../3d/objects/BoxBuilder";
-import { filterViewerDrillMarkersForMesh } from "../../3d/viewer-engine/drill/viewerCncDrillFilter";
 import { cutlistComPrecoFromBox } from "../../core/manufacturing/cutlistFromBoxes";
 import { buildViewerDrillMarkersByPanel } from "../../modules/drilling/drillingAdapter";
 import { getViewerMaterialId } from "../../core/materials/service";
@@ -154,7 +153,7 @@ export function buildShowroomWorkspaceSceneGroup(project: ProjectState): THREE.G
 
     const effectiveBox = boxModule ?? convertWorkspaceToBox(wsBoxSynced);
     const cutListForBox = project.rules ? cutlistComPrecoFromBox(effectiveBox, project.rules) : [];
-    const drillMarkersByPanel = filterViewerDrillMarkersForMesh(buildViewerDrillMarkersByPanel(cutListForBox));
+    const drillMarkersByPanel = buildViewerDrillMarkersByPanel(cutListForBox);
 
     const shelves = Number.isFinite(wsBox.prateleiras) ? Math.max(0, wsBox.prateleiras) : 0;
     const cabinetType =

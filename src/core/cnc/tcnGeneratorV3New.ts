@@ -10,7 +10,7 @@
 
 import type { SheetResult } from "../cutlayout/cutLayoutTypes";
 import type { CncDrillOperation } from "./cncTypes";
-import { holeLocalToSheetOffsetMm, toLayoutAbsoluteX } from "../cutlayout/layoutCoordinateSystem";
+import { toLayoutAbsoluteX } from "../cutlayout/layoutCoordinateSystem";
 import { getSettings } from "../settings/settingsService";
 import {
   logTcnThicknessDebug,
@@ -18,6 +18,7 @@ import {
   resolveTcnUnmDsMm,
 } from "./tcnPanelThickness";
 import { resolveTcnDrillDepthMm, resolveTcnDrillDiameterMm } from "./tcnDrillParams";
+import { tcnHoleLocalToSheetOffsetMm } from "./tcnHolePlacementOffset";
 
 const HEADER = "TPA\\ALBATROS\\EDICAD\\00.00:0";
 
@@ -351,12 +352,11 @@ export function generateTcnForPanelV3New(
   const allDrillOps: CncDrillOperation[] = [];
   for (const pl of sanitizedPlacements) {
     logTcnThicknessDebug(pl, sheet);
-    const rot = ((pl.rotacao ?? 0) % 360 + 360) % 360;
     for (const hole of pl.drillHoles ?? pl.holes ?? []) {
       const topDrillable = (hole as { topDrillable?: boolean }).topDrillable;
       if (topDrillable === false) continue;
 
-      const off = holeLocalToSheetOffsetMm(hole.x, hole.y, rot);
+      const off = tcnHoleLocalToSheetOffsetMm(hole.x, hole.y, pl);
       const xAbs = pl.x_mm + off.sx;
       const yAbs = pl.y_mm + off.sy;
       const tcnPt = transformPlacementToTcn({ x: xAbs, y: yAbs, z: 0 }, dl, maxW, maxH);
@@ -391,7 +391,7 @@ export function generateTcnForPanelV3New(
     const innerContours = pl.innerContours;
     if (innerContours?.length) {
       for (const rect of innerContours) {
-        const offR = holeLocalToSheetOffsetMm(rect.x_mm, rect.y_mm, rot);
+        const offR = tcnHoleLocalToSheetOffsetMm(rect.x_mm, rect.y_mm, pl);
         const iw = rot === 90 ? rect.altura_mm : rect.largura_mm;
         const ih = rot === 90 ? rect.largura_mm : rect.altura_mm;
         const innerPointsRaw = buildInternalContourPoints(x + offR.sx, y + offR.sy, iw, ih, zCut, V3_TOOL_RADIUS_MM);

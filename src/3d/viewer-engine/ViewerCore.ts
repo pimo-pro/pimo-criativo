@@ -33,7 +33,6 @@ import { BoxSceneController } from "./box/BoxSceneController";
 import { ViewerBoxManager } from "./box";
 import { SnapshotRenderer } from "./snapshot";
 import type { HighlightManager } from "./highlight";
-import type { EdgeOutlineBoxEntry, EdgeOutlineSystem } from "../outline";
 import { ViewerRaycastSystem } from "./raycast/ViewerRaycastSystem";
 import { ViewerState } from "./state";
 import { EventsManager } from "./events";
@@ -74,7 +73,6 @@ import { createDoorObject, getDoorSpecFromGroup } from "../objects/BoxBuilder";
 import { applyDrawerFrontMaterialToMesh } from "../objects/DrawerFactory";
 import { resolveDrawerFrontMaterialId } from "../../core/drawers/drawerFrontMaterial";
 import type { DrawerLayerItem } from "../../models/BoxLayers";
-import { filterTechnicalDrillHolesForViewerMesh, filterViewerDrillMarkersForMesh } from "./drill/viewerCncDrillFilter";
 import {
   expandBox3ByObjectExcludingLayoutProxy,
   runWithAllLayoutBoundsProxiesVisible,
@@ -213,12 +211,15 @@ import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisual
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
 import { mToMm, mmToM } from "../../utils/units";
 import { ViewerPanelVisibility } from "./panels/ViewerPanelVisibility";
-import { IndustrialDesignViewerOverlay } from "./overlays/IndustrialDesignViewerOverlay";
 import { IndustrialDesignWorkspaceMode } from "./modes/IndustrialDesignWorkspaceMode";
 import type { HoleTypeId } from "../../core/drill/holeCatalog";
 import type { DesignDrillHole, IndustrialDesignBox } from "../../core/industrialDesigner/types";
 import type { DesignValidationIssue } from "../../core/industrialDesigner/geometryValidation";
 import { DesignValidationError } from "../../core/industrialDesigner/geometryValidation";
+import {
+  auditAllBoxesHighlightVisuals,
+  type HighlightVisualAuditReport,
+} from "./highlight/viewerHighlightVisualAudit";
 import { ViewerRuntimeLoop } from "./runtime/ViewerRuntimeLoop";
 import { ViewerOverlayCoordinator } from "./overlays/ViewerOverlayCoordinator";
 import { bindViewerOverlayCoordinator } from "./overlays/bindViewerOverlayCoordinator";
@@ -422,10 +423,8 @@ export class ViewerCore {
   private readonly pendingBoxStructureUpdates = new Map<string, Partial<BoxOptions>>();
   /** Outline da parede selecionada (Room Box). */
   private wallSelectionOutline!: WallSelectionOutlineController;
-  /** Highlight por mesh (hover + seleção): portas, gavetas, painéis, furos. Só ativo quando highlightEnabled. */
+  /** Highlight por mesh (hover + seleção emissive). Independente dos contornos de peça/furo. */
   private highlightManager: HighlightManager | null = null;
-  /** Outline global e isolado: apenas visual, usado para mostrar arestas das peças. */
-  private edgeOutlineSystem: EdgeOutlineSystem | null = null;
   /** Gizmo para mover e rotacionar paredes (handles X/Z e rotação). */
   private wallGizmo: WallGizmo | null = null;
   private transformDiagnosticsEnabled = false;
@@ -604,7 +603,6 @@ export class ViewerCore {
   readonly hematiVisual: ViewerVisualFacade;
   readonly rodapeVisual: ViewerVisualFacade;
   private panelVisibility!: ViewerPanelVisibility;
-  private readonly industrialDesignViewerOverlay = new IndustrialDesignViewerOverlay();
   private readonly industrialDesignMode: IndustrialDesignWorkspaceMode;
   private viewerReadyFlag = false;
   private readonly viewerReadyCallbacks: Array<() => void> = [];
@@ -641,7 +639,6 @@ export class ViewerCore {
     this.selectionOutline = selectionSystems.selectionOutline;
     this.wallSelectionOutline = selectionSystems.wallSelectionOutline;
     this.highlightManager = selectionSystems.highlightManager;
-    this.edgeOutlineSystem = selectionSystems.edgeOutlineSystem;
     this.internalSelectionOutline = selectionSystems.internalSelectionOutline;
     this.multiSelectionOutline = selectionSystems.multiSelectionOutline;
 
@@ -686,7 +683,7 @@ export class ViewerCore {
         if (!entry) return;
         entry.drillMarkersByPanel = markers;
         this.applyPanelVisibilityForObject(entry.mesh);
-        this.syncIndustrialDesignViewerOverlay(boxId);
+        this.syncBoxPairingHighlights(boxId);
       },
       setPanelRenderingEnabled: (enabled) => {
         this.setPanelRenderingEnabled(enabled);
@@ -699,14 +696,13 @@ export class ViewerCore {
         this.setIndustrialDesignSelectionHighlight(boxId, panelId);
       },
       syncDesignVisuals: (boxId) => {
-        this.syncIndustrialDesignViewerOverlay(boxId);
+        this.syncBoxPairingHighlights(boxId);
       },
       getViewerReady: () => this.viewerReadyFlag,
     });
 
     this.panelVisibility = new ViewerPanelVisibility({
       getBoxes: () => this.boxes,
-      getHighlightEnabled: () => this.viewerState.getHighlightEnabled(),
       getBoxIdByMesh: (mesh) => this.pointerPicking.getBoxIdByMesh(mesh),
       getSharedPanelEdgeMaterial: () => this.materialPipeline.getSharedPanelEdgeMaterial(),
       getIndustrialDesignWorkspaceEnabled: () => this.industrialDesignMode.isEnabled(),
@@ -2596,7 +2592,7 @@ export class ViewerCore {
     const newDoor = createDoorObject(
       spec,
       doorMat,
-      filterTechnicalDrillHolesForViewerMesh(doorHoles)
+      doorHoles
     );
     boxGroup.add(newDoor);
     this.applyViewerDrillHoleSceneRules(newDoor);
@@ -3216,17 +3212,26 @@ export class ViewerCore {
     this.applyPanelVisibilityForObject(entry.mesh);
   }
 
-  private syncIndustrialDesignViewerOverlay(boxId: string): void {
+  private syncBoxPairingHighlights(boxId: string): void {
     const entry = this.boxes.get(boxId);
     if (!entry) return;
     const enabled = this.industrialDesignMode.isEnabled();
     const designBox = this.industrialDesignMode.getDesignBox();
     const targetId = this.industrialDesignMode.getTargetBoxId();
+    const controller = this.panelVisibility.getHighlightController();
     if (!enabled || targetId !== boxId) {
-      this.industrialDesignViewerOverlay.clear(boxId, entry.mesh);
+      controller.clearBoxPairingLines(boxId, entry.mesh);
       return;
     }
-    this.industrialDesignViewerOverlay.syncPairingLines(boxId, entry.mesh, designBox, enabled);
+    controller.syncBoxPairingLines(boxId, entry.mesh, designBox, enabled);
+  }
+
+  /** Auditoria visual de highlight — DEV / validação browser (projecto Antunes, etc.). */
+  auditHighlightVisuals(projectName?: string): HighlightVisualAuditReport {
+    return auditAllBoxesHighlightVisuals({
+      boxes: this.boxes,
+      projectName,
+    });
   }
 
   /** Raycast em meshes de painéis das caixas (para modo design industrial). */
@@ -3306,7 +3311,6 @@ export class ViewerCore {
       nextIndex: this.getNextBoxIndex(),
       heightBaseCm: ViewerCore.HEIGHT_BASE_CM,
       loadMaterial: (materialName) => this.loadMaterial(materialName),
-      filterViewerDrillMarkersForMesh,
       getFixedYForCabinet: (entry) => this.getFixedYForCabinet(entry),
       applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
       syncFeetVisualForBox: (entry) => this.syncFeetVisualForBox(entry),
@@ -3317,8 +3321,6 @@ export class ViewerCore {
       applyExplodedViewForObject: (root) => this.applyExplodedViewForObject(root),
       syncOrlaForBox: (boxId) => this.syncOrlaForBox(boxId),
       syncRemateForBox: (boxId) => this.syncRemateForBox(boxId),
-      syncEdgeOutlines: () =>
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
       applyBackgroundMode: () => this.applyBackgroundMode(),
       reapplyDisplayMaterials: () => this.reapplyDisplayMaterials(),
       isMeshInsideOrTouchingRoom: (mesh) => this.isMeshInsideOrTouchingRoom(mesh),
@@ -3399,8 +3401,6 @@ export class ViewerCore {
         shouldUseFeetLock: (boxEntry) => this.shouldUseFeetLock(boxEntry),
         getFixedYForCabinet: (boxEntry) => this.getFixedYForCabinet(boxEntry),
         applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
-        syncEdgeOutlines: () =>
-          this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
       });
     }
 
@@ -3420,11 +3420,8 @@ export class ViewerCore {
         plan: structurePlan,
         defaultMaterialName: this.defaultMaterialName,
         loadMaterial: (materialName) => this.loadMaterial(materialName),
-        filterViewerDrillMarkersForMesh,
         deleteRotationCacheForMesh: (meshUuid) => this.appliedRotationByMeshUuid.delete(meshUuid),
         sceneRootAdd: (object) => this.sceneManager.root.add(object),
-        syncEdgeOutlines: () =>
-          this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
         requestRender: () => this.requestRender(),
         logStructuralRebuild: import.meta.env.DEV && dimensionsChanged
           ? (payload) => devLogger.debug("[ViewerCore.updateBox] mesh reconstruído (estrutura alterada)", payload)
@@ -3473,8 +3470,6 @@ export class ViewerCore {
           }
         });
       },
-      syncEdgeOutlines: () =>
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
       requestRender: () => this.requestRender(),
     });
   }
@@ -3496,7 +3491,6 @@ export class ViewerCore {
 
   /**
    * Objetos marcados como furo CNC auxiliar (malha dedicada): invisíveis e sem raycast.
-   * Os furos estruturais em painéis são filtrados antes do CSG via viewerCncDrillFilter.
    */
   private applyViewerDrillHoleSceneRules(root: THREE.Object3D): void {
     this.boxSceneController.applyViewerDrillHoleSceneRules(root);
@@ -3510,8 +3504,6 @@ export class ViewerCore {
       getSelectedBoxId: () => this.viewerState.getSelectedBox(),
       clearSelectedBox: () => this.setSelectedBox(null),
       clearModelsFromBox: (boxId) => this.clearModelsFromBox(boxId),
-      syncEdgeOutlines: () =>
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
       deleteRotationCacheForMesh: (meshUuid) => this.appliedRotationByMeshUuid.delete(meshUuid),
       reflowBoxes: () => this.reflowBoxes(),
       updateCameraTarget: () => this.updateCameraTarget(),
@@ -4403,7 +4395,6 @@ export class ViewerCore {
           object.position.set(0, entry.height / 2, 0);
         }
         entry.cadModels.push({ id, object, path: modelPath });
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap());
         this.onModelLoaded?.(boxId, id, object);
       })
       .catch(() => {
@@ -4463,7 +4454,6 @@ export class ViewerCore {
     if (model.object.parent) {
       model.object.parent.remove(model.object);
     }
-    this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap());
     this.disposeObject(model.object);
     return true;
   }
@@ -4478,7 +4468,6 @@ export class ViewerCore {
       this.disposeObject(model.object);
     });
     entry.cadModels = [];
-    this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap());
   }
 
   listModels(boxId: string): Array<{ id: string; path: string }> | null {
@@ -6177,21 +6166,6 @@ export class ViewerCore {
   /** Recuo lateral dos pés (m). */
   private static readonly FEET_SIDE_INSET_M = 0.06;
 
-  private getEdgeOutlineBoxesMap(): ReadonlyMap<string, EdgeOutlineBoxEntry> {
-    const map = new Map<string, EdgeOutlineBoxEntry>();
-    this.boxes.forEach((entry, id) => {
-      map.set(id, {
-        mesh: entry.mesh,
-        width: entry.width,
-        height: entry.height,
-        carcassDepth: entry.carcassDepth,
-        depth: entry.depth,
-        cadOnly: entry.cadOnly,
-      });
-    });
-    return map;
-  }
-
   private isMeshInsideOrTouchingRoom(movingMesh: THREE.Object3D, tolerance = 0.02): boolean {
     if (!this.roomBounds) return false;
     return isMeshInsideOrTouchingRoomBounds(movingMesh, this.roomBounds, tolerance, this._boundingBox);
@@ -6452,7 +6426,6 @@ export class ViewerCore {
     this.multiSelectionOutline?.updateMatrices();
 
     this.highlightManager?.update();
-    this.edgeOutlineSystem?.update();
     this.overlayCoordinator.refreshFrame(performance.now());
 
     if (this.reflectionsEnabled) {
@@ -6550,10 +6523,7 @@ export class ViewerCore {
       this.highlightManager.dispose();
       this.highlightManager = null;
     }
-    if (this.edgeOutlineSystem) {
-      this.edgeOutlineSystem.dispose();
-      this.edgeOutlineSystem = null;
-    }
+    this.panelVisibility.getHighlightController().dispose();
     if (this.internalSelectionOutline) {
       this.internalSelectionOutline.dispose();
       this.internalSelectionOutline = null;

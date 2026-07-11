@@ -40,7 +40,6 @@ type BoxRegistryDeps = {
 type BoxMaterialBuildDeps = {
   defaultMaterialName: string;
   loadMaterial: (_materialName: string) => LoadedWoodMaterial | null;
-  filterViewerDrillMarkersForMesh: (_markers: ViewerDrillMarkersByPanel) => ViewerDrillMarkersByPanel;
 };
 
 type BoxTransformDeps = {
@@ -67,7 +66,6 @@ type BoxSceneVisualDeps = {
   applyExplodedViewForObject: (_root: THREE.Object3D) => void;
   syncOrlaForBox: (_boxId: string) => void;
   syncRemateForBox: (_boxId: string) => void;
-  syncEdgeOutlines: () => void;
   reapplyDisplayMaterials: () => void;
 };
 
@@ -129,7 +127,6 @@ type RemoveBoxFlowParams = BoxRegistryDeps & BoxLayoutCameraDeps & {
   getSelectedBoxId: () => string | null;
   clearSelectedBox: () => void;
   clearModelsFromBox: (_boxId: string) => void;
-  syncEdgeOutlines: () => void;
   deleteRotationCacheForMesh: (_meshUuid: string) => void;
 };
 
@@ -141,7 +138,6 @@ type ApplyStructuralUpdateParams = {
 } & BoxMaterialBuildDeps & BoxRenderDeps & {
   deleteRotationCacheForMesh: (_meshUuid: string) => void;
   sceneRootAdd: (_object: THREE.Object3D) => void;
-  syncEdgeOutlines: () => void;
   logStructuralRebuild?: (_payload: {
     boxId: string;
     width: number;
@@ -155,7 +151,6 @@ type OnlyTransformUpdateParams = {
   entry: ViewerBoxEntry;
   opts: Partial<BoxOptions>;
   isActiveDragForThisBox: boolean;
-  syncEdgeOutlines: () => void;
   shouldUseFeetLock: (_entry: ViewerBoxEntry) => boolean;
 } & BoxTransformDeps;
 
@@ -248,7 +243,6 @@ export class BoxSceneController {
     params.syncOrlaForBox(params.id);
     params.syncRemateForBox(params.id);
     tagBoxGroupWithId(box, params.id);
-    params.syncEdgeOutlines();
     params.applyBackgroundMode();
     params.reapplyDisplayMaterials();
     if (params.hasRoomBounds() && params.isMeshInsideOrTouchingRoom(box)) {
@@ -275,7 +269,6 @@ export class BoxSceneController {
     }
     params.clearModelsFromBox(params.id);
     this.disposeBoxMeshFromScene(entry.mesh);
-    params.syncEdgeOutlines();
     if (entry.material) {
       entry.material.textures.forEach((texture) => texture.dispose());
     }
@@ -324,7 +317,6 @@ export class BoxSceneController {
       entry.locked = opts.locked === true;
     }
     entry.mesh.updateMatrixWorld(true);
-    params.syncEdgeOutlines();
     return true;
   }
 
@@ -432,7 +424,7 @@ export class BoxSceneController {
       shelves: opts.shelves,
       doorLayerItems: opts.doorLayerItems,
       drawerLayerItems: opts.drawerLayerItems,
-      drillMarkersByPanel: params.filterViewerDrillMarkersForMesh(drillMarkers),
+      drillMarkersByPanel: drillMarkers,
       materialName,
     };
     if (loadedMat?.material != null) boxOptions.material = loadedMat.material;
@@ -447,7 +439,6 @@ export class BoxSceneController {
       entry.depth = layoutDepth;
       entry.carcassDepth = carcassDepth;
       if (!entry.material && loadedMat) entry.material = loadedMat;
-      params.syncEdgeOutlines();
       params.requestRender();
       return;
     }
@@ -500,7 +491,6 @@ export class BoxSceneController {
     });
 
     // [CORRIGIDO 2026-03] Forçar rebuild completo do Scene Graph após mesh rebuild (sem alterar transforms ou offsets)
-    params.syncEdgeOutlines();
     params.requestRender();
   }
 
@@ -635,8 +625,6 @@ export class BoxSceneController {
     if (params.isSelectedBox(id)) {
       params.notifySelectedBoxChange(id);
     }
-    params.syncEdgeOutlines();
-
     // Forçar render imediato após alteração estrutural (rebuild do mesh) para que furações e geometria nova apareçam sem segunda ação.
     if (structureChanged) {
       params.requestRender();
@@ -719,9 +707,7 @@ export class BoxSceneController {
         thickness: opts.thickness ?? 0.019,
         index: opts.index,
         materialName,
-        drillMarkersByPanel: params.filterViewerDrillMarkersForMesh(
-          opts.drillMarkersByPanel ?? emptyDrill
-        ),
+        drillMarkersByPanel: opts.drillMarkersByPanel ?? emptyDrill,
       };
       if (material?.material != null) {
         boxOptions.material = material.material;
@@ -824,7 +810,6 @@ export class BoxSceneController {
 
   /**
    * Objetos marcados como furo CNC auxiliar (malha dedicada): invisíveis e sem raycast.
-   * Os furos estruturais em painéis são filtrados antes do CSG via viewerCncDrillFilter.
    */
   applyViewerDrillHoleSceneRules(root: THREE.Object3D): void {
     root.traverse((node) => {

@@ -180,7 +180,7 @@ function getHingePositionsFromDoorWidth(
 }
 
 /** Versão do motor de furação — invalida cache de cutlist quando a geometria de furos muda. */
-export const DRILLING_SSOT_VERSION = "panel-bounds-v1";
+export const DRILLING_SSOT_VERSION = "panel-bounds-v2";
 
 const HOLE_DRILLING_TOL_MM = 0.2;
 

@@ -1,4 +1,5 @@
 import type { PanelDrillHole } from "../types";
+import { dedupePanelDrillHoles } from "../../modules/drilling/drillHoleDedup";
 import {
   DRILL_DOWEL_DIAMETER_MM,
   getDrillFrontDistance,
@@ -163,20 +164,7 @@ export function stripCornerFixedFrontHingeHoles(holes: PanelDrillHole[]): PanelD
   return holes.filter((h) => !HINGE_HOLE_TYPES.has(h.holeType ?? ""));
 }
 
-/** Remove furos coincidentes (tolerância 0,5 mm) — evita dupla perfuração no TXML. */
-export function dedupePanelDrillHoles(holes: PanelDrillHole[]): PanelDrillHole[] {
-  const out: PanelDrillHole[] = [];
-  for (const hole of holes) {
-    const dup = out.some(
-      (h) =>
-        Math.abs(h.x - hole.x) < 0.5 &&
-        Math.abs(h.y - hole.y) < 0.5 &&
-        h.topDrillable === hole.topDrillable
-    );
-    if (!dup) out.push(hole);
-  }
-  return out;
-}
+export { dedupePanelDrillHoles } from "../../modules/drilling/drillHoleDedup";
 
 /** Conta ligações lógicas (2 cima + 2 fundo + 2 lateral) antes de deduplicar. */
 export function countCornerFixedFrontFaceDowelConnections(): number {

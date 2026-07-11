@@ -1,6 +1,5 @@
 import type * as THREE from "three";
 
-import { EdgeOutlineSystem } from "../../outline";
 import { CameraManager } from "../camera";
 import { Controls } from "../controls";
 import { HighlightManager } from "../highlight";
@@ -48,7 +47,6 @@ export type ViewerSelectionSystems = {
   selectionOutline: SelectionOutlineController;
   wallSelectionOutline: WallSelectionOutlineController;
   highlightManager: HighlightManager;
-  edgeOutlineSystem: EdgeOutlineSystem;
   internalSelectionOutline: InternalSelectionOutline;
   multiSelectionOutline: MultiSelectionOutline;
 };
@@ -134,7 +132,6 @@ export function createViewerSelectionSystems(deps: {
     }),
     wallSelectionOutline: new WallSelectionOutlineController(deps.scene),
     highlightManager: new HighlightManager(deps.scene),
-    edgeOutlineSystem: new EdgeOutlineSystem(deps.scene, false),
     internalSelectionOutline: new InternalSelectionOutline(deps.scene),
     multiSelectionOutline: new MultiSelectionOutline(deps.scene),
   };
