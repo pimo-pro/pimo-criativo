@@ -25,6 +25,7 @@ import type { RemateFaceOffsets } from "../core/remate/rematePieceTypes";
 import { copyHolesLocalInvariant } from "../core/cutlayout/utils/holeGeomInvariant";
 import { filterHingeHolesLocalBeforeInvariant } from "../modules/drilling/hingeOffsetUtils";
 import { filterDoorHolesLocalBeforeInvariant } from "../modules/drilling/doorDrillingUtils";
+import { clampPanelHolesLocalBeforeInvariant } from "../modules/drilling/panelDrillingBoundsUtils";
 import { isIndustrialDoorPanelTipo } from "../core/doors/industrialDoorPanels";
 
 function makeDefaultState(): NestingV3State {
@@ -85,8 +86,14 @@ export function cutPieceToV3(
         "cutPieceToV3",
         String(cp.metadata?.v3PieceId ?? cp.partName ?? "")
       )
-    : filterHingeHolesLocalBeforeInvariant(
-        mappedHoles,
+    : clampPanelHolesLocalBeforeInvariant(
+        filterHingeHolesLocalBeforeInvariant(
+          mappedHoles,
+          cp.largura_mm,
+          cp.altura_mm,
+          "cutPieceToV3",
+          String(cp.metadata?.v3PieceId ?? cp.partName ?? "")
+        ),
         cp.largura_mm,
         cp.altura_mm,
         "cutPieceToV3",

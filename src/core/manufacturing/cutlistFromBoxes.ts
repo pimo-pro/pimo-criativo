@@ -22,6 +22,7 @@ import {
   lateralLocalOffsetsFromOpeningGlobal,
 } from "../../modules/drilling/hingeOffsetUtils";
 import { sanitizeDoorPanelDrillHoles } from "../../modules/drilling/doorDrillingUtils";
+import { clampPanelDrillHolesToPieceBounds } from "../../modules/drilling/panelDrillingBoundsUtils";
 import { traceDoorDrilling, shouldTraceDoorPiece } from "../../modules/drilling/doorDrillingTrace";
 import { computeDoorVerticalGaps } from "../doors/doorLayerGeometry";
 import { isPiBaseCabinetId } from "../../data/moveisUnificados/pi/models";
@@ -463,11 +464,23 @@ export function cutlistComPrecoFromBox(
         softClose: firstDrawer?.softClose,
         corredicaConfig: effRules.furos.tecnicos.corredica,
       });
-      drillHoles = mergeDrillHoles(drillHoles, corredicaHoles);
+      drillHoles = mergeDrillHoles(
+        drillHoles,
+        clampPanelDrillHolesToPieceBounds(
+          corredicaHoles,
+          p.largura_mm,
+          p.altura_mm,
+          "cutlistFromBoxes_corredica"
+        )
+      );
     }
 
     const panelIdForDivSep = p.id;
-    drillHoles = mergeDrillHoles(drillHoles, divSepDrilling.getExtraHoles(p.tipo, panelIdForDivSep));
+    const pieceBounds = { larguraMm: p.largura_mm, alturaMm: p.altura_mm };
+    drillHoles = mergeDrillHoles(
+      drillHoles,
+      divSepDrilling.getExtraHoles(p.tipo, panelIdForDivSep, pieceBounds)
+    );
 
     if (isDoor) {
       drillHoles = sanitizeDoorPanelDrillHoles(
@@ -478,11 +491,26 @@ export function cutlistComPrecoFromBox(
         resolveDoorIndustrialLabel(doorsLayer[doorIndex], doorIndex, doorsLayer)
       );
     } else {
-      drillHoles = filterHingePanelDrillHolesToPieceBounds(
+      const hingeFiltered = filterHingePanelDrillHolesToPieceBounds(
         drillHoles,
         p.largura_mm,
         p.altura_mm
       );
+      const clampBounds =
+        p.tipo === "lateral_esquerda" ||
+        p.tipo === "lateral_direita" ||
+        p.tipo === "cima" ||
+        p.tipo === "fundo" ||
+        p.tipo === "frente_fixa" ||
+        p.tipo === "prateleira";
+      drillHoles = clampBounds
+        ? clampPanelDrillHolesToPieceBounds(
+            hingeFiltered,
+            p.largura_mm,
+            p.altura_mm,
+            "cutlistFromBoxes_final"
+          )
+        : hingeFiltered;
     }
 
     let industrialLabel: string | undefined;

@@ -1,5 +1,10 @@
 import type { PanelDrillHole } from "../types";
 import type { DivSepRules } from "../../admin/rules/divSepRules/rulesDefaults";
+import {
+  clampPanelDrillHolesToPieceBounds,
+  clampPanelHoleLocalMm,
+  type PanelDrillPieceBounds,
+} from "../../modules/drilling/panelDrillingBoundsUtils";
 import { CORNER_FF_EDGE_DOWEL_DEPTH_MM } from "../cornerCabinet/cornerFixedFrontDowels";
 import {
   calcularPosicoesCavilha,
@@ -62,6 +67,36 @@ function addScrewFromCavilha(
   pushHole(out, cx + direction * dist, cy, 5, receptorThickness, "parafuso", "B");
 }
 
+/** Furos SEP→lateral: Y referenciado ao módulo; clamp à altura real da lateral em getExtraHoles. */
+function pushLateralSeparadorHole(
+  bucket: HoleBucket,
+  latX: number,
+  moduleCenterYMm: number,
+  cavilhaD: number,
+  lateralCavilhaDepth: number,
+  receptorThickness: number,
+  rules: DivSepRules
+): void {
+  pushHole(bucket.lateral_esquerda, latX, moduleCenterYMm, cavilhaD, lateralCavilhaDepth, "cavilha", "B", false);
+  addScrewFromCavilha(bucket.lateral_esquerda, latX, moduleCenterYMm, receptorThickness, 1, rules);
+  pushHole(bucket.lateral_direita, latX, moduleCenterYMm, cavilhaD, lateralCavilhaDepth, "cavilha", "B", false);
+  addScrewFromCavilha(bucket.lateral_direita, latX, moduleCenterYMm, receptorThickness, -1, rules);
+}
+
+function clampLateralSeparadorHolesToPiece(
+  holes: PanelDrillHole[],
+  pieceBounds: PanelDrillPieceBounds,
+  context: string
+): PanelDrillHole[] {
+  const { larguraMm, alturaMm } = pieceBounds;
+  const out: PanelDrillHole[] = [];
+  for (const h of holes) {
+    const { x, y } = clampPanelHoleLocalMm(h.x, h.y, larguraMm, alturaMm);
+    out.push({ ...h, x, y });
+  }
+  return clampPanelDrillHolesToPieceBounds(out, larguraMm, alturaMm, context);
+}
+
 /** Cavilha na espessura (borda esq/dir) — alinhada ao catálogo cavilha_10x30. */
 function pushSeparadorEdgeCavilha(
   out: PanelDrillHole[],
@@ -107,11 +142,17 @@ function drillSeparador(
 
   const lateralDepthPositions = calcularPosicoesCavilha(dims.profundidadeMm, rules);
   const lateralCavilhaDepth = CORNER_FF_EDGE_DOWEL_DEPTH_MM;
+  /** Y na lateral = posição vertical do separador; deve usar altura real da peça (aplicada em getExtraHoles). */
   for (const latX of lateralDepthPositions) {
-    pushHole(bucket.lateral_esquerda, latX, centerY, cavilhaD, lateralCavilhaDepth, "cavilha", "B", false);
-    addScrewFromCavilha(bucket.lateral_esquerda, latX, centerY, internal.espessura, 1, rules);
-    pushHole(bucket.lateral_direita, latX, centerY, cavilhaD, lateralCavilhaDepth, "cavilha", "B", false);
-    addScrewFromCavilha(bucket.lateral_direita, latX, centerY, internal.espessura, -1, rules);
+    pushLateralSeparadorHole(
+      bucket,
+      latX,
+      centerY,
+      cavilhaD,
+      lateralCavilhaDepth,
+      internal.espessura,
+      rules
+    );
   }
 
   bucket.separador.set(panelId, sepHoles);
@@ -153,7 +194,7 @@ function drillDivisor(
 }
 
 export type DivSepDrillingResult = {
-  getExtraHoles: (tipo: string, panelId?: string) => PanelDrillHole[];
+  getExtraHoles: (tipo: string, panelId?: string, pieceBounds?: PanelDrillPieceBounds) => PanelDrillHole[];
 };
 
 export function buildDivSepDrilling(
@@ -174,11 +215,18 @@ export function buildDivSepDrilling(
     drillDivisor(bucket, box, div, pid, cfg);
   });
 
-  const getExtraHoles = (tipo: string, panelId?: string): PanelDrillHole[] => {
+  const getExtraHoles = (
+    tipo: string,
+    panelId?: string,
+    pieceBounds?: PanelDrillPieceBounds
+  ): PanelDrillHole[] => {
     if (tipo === "separador" && panelId) return bucket.separador.get(panelId) ?? [];
     if (tipo === "divisorio" && panelId) return bucket.divisorio.get(panelId) ?? [];
-    if (tipo === "lateral_esquerda") return bucket.lateral_esquerda;
-    if (tipo === "lateral_direita") return bucket.lateral_direita;
+    if (tipo === "lateral_esquerda" || tipo === "lateral_direita") {
+      const raw = tipo === "lateral_esquerda" ? bucket.lateral_esquerda : bucket.lateral_direita;
+      if (!pieceBounds) return raw;
+      return clampLateralSeparadorHolesToPiece(raw, pieceBounds, "divSep_getExtraHoles_lateral");
+    }
     if (tipo === "cima") return bucket.cima;
     if (tipo === "fundo") return bucket.fundo;
     return [];

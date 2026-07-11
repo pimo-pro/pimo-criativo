@@ -12,6 +12,7 @@ import { resolveNestingLayoutGrainDirection } from "../../materials/nestingGrain
 import { copyHolesLocalInvariant } from "../utils/holeGeomInvariant";
 import { filterHingeHolesLocalBeforeInvariant } from "../../../modules/drilling/hingeOffsetUtils";
 import { filterDoorHolesLocalBeforeInvariant } from "../../../modules/drilling/doorDrillingUtils";
+import { clampPanelHolesLocalBeforeInvariant } from "../../../modules/drilling/panelDrillingBoundsUtils";
 import { isIndustrialDoorPanelTipo } from "../../../core/doors/industrialDoorPanels";
 
 function mapGrainDirection(piece: V3Piece): CutPiece["grainDirection"] {
@@ -59,8 +60,14 @@ export function v3PiecesToCutPieces(pieces: V3Piece[], settings: NestingV3Settin
               piece.id
             );
           }
-          return filterHingeHolesLocalBeforeInvariant(
-            mapped,
+          return clampPanelHolesLocalBeforeInvariant(
+            filterHingeHolesLocalBeforeInvariant(
+              mapped,
+              piece.widthMm,
+              piece.heightMm,
+              "v3ToCutPieces",
+              piece.id
+            ),
             piece.widthMm,
             piece.heightMm,
             "v3ToCutPieces",

@@ -478,4 +478,49 @@ describe("holePipelineContract — anti-regressão furos locais", () => {
     expect(roundTrip?.drillHoles?.some((h) => h.holeType === "prateleira")).toBe(false);
     expect(roundTrip?.drillHoles?.every((h) => h.y <= pieceH + 0.2)).toBe(true);
   });
+
+  it("TESTE 11 — lateral 722×481: furo SEP/cavilha legado (421,489.8) nunca rebenta invariant", () => {
+    const pieceW = 722;
+    const pieceH = 481;
+    const contaminated: Array<{
+      x: number;
+      y: number;
+      diameter: number;
+      depth: number;
+      holeType: "cavilha" | "prateleira" | "corredica";
+    }> = [
+      { x: 421, y: 489.8, diameter: 10, depth: 30, holeType: "cavilha" },
+      { x: 60, y: 100, diameter: 5, depth: 13, holeType: "prateleira" },
+    ];
+    const [piece] = cutlistToPieces([
+      {
+        id: "lat-722x481-contract",
+        nome: "LAT",
+        quantidade: 1,
+        dimensoes: { largura: pieceW, altura: pieceH, profundidade: 19 },
+        espessura: 19,
+        materialId: "mdf_branco",
+        tipo: "lateral_esquerda",
+        drillHoles: contaminated,
+      },
+    ]);
+    expect(piece?.drillHoles?.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+    expect(piece?.drillHoles?.some((h) => Math.abs(h.x - 421) < 1 && h.y > pieceH)).toBe(false);
+    const v3 = cutPieceToV3(piece!, 0);
+    expect(v3.originalHoles.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+    const [roundTrip] = v3PiecesToCutPieces(
+      [
+        {
+          ...v3,
+          originalHoles: [
+            ...v3.originalHoles,
+            { x: 421, y: 489.8, diameter: 10, depth: 30, holeType: "cavilha" as const },
+          ],
+        },
+      ],
+      DEFAULT_NESTING_V3_SETTINGS
+    );
+    expect(roundTrip?.drillHoles?.every((h) => h.y <= pieceH + 0.2)).toBe(true);
+    expect(roundTrip?.drillHoles?.some((h) => h.y > pieceH + 0.2)).toBe(false);
+  });
 });

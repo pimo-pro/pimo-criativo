@@ -5,6 +5,7 @@ import type { GlobalScoreMetrics } from "../scoring/solutionMetrics";
 import { tryFillResidualRects } from "../solver/residualRects";
 import { copyHolesLocalInvariant } from "../utils/holeGeomInvariant";
 import { filterHingeHolesLocalBeforeInvariant } from "../../../modules/drilling/hingeOffsetUtils";
+import { clampPanelHolesLocalBeforeInvariant } from "../../../modules/drilling/panelDrillingBoundsUtils";
 import {
   applyPairVirtualPieces,
   expandPairPlacement,
@@ -41,8 +42,14 @@ function buildCutPlacement(
   sheetIndex: number
 ): CutPlacement {
   const holes = copyHolesLocalInvariant(
-    filterHingeHolesLocalBeforeInvariant(
-      piece.drillHoles ?? piece.holes,
+    clampPanelHolesLocalBeforeInvariant(
+      filterHingeHolesLocalBeforeInvariant(
+        piece.drillHoles ?? piece.holes,
+        piece.largura_mm,
+        piece.altura_mm,
+        "trialRunner_buildCutPlacement",
+        String(piece.metadata?.v3PieceId ?? piece.partName ?? "")
+      ),
       piece.largura_mm,
       piece.altura_mm,
       "trialRunner_buildCutPlacement",
