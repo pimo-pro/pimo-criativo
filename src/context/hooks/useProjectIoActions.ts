@@ -23,6 +23,9 @@ import { mergeProjectSnapshotsIntoWorkspace } from "../../core/projects/projectM
 import { defaultState } from "../projectState";
 import { devLogger } from "../../utils/devLogger";
 import { clearAllCutlistCache } from "../../core/manufacturing/cutlistFromBoxes";
+import {
+  purgeIndustrialDrillingIfStale,
+} from "../../core/manufacturing/industrialProjectDrillingPurge";
 import { useToast } from "../../context/ToastContext";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 
@@ -106,7 +109,19 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
           );
           return;
         }
-        logProjectIo("project-loaded", { id, boxes: restored.workspaceBoxes?.length ?? 0 });
+        const forceIndustrialPurge =
+          (restored.projectName?.trim() ?? "").toLowerCase().includes("antunes");
+        const { state: afterPurge, purged, report } = purgeIndustrialDrillingIfStale(restored, {
+          force: forceIndustrialPurge,
+        });
+        if (purged && report) {
+          logProjectIo("industrial-drilling-purge", report);
+          showToast(
+            `Dados industriais regenerados (${report.targetSsot}): ${report.strippedDrillHolesFromExtracted} furos herdados removidos.`,
+            "info"
+          );
+        }
+        logProjectIo("project-loaded", { id, boxes: afterPurge.workspaceBoxes?.length ?? 0 });
         if (restored.room) {
           applyProjectRoomToWallStore(restored.room);
         } else if (entry.snapshot.roomSnapshot !== undefined) {
@@ -119,7 +134,26 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
           }
         }
         clearAllCutlistCache();
-        updateProject(() => ({ ...applyResultados(restored), currentProjectId: id }));
+        const nextState = applyResultados(afterPurge);
+        updateProject(() => ({ ...nextState, currentProjectId: id }));
+        if (purged) {
+          const snapshot: ProjectSnapshot = {
+            projectState: serializeState(nextState),
+            viewerSnapshot: (entry.snapshot.viewerSnapshot ??
+              null) as ProjectSnapshot["viewerSnapshot"],
+            roomSnapshot: (entry.snapshot.roomSnapshot ??
+              captureRoomSnapshot()) as ProjectSnapshot["roomSnapshot"],
+          };
+          const currentUser = getCurrentProjectUser();
+          void saveSnapshot({
+            localProjectId: id,
+            name: nextState.projectName?.trim() || entry.name || "Projeto",
+            ownerId: entry.ownerId ?? currentUser.ownerId,
+            ownerName: entry.ownerName ?? currentUser.ownerName,
+            snapshot,
+            thumbnailDataUrl: entry.thumbnailDataUrl ?? null,
+          });
+        }
       },
       mergeSnapshots: async (ids) => {
         const merged = await mergeProjectSnapshotsIntoWorkspace(ids);

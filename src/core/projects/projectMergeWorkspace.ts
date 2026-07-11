@@ -9,6 +9,7 @@ import { applyResultados } from "../../context/projectState";
 import { reviveState } from "../../context/projectPersistence";
 import type { ProjectState } from "../../context/projectTypes";
 import { loadProjectRecord } from "./projectsClient";
+import { purgeIndustrialDrillingIfStale } from "../manufacturing/industrialProjectDrillingPurge";
 
 export const PIMO_PENDING_WORKSPACE_MERGE_IDS = "pimo_pending_workspace_merge_ids";
 
@@ -222,7 +223,8 @@ export async function mergeProjectSnapshotsIntoWorkspace(
     if (!revived) {
       throw new Error(`Merge: snapshot inválido para o projeto "${id}".`);
     }
-    const withResults = applyResultados(revived);
+    const { state: purgedState } = purgeIndustrialDrillingIfStale(revived);
+    const withResults = applyResultados(purgedState);
     const prefixed = prefixMergedProjectState(withResults, id);
     const normalized = normalizeFootprintToOriginXZ(prefixed);
     prepared.push(normalized);

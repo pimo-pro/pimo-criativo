@@ -9,6 +9,7 @@ import type { ProjectState } from "../../context/projectTypes";
 import { applyResultados } from "../../context/projectState";
 import { reviveState } from "../../context/projectPersistence";
 import { loadProjectRecord } from "../projects/projectsClient";
+import { purgeIndustrialDrillingIfStale } from "../manufacturing/industrialProjectDrillingPurge";
 import { buildCutlistItemsForIndustrialExport } from "./buildCutlistItemsForIndustrialExport";
 import { gerarPdfTecnicoCompleto } from "../pdf/gerarPdfTecnico";
 import { buildCutlistPdf, type ProjectForPdf } from "../pdf/pdfCutlist";
@@ -425,7 +426,8 @@ export async function generateMultiProjectFabrication(
     if (!revived) {
       throw new Error(`multiProjectFabrication: falha ao reviver estado (${recordId}).`);
     }
-    const state = applyResultados(revived);
+    const { state: purgedState } = purgeIndustrialDrillingIfStale(revived);
+    const state = applyResultados(purgedState);
     loaded.push({ state, recordId, prefix: `P${i + 1}_` });
   }
 

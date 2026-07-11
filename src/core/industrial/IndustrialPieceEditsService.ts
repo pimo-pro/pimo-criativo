@@ -87,7 +87,11 @@ export function applyIndustrialPieceEdits(
       const largura = edit.largura ?? item.dimensoes.largura;
       const altura = edit.altura ?? item.dimensoes.altura;
       const esp = edit.espessura ?? item.espessura ?? item.dimensoes.profundidade;
-      return {
+      const dimsChanged =
+        (edit.largura != null && edit.largura !== item.dimensoes.largura) ||
+        (edit.altura != null && edit.altura !== item.dimensoes.altura) ||
+        (edit.espessura != null && edit.espessura !== (item.espessura ?? item.dimensoes.profundidade));
+      const base = {
         ...item,
         boxId: edit.boxId ?? item.boxId,
         dimensoes: {
@@ -98,6 +102,11 @@ export function applyIndustrialPieceEdits(
         },
         espessura: esp,
       };
+      if (dimsChanged && base.drillHoles?.length) {
+        const { drillHoles: _d, ...withoutHoles } = base;
+        return withoutHoles as CutListItemComPreco;
+      }
+      return base;
     });
 }
 

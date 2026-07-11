@@ -42,7 +42,11 @@ export function buildCutlistItemsForIndustrialExport(
   const extracted = boxes.flatMap((box) => {
     const byModel = extractedPartsByBoxId?.[box.id];
     if (!byModel) return [] as CutListItemComPreco[];
-    return Object.values(byModel).flat() as CutListItemComPreco[];
+    return (Object.values(byModel).flat() as CutListItemComPreco[]).map((item) => {
+      if (!item.drillHoles?.length) return item;
+      const { drillHoles: _d, ...rest } = item;
+      return rest as CutListItemComPreco;
+    });
   });
   const remateItems = buildRemateCutlistItems(remates, boxes);
   const rodapeItems = buildRodapeCutlistItems(rodapes, boxes);
