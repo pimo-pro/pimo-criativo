@@ -21,7 +21,6 @@ import {
 } from "../../../core/remate/remateProductRules";
 import { getMaterialByIdOrLabel } from "../../../core/materials/service";
 import WoodGrainRotationToggle from "../material/WoodGrainRotationToggle";
-import WoodGrainLockToggle from "../material/WoodGrainLockToggle";
 import { measureRemateGap, measureRemateGapToBox } from "../../../core/remate/remateGapMeasure";
 import RemateRulesSection from "./RemateRulesSection";
 import { OPPOSITE_MOUNT_SLOT } from "../../../core/remate/remateCloneUtils";
@@ -372,12 +371,6 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           materialId={remate.materialPresetId}
           allowPieceRotation={remate.allowPieceRotation}
           onChange={(allow) => actions.updateRemate(remate.id, { allowPieceRotation: allow })}
-        />
-
-        <WoodGrainLockToggle
-          materialId={remate.materialPresetId}
-          lockWoodGrain={remate.lockWoodGrain}
-          onChange={(lock) => actions.updateRemate(remate.id, { lockWoodGrain: lock })}
         />
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>

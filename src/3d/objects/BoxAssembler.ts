@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { PanelMaterialOptions } from "./BoxMaterialApplier";
+import { cloneMaterialWithWoodGrain } from "./BoxMaterialApplier";
 import type { BoxModel, BoxOptions, BoxPanelLayoutSpecs } from "./BoxBuilder";
 import type { DoorSpec } from "./DoorFactory";
 import type { DrawerSpec } from "./DrawerFactory";
@@ -272,7 +273,15 @@ export function buildBoxWithDeps(options: BoxOptions | undefined, deps: BoxAssem
   doorSpecs.forEach((spec, doorIndex) => {
     const item = doorLayerItems[doorIndex];
     const materialId = item?.material ?? item?.materialId ?? deps.getDefaultOfficialMaterialId();
-    const doorMaterial = deps.getMaterialForOfficialId(materialId);
+    const doorMaterial = cloneMaterialWithWoodGrain(
+      deps.getMaterialForOfficialId(materialId) as THREE.MeshStandardMaterial,
+      {
+        materialId,
+        pieceTipo: "porta_simples",
+        allowPieceRotation: item?.allowPieceRotation,
+        industrialGrainCode: "YY",
+      }
+    );
     const doorObj = deps.createDoorObject(
       spec,
       doorMaterial as THREE.Material,
@@ -320,7 +329,14 @@ export function buildBoxWithDeps(options: BoxOptions | undefined, deps: BoxAssem
           : typeof opts.materialName === "string" && opts.materialName.trim().length > 0
             ? opts.materialName.trim()
             : deps.getDefaultOfficialMaterialId();
-    const ffMat = deps.getMaterialForOfficialId(ffMaterialId) as THREE.Material;
+    const ffMat = cloneMaterialWithWoodGrain(
+      deps.getMaterialForOfficialId(ffMaterialId) as THREE.MeshStandardMaterial,
+      {
+        materialId: ffMaterialId,
+        pieceTipo: "frente_fixa",
+        industrialGrainCode: "YY",
+      }
+    );
     const ff = deps.panelFactory.createPanel(
       visual.fixedFront.size[0],
       visual.fixedFront.size[1],
@@ -353,7 +369,15 @@ export function buildBoxWithDeps(options: BoxOptions | undefined, deps: BoxAssem
           ? opts.materialName.trim()
           : defaultMaterialId;
       const frontMaterialId = resolveDrawerFrontMaterialId(drawerItem, bodyMaterialId);
-      const frontMaterial = deps.getMaterialForOfficialId(frontMaterialId);
+      const frontMaterial = cloneMaterialWithWoodGrain(
+        deps.getMaterialForOfficialId(frontMaterialId) as THREE.MeshStandardMaterial,
+        {
+          materialId: frontMaterialId,
+          pieceTipo: "gaveta_frente",
+          allowPieceRotation: drawerItem?.allowPieceRotation,
+          industrialGrainCode: "YY",
+        }
+      );
       const bodyMaterial = deps.getMaterialForOfficialId(bodyMaterialId);
       const drawerGroup = deps.createDrawerObject(spec, {
         front: frontMaterial as THREE.Material,

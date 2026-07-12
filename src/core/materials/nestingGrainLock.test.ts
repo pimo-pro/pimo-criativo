@@ -5,7 +5,9 @@ import {
   isNestingRotationLocked,
   isViewerGrainFlipped,
   resolveNestingLayoutGrainDirection,
+  resolveViewerGrainDirectionForPiece,
   resolveViewerGrainUvScale,
+  shouldPreserveDesignDimensions,
 } from "./nestingGrainLock";
 
 describe("inferMaterialMadeiraFromRecord", () => {
@@ -20,12 +22,28 @@ describe("inferMaterialMadeiraFromRecord", () => {
   });
 });
 
+describe("shouldPreserveDesignDimensions", () => {
+  it("preserva madeira e YY mesmo com allowPieceRotation true", () => {
+    expect(
+      shouldPreserveDesignDimensions({
+        materialId: "carvalho",
+        industrialGrainCode: "YY",
+        allowPieceRotation: true,
+      })
+    ).toBe(true);
+  });
+
+  it("preserva remates", () => {
+    expect(shouldPreserveDesignDimensions({ isRemate: true, materialId: "mdf_branco" })).toBe(true);
+  });
+});
+
 describe("isNestingRotationLocked", () => {
-  it("YY industrial bloqueia rotação", () => {
+  it("YY industrial bloqueia rotação por defeito", () => {
     expect(isNestingRotationLocked({ industrialGrainCode: "YY", materialId: "mdf_branco" })).toBe(true);
   });
 
-  it("materialMadeira bloqueia mesmo com XX", () => {
+  it("materialMadeira bloqueia por defeito", () => {
     expect(
       isNestingRotationLocked({
         industrialGrainCode: "XX",
@@ -35,14 +53,14 @@ describe("isNestingRotationLocked", () => {
     ).toBe(true);
   });
 
-  it("allowPieceRotation true NÃO libera rotação em material de madeira", () => {
+  it("allowPieceRotation true libera rotação em material de madeira", () => {
     expect(
       isNestingRotationLocked({
         industrialGrainCode: "XX",
         materialId: "carvalho",
         allowPieceRotation: true,
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("lockWoodGrain true bloqueia rotação mesmo sem materialMadeira", () => {
@@ -90,6 +108,39 @@ describe("resolveNestingLayoutGrainDirection", () => {
         materialId: "mdf_branco",
       })
     ).toBeUndefined();
+  });
+});
+
+describe("resolveViewerGrainDirectionForPiece", () => {
+  it("porta madeira YY = vertical por defeito", () => {
+    expect(
+      resolveViewerGrainDirectionForPiece({
+        materialId: "carvalho",
+        industrialGrainCode: "YY",
+        pieceTipo: "porta_simples",
+      })
+    ).toBe("vertical");
+  });
+
+  it("allowPieceRotation true inverte veio no viewer", () => {
+    expect(
+      resolveViewerGrainDirectionForPiece({
+        materialId: "carvalho",
+        industrialGrainCode: "YY",
+        pieceTipo: "porta_simples",
+        allowPieceRotation: true,
+      })
+    ).toBe("horizontal");
+  });
+
+  it("gaveta frente = horizontal por defeito", () => {
+    expect(
+      resolveViewerGrainDirectionForPiece({
+        materialId: "carvalho",
+        industrialGrainCode: "YY",
+        pieceTipo: "gaveta_frente",
+      })
+    ).toBe("horizontal");
   });
 });
 

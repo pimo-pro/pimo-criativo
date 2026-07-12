@@ -20,8 +20,8 @@ import type {
 import type { LayoutVisualMaterial, OperationResult, IndustrialGrainCode } from "../types";
 import { industrialGrainToLayoutAxis } from "../materials/grainDirection";
 import {
-  isNestingRotationLocked,
   resolveNestingLayoutGrainDirection,
+  shouldPreserveDesignDimensions,
 } from "../materials/nestingGrainLock";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
@@ -755,16 +755,14 @@ export function cutlistToPieces(
         metaLock === true ? true : metaLock === false ? false : undefined,
       materialId: pieceMaterialId,
     });
-    const preserveDesignDimensions =
-      // Contrato madeira (veio): nunca reordenar L×A — corte fiel ao Viewer.
-      isRemate ||
-      isNestingRotationLocked({
-        materialId: pieceMaterialId,
-        industrialGrainCode: industrialCode,
-        pieceTipo: item.tipo,
-        allowPieceRotation: rotationMeta.allowPieceRotation,
-        lockWoodGrain: rotationMeta.lockWoodGrain,
-      });
+    const preserveDesignDimensions = shouldPreserveDesignDimensions({
+      isRemate,
+      materialId: pieceMaterialId,
+      industrialGrainCode: industrialCode,
+      pieceTipo: item.tipo,
+      allowPieceRotation: rotationMeta.allowPieceRotation,
+      lockWoodGrain: rotationMeta.lockWoodGrain,
+    });
 
     const seen = new Set<string>();
     const normalizedHoles: NormalizedHoleForPiece[] = [];

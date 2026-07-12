@@ -15,7 +15,7 @@ import { getMaterialForBox, getMaterialByIdOrLabel } from "./service";
 import { getPresetById, getDefaultPreset } from "./presetService";
 import type { BoxModule } from "../types";
 import { loadTextureAsync } from "../../3d/viewer-engine/materials/textureCache";
-import { isMaterialMadeira, isViewerGrainFlipped, resolveViewerGrainUvScale } from "./nestingGrainLock";
+import { isMaterialMadeira, isViewerGrainFlipped, resolveViewerGrainDirectionForPiece, resolveViewerGrainUvScale } from "./nestingGrainLock";
 
 /** Objeto visual final para renderização (cor, textura, UV, PBR). */
 export interface VisualMaterial {
@@ -96,13 +96,16 @@ export function getFallbackMaterial(): VisualMaterial {
   return buildVisualMaterial(null, preset);
 }
 
-/** Peça com campos opcionais de material/UV (Layout Engine). */
+/** Peça com campos opcionais de material/UV (Layout Engine / Viewer). */
 export interface PieceWithMaterialFields {
   visualMaterial?: VisualMaterial;
   grainDirection?: "horizontal" | "vertical" | "none";
   uvScaleOverride?: { x: number; y: number };
   uvRotationOverride?: number;
   materialId?: string;
+  pieceTipo?: string;
+  allowPieceRotation?: boolean;
+  industrialGrainCode?: import("../types").IndustrialGrainCode;
   /** Índice de rotação 0–3 (remates virados no viewer). */
   rotationSnapIndex?: number;
 }
@@ -118,10 +121,18 @@ export function getEffectiveUvScaleForPiece(piece: PieceWithMaterialFields): { x
   const base = piece.visualMaterial?.uvScale ?? DEFAULT_UV_SCALE;
   const madeira = isMaterialMadeira(piece.materialId);
   const grainFlipped = isViewerGrainFlipped(piece.rotationSnapIndex);
+  const grainDirection =
+    piece.grainDirection ??
+    resolveViewerGrainDirectionForPiece({
+      pieceTipo: piece.pieceTipo,
+      materialId: piece.materialId,
+      allowPieceRotation: piece.allowPieceRotation,
+      industrialGrainCode: piece.industrialGrainCode,
+    });
   return resolveViewerGrainUvScale(base, {
     materialMadeira: madeira,
     grainFlipped,
-    grainDirection: piece.grainDirection,
+    grainDirection,
   });
 }
 
@@ -133,6 +144,28 @@ export function getEffectiveUvRotationForPiece(piece: PieceWithMaterialFields): 
     return piece.uvRotationOverride;
   }
   return piece.visualMaterial?.uvRotation ?? 0;
+}
+
+type WoodGrainMaterial = THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial;
+
+/** Aplica escala/rotação UV do veio a um material clonado (portas, gavetas, remates). */
+export function applyWoodGrainUvToMaterial(
+  material: WoodGrainMaterial,
+  piece: PieceWithMaterialFields
+): void {
+  const scale = getEffectiveUvScaleForPiece(piece);
+  const rotationDeg = getEffectiveUvRotationForPiece(piece);
+  const rotationRad = (rotationDeg * Math.PI) / 180;
+  const applyToTexture = (tex: THREE.Texture | null | undefined) => {
+    if (!tex) return;
+    tex.repeat.set(scale.x, scale.y);
+    tex.rotation = rotationRad;
+    tex.needsUpdate = true;
+  };
+  applyToTexture(material.map);
+  applyToTexture(material.normalMap);
+  applyToTexture(material.roughnessMap);
+  material.needsUpdate = true;
 }
 
 /**

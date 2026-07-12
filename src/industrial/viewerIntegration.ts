@@ -48,7 +48,8 @@ export function refreshViewerAfterMaterialSync(result: MaterialSyncViewerRefresh
 export function syncDrawerFrontMaterialToViewer(
   boxId: string,
   drawerLayerId: string,
-  materialId: string
+  materialId: string,
+  grainOptions?: { allowPieceRotation?: boolean }
 ): void {
   if (typeof window === "undefined") return;
   const viewerMaterialId = getViewerMaterialId(materialId);
@@ -56,11 +57,47 @@ export function syncDrawerFrontMaterialToViewer(
     const core = (
       window as Window & {
         viewerCore?: ViewerCoreIndustrialSurface & {
-          updateDrawerMaterial?: (b: string, d: string, m: string) => void;
+          updateDrawerMaterial?: (
+            b: string,
+            d: string,
+            m: string,
+            g?: { allowPieceRotation?: boolean }
+          ) => void;
         };
       }
     ).viewerCore;
-    core?.updateDrawerMaterial?.(boxId, drawerLayerId, viewerMaterialId);
+    core?.updateDrawerMaterial?.(boxId, drawerLayerId, viewerMaterialId, grainOptions);
+  };
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(run);
+  } else {
+    run();
+  }
+}
+
+/** Reaplica UV do veio na porta após toggle "Rotação do veio (YY)". */
+export function syncDoorWoodGrainToViewer(
+  boxId: string,
+  doorLayerId: string,
+  materialId: string,
+  grainOptions?: { allowPieceRotation?: boolean; pieceTipo?: string }
+): void {
+  if (typeof window === "undefined") return;
+  const viewerMaterialId = getViewerMaterialId(materialId);
+  const run = () => {
+    const core = (
+      window as Window & {
+        viewerCore?: ViewerCoreIndustrialSurface & {
+          updateDoorMaterial?: (
+            b: string,
+            d: string,
+            m: string,
+            g?: { allowPieceRotation?: boolean; pieceTipo?: string }
+          ) => void;
+        };
+      }
+    ).viewerCore;
+    core?.updateDoorMaterial?.(boxId, doorLayerId, viewerMaterialId, grainOptions);
   };
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(run);

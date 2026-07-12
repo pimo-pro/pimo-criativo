@@ -365,4 +365,4 @@ export function propagateMaterialSyncEffects(
   refreshViewerAfterMaterialSync(sync);
 }
 
-export { refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer } from "../../industrial/viewerIntegration";
+export { refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer, syncDoorWoodGrainToViewer } from "../../industrial/viewerIntegration";

@@ -316,11 +316,18 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
                     showToast("Material aplicado à caixa.", "info");
                   }}
                   onDoorMaterialChange={(boxId, doorLayerId, materialName) => {
-                    viewerApi?.updateDoorMaterial?.(boxId, doorLayerId, materialName);
+                    const door = selectedBox.doorsLayer?.find((d) => d.id === doorLayerId);
+                    viewerApi?.updateDoorMaterial?.(boxId, doorLayerId, materialName, {
+                      allowPieceRotation: door?.allowPieceRotation,
+                      pieceTipo: "porta_simples",
+                    });
                     showToast("Material aplicado à porta.", "info");
                   }}
                   onDrawerMaterialChange={(boxId, drawerLayerId, materialName) => {
-                    viewerApi?.updateDrawerMaterial?.(boxId, drawerLayerId, materialName);
+                    const drawer = selectedBox.drawersLayer?.find((d) => d.id === drawerLayerId);
+                    viewerApi?.updateDrawerMaterial?.(boxId, drawerLayerId, materialName, {
+                      allowPieceRotation: drawer?.allowPieceRotation,
+                    });
                     showToast("Material aplicado à gaveta.", "info");
                   }}
                   onFixedFrontMaterialChange={(boxId, materialName) => {

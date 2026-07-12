@@ -8,7 +8,7 @@ type Props = {
   compact?: boolean;
 };
 
-/** Toggle “Permitir rodar peça” — visível apenas para materiais com veio (madeira). */
+/** Toggle "Rotação do veio (YY)" — visível apenas para materiais com veio (madeira). */
 export default function WoodGrainRotationToggle({
   materialId,
   allowPieceRotation,
@@ -20,7 +20,7 @@ export default function WoodGrainRotationToggle({
   if (!madeira) return null;
 
   const checked = allowPieceRotation === true;
-  const label = compact ? "Rodar peça" : "Permitir rodar peça (nesting)";
+  const label = compact ? "Rotação do veio (YY)" : "Rotação do veio (YY)";
 
   return (
     <label
@@ -31,7 +31,7 @@ export default function WoodGrainRotationToggle({
         fontSize: 12,
         marginTop: compact ? 0 : 4,
       }}
-      title="Desligado = veio fixo no nesting. Não altera cutlist/TCN."
+      title="Desligado = veio fixo (Viewer e nesting). Ligado = roda fibra no Viewer e permite rotação 90° no nesting/TCN."
     >
       <input
         type="checkbox"

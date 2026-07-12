@@ -3,9 +3,9 @@
  * Não altera cutlist / TCN / TXML — apenas decisões de layout Nesting V3.
  *
  * Contrato industrial (comportamento definitivo do pipeline):
- * 1. cutlistToPieces — preserveDesignDimensions: madeira/remate/YY mantém L×A do Viewer
+ * 1. cutlistToPieces — shouldPreserveDesignDimensions: madeira/remate/YY mantém L×A do Viewer (sempre)
  * 2. pairPacking — dimensões reais quando !isRotatablePiece; sem merge que inverta L↔A
- * 3. runCutLayout — isNestingRotationLocked → isRotatablePiece false → só orientação 0°
+ * 3. runCutLayout — isNestingRotationLocked → isRotatablePiece; rotação 0° por defeito; allowPieceRotation true desbloqueia
  *
  * Regressão: src/core/cutlayout/cutlistToPiecesGrain.test.ts
  */
@@ -22,10 +22,12 @@ export type NestingGrainLockInput = {
   materialId?: string;
   industrialGrainCode?: IndustrialGrainCode;
   pieceTipo?: string;
-  /** false = veio fixo no nesting; true = permite rodar (ignorado em material de madeira); undefined = regra por material. */
+  /** false/undefined = veio fixo; true = utilizador activou rotação do veio (único desbloqueio em madeira/YY). */
   allowPieceRotation?: boolean;
   /** true = proibir rotação no nesting (veio fixo). Auto-activo para material de madeira. */
   lockWoodGrain?: boolean;
+  /** Remates: nunca reordenar L×A no cutlistToPieces. */
+  isRemate?: boolean;
 };
 
 /** Lê materialMadeira do CRUD (com inferência em applyInferredIndustrialFields). */
@@ -71,15 +73,52 @@ export function isWoodGrainLockActive(input: NestingGrainLockInput): boolean {
 }
 
 /**
- * true → nesting não pode rodar a peça (0° apenas).
- * Material de madeira ignora completamente allowPieceRotation.
+ * Nunca reordenar L×A (swap largura↔altura) — independente de permitir rotação 90° no nesting.
+ * Madeira, YY, remate e lockWoodGrain mantêm dimensões do Viewer/cutlist.
  */
-export function isNestingRotationLocked(input: NestingGrainLockInput): boolean {
-  if (isWoodGrainLockActive(input)) return true;
-  if (input.allowPieceRotation === false) return true;
-  if (input.allowPieceRotation === true) return false;
+export function shouldPreserveDesignDimensions(input: NestingGrainLockInput): boolean {
+  if (input.isRemate) return true;
+  if (isMaterialMadeira(input.materialId)) return true;
+  if (input.lockWoodGrain === true) return true;
   if (isGrainRotationLocked(input.industrialGrainCode)) return true;
   return false;
+}
+
+/**
+ * true → nesting não pode rodar a peça (0° apenas).
+ * allowPieceRotation === true é o único desbloqueio em madeira/YY (botão "Rotação do veio").
+ */
+export function isNestingRotationLocked(input: NestingGrainLockInput): boolean {
+  if (input.allowPieceRotation === true) return false;
+  if (input.allowPieceRotation === false) return true;
+  if (input.lockWoodGrain === true) return true;
+  if (isMaterialMadeira(input.materialId)) return true;
+  if (isGrainRotationLocked(input.industrialGrainCode)) return true;
+  return false;
+}
+
+/**
+ * Orientação do veio no Viewer (face frontal).
+ * horizontal = fibra ao longo de X; vertical = fibra ao longo de Y.
+ */
+export function resolveViewerGrainDirectionForPiece(input: {
+  pieceTipo?: string;
+  materialId?: string;
+  allowPieceRotation?: boolean;
+  industrialGrainCode?: IndustrialGrainCode;
+}): "horizontal" | "vertical" | "none" {
+  if (!isMaterialMadeira(input.materialId)) return "none";
+  const code = input.industrialGrainCode;
+  if (code !== "YY" && !isGrainRotationLocked(code)) return "none";
+  const axis =
+    code === "YY" && input.pieceTipo
+      ? industrialGrainToLayoutAxis("YY", input.pieceTipo)
+      : "width";
+  let direction: "horizontal" | "vertical" = axis === "length" ? "horizontal" : "vertical";
+  if (input.allowPieceRotation === true) {
+    direction = direction === "horizontal" ? "vertical" : "horizontal";
+  }
+  return direction;
 }
 
 /**

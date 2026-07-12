@@ -72,6 +72,7 @@ import type { ViewerBoxEntry } from "./types";
 import type { BoxPanelIds, TechnicalDrillHole } from "../../core/types";
 import { createDoorObject, getDoorSpecFromGroup } from "../objects/BoxBuilder";
 import { applyDrawerFrontMaterialToMesh } from "../objects/DrawerFactory";
+import { cloneMaterialWithWoodGrain } from "../objects/BoxMaterialApplier";
 import { resolveDrawerFrontMaterialId } from "../../core/drawers/drawerFrontMaterial";
 import type { DrawerLayerItem } from "../../models/BoxLayers";
 import { filterTechnicalDrillHolesForViewerMesh, filterViewerDrillMarkersForMesh } from "./drill/viewerCncDrillFilter";
@@ -2523,7 +2524,12 @@ export class ViewerCore {
    * Localiza o grupo door-layer-{doorLayerId}, extrai DoorSpec, remove a porta antiga, cria nova com createDoorObject
    * preservando doorHoles e aplica applyPanelIdsToBox para manter userData.boxId/doorLayerId para seleção e outline.
    */
-  updateDoorMaterial(boxId: string, doorLayerId: string, materialName: string): void {
+  updateDoorMaterial(
+    boxId: string,
+    doorLayerId: string,
+    materialName: string,
+    grainOptions?: { allowPieceRotation?: boolean; pieceTipo?: string }
+  ): void {
     if (import.meta.env.DEV) {
       devLogger.debug("[DOOR-MAT] ViewerCore.updateDoorMaterial", { boxId, doorLayerId, materialName });
     }
@@ -2573,7 +2579,15 @@ export class ViewerCore {
       if (Array.isArray(ud?.doorHolesEffective)) doorHoles = ud.doorHolesEffective;
     });
     boxGroup.remove(oldDoorGroup);
-    const doorMat = (nextMaterial.material as THREE.Material).clone();
+    const doorMat = cloneMaterialWithWoodGrain(
+      (nextMaterial.material as THREE.MeshStandardMaterial).clone(),
+      {
+        materialId: materialName,
+        pieceTipo: grainOptions?.pieceTipo ?? "porta_simples",
+        allowPieceRotation: grainOptions?.allowPieceRotation,
+        industrialGrainCode: "YY",
+      }
+    );
     const newDoor = createDoorObject(
       spec,
       doorMat,
@@ -2610,13 +2624,25 @@ export class ViewerCore {
    * Aplica um material à frente de uma gaveta (por boxId e drawerLayerId).
    * Usado quando o utilizador altera o material da gaveta pelo menu de contexto.
    */
-  updateDrawerMaterial(boxId: string, drawerLayerId: string, materialName: string): void {
+  updateDrawerMaterial(
+    boxId: string,
+    drawerLayerId: string,
+    materialName: string,
+    grainOptions?: { allowPieceRotation?: boolean }
+  ): void {
     const entry = this.boxes.get(boxId);
     if (!entry) return;
     const nextMaterial = this.loadMaterial(materialName);
     if (!nextMaterial) return;
-    const drawerMat = (nextMaterial.material as THREE.Material).clone();
-    drawerMat.needsUpdate = true;
+    const drawerMat = cloneMaterialWithWoodGrain(
+      (nextMaterial.material as THREE.MeshStandardMaterial).clone(),
+      {
+        materialId: materialName,
+        pieceTipo: "gaveta_frente",
+        allowPieceRotation: grainOptions?.allowPieceRotation,
+        industrialGrainCode: "YY",
+      }
+    );
     entry.mesh.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const ud = (child as THREE.Mesh & { userData: { drawerLayerId?: string; drawerPart?: string; drawerFrontMaterialId?: string } }).userData;
@@ -2661,8 +2687,15 @@ export class ViewerCore {
       const frontMaterialId = resolveDrawerFrontMaterialId(drawerItem, boxMaterialId);
       const loaded = this.loadMaterial(frontMaterialId);
       if (!loaded) continue;
-      const drawerMat = (loaded.material as THREE.Material).clone();
-      drawerMat.needsUpdate = true;
+      const drawerMat = cloneMaterialWithWoodGrain(
+        (loaded.material as THREE.MeshStandardMaterial).clone(),
+        {
+          materialId: frontMaterialId,
+          pieceTipo: "gaveta_frente",
+          allowPieceRotation: drawerItem.allowPieceRotation,
+          industrialGrainCode: "YY",
+        }
+      );
       entry.mesh.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
         const ud = (child as THREE.Mesh & {

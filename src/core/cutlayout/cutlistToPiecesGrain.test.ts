@@ -144,12 +144,10 @@ describe("pipeline industrial madeira — integração", () => {
   it("contrato definitivo: três barreiras activas no fluxo cutlist → layout", () => {
     const [cutPiece] = cutlistToPieces([woodDoorCutlistItem]);
 
-    // Barreira 1 — cutlistToPieces
     expect(cutPiece.largura_mm).toBe(596);
     expect(cutPiece.altura_mm).toBe(716);
     expect(cutPiece.metadata?.lockWoodGrain).toBe(true);
 
-    // Barreira 2 — v3ToCutPieces + isRotatablePiece
     const v3 = cutPieceToV3(cutPiece!, 0, { lockWoodGrain: true });
     const [layoutPiece] = v3PiecesToCutPieces([v3], DEFAULT_NESTING_V3_SETTINGS);
     expect(
@@ -164,7 +162,6 @@ describe("pipeline industrial madeira — integração", () => {
     expect(isRotatablePiece(layoutPiece)).toBe(false);
     expect(getOrientations(layoutPiece, { rotationWeight: 0, rotationPenalty: 0, rotationPreferenceMode: "auto" }, isRotatablePiece)).toHaveLength(1);
 
-    // Barreira 3 — runCutLayout (inclui pairPacking sem swap)
     const layout = runCutLayout([layoutPiece], {
       largura_mm: 2800,
       altura_mm: 2070,
@@ -174,5 +171,25 @@ describe("pipeline industrial madeira — integração", () => {
     expect(pl?.rotacao).toBe(0);
     expect(pl?.largura_mm).toBe(596);
     expect(pl?.altura_mm).toBe(716);
+  });
+
+  it("allowPieceRotation true libera rotação mas mantém L×A originais", () => {
+    const [cutPiece] = cutlistToPieces([
+      {
+        ...woodDoorCutlistItem,
+        metadata: { lockWoodGrain: true, allowPieceRotation: true },
+      },
+    ]);
+
+    expect(cutPiece.largura_mm).toBe(596);
+    expect(cutPiece.altura_mm).toBe(716);
+    expect(isRotatablePiece(cutPiece)).toBe(true);
+    const orientations = getOrientations(
+      cutPiece,
+      { rotationWeight: 0, rotationPenalty: 0, rotationPreferenceMode: "auto" },
+      isRotatablePiece
+    );
+    expect(orientations.some((o) => o.rotation === 90)).toBe(true);
+    expect(orientations.some((o) => o.w === 596 && o.h === 716 && o.rotation === 0)).toBe(true);
   });
 });

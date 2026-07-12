@@ -6,6 +6,30 @@ import {
   getMaterialMode,
   getMaterialForOfficialId as engineGetMaterialForOfficialId,
 } from "../viewer-engine/materials/MaterialEngine";
+import { applyWoodGrainUvToMaterial } from "../../core/materials/materialLibraryV2";
+import type { IndustrialGrainCode } from "../../core/types";
+
+export type WoodGrainMaterialOptions = {
+  materialId: string;
+  pieceTipo?: string;
+  allowPieceRotation?: boolean;
+  industrialGrainCode?: IndustrialGrainCode;
+};
+
+/** Clona material PBR e aplica UV do veio (madeira/YY) para painéis de porta/gaveta. */
+export function cloneMaterialWithWoodGrain(
+  source: THREE.MeshStandardMaterial,
+  options: WoodGrainMaterialOptions
+): THREE.MeshStandardMaterial {
+  const cloned = source.clone() as THREE.MeshStandardMaterial;
+  applyWoodGrainUvToMaterial(cloned, {
+    materialId: options.materialId,
+    pieceTipo: options.pieceTipo,
+    allowPieceRotation: options.allowPieceRotation,
+    industrialGrainCode: options.industrialGrainCode ?? "YY",
+  });
+  return cloned;
+}
 
 export type PanelMaterialOptions =
   | { singleMaterial: THREE.Material }

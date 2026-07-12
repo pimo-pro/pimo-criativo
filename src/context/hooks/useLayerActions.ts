@@ -18,7 +18,7 @@ import { validateBoxDrawerConfiguration } from "../../core/drawers/drawerUiValid
 import { getSettings } from "../../core/settings/settingsService";
 import { devLogger } from "../../utils/devLogger";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
-import { commitMaterialSync, refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer } from "../../core/materials/materialSync";
+import { commitMaterialSync, refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer, syncDoorWoodGrainToViewer } from "../../core/materials/materialSync";
 
 export type LayerActions = Pick<
   ProjectActions,
@@ -242,19 +242,30 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
         syncDrawerFrontMaterialToViewer(boxId, drawerLayerId, material);
       },
       setDoorAllowPieceRotation: (boxId, doorLayerId, allow) => {
+        let doorMaterialId = "";
         updateProject(
           (prev) => {
             const workspaceBoxes = prev.workspaceBoxes.map((box) => {
               if (box.id !== boxId) return box;
-              const doorsLayer = (box.doorsLayer ?? []).map((door) =>
-                door.id === doorLayerId ? { ...door, allowPieceRotation: allow } : door
-              );
+              const doorsLayer = (box.doorsLayer ?? []).map((door) => {
+                if (door.id === doorLayerId) {
+                  doorMaterialId = door.material ?? door.materialId ?? box.material ?? "";
+                  return { ...door, allowPieceRotation: allow };
+                }
+                return door;
+              });
               return { ...box, doorsLayer };
             });
             return { ...prev, workspaceBoxes };
           },
           true
         );
+        if (doorMaterialId) {
+          syncDoorWoodGrainToViewer(boxId, doorLayerId, doorMaterialId, {
+            allowPieceRotation: allow,
+            pieceTipo: "porta_simples",
+          });
+        }
       },
       setDoorLockWoodGrain: (boxId, doorLayerId, lock) => {
         updateProject(
@@ -272,19 +283,29 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
         );
       },
       setDrawerAllowPieceRotation: (boxId, drawerLayerId, allow) => {
+        let drawerMaterialId = "";
         updateProject(
           (prev) => {
             const workspaceBoxes = prev.workspaceBoxes.map((box) => {
               if (box.id !== boxId) return box;
-              const drawersLayer = (box.drawersLayer ?? []).map((drawer) =>
-                drawer.id === drawerLayerId ? { ...drawer, allowPieceRotation: allow } : drawer
-              );
+              const drawersLayer = (box.drawersLayer ?? []).map((drawer) => {
+                if (drawer.id === drawerLayerId) {
+                  drawerMaterialId = drawer.material ?? drawer.materialId ?? box.material ?? "";
+                  return { ...drawer, allowPieceRotation: allow };
+                }
+                return drawer;
+              });
               return { ...box, drawersLayer };
             });
             return { ...prev, workspaceBoxes };
           },
           true
         );
+        if (drawerMaterialId) {
+          syncDrawerFrontMaterialToViewer(boxId, drawerLayerId, drawerMaterialId, {
+            allowPieceRotation: allow,
+          });
+        }
       },
       setDrawerLockWoodGrain: (boxId, drawerLayerId, lock) => {
         updateProject(

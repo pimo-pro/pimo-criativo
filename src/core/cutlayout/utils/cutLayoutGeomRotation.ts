@@ -8,6 +8,9 @@
  *   ponto (hx, hy) → (hy, origW − hx)
  */
 
+import { isNestingRotationLocked } from "../../materials/nestingGrainLock";
+import type { IndustrialGrainCode } from "../../types";
+
 type DrillHole = {
   x: number;
   y: number;
@@ -282,10 +285,39 @@ export function canRotatePieceGeometry(piece: {
   grainDirection?: string;
   drillHoles?: DrillHole[];
   holes?: DrillHole[];
+  materialId?: string;
+  industrialGrainCode?: IndustrialGrainCode;
+  pieceTipo?: string;
+  metadata?: Record<string, unknown>;
 }): boolean {
-  if (piece.grainDirection) return false;
   const holes = piece.drillHoles ?? piece.holes ?? [];
   if (holes.some((h) => h.topDrillable === false)) return false;
+  if (piece.grainDirection) {
+    const meta = piece.metadata;
+    const allow =
+      meta?.allowPieceRotation === true
+        ? true
+        : meta?.allowPieceRotation === false
+          ? false
+          : undefined;
+    const lock =
+      meta?.lockWoodGrain === true
+        ? true
+        : meta?.lockWoodGrain === false
+          ? false
+          : undefined;
+    if (
+      isNestingRotationLocked({
+        materialId: piece.materialId,
+        industrialGrainCode: piece.industrialGrainCode,
+        pieceTipo: piece.pieceTipo,
+        allowPieceRotation: allow,
+        lockWoodGrain: lock,
+      })
+    ) {
+      return false;
+    }
+  }
   return true;
 }
 
