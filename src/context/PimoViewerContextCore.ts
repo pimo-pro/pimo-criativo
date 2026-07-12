@@ -231,8 +231,18 @@ export type PimoViewerApi = {
   getMaterialQuality?: () => ViewerMaterialQuality;
   updateBoxMaterial?: (_boxId: string, _materialId: string) => void;
   setBoxNoBackPanel?: (_boxId: string, _enabled: boolean) => boolean;
-  updateDoorMaterial?: (_boxId: string, _doorLayerId: string, _materialId: string) => void;
-  updateDrawerMaterial?: (_boxId: string, _drawerLayerId: string, _materialId: string) => void;
+  updateDoorMaterial?: (
+    _boxId: string,
+    _doorLayerId: string,
+    _materialId: string,
+    _grainOptions?: { allowPieceRotation?: boolean; pieceTipo?: string }
+  ) => void;
+  updateDrawerMaterial?: (
+    _boxId: string,
+    _drawerLayerId: string,
+    _materialId: string,
+    _grainOptions?: { allowPieceRotation?: boolean }
+  ) => void;
   updateFixedFrontMaterial?: (_boxId: string, _materialId: string) => void;
   setMaterialMode?: (_mode: "performance" | "showcase" | "realistic") => void;
   getMaterialMode?: () => "performance" | "showcase" | "realistic";

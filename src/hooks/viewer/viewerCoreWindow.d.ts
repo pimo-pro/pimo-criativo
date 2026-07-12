@@ -397,8 +397,18 @@ declare global {
       addWindowToRoom?: (...args: unknown[]) => unknown;
       updateBoxMaterial?: (id: string, materialName: string) => void;
       setBoxNoBackPanel?: (boxId: string, enabled: boolean) => boolean;
-      updateDoorMaterial?: (boxId: string, doorLayerId: string, materialName: string) => void;
-      updateDrawerMaterial?: (boxId: string, drawerLayerId: string, materialName: string) => void;
+      updateDoorMaterial?: (
+        boxId: string,
+        doorLayerId: string,
+        materialName: string,
+        grainOptions?: { allowPieceRotation?: boolean; pieceTipo?: string }
+      ) => void;
+      updateDrawerMaterial?: (
+        boxId: string,
+        drawerLayerId: string,
+        materialName: string,
+        grainOptions?: { allowPieceRotation?: boolean }
+      ) => void;
       setMaterialMode?: (mode: unknown) => void;
       getMaterialMode?: () => unknown;
       setMaterialQuality?: (quality: unknown) => void;
