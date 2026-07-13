@@ -754,7 +754,10 @@ export function cutlistToPieces(
     // A conversão preserva a origem industrial bottom-left: (x, y) → (y, larguraOriginal - x).
     const origL = Number(item.dimensoes?.largura) || 0;
     const origA = Number(item.dimensoes?.altura) || 0;
-    const dimensionsSwapped = !isRemate && origL > 0 && origA > 0 && origL < origA;
+    // Peças YY (veio fixo): preservar a orientação original — não deitar para packing,
+    // caso contrário o veio aparece rodado 90° no layout/TCN/PDF (Viewer certo, corte errado).
+    const preserveOrientation = !isRemate && item.grainDirection === "YY" && origL > 0 && origA > 0;
+    const dimensionsSwapped = !isRemate && !preserveOrientation && origL > 0 && origA > 0 && origL < origA;
     for (const h of item.drillHoles ?? []) {
       if ((h as { holeType?: string }).holeType === "cavilha" && (h as { topDrillable?: boolean }).topDrillable === false) continue;
       let x = Number(h?.x);
@@ -791,10 +794,14 @@ export function cutlistToPieces(
       (industrialCode === "YY" ? industrialGrainToLayoutAxis("YY", item.tipo) : undefined);
     const largura = isRemate
       ? Math.round(Math.max(origL > 0 ? origL : dims[0] ?? 1, 1))
-      : Math.round(Math.max(dims[0] ?? 1, 1));
+      : preserveOrientation
+        ? Math.round(Math.max(origL, 1))
+        : Math.round(Math.max(dims[0] ?? 1, 1));
     const altura = isRemate
       ? Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1))
-      : Math.round(Math.max(dims[1] ?? 1, 1));
+      : preserveOrientation
+        ? Math.round(Math.max(origA, 1))
+        : Math.round(Math.max(dims[1] ?? 1, 1));
     const pieces: CutPiece[] = [];
     const itemWithMeta = item as typeof item & { pieceNumber?: number; shortCode?: string };
     const qty = Math.max(1, Number(item.quantidade) || 1);
