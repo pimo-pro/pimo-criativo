@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import type { InvariantRuleConfig, InvariantSystemConfig } from "../types";
 
 export const INVARIANT_STORAGE_KEY = "pimo_invariants_v1";

@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { useEffect, useRef } from "react";
 import { useProject } from "../context/useProject";
 import { validateAndRecordInvariants } from "../core/invariants/integration/invariantContract";

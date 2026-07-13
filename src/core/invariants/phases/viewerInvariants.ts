@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import type { InvariantIssue, InvariantValidationInput } from "../types";
 
 const TOLERANCE_MM = 0.5;

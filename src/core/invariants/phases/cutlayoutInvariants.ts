@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { validateIndustrialLayout } from "../../cutlayout/integration/industrialLayoutContract";
 import type { InvariantIssue, InvariantValidationInput } from "../types";
 

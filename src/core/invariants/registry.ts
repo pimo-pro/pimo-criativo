@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import type { InvariantPhase, InvariantValidatorDefinition, InvariantValidatorFn } from "./types";
 import {
   validateBoxRotationInconsistent,

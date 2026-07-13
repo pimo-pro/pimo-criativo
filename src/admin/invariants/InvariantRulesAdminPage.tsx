@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { useEffect, useMemo, useState } from "react";
 import Panel from "../../components/ui/Panel";
 import { AdminPageHeader, AdminStickyActionBar, adminPageShellStyle } from "../../components/admin/AdminUi";
@@ -80,6 +82,21 @@ export function InvariantRulesAdminPage() {
         title="Invariant Rules"
         subtitle="Motor de validação industrial — detecta problemas sem bloquear o fluxo (excepto quando a geração estiver bloqueada)."
       />
+
+      <p
+        style={{
+          margin: "0 0 12px",
+          padding: "6px 10px",
+          fontSize: 11,
+          lineHeight: 1.4,
+          color: "var(--text-muted)",
+          background: "rgba(245, 158, 11, 0.08)",
+          border: "1px solid rgba(245, 158, 11, 0.22)",
+          borderRadius: 6,
+        }}
+      >
+        Sistema Invariant — versão inicial (incompleto) · @pimo-soon
+      </p>
 
       <AdminStickyActionBar>
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>

@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 export class InvariantViolationError extends Error {
   readonly issues: import("../types").InvariantIssue[];
 

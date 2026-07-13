@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { useInvariantNotifications } from "../../stores/invariantNotificationStore";

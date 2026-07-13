@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { useState } from "react";
 import { ModalPortal } from "../ui/ModalPortal";
 import { Icon } from "@/components/icons";
@@ -84,6 +86,20 @@ export default function InvariantNotificationsModal({ isOpen, onClose }: Props) 
               <div style={{ fontSize: 15, fontWeight: 700 }}>Notificações</div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                 Invariantes industriais — persistentes
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 10,
+                  lineHeight: 1.35,
+                  color: "var(--text-muted)",
+                  padding: "4px 8px",
+                  borderRadius: 4,
+                  background: "rgba(245, 158, 11, 0.1)",
+                  border: "1px solid rgba(245, 158, 11, 0.2)",
+                }}
+              >
+                Notificações industriais — módulo em desenvolvimento · @pimo-soon
               </div>
             </div>
             <button type="button" className="button button-ghost button-sm" onClick={onClose} aria-label="Fechar">

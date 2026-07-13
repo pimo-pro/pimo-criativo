@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { invariantRulesStore } from "../config/invariantRulesStore";
 import { runPhaseValidators } from "../registry";
 import type {

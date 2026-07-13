@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { createRulesStore } from "../../../admin/rules/shared/createRulesStore";
 import { BUILTIN_RULE_SEEDS, INVARIANT_SYSTEM_DEFAULTS } from "./invariantDefaults";
 import type { InvariantRuleConfig, InvariantSystemConfig } from "../types";

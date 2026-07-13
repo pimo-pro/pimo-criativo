@@ -1,7 +1,7 @@
 {
   "phase": "after",
   "baselineCommit": "aecf802",
-  "generatedAt": "2026-07-12T16:15:12.061Z",
+  "generatedAt": "2026-07-13T09:34:06.551Z",
   "inputFixture": "src/validation/industrialPipelineTestHelpers.ts → buildMono19BenchmarkScenario()",
   "scenario": {
     "scenarioId": "MONO19_SPM_COZINHA",
@@ -173,7 +173,7 @@
       }
     ],
     "mode": "SPM",
-    "executionMs": 461.5,
+    "executionMs": 119,
     "totalSheets": 3,
     "avgWastePercent": 40.62,
     "totalMicroGapsLt5mm": 0,

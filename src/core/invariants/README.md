@@ -1,5 +1,8 @@
 # Invariant Engine — Guia interno
 
+> **@pimo-soon** — funcionalidade incompleta, será expandida na próxima fase.  
+> Ver também `ROADMAP.md` para estado actual e trabalho pendente.
+
 Motor de validação industrial não-bloqueante com notificações persistentes e controlo de exportação via admin.
 
 ## Arquitectura

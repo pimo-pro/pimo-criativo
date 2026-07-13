@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { InvariantIssue, InvariantSeverity } from "../core/invariants/types";

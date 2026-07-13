@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import { invariantNotificationStore } from "../../../stores/invariantNotificationStore";
 import { invariantRulesStore } from "../config/invariantRulesStore";
 import { InvariantViolationError } from "../errors/InvariantViolationError";

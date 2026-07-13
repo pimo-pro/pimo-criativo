@@ -1,3 +1,5 @@
+// @pimo-soon — funcionalidade incompleta, será expandida na próxima fase
+
 import type { CutLayoutResult } from "../cutlayout/cutLayoutTypes";
 import type { CutListItem } from "../types";
 import type { ProjectState } from "../../context/projectTypes";

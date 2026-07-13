@@ -1,7 +1,7 @@
 {
   "phase": "after",
   "baselineCommit": "aecf802",
-  "generatedAt": "2026-07-12T16:15:45.760Z",
+  "generatedAt": "2026-07-13T09:34:38.491Z",
   "layoutOptions": "getDefaultCncLayoutOptions()",
   "scenarios": [
     {
@@ -9,7 +9,7 @@
       "description": "Projeto real importado (TEST 1.txt) — mix heterogéneo",
       "pieceCount": 2,
       "mode": "IMPORT",
-      "executionMs": 159.8,
+      "executionMs": 57.8,
       "totalSheets": 1,
       "avgWastePercent": 92.25,
       "totalMicroGapsLt5mm": 0,
@@ -49,12 +49,12 @@
       "description": "Pipeline industrial SPM — caixa completa",
       "pieceCount": 14,
       "mode": "SPM",
-      "executionMs": 341.8,
+      "executionMs": 80.1,
       "totalSheets": 3,
       "avgWastePercent": 74.58,
       "totalMicroGapsLt5mm": 0,
       "totalInternalIslands": 0,
-      "avgWasteScatterIndex": 0.845,
+      "avgWasteScatterIndex": 0.784,
       "utilizationPercent": 25.42,
       "selectedStrategy": "skyline",
       "selectedBinHeuristic": "bestFit",
@@ -65,9 +65,9 @@
           "wastePercent": 49.39,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.627,
-          "bboxUsedMaxX": 2360,
-          "bboxUsedMaxY": 1695
+          "wasteScatterIndex": 0.445,
+          "bboxUsedMaxX": 2777,
+          "bboxUsedMaxY": 1628
         },
         {
           "sheetIndex": 2,
@@ -116,35 +116,35 @@
       "description": "Pipeline industrial MPM — duas caixas",
       "pieceCount": 24,
       "mode": "MPM",
-      "executionMs": 33128.1,
+      "executionMs": 31825.3,
       "totalSheets": 4,
       "avgWastePercent": 67.7,
       "totalMicroGapsLt5mm": 0,
       "totalInternalIslands": 0,
-      "avgWasteScatterIndex": 0.87,
+      "avgWasteScatterIndex": 0.779,
       "utilizationPercent": 32.3,
-      "selectedStrategy": "skyline",
+      "selectedStrategy": "guillotine",
       "selectedBinHeuristic": "bestFit",
       "perSheet": [
         {
           "sheetIndex": 1,
-          "usedAreaMm2": 3120098,
-          "wastePercent": 46.17,
+          "usedAreaMm2": 2695518,
+          "wastePercent": 53.49,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.827,
-          "bboxUsedMaxX": 2114,
-          "bboxUsedMaxY": 1695
+          "wasteScatterIndex": 0.814,
+          "bboxUsedMaxX": 2004,
+          "bboxUsedMaxY": 1633
         },
         {
           "sheetIndex": 2,
-          "usedAreaMm2": 1527562,
-          "wastePercent": 73.64,
+          "usedAreaMm2": 1952142,
+          "wastePercent": 66.32,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.967,
-          "bboxUsedMaxX": 1383,
-          "bboxUsedMaxY": 1206
+          "wasteScatterIndex": 0.643,
+          "bboxUsedMaxX": 2525,
+          "bboxUsedMaxY": 1316
         },
         {
           "sheetIndex": 3,
@@ -162,9 +162,9 @@
           "wastePercent": 74.81,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.847,
-          "bboxUsedMaxX": 1091,
-          "bboxUsedMaxY": 1947
+          "wasteScatterIndex": 0.821,
+          "bboxUsedMaxX": 1579,
+          "bboxUsedMaxY": 1416
         }
       ],
       "tcnRegression": {
