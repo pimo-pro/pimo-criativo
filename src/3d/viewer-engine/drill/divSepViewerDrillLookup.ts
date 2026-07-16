@@ -37,6 +37,17 @@ export function resolveDivisorViewerDrillHoles(
 }
 
 /**
+ * Viewer DIV: só marcadores de prateleira (sem cavilhas de união SEP/DIV).
+ * Sem prateleiras → lista vazia → DIV sem furos visuais.
+ */
+export function filterDivisorViewerShelfHoles(
+  holes: TechnicalDrillHole[] | undefined | null
+): TechnicalDrillHole[] {
+  if (!holes?.length) return [];
+  return holes.filter((h) => h.tipo === "prateleira");
+}
+
+/**
  * Painel vertical no CSG: prateleiras à direita do DIV → face +X (como lateral esquerda);
  * prateleiras à esquerda → face −X (como lateral direita).
  */

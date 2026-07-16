@@ -259,6 +259,20 @@ export function resolveDrillPanelTypeForMesh(panel: THREE.Mesh, panelType: Panel
 export function applyDrillHolesToPanelGeometry(panel: THREE.Mesh, panelType: PanelType, holes: TechnicalDrillHole[] | undefined): void {
   if (!holes || holes.length === 0) return;
 
+  // DIV: furos só via marcadores de overlay — CSG no painel fino gera “drill rays”.
+  const isDiv =
+    panel.userData?.divSepKind === "div" ||
+    (typeof panel.name === "string" && panel.name.startsWith("divsep-div-"));
+  if (isDiv) {
+    if (import.meta.env.DEV) {
+      devLogger.debug("[DRILL-DIAG] applyDrillHolesToPanelGeometry SKIP DIV (marcadores only)", {
+        panelName: panel.name,
+        holesReceived: holes.length,
+      });
+    }
+    return;
+  }
+
   const effectivePanelType = resolveDrillPanelTypeForMesh(panel, panelType);
 
   if (import.meta.env.DEV) {

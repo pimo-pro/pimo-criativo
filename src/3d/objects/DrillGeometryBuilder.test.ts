@@ -91,4 +91,15 @@ describe("DrillGeometryBuilder — DIV nunca top", () => {
     expect(size.x).toBeGreaterThan(size.y);
     expect(size.x).toBeGreaterThan(size.z);
   });
+
+  it("applyDrillHolesToPanelGeometry não altera geometria do DIV", async () => {
+    const { applyDrillHolesToPanelGeometry } = await import("./DrillGeometryBuilder");
+    const div = makeDivPanel();
+    const before = div.geometry.uuid;
+    applyDrillHolesToPanelGeometry(div, "left", [
+      { x: 60, y: 400, diametro: 5, profundidade: 13, tipo: "prateleira", face: "direita" },
+    ]);
+    expect(div.geometry.uuid).toBe(before);
+    expect(div.userData.hasCsgDrillHoles).not.toBe(true);
+  });
 });

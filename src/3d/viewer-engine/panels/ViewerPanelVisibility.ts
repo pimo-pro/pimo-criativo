@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { BoxPanelIds, TechnicalDrillHole, ViewerDrillMarkersByPanel } from "../../../core/types";
 import { filterTechnicalDrillHolesForViewerMesh } from "../drill/viewerCncDrillFilter";
-import { resolveDivisorViewerDrillHoles } from "../drill/divSepViewerDrillLookup";
+import { filterDivisorViewerShelfHoles, resolveDivisorViewerDrillHoles } from "../drill/divSepViewerDrillLookup";
 import {
   resolveDrillHoleViewerColorHex,
   resolvePanelOutlineColorHex,
@@ -408,11 +408,12 @@ export class ViewerPanelVisibility {
     } else if (panelType === "right") {
       const sh2 = sideH / 2;
       const d2 = depth / 2;
-      const x0 = t / 2 + ViewerPanelVisibility.OVERLAY_INSET_M;
-      pushSegment(x0, -sh2, -d2, x0, sh2, -d2);
-      pushSegment(x0, sh2, -d2, x0, sh2, d2);
-      pushSegment(x0, sh2, d2, x0, -sh2, d2);
-      pushSegment(x0, -sh2, d2, x0, -sh2, -d2);
+      const xExterior = t / 2 + ViewerPanelVisibility.OVERLAY_INSET_M;
+      const xInterior = -(t / 2 + ViewerPanelVisibility.OVERLAY_INSET_M);
+      pushSegment(xExterior, -sh2, -d2, xExterior, sh2, -d2);
+      pushSegment(xExterior, sh2, -d2, xExterior, sh2, d2);
+      pushSegment(xExterior, sh2, d2, xExterior, -sh2, d2);
+      pushSegment(xExterior, -sh2, d2, xExterior, -sh2, -d2);
       const panelW = depth;
       const panelH = sideH;
       for (const hole of holes) {
@@ -422,7 +423,7 @@ export class ViewerPanelVisibility {
         for (let i = 0; i < ViewerPanelVisibility.HOLE_CIRCLE_SEGMENTS; i += 1) {
           const t0 = (i * 2 * Math.PI) / ViewerPanelVisibility.HOLE_CIRCLE_SEGMENTS;
           const t1 = ((i + 1) * 2 * Math.PI) / ViewerPanelVisibility.HOLE_CIRCLE_SEGMENTS;
-          pushSegment(x0, b + r * Math.cos(t0), a + r * Math.sin(t0), x0, b + r * Math.cos(t1), a + r * Math.sin(t1));
+          pushSegment(xInterior, b + r * Math.cos(t0), a + r * Math.sin(t0), xInterior, b + r * Math.cos(t1), a + r * Math.sin(t1));
         }
       }
     } else if (panelType === "front") {
@@ -533,7 +534,7 @@ export class ViewerPanelVisibility {
       const x0 =
         panelType === "left"
           ? t / 2 + ViewerPanelVisibility.OVERLAY_INSET_M
-          : t / 2 + ViewerPanelVisibility.OVERLAY_INSET_M;
+          : -(t / 2 + ViewerPanelVisibility.OVERLAY_INSET_M);
       for (let i = 0; i < ViewerPanelVisibility.HOLE_CIRCLE_SEGMENTS; i += 1) {
         const t0 = (i * 2 * Math.PI) / ViewerPanelVisibility.HOLE_CIRCLE_SEGMENTS;
         const t1 = ((i + 1) * 2 * Math.PI) / ViewerPanelVisibility.HOLE_CIRCLE_SEGMENTS;
@@ -834,8 +835,7 @@ export class ViewerPanelVisibility {
         holes
       );
     } else if (ViewerPanelVisibility.isDivSepDivMesh(mesh)) {
-      // DIV com CSG: nunca EdgesGeometry (arestas dos cilindros → “drill rays”).
-      // Contorno + círculos como laterais; dimensões sempre authoredSize (pré-CSG).
+      // DIV: malha sólida (sem CSG). Contorno + círculos de prateleira — nunca EdgesGeometry.
       const size = this.getOverlayPanelSize(mesh);
       const t = ViewerPanelVisibility.PANEL_THICKNESS_M;
       const divPanelType = ViewerPanelVisibility.resolveDivOverlayPanelType(mesh);
@@ -852,20 +852,26 @@ export class ViewerPanelVisibility {
         typeof mesh.userData?.divSepIndex === "number" && Number.isFinite(mesh.userData.divSepIndex)
           ? mesh.userData.divSepIndex
           : 0;
-      const holesRaw = resolveDivisorViewerDrillHoles(divEntry?.drillMarkersByPanel?.divisoresById, {
-        divItemId,
-        divIndex,
-      });
-      const holes = filterTechnicalDrillHolesForViewerMesh(holesRaw);
+      const cachedHoles = Array.isArray(mesh.userData?.divViewerHoles)
+        ? (mesh.userData.divViewerHoles as TechnicalDrillHole[])
+        : null;
+      const holesRaw =
+        cachedHoles ??
+        resolveDivisorViewerDrillHoles(divEntry?.drillMarkersByPanel?.divisoresById, {
+          divItemId,
+          divIndex,
+        });
+      const holes = filterDivisorViewerShelfHoles(filterTechnicalDrillHolesForViewerMesh(holesRaw));
       const industrialActive = this.isIndustrialDesignActive();
       // createContourEdgesGeometry(left/right) faz sideH = height - 2*t; compensar para sideH = size.y.
       const contourHeight = size.y + 2 * t;
+      // Contorno sem furos embutidos — círculos sempre em overlays separados (marcadores limpos).
       geometry = ViewerPanelVisibility.createContourEdgesGeometry(
         divPanelType,
         size.x,
         contourHeight,
         size.z,
-        industrialActive ? [] : holes
+        []
       );
       if (!geometry) return;
 
@@ -885,22 +891,23 @@ export class ViewerPanelVisibility {
       const overlay = new THREE.LineSegments(geometry, material);
       this.finalizePanelEdgeOverlay(overlay, mesh, visible);
 
-      if (industrialActive && holes.length > 0) {
-        for (const hole of holes) {
-          const holeGeo = ViewerPanelVisibility.createHoleCircleGeometry(
-            divPanelType,
-            size.x,
-            contourHeight,
-            size.z,
-            hole
-          );
-          if (!holeGeo) continue;
-          const holeMat = this.getHoleColorMaterial(resolveDrillHoleViewerColorHex(hole.tipo));
-          const holeOverlay = new THREE.LineSegments(holeGeo, holeMat);
-          holeOverlay.userData.isIndustrialDesignHoleOverlay = true;
-          holeOverlay.userData.holeType = hole.tipo;
-          this.finalizePanelEdgeOverlay(holeOverlay, mesh, visible);
-        }
+      for (const hole of holes) {
+        const holeGeo = ViewerPanelVisibility.createHoleCircleGeometry(
+          divPanelType,
+          size.x,
+          contourHeight,
+          size.z,
+          hole
+        );
+        if (!holeGeo) continue;
+        const holeMat = industrialActive
+          ? this.getHoleColorMaterial(resolveDrillHoleViewerColorHex(hole.tipo))
+          : this.deps.getSharedPanelEdgeMaterial();
+        const holeOverlay = new THREE.LineSegments(holeGeo, holeMat);
+        holeOverlay.userData.isIndustrialDesignHoleOverlay = industrialActive;
+        holeOverlay.userData.isPanelEdgeOverlay = !industrialActive;
+        holeOverlay.userData.holeType = hole.tipo;
+        this.finalizePanelEdgeOverlay(holeOverlay, mesh, visible);
       }
       return;
     } else if (

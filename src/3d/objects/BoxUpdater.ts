@@ -17,6 +17,7 @@ import { resolveNoBackPanelFromOptions } from "../../core/box/backPanelFlags";
 import { DISABLE_DRAWER_RENDERING } from "./drawerRenderingFlags";
 import type { PanelType } from "./PanelFactory";
 import {
+  filterDivisorViewerShelfHoles,
   resolveDivisorViewerDrillHoles,
   resolveDivisorViewerPanelType,
 } from "../viewer-engine/drill/divSepViewerDrillLookup";
@@ -416,9 +417,9 @@ export function updateBoxGroupWithDeps(group: THREE.Group, options: BoxOptions |
       mesh.userData.divSepKind = "div";
       mesh.userData.divSepItemId = divItemId;
       mesh.userData.divSepIndex = divIndex;
-      if (divHoles.length) {
-        deps.applyDrillHolesToPanelGeometry(mesh, meshPanelType, divHoles);
-      }
+      // DIV: nunca CSG (cilindros furados → rays). Só marcadores de prateleira no overlay.
+      mesh.userData.divViewerHoles = filterDivisorViewerShelfHoles(divHoles);
+      mesh.userData.hasCsgDrillHoles = false;
     }
     group.add(mesh);
   });
