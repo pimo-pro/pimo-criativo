@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-07-16T15:08:50.497Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): eliminar drill rays no DIV sem EdgesGeometry pos-CSG",
+      "version": "v6.0716.1608"
+    },
+    {
       "publishedAt": "2026-07-16T13:49:13.883Z",
       "author": "pimo-pro",
       "commitMessage": "fix(viewer): panelType left/right no mesh DIV para eliminar drill rays",
