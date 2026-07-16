@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-07-16T13:18:48.685Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): injectar furos de prateleira no DIV com panelId da cutlist",
+      "version": "v6.0716.1418"
+    },
+    {
       "publishedAt": "2026-07-16T11:32:26.912Z",
       "author": "pimo-pro",
       "commitMessage": "fix(div-sep): remover parametro nao usado em resolveDivisorShelfPanelId",
