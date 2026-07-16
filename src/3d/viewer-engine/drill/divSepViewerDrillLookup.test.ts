@@ -49,4 +49,15 @@ describe("divSepViewerDrillLookup", () => {
     expect(resolveDivisorViewerPanelType("esquerda")).toBe("right");
     expect(resolveDivisorViewerPanelType(undefined)).toBe("left");
   });
+
+  it("nunca devolve top/generic para DIV — só left ou right", () => {
+    const types = ["direita", "esquerda", undefined] as const;
+    for (const lado of types) {
+      const panelType = resolveDivisorViewerPanelType(lado);
+      expect(panelType === "left" || panelType === "right").toBe(true);
+      expect(panelType).not.toBe("top");
+      expect(panelType).not.toBe("bottom");
+      expect(panelType).not.toBe("front");
+    }
+  });
 });
