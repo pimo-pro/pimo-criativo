@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-07-16T13:49:13.883Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): panelType left/right no mesh DIV para eliminar drill rays",
+      "version": "v6.0716.1449"
+    },
+    {
       "publishedAt": "2026-07-16T13:18:48.685Z",
       "author": "pimo-pro",
       "commitMessage": "fix(viewer): injectar furos de prateleira no DIV com panelId da cutlist",
