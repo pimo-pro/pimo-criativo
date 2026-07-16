@@ -402,6 +402,8 @@ export function updateBoxGroupWithDeps(group: THREE.Group, options: BoxOptions |
     mesh.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
     mesh.userData.divSepId = spec.name;
     mesh.userData.panelType = meshPanelType;
+    // Tamanho pré-CSG: overlays de contorno nunca devem usar bbox da malha furada.
+    mesh.userData.authoredSize = [spec.size[0], spec.size[1], spec.size[2]] as [number, number, number];
     if (isSepMesh) {
       mesh.userData.divSepKind = "sep";
       const sepItemId = spec.name.slice("divsep-sep-".length);

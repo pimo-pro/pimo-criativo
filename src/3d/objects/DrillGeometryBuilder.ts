@@ -241,12 +241,30 @@ export function buildDrillCutGeometries(panelType: PanelType, panel: THREE.Mesh,
   return geometries;
 }
 
+/**
+ * DIV vertical: nunca aceitar top/bottom no CSG (interpretaria a altura como espessura
+ * e geraria cortes/artefactos verticais — “drill rays”).
+ */
+export function resolveDrillPanelTypeForMesh(panel: THREE.Mesh, panelType: PanelType): PanelType {
+  const isDiv =
+    panel.userData?.divSepKind === "div" ||
+    (typeof panel.name === "string" && panel.name.startsWith("divsep-div-"));
+  if (!isDiv) return panelType;
+  if (panelType === "left" || panelType === "right") return panelType;
+  const fromUser = panel.userData?.panelType as PanelType | undefined;
+  if (fromUser === "left" || fromUser === "right") return fromUser;
+  return "left";
+}
+
 export function applyDrillHolesToPanelGeometry(panel: THREE.Mesh, panelType: PanelType, holes: TechnicalDrillHole[] | undefined): void {
   if (!holes || holes.length === 0) return;
 
+  const effectivePanelType = resolveDrillPanelTypeForMesh(panel, panelType);
+
   if (import.meta.env.DEV) {
     devLogger.debug("[DRILL-DIAG] applyDrillHolesToPanelGeometry ENTRADA", {
-      panelType,
+      panelType: effectivePanelType,
+      panelTypeRequested: panelType,
       panelName: panel.name,
       holesReceived: holes.length,
       holeFaces: holes.map((h) => h.face),
@@ -254,14 +272,14 @@ export function applyDrillHolesToPanelGeometry(panel: THREE.Mesh, panelType: Pan
     });
   }
 
-  const cutGeometries = buildDrillCutGeometries(panelType, panel, holes);
+  const cutGeometries = buildDrillCutGeometries(effectivePanelType, panel, holes);
   if (cutGeometries.length === 0) return;
 
   panel.geometry.computeBoundingBox();
   const bboxBefore = panel.geometry.boundingBox;
   if (import.meta.env.DEV && bboxBefore) {
     devLogger.debug("[DRILL-DIAG] panel bbox ANTES do CSG", {
-      panelType,
+      panelType: effectivePanelType,
       min: bboxBefore.min.toArray(),
       max: bboxBefore.max.toArray(),
       totalCylindersToSubtract: cutGeometries.length,
@@ -285,7 +303,7 @@ export function applyDrillHolesToPanelGeometry(panel: THREE.Mesh, panelType: Pan
   const bboxAfter = carved.geometry.boundingBox;
   if (import.meta.env.DEV && bboxAfter) {
     devLogger.debug("[DRILL-DIAG] panel bbox DEPOIS do CSG", {
-      panelType,
+      panelType: effectivePanelType,
       min: bboxAfter.min.toArray(),
       max: bboxAfter.max.toArray(),
     });
@@ -297,12 +315,14 @@ export function applyDrillHolesToPanelGeometry(panel: THREE.Mesh, panelType: Pan
   }
   panel.geometry.dispose();
   panel.geometry = carved.geometry;
+  panel.userData.hasCsgDrillHoles = true;
+  panel.userData.panelType = effectivePanelType;
   panel.castShadow = true;
   panel.receiveShadow = true;
 
   if (import.meta.env.DEV) {
     devLogger.debug("[DRILL-DIAG] applyDrillHolesToPanelGeometry SAÍDA", {
-      panelType,
+      panelType: effectivePanelType,
       holesApplied: holes.length,
       meshUpdated: true,
     });

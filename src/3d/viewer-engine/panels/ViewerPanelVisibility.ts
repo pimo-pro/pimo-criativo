@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { BoxPanelIds, TechnicalDrillHole, ViewerDrillMarkersByPanel } from "../../../core/types";
 import { filterTechnicalDrillHolesForViewerMesh } from "../drill/viewerCncDrillFilter";
+import { resolveDivisorViewerDrillHoles } from "../drill/divSepViewerDrillLookup";
 import {
   resolveDrillHoleViewerColorHex,
   resolvePanelOutlineColorHex,
@@ -611,6 +612,36 @@ export class ViewerPanelVisibility {
     );
   }
 
+  /** Preferir tamanho pré-CSG (authoredSize) para overlays — evita “rays” de bbox degenerada. */
+  private getOverlayPanelSize(mesh: THREE.Mesh): THREE.Vector3 {
+    const authored = mesh.userData?.authoredSize as [number, number, number] | undefined;
+    if (
+      Array.isArray(authored) &&
+      authored.length === 3 &&
+      authored.every((v) => typeof v === "number" && Number.isFinite(v) && v > 0)
+    ) {
+      return new THREE.Vector3(
+        Math.max(0.001, authored[0]),
+        Math.max(0.001, authored[1]),
+        Math.max(0.001, authored[2])
+      );
+    }
+    return this.getMeshBoundingSize(mesh);
+  }
+
+  private static isDivSepDivMesh(mesh: THREE.Mesh): boolean {
+    return (
+      mesh.userData?.divSepKind === "div" ||
+      (typeof mesh.name === "string" && mesh.name.startsWith("divsep-div-"))
+    );
+  }
+
+  private static resolveDivOverlayPanelType(mesh: THREE.Mesh): "left" | "right" {
+    const pt = mesh.userData?.panelType;
+    if (pt === "left" || pt === "right") return pt;
+    return "left";
+  }
+
   /** Z-order apenas visual — não altera geometria industrial. */
   private applyPieceRenderOrder(mesh: THREE.Mesh): void {
     const size = this.getMeshBoundingSize(mesh);
@@ -802,6 +833,84 @@ export class ViewerPanelVisibility {
         size.z,
         holes
       );
+    } else if (ViewerPanelVisibility.isDivSepDivMesh(mesh)) {
+      // DIV com CSG: nunca EdgesGeometry (arestas dos cilindros → “drill rays”).
+      // Contorno + círculos como laterais; dimensões sempre authoredSize (pré-CSG).
+      const size = this.getOverlayPanelSize(mesh);
+      const t = ViewerPanelVisibility.PANEL_THICKNESS_M;
+      const divPanelType = ViewerPanelVisibility.resolveDivOverlayPanelType(mesh);
+      const resolvedBoxId =
+        typeof boxId === "string" && boxId.trim().length > 0 ? boxId : this.deps.getBoxIdByMesh(mesh);
+      const divEntry = resolvedBoxId ? this.deps.getBoxes().get(resolvedBoxId) : entry;
+      const divItemId =
+        typeof mesh.userData?.divSepItemId === "string" && mesh.userData.divSepItemId.trim().length > 0
+          ? mesh.userData.divSepItemId
+          : typeof mesh.name === "string"
+            ? mesh.name.slice("divsep-div-".length)
+            : "";
+      const divIndex =
+        typeof mesh.userData?.divSepIndex === "number" && Number.isFinite(mesh.userData.divSepIndex)
+          ? mesh.userData.divSepIndex
+          : 0;
+      const holesRaw = resolveDivisorViewerDrillHoles(divEntry?.drillMarkersByPanel?.divisoresById, {
+        divItemId,
+        divIndex,
+      });
+      const holes = filterTechnicalDrillHolesForViewerMesh(holesRaw);
+      const industrialActive = this.isIndustrialDesignActive();
+      // createContourEdgesGeometry(left/right) faz sideH = height - 2*t; compensar para sideH = size.y.
+      const contourHeight = size.y + 2 * t;
+      geometry = ViewerPanelVisibility.createContourEdgesGeometry(
+        divPanelType,
+        size.x,
+        contourHeight,
+        size.z,
+        industrialActive ? [] : holes
+      );
+      if (!geometry) return;
+
+      const highlight = resolvePanelOutlineHighlight(
+        mesh.userData?.industrialDesignValidationError === true,
+        mesh.userData?.industrialDesignSelected === true
+      );
+      const outlineColor = industrialActive ? resolvePanelOutlineColorHex(highlight) : null;
+      const material =
+        outlineColor != null
+          ? highlight === "error"
+            ? this.getValidationEdgeMaterial()
+            : this.getSelectionEdgeMaterial()
+          : mesh.userData?.industrialDesignValidationError === true
+            ? this.getValidationEdgeMaterial()
+            : this.deps.getSharedPanelEdgeMaterial();
+      const overlay = new THREE.LineSegments(geometry, material);
+      this.finalizePanelEdgeOverlay(overlay, mesh, visible);
+
+      if (industrialActive && holes.length > 0) {
+        for (const hole of holes) {
+          const holeGeo = ViewerPanelVisibility.createHoleCircleGeometry(
+            divPanelType,
+            size.x,
+            contourHeight,
+            size.z,
+            hole
+          );
+          if (!holeGeo) continue;
+          const holeMat = this.getHoleColorMaterial(resolveDrillHoleViewerColorHex(hole.tipo));
+          const holeOverlay = new THREE.LineSegments(holeGeo, holeMat);
+          holeOverlay.userData.isIndustrialDesignHoleOverlay = true;
+          holeOverlay.userData.holeType = hole.tipo;
+          this.finalizePanelEdgeOverlay(holeOverlay, mesh, visible);
+        }
+      }
+      return;
+    } else if (
+      mesh.userData?.divSepKind === "sep" ||
+      (typeof mesh.name === "string" && mesh.name.startsWith("divsep-")) ||
+      mesh.userData?.hasCsgDrillHoles === true
+    ) {
+      // SEP / meshes CSG: contorno de caixa a partir de authoredSize — sem EdgesGeometry.
+      const size = this.getOverlayPanelSize(mesh);
+      geometry = ViewerPanelVisibility.createBoxWireframeContourGeometry(size.x, size.y, size.z);
     } else if (
       mesh.userData?.drawerPart != null ||
       mesh.userData?.shelfIndex != null ||
