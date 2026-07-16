@@ -16,6 +16,10 @@ import { getDivSepMeshSpecs } from "../../core/divSep/visualSpecs";
 import { resolveNoBackPanelFromOptions } from "../../core/box/backPanelFlags";
 import { DISABLE_DRAWER_RENDERING } from "./drawerRenderingFlags";
 import type { PanelType } from "./PanelFactory";
+import {
+  resolveDivisorViewerDrillHoles,
+  resolveDivisorViewerPanelType,
+} from "../viewer-engine/drill/divSepViewerDrillLookup";
 
 type BoxUpdaterDeps = {
   resolveDimensions: (_options?: BoxOptions) => { width: number; height: number; depth: number };
@@ -366,6 +370,7 @@ export function updateBoxGroupWithDeps(group: THREE.Group, options: BoxOptions |
     divisores: opts.divisores ?? [],
     separadores: opts.separadores ?? [],
   };
+  let divSepDivIndex = 0;
   getDivSepMeshSpecs(divSepBoxLike, width, height, depth, deps.thicknessM).forEach((spec) => {
     const mesh = deps.panelFactory.createPanel(
       spec.size[0],
@@ -388,10 +393,19 @@ export function updateBoxGroupWithDeps(group: THREE.Group, options: BoxOptions |
     } else if (spec.name.startsWith("divsep-div-")) {
       mesh.userData.divSepKind = "div";
       const divItemId = spec.name.slice("divsep-div-".length);
+      const divIndex = divSepDivIndex;
+      divSepDivIndex += 1;
       mesh.userData.divSepItemId = divItemId;
-      const divHoles = drillMap.divisoresById?.[divItemId];
-      if (divHoles?.length) {
-        deps.applyDrillHolesToPanelGeometry(mesh, "top", divHoles);
+      mesh.userData.divSepIndex = divIndex;
+      const divHoles = resolveDivisorViewerDrillHoles(drillMap.divisoresById, {
+        divItemId,
+        divIndex,
+        panelIds: opts.panelIds,
+      });
+      const lado = opts.divisores?.[divIndex]?.prateleiraLado;
+      const drillPanelType = resolveDivisorViewerPanelType(lado);
+      if (divHoles.length) {
+        deps.applyDrillHolesToPanelGeometry(mesh, drillPanelType, divHoles);
       }
     }
     group.add(mesh);

@@ -24,6 +24,10 @@ import { renderCaixaForno } from "../../core/moveis/viewer/renderCaixaForno";
 import { resolveDrawerFrontMaterialId } from "../../core/drawers/drawerFrontMaterial";
 import { resolveNoBackPanelFromOptions } from "../../core/box/backPanelFlags";
 import { DISABLE_DRAWER_RENDERING } from "./drawerRenderingFlags";
+import {
+  resolveDivisorViewerDrillHoles,
+  resolveDivisorViewerPanelType,
+} from "../viewer-engine/drill/divSepViewerDrillLookup";
 
 type BoxAssemblerDeps = {
   resolveDimensions: (_options?: BoxOptions) => { width: number; height: number; depth: number };
@@ -159,6 +163,7 @@ export function buildBoxWithDeps(options: BoxOptions | undefined, deps: BoxAssem
     divisores: opts?.divisores ?? [],
     separadores: opts?.separadores ?? [],
   };
+  let divSepDivIndex = 0;
   getDivSepMeshSpecs(divSepBoxLike, width, height, depth, deps.thicknessM).forEach((spec) => {
     const mesh = deps.panelFactory.createPanel(
       spec.size[0],
@@ -181,10 +186,19 @@ export function buildBoxWithDeps(options: BoxOptions | undefined, deps: BoxAssem
     } else if (spec.name.startsWith("divsep-div-")) {
       mesh.userData.divSepKind = "div";
       const divItemId = spec.name.slice("divsep-div-".length);
+      const divIndex = divSepDivIndex;
+      divSepDivIndex += 1;
       mesh.userData.divSepItemId = divItemId;
-      const divHoles = drillMap.divisoresById?.[divItemId];
-      if (divHoles?.length) {
-        deps.applyDrillHolesToPanelGeometry(mesh, "top", divHoles);
+      mesh.userData.divSepIndex = divIndex;
+      const divHoles = resolveDivisorViewerDrillHoles(drillMap.divisoresById, {
+        divItemId,
+        divIndex,
+        panelIds: opts.panelIds,
+      });
+      const lado = opts.divisores?.[divIndex]?.prateleiraLado;
+      const drillPanelType = resolveDivisorViewerPanelType(lado);
+      if (divHoles.length) {
+        deps.applyDrillHolesToPanelGeometry(mesh, drillPanelType, divHoles);
       }
     }
     root.add(mesh);
