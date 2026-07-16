@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-07-16T15:35:37.576Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): DIV sem CSG — só marcadores de prateleira limpos",
+      "version": "v6.0716.1635"
+    },
+    {
       "publishedAt": "2026-07-16T15:08:50.497Z",
       "author": "pimo-pro",
       "commitMessage": "fix(viewer): eliminar drill rays no DIV sem EdgesGeometry pos-CSG",
