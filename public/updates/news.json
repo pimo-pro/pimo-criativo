@@ -1,11 +1,31 @@
 {
-  "updatedAt": "2026-08-01T22:55:25.348Z",
+  "updatedAt": "2026-08-03T10:32:42.195Z",
   "news": [
+    {
+      "version": "v6.0803.1132",
+      "title": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "description": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "publishedAt": "2026-08-03T10:32:42.073Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "20db63fa"
+    },
+    {
+      "version": "v6.0803.1129",
+      "title": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "description": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "publishedAt": "2026-08-03T10:29:06.117Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "20db63fa"
+    },
     {
       "version": "v6.0801.2355",
       "title": "Ajustes industriais · navegação e chrome",
       "description": "Ajustes industriais · navegação e chrome\n\nCorreção do chrome global, navegação SUP/NES/DRI/ORL/MON/EMB por projecto, naming correcto em Ordem · Drill e Estação · Nesting, remoção de caracteres estranhos e unificação visual.",
-      "publishedAt": "2026-08-01T22:55:25.343Z",
+      "publishedAt": "2026-08-01T23:58:31+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",

@@ -2,6 +2,18 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-03T10:32:41.230Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "version": "v6.0803.1132"
+    },
+    {
+      "publishedAt": "2026-08-03T10:29:05.071Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "version": "v6.0803.1129"
+    },
+    {
       "publishedAt": "2026-08-01T22:55:24.421Z",
       "author": "pimo-pro",
       "commitMessage": "Ajustes industriais · navegação por projecto · chrome global",

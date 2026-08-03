@@ -61,7 +61,6 @@ import {
   DRAWER_LAT_GUIDE_DEPTH_MM,
   DRAWER_LAT_GUIDE_DIAMETER_MM,
   DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM,
-  drawerThicknessCenterMm,
   getDrawerCostaDowelYPositionsMm,
   getDrawerFrontDowelYPositionsMm,
   getDrawerLateralEdgeDowelYPositionsMm,
