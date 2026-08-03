@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-03T10:35:47.326Z",
+      "author": "pimo-pro",
+      "commitMessage": "Publicação PIMO — Sistema Industrial",
+      "version": "v6.0803.1135"
+    },
+    {
       "publishedAt": "2026-08-03T10:32:41.230Z",
       "author": "pimo-pro",
       "commitMessage": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",

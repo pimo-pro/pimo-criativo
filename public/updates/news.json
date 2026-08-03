@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-03T10:32:42.195Z",
+  "updatedAt": "2026-08-03T10:35:48.462Z",
   "news": [
+    {
+      "version": "v6.0803.1135",
+      "title": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "description": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
+      "publishedAt": "2026-08-03T10:35:48.250Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "92d9b721"
+    },
     {
       "version": "v6.0803.1132",
       "title": "fix(drill): alinhar gaveta_lat_* ao SSOT transversal cx gav lat",
