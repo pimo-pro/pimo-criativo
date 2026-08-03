@@ -1,5 +1,5 @@
 /**
- * Golden reference — GAVETA 1/XML_COMPLITO (apenas DRILL).
+ * Golden reference  GAVETA 1/XML_COMPLITO (apenas DRILL).
  */
 import { describe, expect, it } from "vitest";
 import { buildDrillStationXmlFilesForProject } from "./drillExport";
@@ -57,69 +57,70 @@ function xmlFor(
   });
 }
 
-describe("golden XML_COMPLITO — laterais", () => {
-  const L = 540;
-  const W = 195.5;
+describe("golden SSOT cx gav lat  laterais transversais", () => {
+  // cutlist: largura=profundidade, altura=altura
+  const depth = 540;
+  const height = 195.5;
   const T = 16;
 
-  it("LAT_DIR — TypeNo1 face + TypeNo2 aresta + 2 rasgos", () => {
+  it("LAT_DIR  4 cavilhas TypeNo2 Y=60 + grelha 5; sem rasgos", () => {
     const holes = computeDrawerLateralStructuralHoles({
-      largura: L,
-      altura: W,
+      largura: depth,
+      altura: height,
       espessura: T,
       side: "dir",
     });
-    expect(holes.filter((h) => h.topDrillable).map((h) => [h.x, h.y])).toEqual([
-      [L - T / 2, 15],
-      [L - T / 2, W - 38],
-    ]);
-    expect(
-      holes.filter((h) => h.tipo === "cavilha" && !h.topDrillable).map((h) => [h.x, h.y, h.profundidade])
-    ).toEqual([
-      [0, 15, 30],
-      [0, W - 35, 30],
-    ]);
-    const grooves = holes.filter((h) => h.holeSubtype === "groove");
-    expect(grooves).toHaveLength(2);
-    expect(grooves.map((g) => [g.y, g.grooveWidth, g.profundidade])).toEqual([
-      [W - 13, 13, 3],
-      [W - 23, 11, 10],
-    ]);
+    const cavilhas = holes.filter((h) => h.tipo === "cavilha");
+    expect(cavilhas.map((h) => [h.x, h.y, h.profundidade]).sort()).toEqual(
+      [
+        [0, 60, 30],
+        [0, depth - 60, 30],
+        [height, 60, 30],
+        [height, depth - 60, 30],
+      ].sort()
+    );
+    expect(holes.filter((h) => h.tipo === "corredica")).toHaveLength(15);
+    expect(holes.filter((h) => h.holeSubtype === "groove")).toHaveLength(0);
 
-    const xml = xmlFor("gaveta_lat_dir", { largura: L, altura: W, espessura: T });
-    expect(xml).toContain("<PanelLength>540.00</PanelLength>");
-    expect(xml).toContain("<PanelWidth>195.50</PanelWidth>");
-    expect(xml).toContain("<TypeNo>1</TypeNo>");
-    expect(xml).toContain("<Y1>15.00</Y1>");
-    expect(xml).toContain(`<Y1>${(W - 38).toFixed(2)}</Y1>`);
-    expect(xml).toContain(`<Y1>${(W - 35).toFixed(2)}</Y1>`);
+    const xml = xmlFor("gaveta_lat_dir", { largura: depth, altura: height, espessura: T });
+    expect(xml).toContain("<PanelLength>195.50</PanelLength>");
+    expect(xml).toContain("<PanelWidth>540.00</PanelWidth>");
+    expect(xml).toContain("<Y1>60.00</Y1>");
     expect(xml).toContain("<Depth>30.00</Depth>");
-    expect(xml).toContain("<Depth>13.00</Depth>");
-    expect(xml).toContain(`<BeginY>${(W - 13).toFixed(2)}</BeginY>`);
-    expect(xml).toContain(`<BeginY>${(W - 23).toFixed(2)}</BeginY>`);
-    expect((xml.match(/<CAD>/g) ?? []).length).toBe(6);
+    expect(xml).toContain("<Diameter>5.00</Diameter>");
+    expect(xml).not.toContain("<TypeNo>3</TypeNo>");
+    expect((xml.match(/<CAD>/g) ?? []).length).toBe(19);
   });
 
-  it("LAT_ESQ — espelho (face X=T/2, aresta X=L)", () => {
+  it("LAT_ESQ  cavilhas iguais; grelha X espelhada", () => {
     const holes = computeDrawerLateralStructuralHoles({
-      largura: L,
-      altura: W,
+      largura: depth,
+      altura: height,
       espessura: T,
       side: "esq",
     });
-    expect(holes.filter((h) => h.topDrillable).map((h) => h.x)).toEqual([T / 2, T / 2]);
-    expect(holes.filter((h) => h.tipo === "cavilha" && !h.topDrillable).map((h) => h.x)).toEqual([
-      L,
-      L,
-    ]);
-    const xml = xmlFor("gaveta_lat_esq", { largura: L, altura: W, espessura: T });
-    expect(xml).toContain("<X1>8.00</X1>");
-    expect(xml).toContain("<X1>540.00</X1>");
-    expect(xml).toContain("<Quadrant>1</Quadrant>");
+    const cavilhas = holes.filter((h) => h.tipo === "cavilha");
+    expect(cavilhas).toHaveLength(4);
+    expect([...new Set(cavilhas.map((h) => h.x))].sort((a, b) => a - b)).toEqual([0, height]);
+    const guideXs = [
+      ...new Set(holes.filter((h) => h.tipo === "corredica").map((h) => h.x)),
+    ].sort((a, b) => a - b);
+    const L = height;
+    const raw = [
+      41,
+      Number(((L * 323.33) / 862).toFixed(2)),
+      Number(((L * 624.67) / 862).toFixed(2)),
+    ].filter((x) => x > 0 && x < L);
+    expect(guideXs).toEqual(raw.map((x) => Number((L - x).toFixed(2))).sort((a, b) => a - b));
+
+    const xml = xmlFor("gaveta_lat_esq", { largura: depth, altura: height, espessura: T });
+    expect(xml).toContain("<PanelLength>195.50</PanelLength>");
+    expect(xml).toContain("<X1>0.00</X1>");
+    expect(xml).toContain("<X1>195.50</X1>");
   });
 });
 
-describe("golden XML_COMPLITO — costa", () => {
+describe("golden XML_COMPLITO  costa", () => {
   it("altura = lateral ? 23; Y=15/W-15; Depth 30; topo X=8", () => {
     const sideH = 195.5;
     const costaH = sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM;
@@ -151,7 +152,7 @@ describe("golden XML_COMPLITO — costa", () => {
   });
 });
 
-describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
+describe("golden XML_COMPLITO  frente inferior pairing laterais", () => {
   const L = 798;
   const W = 260.67;
   const T = 19;

@@ -58,12 +58,16 @@ import {
   clampDrawerFaceDowelDepthMm,
   DRAWER_DOWEL_DIAMETER_MM,
   DRAWER_DOWEL_EDGE_DEPTH_MM,
+  DRAWER_LAT_GUIDE_DEPTH_MM,
+  DRAWER_LAT_GUIDE_DIAMETER_MM,
   DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM,
   drawerThicknessCenterMm,
   getDrawerCostaDowelYPositionsMm,
   getDrawerFrontDowelYPositionsMm,
   getDrawerLateralEdgeDowelYPositionsMm,
-  getDrawerLateralFaceDowelYPositionsMm,
+  getDrawerLateralGuideXPositionsMm,
+  getDrawerLateralGuideYPositionsMm,
+  getDrawerLateralTransversalDowelYPositionsMm,
 } from "./drawerDowelInterlock";
 
 export {
@@ -554,12 +558,12 @@ export function resolvePiDrawerCountForDrilling(input: {
 // --- Furacao Estrutural (golden XML_COMPLITO) ---
 
 /**
- * Laterais — golden LAT_DIR / LAT_ESQ.
- * Face TypeNo=1: X=T/2|L-T/2; Y=15, W-38; Depth 13
- * Aresta TypeNo=2: X=0|L; Y=15, W-35; Depth 30
- * Rasgos inferiores fixos (independentes de L / frente / stack):
- *   W−13 → Width 13 Depth 3; W−23 → Width 11 Depth 10
- *   CAD: BeginX=L+10 … EndX=−10, Correction=2, FRESA_DESBASTE_10MM
+ * Laterais gaveta_lat_* — SSOT oficial `cx gav lat` (transversal).
+ * Cutlist: largura=profundidade, altura=altura_gaveta.
+ * Referencial furos/XML: L=altura, W=largura (profundidade).
+ *   4× TypeNo2 Ø10×30 em X=0/L, Y=60/W−60
+ *   15× TypeNo1 Ø5×1 (grelha 3×5; esq espelhado L−x)
+ *   Sem face TypeNo1 Ø10; sem rasgos TypeNo3
  */
 export function computeDrawerLateralStructuralHoles(params: {
   largura: number;
@@ -569,47 +573,58 @@ export function computeDrawerLateralStructuralHoles(params: {
   isLowestDrawer?: boolean;
 }): TechnicalDrillHole[] {
   void params.isLowestDrawer;
-  const { largura, altura, espessura, side } = params;
+  void params.espessura;
+  const { largura: depthMm, altura: heightMm, side } = params;
+  const L = heightMm;
+  const W = depthMm;
   const holes: TechnicalDrillHole[] = [];
   const dia = DRAWER_DOWEL_DIAMETER_MM;
-  const faceDepth = clampDrawerFaceDowelDepthMm(espessura);
   const edgeDepth = DRAWER_DOWEL_EDGE_DEPTH_MM;
-  const tHalf = drawerThicknessCenterMm(espessura);
 
-  const faceX = side === "dir" ? largura - tHalf : tHalf;
-  for (const y of getDrawerLateralFaceDowelYPositionsMm(altura)) {
-    if (y <= 0 || y >= altura) continue;
-    holes.push({
-      x: faceX,
-      y,
-      diametro: dia,
-      profundidade: faceDepth,
-      tipo: "cavilha",
-      face: "cima",
-      topDrillable: true,
-    });
-  }
-
-  const edgeX = side === "dir" ? 0 : largura;
-  const edgeFace: DrillFace = side === "dir" ? "frente" : "tras";
   let edgeIdx = 0;
-  for (const y of getDrawerLateralEdgeDowelYPositionsMm(altura)) {
-    if (y <= 0 || y >= altura) continue;
-    const sideKey = side === "dir" ? "dir" : "esq";
-    holes.push({
-      x: edgeX,
-      y,
-      diametro: dia,
-      profundidade: edgeDepth,
-      tipo: "cavilha",
-      face: edgeFace,
-      holeCatalogId: CAVILHA_EDGE_HOLE_TYPE_ID,
-      ferragemId: CAVILHA_10x40_FERRAGEM_ID,
-      pairedHoleKey: `gav-frent-lat-${edgeIdx++}-${sideKey}`,
-    });
+  for (const y of getDrawerLateralTransversalDowelYPositionsMm(W)) {
+    if (y <= 0 || y >= W) continue;
+    for (const x of [0, L]) {
+      const edgeFace: DrillFace = x === 0
+        ? side === "dir"
+          ? "frente"
+          : "tras"
+        : side === "dir"
+          ? "tras"
+          : "frente";
+      const sideKey = side === "dir" ? "dir" : "esq";
+      holes.push({
+        x,
+        y,
+        diametro: dia,
+        profundidade: edgeDepth,
+        tipo: "cavilha",
+        face: edgeFace,
+        holeCatalogId: CAVILHA_EDGE_HOLE_TYPE_ID,
+        ferragemId: CAVILHA_10x40_FERRAGEM_ID,
+        pairedHoleKey: `gav-lat-transversal-${edgeIdx++}-${sideKey}`,
+      });
+    }
   }
 
-  holes.push(...buildDrawerLateralBottomGrooves(largura, altura));
+  const xsRaw = getDrawerLateralGuideXPositionsMm(L);
+  const xs =
+    side === "esq"
+      ? xsRaw.map((x) => Number((L - x).toFixed(2)))
+      : xsRaw;
+  for (const x of xs) {
+    for (const y of getDrawerLateralGuideYPositionsMm(W)) {
+      holes.push({
+        x,
+        y,
+        diametro: DRAWER_LAT_GUIDE_DIAMETER_MM,
+        profundidade: DRAWER_LAT_GUIDE_DEPTH_MM,
+        tipo: "corredica",
+        face: "cima",
+        topDrillable: true,
+      });
+    }
+  }
 
   return holes;
 }

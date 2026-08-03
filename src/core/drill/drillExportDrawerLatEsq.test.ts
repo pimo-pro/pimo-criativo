@@ -5,7 +5,6 @@ import { defaultRulesConfig } from "../rules/rulesConfig";
 import type { CutListItemComPreco } from "../types";
 import { withIndustrialOutputAuthorization } from "../industrial/industrialOutputGuard";
 
-/** Dimensões golden XML_COMPLITO LAT_ESQ. */
 const LAT_ESQ_DIMS = { largura: 540, altura: 195.5, espessura: 16 } as const;
 
 function buildLatEsqXml(): string {
@@ -20,8 +19,8 @@ function buildLatEsqXml(): string {
       defaultRulesConfig
     );
     expect(drilling.success).toBe(true);
-    expect(drilling.data?.drillHoles.some((h) => h.holeType === "corredica")).toBe(false);
-    expect(drilling.data?.drillHoles.every((h) => h.diameter !== 5)).toBe(true);
+    expect(drilling.data?.drillHoles.some((h) => h.holeType === "corredica")).toBe(true);
+    expect(drilling.data?.drillHoles.some((h) => h.diameter === 5)).toBe(true);
 
     const item: CutListItemComPreco = {
       id: "lat-esq-test",
@@ -51,41 +50,28 @@ function buildLatEsqXml(): string {
   });
 }
 
-describe("drillExport — LAT_ESQ alinhado com XML_COMPLITO", () => {
-  it("painel KDT", () => {
+describe("drillExport — LAT_ESQ SSOT transversal cx gav lat", () => {
+  it("painel KDT transversal", () => {
     const xml = buildLatEsqXml();
-    expect(xml).toContain("<PanelLength>540.00</PanelLength>");
-    expect(xml).toContain("<PanelWidth>195.50</PanelWidth>");
+    expect(xml).toContain("<PanelLength>195.50</PanelLength>");
+    expect(xml).toContain("<PanelWidth>540.00</PanelWidth>");
   });
 
-  it("6 CAD: face+aresta+2 rasgos (sem Ø5)", () => {
+  it("19 CAD: 4 cavilhas + 15 Ø5; sem rasgos", () => {
     const xml = buildLatEsqXml();
-    expect((xml.match(/<CAD>/g) ?? []).length).toBe(6);
-    expect(xml).not.toContain("<Diameter>5.00</Diameter>");
+    expect((xml.match(/<CAD>/g) ?? []).length).toBe(19);
+    expect(xml).toContain("<Diameter>5.00</Diameter>");
     expect(xml).toContain("<Depth>30.00</Depth>");
+    expect(xml).not.toContain("<TypeNo>3</TypeNo>");
   });
 
-  it("face X=T/2 TypeNo=1; aresta X=L TypeNo=2 Q1", () => {
+  it("cavilhas TypeNo2 em ambos os extremos; grelha espelhada", () => {
     const xml = buildLatEsqXml();
-    expect(xml).toContain("<TypeNo>1</TypeNo>");
-    expect(xml).toContain("<X1>8.00</X1>");
-    expect(xml).toContain("<X1>540.00</X1>");
-    expect(xml).toContain("<Y1>15.00</Y1>");
-    expect(xml).toContain("<Quadrant>1</Quadrant>");
-  });
-
-  it("rasgos W-13 e W-23 — overcut + Correction=2 + FRESA_DESBASTE_10MM", () => {
-    const xml = buildLatEsqXml();
-    expect(xml).toContain("<ToolName>FRESA_DESBASTE_10MM</ToolName>");
-    expect(xml).toContain("<BeginX>550.00</BeginX>");
-    expect(xml).toContain("<EndX>-10.00</EndX>");
-    expect(xml).toContain("<BeginY>182.50</BeginY>");
-    expect(xml).toContain("<BeginY>172.50</BeginY>");
-    expect(xml).toContain("<Width>13.00</Width>");
-    expect(xml).toContain("<Width>11.00</Width>");
-    expect(xml).toContain("<Depth>3.00</Depth>");
-    expect(xml).toContain("<Depth>10.00</Depth>");
-    expect(xml).toContain("<Correction>2</Correction>");
-    expect((xml.match(/<Correction>2<\/Correction>/g) ?? []).length).toBe(2);
+    expect(xml).toContain("<TypeNo>2</TypeNo>");
+    expect(xml).toContain("<X1>0.00</X1>");
+    expect(xml).toContain("<X1>195.50</X1>");
+    expect(xml).toContain("<Y1>60.00</Y1>");
+    // L-41 = 154.50 (espelho da coluna frente)
+    expect(xml).toContain("<X1>154.50</X1>");
   });
 });

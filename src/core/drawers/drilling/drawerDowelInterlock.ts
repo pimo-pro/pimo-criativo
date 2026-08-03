@@ -1,35 +1,47 @@
 /**
- * SSOT — cavilhas / rasgos de gaveta (golden XML_COMPLITO).
+ * SSOT ï¿½ cavilhas / rasgos de gaveta.
  *
- * Laterais (LAT_DIR / LAT_ESQ):
- *   Face (TypeNo=1): Y = 15 e W?38; X = T/2 (esq) ou L?T/2 (dir); Depth 13
- *   Aresta (TypeNo=2): Y = 15 e W?35; X = 0 (dir) ou L (esq); Depth 30
- *   Rasgos: W?13 (Ø/largura 13, prof. 3) e W?23 (largura 11, prof. 10)
+ * Laterais gaveta_lat_* (SSOT oficial `cx gav lat`, transversal):
+ *   L = altura, W = profundidade
+ *   Cavilhas TypeNo=2 ï¿½10ï¿½30: X=0 e X=L; Y=60 e Y=W?60
+ *   Guias TypeNo=1 ï¿½5ï¿½1: grelha 3ï¿½5 (dir; esq espelhado L?x); margem Y=38
+ *   Sem rasgos TypeNo=3; sem cavilhas face TypeNo=1
  *
- * Costa: Y = 15 e W?15; Depth 30; topo X=8 / L?8 Depth 10
- * Frente inferior: Y = W?56.5 (rasgo), W?73.5 (cavilha); X = 33
+ * Frente / costa (inalterado ï¿½ interlock Y):
+ *   Costa: Y = 15 e H?15; Depth 30; topo X=8 / L?8 Depth 10
+ *   Frente: Y sync aresta legado 15 / H?35
  */
 
-/** Distância industrial da base ao eixo da corrediça no módulo (mm) — inalterado. */
+/** Distï¿½ncia industrial da base ao eixo da corrediï¿½a no mï¿½dulo (mm) ï¿½ inalterado. */
 export const DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM = 41;
 
 export const DRAWER_DOWEL_DIAMETER_MM = 10;
 export const DRAWER_DOWEL_FACE_DEPTH_MM = 13;
-/** Profundidade na aresta (ao longo do painel, não atravessa T). */
+/** Profundidade na aresta (ao longo do painel, nï¿½o atravessa T). */
 export const DRAWER_DOWEL_EDGE_DEPTH_MM = 30;
-/** Folga mínima legado (face through-thickness). */
+/** Folga mï¿½nima legado (face through-thickness). */
 export const DRAWER_DOWEL_EDGE_CLEARANCE_MM = 2;
 
-/** Y inferior golden (desde a base). */
+/** Y inferior golden (desde a base) ï¿½ frente / costa / legado. */
 export const DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM = 15;
-/** Face superior: W?38. */
+/** Face superior legado: H?38. */
 export const DRAWER_LAT_FACE_DOWEL_Y_FROM_TOP_MM = 38;
-/** Aresta superior (interlock frente): W?35. */
+/** Aresta superior (interlock frente): H?35. */
 export const DRAWER_LAT_EDGE_DOWEL_Y_FROM_TOP_MM = 35;
-/** Costa: simétrico 15 mm de cada bordo. */
+/** Costa: simï¿½trico 15 mm de cada bordo. */
 export const DRAWER_COSTA_DOWEL_Y_FROM_EDGE_MM = 15;
 
-/** @deprecated Prefer DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM — alias legado. */
+/** Cavilhas transversais laterais ï¿½ Y desde cada bordo em W (profundidade). */
+export const DRAWER_LAT_TRANSVERSAL_DOWEL_Y_FROM_EDGE_MM = 60;
+/** Grelha ï¿½5 ï¿½ X frente (SSOT cx gav lat). */
+export const DRAWER_LAT_GUIDE_X_FRONT_MM = 41;
+/** Grelha ï¿½5 ï¿½ margem Y (5 linhas). */
+export const DRAWER_LAT_GUIDE_Y_MARGIN_MM = 38;
+export const DRAWER_LAT_GUIDE_DIAMETER_MM = 5;
+export const DRAWER_LAT_GUIDE_DEPTH_MM = 1;
+export const DRAWER_LAT_GUIDE_ROWS = 5;
+
+/** @deprecated Prefer DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM ï¿½ alias legado. */
 export const DRAWER_REAR_DOWEL_Y_FROM_BOTTOM_MM = DRAWER_LAT_FACE_DOWEL_Y_FROM_TOP_MM;
 /** @deprecated Prefer DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM. */
 export const DRAWER_FRONT_DOWEL_Y_FROM_BOTTOM_MM = DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM;
@@ -95,7 +107,7 @@ export function getDrawerRearDowelYPositionsMm(alturaMm: number): number[] {
 }
 
 /**
- * Y frontais sincronizados com aresta das laterais (15 / H?35).
+ * Y frontais sincronizados com tabela aresta legado (15 / H?35).
  * `isLowestDrawer` ignorado no modelo golden (mesma tabela).
  */
 export function getDrawerFrontDowelYPositionsMm(
@@ -103,6 +115,49 @@ export function getDrawerFrontDowelYPositionsMm(
   _isLowestDrawer?: boolean
 ): number[] {
   return getDrawerLateralEdgeDowelYPositionsMm(alturaMm);
+}
+
+/**
+ * Y cavilhas transversais gaveta_lat_* (SSOT cx gav lat): 60 e W?60.
+ * `depthMm` = profundidade do painel (cutlist.largura / XML PanelWidth).
+ */
+export function getDrawerLateralTransversalDowelYPositionsMm(depthMm: number): number[] {
+  const w = Math.max(0, Number(depthMm) || 0);
+  const y = DRAWER_LAT_TRANSVERSAL_DOWEL_Y_FROM_EDGE_MM;
+  if (w <= 0) return [];
+  if (w < y * 2 + 1) return [Math.min(y, w / 2)];
+  return [y, w - y];
+}
+
+/**
+ * Colunas X da grelha ï¿½5 (SSOT cx_gav_lat_dir L=862 ? 41 / 323.33 / 624.67).
+ * Paramï¿½trico: frente fixa 41 + L/3+36 + 2L/3+50.
+ */
+export function getDrawerLateralGuideXPositionsMm(panelLengthMm: number): number[] {
+  const L = Math.max(0, Number(panelLengthMm) || 0);
+  if (L <= 0) return [];
+  const GOLDEN_L = 862;
+  const front = DRAWER_LAT_GUIDE_X_FRONT_MM;
+  const xs = [
+    front,
+    Number(((L * 323.33) / GOLDEN_L).toFixed(2)),
+    Number(((L * 624.67) / GOLDEN_L).toFixed(2)),
+  ];
+  return xs.filter((x) => x > 0 && x < L);
+}
+
+/** Linhas Y da grelha ï¿½5: 5 pontos com margem 38 (SSOT). */
+export function getDrawerLateralGuideYPositionsMm(panelWidthMm: number): number[] {
+  const W = Math.max(0, Number(panelWidthMm) || 0);
+  const m = DRAWER_LAT_GUIDE_Y_MARGIN_MM;
+  const n = DRAWER_LAT_GUIDE_ROWS;
+  if (W <= 0) return [];
+  if (W <= m * 2) return [Number((W / 2).toFixed(2))];
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    out.push(Number((m + (i * (W - 2 * m)) / (n - 1)).toFixed(2)));
+  }
+  return out;
 }
 
 export function assertDowelDoesNotThrough(

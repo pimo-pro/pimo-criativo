@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   computeDrawerCostaStructuralHoles,
   computeDrawerFrenteExtStructuralHoles,
-  computeDrawerLateralStructuralHoles,
 } from "../drawers/drilling/DrawerDrillingRules";
+import { getDrawerLateralEdgeDowelYPositionsMm } from "../drawers/drilling/drawerDowelInterlock";
 import {
   DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_BOTTOM_SIDE_ENTRY_MM,
@@ -90,7 +90,7 @@ describe("gaveta industrial  frente DRILL / costa -23 / fundo entradas", () => 
     expect(specs.back.height).toBe(specs.leftSide.height - 23);
   });
 
-  it("frente_ext (highest): cavilhas sync Y aresta laterais + elev; rasgo fundo+1", () => {
+  it("frente_ext (highest): cavilhas sync tabela aresta 15/H-35 + elev; rasgo fundo+1", () => {
     const sideH = 150;
     const frontH = 200;
     const holes = computeDrawerFrenteExtStructuralHoles({
@@ -108,26 +108,17 @@ describe("gaveta industrial  frente DRILL / costa -23 / fundo entradas", () => 
     const cavilhas = holes.filter((h) => h.tipo === "cavilha");
     expect(cavilhas).toHaveLength(4);
     expect(cavilhas.every((h) => h.face === "tras" && h.profundidade === 13)).toBe(true);
-    const lat = computeDrawerLateralStructuralHoles({
-      largura: 521,
-      altura: sideH,
-      espessura: 16,
-      side: "esq",
-    });
-    // Golden: aresta laterais (TypeNo=2) = interlock frente; face=tras em LAT_ESQ
-    const latEdgeYs = lat
-      .filter((h) => h.tipo === "cavilha" && !h.topDrillable)
-      .map((h) => h.y)
-      .sort((a, b) => a - b);
+    // Frente mantm tabela legado 15/H?35 (interlock); laterais usam Y=60 transversal.
+    const edgeYs = getDrawerLateralEdgeDowelYPositionsMm(sideH);
     const frontYs = [...new Set(cavilhas.map((h) => h.y))].sort((a, b) => a - b);
-    expect(frontYs).toEqual(latEdgeYs.map((y) => y + DRAWER_SIDE_BASE_ELEVATION_MM));
+    expect(frontYs).toEqual(edgeYs.map((y) => y + DRAWER_SIDE_BASE_ELEVATION_MM));
 
     const groove = holes.find((h) => h.holeSubtype === "groove");
     expect(groove?.profundidade).toBe(11);
     expect(groove?.y).toBe(DRAWER_SIDE_BASE_ELEVATION_MM + sideH - 13);
   });
 
-  it("costa: altura lat?23; Y golden 15 / H?15 (não latY?23)", () => {
+  it("costa: altura lat?23; Y golden 15 / H?15 (no latY?23)", () => {
     const sideH = 150;
     const costaH = sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM;
     expect(costaH).toBe(127);

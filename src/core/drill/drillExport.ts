@@ -306,23 +306,24 @@ function resolveDrawerPanelDimensions(item: CutListItemComPreco): {
 }
 
 /**
- * gav_lat_esq / gav_lat_dir — painel e furos no referencial SSOT, sem swap X↔Y.
- * PanelLength = largura (profundidade), PanelWidth = altura.
- * X_final = drillHole.x, Y_final = drillHole.y.
+ * gav_lat_esq / gav_lat_dir — SSOT transversal `cx gav lat`.
+ * Cutlist: largura=profundidade, altura=altura_gaveta.
+ * XML: PanelLength=L=altura, PanelWidth=W=largura; furos já no referencial L×W.
  */
 function resolveGavetaLateralXmlHoles(item: CutListItemComPreco): {
   panelLength: number;
   panelWidth: number;
   holes: PanelDrillHole[];
 } | null {
-  const dims = resolveDrawerPanelDimensions(item);
-  if (!dims || !item.drillHoles?.length) return null;
+  const largura = Number(item.dimensoes?.largura ?? 0);
+  const altura = Number(item.dimensoes?.altura ?? 0);
+  if (largura <= 0 || altura <= 0 || !item.drillHoles?.length) return null;
   const holes = item.drillHoles.map((h) => ({
     ...h,
     x: h.x,
     y: h.y,
   }));
-  return { ...dims, holes };
+  return { panelLength: altura, panelWidth: largura, holes };
 }
 
 function isGavetaLateralTipo(tipo: string): boolean {

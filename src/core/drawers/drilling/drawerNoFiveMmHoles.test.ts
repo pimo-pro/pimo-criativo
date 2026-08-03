@@ -1,6 +1,7 @@
 /**
- * Garante que peùas da gaveta NUNCA recebem furos ù5 / corrediùa.
- * Corrediùas = apenas laterais do mùdulo.
+ * Costa/frente de gaveta NUNCA recebem ?5 / corrediÁa.
+ * Laterais gaveta_lat_* ? SSOT cx gav lat: grelha ?5 activa.
+ * CorrediÁas de mÛdulo = laterais do mÛdulo (inalterado).
  */
 import { describe, expect, it } from "vitest";
 import { calculateTechnicalDrillingsForPiece } from "../../drilling/drillingService";
@@ -11,14 +12,15 @@ import {
   getDrawerSlideDrillingRules,
 } from "./DrawerDrillingRules";
 import { cutlistToPieces } from "../../cutlayout/cutLayoutEngine";
-import { holesForPdf } from "../../cutlayout/cutLayoutPdf";
 import type { CutListItemComPreco } from "../../types";
-import type { CutPlacement } from "../../cutlayout/cutLayoutTypes";
 
-const TYPES = ["gaveta_lat_esq", "gaveta_lat_dir", "gaveta_traseira"] as const;
+const NO_GUIDE_TYPES = ["gaveta_traseira", "gaveta_frente", "gaveta_frente_int"] as const;
+const LAT_TYPES = ["gaveta_lat_esq", "gaveta_lat_dir"] as const;
 const DIM = { L: 500, H: 150, T: 16 };
 
-function assertNoFiveMm(holes: Array<{ diameter?: number; diametro?: number; holeType?: string; tipo?: string }>) {
+function assertNoFiveMm(
+  holes: Array<{ diameter?: number; diametro?: number; holeType?: string; tipo?: string }>
+) {
   for (const h of holes) {
     const d = h.diameter ?? h.diametro;
     expect(d).not.toBe(5);
@@ -26,13 +28,13 @@ function assertNoFiveMm(holes: Array<{ diameter?: number; diametro?: number; hol
   }
 }
 
-describe("gaveta ù sem furos ù5 / corrediùa (SSOT ? PDF ? XML)", () => {
-  it("computeDrawerPieceCorredicaHoles retorna sempre []", () => {
+describe("gaveta ? ?5 apenas em gaveta_lat_* (SSOT cx gav lat)", () => {
+  it("computeDrawerPieceCorredicaHoles permanece no-op (guias v?m do estrutural)", () => {
     const rules = getDrawerSlideDrillingRules("Hettich ArciTech", "Nenhuma", {
       mode: "drawer_piece",
       panelDepthMm: DIM.L,
     });
-    for (const tipo of TYPES) {
+    for (const tipo of [...LAT_TYPES, ...NO_GUIDE_TYPES]) {
       expect(
         computeDrawerPieceCorredicaHoles({
           pieceType: tipo,
@@ -44,25 +46,34 @@ describe("gaveta ù sem furos ù5 / corrediùa (SSOT ? PDF ? XML)", () => {
     }
   });
 
-  it.each(TYPES)("%s ù calculateTechnicalDrillingsForPiece sem ù5", (tipo) => {
+  it.each(NO_GUIDE_TYPES)("%s ? sem ?5", (tipo) => {
     const holes = calculateTechnicalDrillingsForPiece(
       { tipo, largura: DIM.L, altura: DIM.H, espessura: DIM.T },
       defaultRulesConfig
     );
     assertNoFiveMm(holes);
-    expect(holes.some((h) => h.tipo === "cavilha")).toBe(true);
   });
 
-  it.each(TYPES)("%s ù adapter cutlist sem ù5", (tipo) => {
+  it.each(LAT_TYPES)("%s ? grelha ?5 activa (15) + 4 cavilhas", (tipo) => {
+    const holes = calculateTechnicalDrillingsForPiece(
+      { tipo, largura: DIM.L, altura: DIM.H, espessura: DIM.T },
+      defaultRulesConfig
+    );
+    expect(holes.filter((h) => h.tipo === "corredica" || h.diametro === 5)).toHaveLength(15);
+    expect(holes.filter((h) => h.tipo === "cavilha")).toHaveLength(4);
+    expect(holes.filter((h) => h.holeSubtype === "groove")).toHaveLength(0);
+  });
+
+  it.each(LAT_TYPES)("%s ? adapter cutlist com ?5", (tipo) => {
     const result = buildPanelDrillingResult(
       { tipo, larguraMm: DIM.L, alturaMm: DIM.H, espessuraMm: DIM.T },
       defaultRulesConfig
     );
     expect(result.success).toBe(true);
-    assertNoFiveMm(result.data!.drillHoles);
+    expect(result.data!.drillHoles.filter((h) => h.diameter === 5)).toHaveLength(15);
   });
 
-  it("lat_esq ù cutlistToPieces + holesForPdf sù cavilhas (+ rasgo se presente)", () => {
+  it("lat_esq ? nesting transversal com ?5", () => {
     const result = buildPanelDrillingResult(
       { tipo: "gaveta_lat_esq", larguraMm: DIM.L, alturaMm: DIM.H, espessuraMm: DIM.T },
       defaultRulesConfig
@@ -81,21 +92,8 @@ describe("gaveta ù sem furos ù5 / corrediùa (SSOT ? PDF ? XML)", () => {
       precoTotal: 0,
     };
     const pieces = cutlistToPieces([item]);
-    assertNoFiveMm(pieces[0]!.drillHoles ?? []);
-
-    const pl: CutPlacement = {
-      x_mm: 50,
-      y_mm: 50,
-      largura_mm: DIM.L,
-      altura_mm: DIM.H,
-      rotacao: 0,
-      sheetIndex: 0,
-      boxId: "b",
-      partName: "gav_lat_esq",
-      originalDrillHoles: pieces[0]!.drillHoles,
-    };
-    const forPdf = holesForPdf(pl, { largura_mm: 2800, altura_mm: 2070, espessura_mm: 16 }, false);
-    assertNoFiveMm(forPdf);
-    expect(forPdf.filter((h) => h.holeType === "cavilha")).toHaveLength(4);
+    expect(pieces[0]!.largura_mm).toBe(DIM.H);
+    expect(pieces[0]!.altura_mm).toBe(DIM.L);
+    expect((pieces[0]!.drillHoles ?? []).filter((h) => h.diameter === 5).length).toBe(15);
   });
 });

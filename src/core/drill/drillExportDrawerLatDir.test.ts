@@ -5,7 +5,10 @@ import { defaultRulesConfig } from "../rules/rulesConfig";
 import type { CutListItemComPreco } from "../types";
 import { withIndustrialOutputAuthorization } from "../industrial/industrialOutputGuard";
 
-/** Dimensões golden XML_COMPLITO LAT_DIR (L=540, W=195.5, T=16). */
+/**
+ * Cutlist: largura=profundidade, altura=altura_gaveta.
+ * XML transversal SSOT: L=altura, W=largura (modelo cx gav lat).
+ */
 const LAT_DIR_DIMS = { largura: 540, altura: 195.5, espessura: 16 } as const;
 
 function buildLatDirXml(): string {
@@ -49,46 +52,32 @@ function buildLatDirXml(): string {
   });
 }
 
-describe("drillExport — LAT_DIR alinhado com XML_COMPLITO", () => {
-  it("painel KDT: PanelLength=L, PanelWidth=W", () => {
+describe("drillExport — LAT_DIR SSOT transversal cx gav lat", () => {
+  it("painel KDT transversal: L=altura W=profundidade", () => {
     const xml = buildLatDirXml();
-    expect(xml).toContain("<PanelLength>540.00</PanelLength>");
-    expect(xml).toContain("<PanelWidth>195.50</PanelWidth>");
+    expect(xml).toContain("<PanelLength>195.50</PanelLength>");
+    expect(xml).toContain("<PanelWidth>540.00</PanelWidth>");
     expect(xml).toContain("<PanelThickness>16.00</PanelThickness>");
   });
 
-  it("6 CAD: 2 face + 2 aresta + 2 rasgos (sem Ø5)", () => {
+  it("19 CAD: 4 cavilhas TypeNo2 + 15 guias Ø5; sem rasgos", () => {
     const xml = buildLatDirXml();
-    expect((xml.match(/<CAD>/g) ?? []).length).toBe(6);
-    expect(xml).not.toContain("<Diameter>5.00</Diameter>");
+    expect((xml.match(/<CAD>/g) ?? []).length).toBe(19);
+    expect(xml).toContain("<Diameter>5.00</Diameter>");
+    expect(xml).toContain("<Diameter>10.00</Diameter>");
     expect(xml).toContain("<Depth>30.00</Depth>");
-    expect(xml).toContain("<Depth>13.00</Depth>");
+    expect(xml).toContain("<Depth>1.00</Depth>");
+    expect(xml).not.toContain("<TypeNo>3</TypeNo>");
+    expect(xml).not.toContain("<Depth>13.00</Depth>");
   });
 
-  it("face TypeNo=1 em L-T/2; aresta TypeNo=2 em X=0", () => {
+  it("cavilhas TypeNo2 em X=0/L Y=60/W-60", () => {
     const xml = buildLatDirXml();
-    expect(xml).toContain("<TypeNo>1</TypeNo>");
-    expect(xml).toContain("<X1>532.00</X1>");
+    expect(xml).toContain("<TypeNo>2</TypeNo>");
     expect(xml).toContain("<X1>0.00</X1>");
-    expect(xml).toContain("<Y1>15.00</Y1>");
-    expect(xml).toContain("<Y1>157.50</Y1>");
-    expect(xml).toContain("<Y1>160.50</Y1>");
+    expect(xml).toContain("<X1>195.50</X1>");
+    expect(xml).toContain("<Y1>60.00</Y1>");
+    expect(xml).toContain("<Y1>480.00</Y1>");
     expect(xml).toContain("<Depth>30.00</Depth>");
-    expect(xml).toContain("<Quadrant>2</Quadrant>");
-  });
-
-  it("rasgos TypeNo=3 W-13 e W-23 com overcut L+10/−10 (LAT_ESQ.xml)", () => {
-    const xml = buildLatDirXml();
-    expect(xml).toContain("<ToolName>FRESA_DESBASTE_10MM</ToolName>");
-    expect(xml).toContain("<BeginX>550.00</BeginX>");
-    expect(xml).toContain("<EndX>-10.00</EndX>");
-    expect(xml).toContain("<BeginY>182.50</BeginY>");
-    expect(xml).toContain("<BeginY>172.50</BeginY>");
-    expect(xml).toContain("<Width>13.00</Width>");
-    expect(xml).toContain("<Width>11.00</Width>");
-    expect(xml).toContain("<Depth>3.00</Depth>");
-    expect(xml).toContain("<Depth>10.00</Depth>");
-    expect(xml).toContain("<Correction>2</Correction>");
-    expect((xml.match(/<Correction>2<\/Correction>/g) ?? []).length).toBe(2);
   });
 });
