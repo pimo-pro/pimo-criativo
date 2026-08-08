@@ -914,6 +914,11 @@ export interface ProjectActions {
   createNewProject: () => Promise<SavedProjectInfo | null>;
   renameProject: (_id: string, _name: string) => Promise<void>;
   deleteProject: (_id: string) => Promise<void>;
+  /**
+   * Workspace Pipro v2 — substitui o ProjectState em memória (sem gravar projecto remoto).
+   * Usado só pelo shell de design de modelos.
+   */
+  applyDesignWorkspaceState: (_state: ProjectState, _opts?: { pushUndo?: boolean }) => void;
 }
 
 export type ProjectHistoryEntry = {

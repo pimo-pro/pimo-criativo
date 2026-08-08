@@ -6,7 +6,7 @@
 import type { ComponentType } from "react";
 import { IndustrialModelsPage } from "../industrialAdmin/IndustrialModelsPage";
 import { INDUSTRIAL_ADMIN_MODELS_PATH } from "./industrialAdminPaths";
-import { PIPRO_WORKSPACE_PATH } from "./piproPaths";
+import { PIPRO_WORKSPACE_PATH, PIPRO_WORKSPACE_V2_PATH } from "./piproPaths";
 
 export type IndustrialAdminRoute = {
   path: string;
@@ -16,7 +16,7 @@ export type IndustrialAdminRoute = {
 };
 
 export { INDUSTRIAL_ADMIN_MODELS_PATH } from "./industrialAdminPaths";
-export { PIPRO_WORKSPACE_PATH } from "./piproPaths";
+export { PIPRO_WORKSPACE_PATH, PIPRO_WORKSPACE_V2_PATH } from "./piproPaths";
 
 export const industrialAdminRoutes: readonly IndustrialAdminRoute[] = [
   {
@@ -27,6 +27,10 @@ export const industrialAdminRoutes: readonly IndustrialAdminRoute[] = [
   {
     path: PIPRO_WORKSPACE_PATH,
     label: "Workspace Design Mode",
+  },
+  {
+    path: PIPRO_WORKSPACE_V2_PATH,
+    label: "Workspace v2",
   },
 ];
 

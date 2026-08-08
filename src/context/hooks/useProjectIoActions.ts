@@ -47,6 +47,7 @@ export type ProjectIoActions = Pick<
   | "setMateriaisProjeto"
   | "renameProject"
   | "deleteProject"
+  | "applyDesignWorkspaceState"
 >;
 
 function logProjectIo(_event: string, _data?: object): void {
@@ -226,6 +227,9 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         clearIndustrialLiveProject();
         updateProject(() => ({ ...freshState, lastAutosaveTime: saved.updatedAt }), false);
         return saved;
+      },
+      applyDesignWorkspaceState: (state, opts) => {
+        updateProject(() => state, opts?.pushUndo === true);
       },
       renameProject: async (id, name) => {
         const trimmed = name.trim();

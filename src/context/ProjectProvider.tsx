@@ -51,9 +51,19 @@ function classifyHistoryAction(actionName: string): "move" | "resize" | "add" | 
   return "other";
 }
 
-export function ProjectProvider({ children }: { children: ReactNode }) {
-  const { project, setProject, projectRef } = useProjectState(
-    () => getIndustrialLiveProject()?.state ?? null
+export type ProjectProviderProps = {
+  children: ReactNode;
+  /**
+   * `pipro-design`: estado isolado para Workspace Pipro v2 —
+   * sem autosave de projecto e sem publicar industrial live SSOT.
+   */
+  variant?: "default" | "pipro-design";
+};
+
+export function ProjectProvider({ children, variant = "default" }: ProjectProviderProps) {
+  const isPiproDesign = variant === "pipro-design";
+  const { project, setProject, projectRef } = useProjectState(() =>
+    isPiproDesign ? null : getIndustrialLiveProject()?.state ?? null
   );
 
   useEffect(() => {
@@ -62,17 +72,24 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   // Publicar SSOT live em cada alteração — /analise e ZIP leem o mesmo estado.
   useEffect(() => {
+    if (isPiproDesign) return;
     publishIndustrialLiveProject(project);
-  }, [project]);
+  }, [project, isPiproDesign]);
 
   const viewerSync = useViewerSync(project);
   const exportActions = useProjectExportActions({ projectRef });
-  useProjectPersistence(project, setProject, viewerSync, {
-    serializeForAutosave: (state) => serializeStateForAutosave(state),
-    revive: (snap) => reviveState(snap),
-    captureRoomSnapshot,
-    applyResultados,
-  });
+  useProjectPersistence(
+    project,
+    setProject,
+    viewerSync,
+    {
+      serializeForAutosave: (state) => serializeStateForAutosave(state),
+      revive: (snap) => reviveState(snap),
+      captureRoomSnapshot,
+      applyResultados,
+    },
+    { disabled: isPiproDesign }
+  );
 
   const undoStackRef = useRef<ProjectState[]>([]);
   const redoStackRef = useRef<ProjectState[]>([]);

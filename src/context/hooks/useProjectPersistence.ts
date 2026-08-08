@@ -28,12 +28,19 @@ export type ProjectPersistenceApi = {
   applyResultados?: (_state: ProjectState) => ProjectState;
 };
 
+export type ProjectPersistenceOptions = {
+  /** Se true, não lê/grava autosave nem beforeunload (modo design pipro). */
+  disabled?: boolean;
+};
+
 export function useProjectPersistence(
   project: ProjectState,
   setProject: React.Dispatch<React.SetStateAction<ProjectState>>,
   viewerSync: { saveViewerSnapshot: () => unknown; restoreViewerSnapshot: (_snapshot: unknown) => void },
-  api: ProjectPersistenceApi
+  api: ProjectPersistenceApi,
+  options?: ProjectPersistenceOptions
 ) {
+  const disabled = options?.disabled === true;
   const projectRef = useRef(project);
   projectRef.current = project;
   const autosaveTimerRef = useRef<number | null>(null);
@@ -41,6 +48,7 @@ export function useProjectPersistence(
   const pendingAutosaveRef = useRef(false);
 
   const performAutosave = useCallback(() => {
+    if (disabled) return;
     const proj = projectRef.current;
     if (isProjectCompletelyDefaultForPersistence(proj)) return;
     if (proj.estaCarregando) {
@@ -61,7 +69,7 @@ export function useProjectPersistence(
     setProject((prev) =>
       prev.lastAutosaveTime === savedAt ? prev : { ...prev, lastAutosaveTime: savedAt }
     );
-  }, [viewerSync, setProject, api]);
+  }, [viewerSync, setProject, api, disabled]);
 
   const scheduleAutosave = useCallback(
     (ms: number) => {
@@ -77,6 +85,7 @@ export function useProjectPersistence(
   );
 
   useEffect(() => {
+    if (disabled) return;
     const raw = safeGetItem(AUTOSAVE_STORAGE_KEY);
     if (!raw) return;
     let parsed: { snapshot?: ProjectSnapshot; savedAt?: string };
@@ -122,6 +131,7 @@ export function useProjectPersistence(
   }, []);
 
   useEffect(() => {
+    if (disabled) return;
     const proj = project;
     if (isProjectCompletelyDefaultForPersistence(proj)) return;
     const fingerprint = JSON.stringify(api.serializeForAutosave(proj));
@@ -137,11 +147,12 @@ export function useProjectPersistence(
   }, [project, scheduleAutosave, api]);
 
   useEffect(() => {
+    if (disabled) return;
     if (project.estaCarregando) return;
     if (pendingAutosaveRef.current) {
       scheduleAutosave(450);
     }
-  }, [project.estaCarregando, scheduleAutosave]);
+  }, [project.estaCarregando, scheduleAutosave, disabled]);
 
   useEffect(() => {
     return () => {
@@ -152,6 +163,7 @@ export function useProjectPersistence(
   }, []);
 
   useEffect(() => {
+    if (disabled) return;
     const handler = (e: BeforeUnloadEvent) => {
       const proj = projectRef.current;
       if (!isProjectCompletelyDefaultForPersistence(proj)) {
@@ -161,7 +173,7 @@ export function useProjectPersistence(
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, []);
+  }, [disabled]);
 
   return { performAutosave, scheduleAutosave };
 }

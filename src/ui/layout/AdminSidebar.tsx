@@ -4,7 +4,7 @@
  */
 
 import { INDUSTRIAL_ADMIN_MODELS_PATH } from "../routes/industrialAdminPaths";
-import { PIPRO_WORKSPACE_PATH } from "../routes/piproPaths";
+import { PIPRO_WORKSPACE_PATH, PIPRO_WORKSPACE_V2_PATH } from "../routes/piproPaths";
 
 export type AdminSidebarItem = {
   label: string;
@@ -19,6 +19,10 @@ export const industrialAdminSidebarItems: readonly AdminSidebarItem[] = [
   {
     label: "Workspace Design Mode",
     path: PIPRO_WORKSPACE_PATH,
+  },
+  {
+    label: "Workspace v2",
+    path: PIPRO_WORKSPACE_V2_PATH,
   },
 ];
 

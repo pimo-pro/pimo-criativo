@@ -82,7 +82,7 @@ import {
   IndustrialModelsPage,
   PIPRO_WORKSPACE_PATH,
 } from "./ui/routes/industrialAdminRoutes";
-import { PIPRO_MODELS_PUBLIC_PATH } from "./ui/routes/piproPaths";
+import { PIPRO_MODELS_PUBLIC_PATH, PIPRO_WORKSPACE_V2_PATH } from "./ui/routes/piproPaths";
 import { AdminSidebar } from "./ui/layout/AdminSidebar";
 import PieceMainView from "./app/industrial/piece/PieceMainView";
 import IndustrialSupervisorDashboardPage from "./app/industrial/supervisor/index";
@@ -101,6 +101,7 @@ import { ajudaRoutes } from "./routes/ajudaRoutes";
 /** Lazy: evita ciclos TDZ (routes ↔ páginas) e mantém motor/viewer fora do chunk inicial. */
 const PiproModelsPage = lazy(() => import("./ui/pipro/PiproModelsPage"));
 const WorkspaceDesignModePage = lazy(() => import("./ui/pipro/WorkspaceDesignModePage"));
+const PiproDesignShellPage = lazy(() => import("./ui/pipro/PiproDesignShellPage"));
 const Documentacao = lazy(() => import("./pages/Documentacao"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const V4Page = lazy(() => import("./pages/V4Page"));
@@ -612,6 +613,16 @@ export default function App() {
                 <PermissionRoute check={canAccessAdminPanel}>
                   <Suspense fallback={<PageContainer><Card>A carregar Workspace…</Card></PageContainer>}>
                     <WorkspaceDesignModePage />
+                  </Suspense>
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path={PIPRO_WORKSPACE_V2_PATH}
+              element={
+                <PermissionRoute check={canAccessAdminPanel}>
+                  <Suspense fallback={<PageContainer><Card>A carregar Workspace v2…</Card></PageContainer>}>
+                    <PiproDesignShellPage />
                   </Suspense>
                 </PermissionRoute>
               }
