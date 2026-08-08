@@ -2,6 +2,18 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T17:53:49.768Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(build): corrigir tipos grain/metadata para publicação A–F",
+      "version": "v6.0808.1853"
+    },
+    {
+      "publishedAt": "2026-08-08T17:49:39.094Z",
+      "author": "pimo-pro",
+      "commitMessage": "Fases A–F concluídas — Sistema Industrial + Industrial Admin UI (parte 1)",
+      "version": "v6.0808.1849"
+    },
+    {
       "publishedAt": "2026-08-08T14:23:41.771Z",
       "author": "pimo-pro",
       "commitMessage": "Publicação PIMO — Sistema Industrial",
