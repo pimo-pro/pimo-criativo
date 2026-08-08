@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T02:21:09.872Z",
+      "author": "pimo-pro",
+      "commitMessage": "Auto deploy",
+      "version": "v6.0808.0321"
+    },
+    {
       "publishedAt": "2026-08-07T19:55:04.444Z",
       "author": "pimo-pro",
       "commitMessage": "Release — Nova versão completa sincronizada do projeto",
