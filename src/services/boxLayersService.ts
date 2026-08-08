@@ -1,4 +1,4 @@
-import type { WorkspaceBox } from "../core/types";
+import type { BoxModule, WorkspaceBox } from "../core/types";
 import { getSettings } from "../core/settings/settingsService";
 import type { DoorLayerItem, DrawerLayerItem } from "../models/BoxLayers";
 import {
@@ -135,7 +135,7 @@ export function regenerateLayersForBox(
   const gps = boxUsesGavetaPortaSep(box);
   const gpsLayout: GavetaPortaSepLayout | null = gps ? computeGavetaPortaSepLayout(box) : null;
   const a1 = boxUsesInnerCabinetA1(box);
-  const a1Layout: A1Layout | null = a1 ? computeA1Layout(box) : null;
+  const a1Layout: A1Layout | null = a1 ? computeA1Layout(box as unknown as BoxModule) : null;
   const drawerCount = gps
     ? Math.max(1, drawerCountRaw || 1)
     : a1
@@ -464,7 +464,9 @@ export function regenerateLayersForBox(
             ...(gpsLayout
               ? {
                   frontHeightMm: gpsLayout.drawerFrontHeightMm,
-                  gavetaPortaSep: true,
+                  ...({
+                    gavetaPortaSep: true,
+                  } as object),
                 }
               : {}),
             ...(a1Layout
@@ -509,7 +511,9 @@ export function regenerateLayersForBox(
             metadata: {
               ...generatedDrawers[i].metadata,
               frontHeightMm: gpsLayout.drawerFrontHeightMm,
-              gavetaPortaSep: true,
+              ...({
+                gavetaPortaSep: true,
+              } as object),
             },
           };
         }

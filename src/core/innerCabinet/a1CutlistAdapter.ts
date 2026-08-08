@@ -84,7 +84,6 @@ function buildA1DrawerPieces(
   const bottomT = DRAWER_BOTTOM_DEFAULT_THICKNESS_MM;
   const pieces: CutListItem[] = [];
   const materialLabel = getMaterialDisplayInfo(materialId).label;
-  const grainDirection = resolveIndustrialGrainCode(materialId);
 
   for (let i = 0; i < layout.drawerCount; i++) {
     const idx = i + 1;
@@ -134,7 +133,7 @@ function buildA1DrawerPieces(
         tipo: s.tipo,
         sourceType: "parametric",
         boxId: box.id,
-        grainDirection,
+        grainDirection: resolveIndustrialGrainCode({ tipo: s.tipo }),
         metadata: {
           industrialLabel,
           innerCabinetId: "a_1",
@@ -171,7 +170,6 @@ export function extractA1CutlistFromBox(
     materialId,
   });
   const materialLabel = getMaterialDisplayInfo(materialId).label;
-  const grainDirection = resolveIndustrialGrainCode(materialId);
 
   const carcass: CutListItem[] = A1_CARCASS_TIPOS.map((tipo) => {
     const dims = carcassDims(tipo, layout);
@@ -191,7 +189,7 @@ export function extractA1CutlistFromBox(
       tipo,
       sourceType: "parametric" as const,
       boxId: box.id,
-      grainDirection,
+      grainDirection: resolveIndustrialGrainCode({ tipo }),
       metadata: {
         panelId: `${box.id}-${tipo}`,
         industrialLabel,

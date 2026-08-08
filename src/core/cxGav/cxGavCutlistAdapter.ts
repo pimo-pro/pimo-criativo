@@ -67,7 +67,6 @@ export function extractCxGavCutlistFromBox(
 
   const materialId = resolveIndustrialMaterialKey(bodyMaterialIdOrLegacyLabel);
   const materialLabel = getMaterialDisplayInfo(materialId).label;
-  const grainDirection = resolveIndustrialGrainCode(materialId);
   const name = boxName ?? box.nome ?? box.id;
   const rotationMeta = buildCutlistRotationMetadata({
     allowPieceRotation: box.allowPieceRotation,
@@ -94,7 +93,7 @@ export function extractCxGavCutlistFromBox(
       tipo,
       sourceType: "parametric" as const,
       boxId: box.id,
-      grainDirection,
+      grainDirection: resolveIndustrialGrainCode({ tipo }),
       drillHoles: buildCxGavDrillHoles(tipo, layout),
       metadata: {
         panelId,

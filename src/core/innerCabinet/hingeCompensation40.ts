@@ -51,7 +51,7 @@ export function buildHingeCompensation40CutlistItem(params: {
     tipo: A1_COMP_TIPO,
     sourceType: "parametric",
     boxId: params.box.id,
-    grainDirection: resolveIndustrialGrainCode(materialId),
+    grainDirection: resolveIndustrialGrainCode({ tipo: A1_COMP_TIPO }),
     metadata: {
       panelId: `${params.box.id}-${A1_COMP_TIPO}`,
       industrialLabel,
