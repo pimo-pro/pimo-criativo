@@ -376,10 +376,17 @@ export class BoxSceneController {
       opts.costaAtiva !== undefined;
 
     if (structureChanged) {
-      width = Math.max(0.001, opts.width ?? opts.size ?? width);
-      height = Math.max(0.001, opts.height ?? opts.size ?? height);
-      layoutDepth = Math.max(0.001, opts.layoutDepthM ?? opts.depth ?? opts.size ?? layoutDepth);
-      carcassDepth = Math.max(0.001, opts.carcassDepthM ?? opts.depth ?? opts.size ?? layoutDepth);
+      // Clamp mínimo: evita geometria 0 → avisos WebGL X4008 / divisão por zero.
+      width = Math.max(0.001, Number(opts.width ?? opts.size ?? width) || 0.001);
+      height = Math.max(0.001, Number(opts.height ?? opts.size ?? height) || 0.001);
+      layoutDepth = Math.max(
+        0.001,
+        Number(opts.layoutDepthM ?? opts.depth ?? opts.size ?? layoutDepth) || 0.001
+      );
+      carcassDepth = Math.max(
+        0.001,
+        Number(opts.carcassDepthM ?? opts.depth ?? opts.size ?? layoutDepth) || 0.001
+      );
     }
 
     return {

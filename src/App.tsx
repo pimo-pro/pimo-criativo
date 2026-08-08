@@ -84,10 +84,6 @@ import {
 } from "./ui/routes/industrialAdminRoutes";
 import { PIPRO_MODELS_PUBLIC_PATH } from "./ui/routes/piproPaths";
 import { AdminSidebar } from "./ui/layout/AdminSidebar";
-
-/** Lazy: evita ciclos TDZ (routes ↔ páginas) e mantém motor/viewer fora do chunk inicial. */
-const PiproModelsPage = lazy(() => import("./ui/pipro/PiproModelsPage"));
-const WorkspaceDesignModePage = lazy(() => import("./ui/pipro/WorkspaceDesignModePage"));
 import PieceMainView from "./app/industrial/piece/PieceMainView";
 import IndustrialSupervisorDashboardPage from "./app/industrial/supervisor/index";
 import SupervisorProjectPage from "./app/industrial/supervisor/SupervisorProjectPage";
@@ -102,6 +98,9 @@ import ProjetosAnaliseIndexPage from "./app/PROJETOS/[project]/analise/page";
 import ProjetosAnaliseDocPage from "./app/PROJETOS/[project]/analise/[docId]/page";
 import { ajudaRoutes } from "./routes/ajudaRoutes";
 
+/** Lazy: evita ciclos TDZ (routes ↔ páginas) e mantém motor/viewer fora do chunk inicial. */
+const PiproModelsPage = lazy(() => import("./ui/pipro/PiproModelsPage"));
+const WorkspaceDesignModePage = lazy(() => import("./ui/pipro/WorkspaceDesignModePage"));
 const Documentacao = lazy(() => import("./pages/Documentacao"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const V4Page = lazy(() => import("./pages/V4Page"));

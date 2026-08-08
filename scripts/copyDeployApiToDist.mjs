@@ -29,7 +29,8 @@ function copyProjectsApiToDist() {
     console.warn("[copyDeployApiToDist] hostinger/api/projects em falta — projects não copiado.");
     return false;
   }
-  const required = ["index.php", "list.php", ".htaccess"];
+  // index.php faz require de githubSync*.php — tem de ir no deploy (sem config com token).
+  const required = ["index.php", "list.php", ".htaccess", "githubSync.php", "githubSyncMapper.php"];
   for (const name of required) {
     const src = path.join(srcProjects, name);
     if (!fs.existsSync(src)) {
@@ -37,6 +38,10 @@ function copyProjectsApiToDist() {
       return false;
     }
     copyFile(src, path.join(destProjects, name));
+  }
+  const exampleConfig = path.join(srcProjects, "githubSyncConfig.example.php");
+  if (fs.existsSync(exampleConfig)) {
+    copyFile(exampleConfig, path.join(destProjects, "githubSyncConfig.example.php"));
   }
   const dataHtaccess = path.join(srcProjects, "data", ".htaccess");
   ensureDir(path.join(destProjects, "data"));

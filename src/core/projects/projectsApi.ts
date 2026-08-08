@@ -36,6 +36,40 @@ export type ProjectsApiDeps = {
   nowIso: () => string;
 };
 
+function metaFromSaveResponse(
+  row: Record<string, unknown>,
+  deps: ProjectsApiDeps
+): SavedProjectMeta | null {
+  if ("sequence" in row || "ownerName" in row || "thumbnailDataUrl" in row) {
+    return row as unknown as SavedProjectMeta;
+  }
+  if ("ownerId" in row && "viewerSnapshot" in row && "settings" in row) {
+    return deps.toMetaFromProjectData(row as unknown as PimoProjectData, 0);
+  }
+  // Resposta mínima válida após POST (id + name).
+  if (typeof row.id === "string" && row.id && typeof row.name === "string") {
+    return {
+      id: row.id,
+      name: row.name,
+      sequence: Number.isFinite(Number(row.sequence)) ? Number(row.sequence) : 1,
+      createdAt: typeof row.createdAt === "string" ? row.createdAt : deps.nowIso(),
+      updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : deps.nowIso(),
+      ownerId: typeof row.ownerId === "string" ? row.ownerId : "usuario-local",
+      ownerName:
+        typeof row.ownerName === "string"
+          ? row.ownerName
+          : typeof row.ownerId === "string"
+            ? row.ownerId
+            : "Utilizador",
+      thumbnailDataUrl:
+        typeof row.thumbnailDataUrl === "string" || row.thumbnailDataUrl === null
+          ? (row.thumbnailDataUrl as string | null)
+          : null,
+    };
+  }
+  return null;
+}
+
 export async function remoteSaveProject(
   request: SaveProjectRequest,
   deps: ProjectsApiDeps
@@ -47,17 +81,25 @@ export async function remoteSaveProject(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(projectData),
   });
-  if (!response.ok) return null;
-  const payload = (await toJson(response)) as { project?: unknown } | null;
+  const payload = (await toJson(response)) as {
+    project?: unknown;
+    status?: string;
+    message?: string;
+  } | null;
+  if (!response.ok) {
+    console.warn("[SYNC] remoteSaveProject HTTP", response.status, payload?.message ?? payload);
+    return null;
+  }
   const row = deps.asObject(payload?.project);
-  if (!row) return null;
-  if ("sequence" in row || "ownerName" in row || "thumbnailDataUrl" in row) {
-    return row as unknown as SavedProjectMeta;
+  if (!row) {
+    console.warn("[SYNC] remoteSaveProject resposta sem project", payload);
+    return null;
   }
-  if ("ownerId" in row && "viewerSnapshot" in row && "settings" in row) {
-    return deps.toMetaFromProjectData(row as unknown as PimoProjectData, 0);
+  const meta = metaFromSaveResponse(row, deps);
+  if (!meta) {
+    console.warn("[SYNC] remoteSaveProject project sem campos reconhecidos", Object.keys(row));
   }
-  return null;
+  return meta;
 }
 
 function mapRemoteProjectRows(rows: unknown[], deps: ProjectsApiDeps): SavedProjectMeta[] {
@@ -94,6 +136,15 @@ function mapRemoteProjectRows(rows: unknown[], deps: ProjectsApiDeps): SavedProj
     .filter((v): v is SavedProjectMeta => Boolean(v));
 }
 
+async function fetchProjectListRows(
+  url: string
+): Promise<{ ok: boolean; rows: unknown[]; status: number }> {
+  const response = await fetch(url);
+  const payload = (await toJson(response)) as { projects?: unknown[] } | null;
+  const rows = Array.isArray(payload?.projects) ? payload.projects : [];
+  return { ok: response.ok, rows, status: response.status };
+}
+
 export async function remoteListProjects(
   scope: "mine" | "all",
   ownerId: string | undefined,
@@ -101,11 +152,26 @@ export async function remoteListProjects(
 ): Promise<SavedProjectMeta[]> {
   const params = new URLSearchParams({ scope });
   if (ownerId) params.set("ownerId", ownerId);
-  const response = await fetch(buildProjectsUrl(params));
-  if (!response.ok) return [];
-  const payload = (await toJson(response)) as { projects?: unknown[] } | null;
-  const rows = Array.isArray(payload?.projects) ? payload.projects : [];
-  return mapRemoteProjectRows(rows, deps);
+  const primary = await fetchProjectListRows(buildProjectsUrl(params));
+  if (primary.ok) {
+    return mapRemoteProjectRows(primary.rows, deps);
+  }
+  // Fallback: list.php (não depende de githubSync.php)
+  const fallbackParams = new URLSearchParams({ scope });
+  if (ownerId) fallbackParams.set("ownerId", ownerId);
+  const fallbackUrl = `${buildApiUrl("/api/projects/list.php")}?${fallbackParams.toString()}`;
+  const fallback = await fetchProjectListRows(fallbackUrl);
+  if (!fallback.ok) {
+    console.warn("[SYNC] listSavedProjects falhou", {
+      indexStatus: primary.status,
+      listStatus: fallback.status,
+    });
+    return [];
+  }
+  console.warn("[SYNC] listSavedProjects via list.php (index.php indisponível)", {
+    indexStatus: primary.status,
+  });
+  return mapRemoteProjectRows(fallback.rows, deps);
 }
 
 /** Lista apenas projectos com ficheiro {nome}.json (páginas PROJETOS). */

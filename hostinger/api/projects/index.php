@@ -34,8 +34,18 @@ if (!is_dir($dataDir)) {
     }
 }
 
-// Arquivo GitHub (best-effort) — no-op se config/token ausentes
-require_once __DIR__ . "/githubSync.php";
+// Arquivo GitHub (best-effort) — no-op se ficheiro/config/token ausentes.
+// Nunca falhar a API de projetos por causa do sync (evita HTTP 500 vazio).
+$githubSyncPath = __DIR__ . "/githubSync.php";
+if (is_file($githubSyncPath)) {
+    try {
+        require_once $githubSyncPath;
+    } catch (Throwable $e) {
+        error_log("[PIMO-API] githubSync.php falhou ao carregar: " . $e->getMessage());
+    }
+} else {
+    error_log("[PIMO-API] githubSync.php ausente — sync GitHub desligado; API de projetos continua.");
+}
 
 $thumbsDir = __DIR__ . "/thumbs";
 if (!is_dir($thumbsDir)) {
@@ -45,7 +55,13 @@ if (!is_dir($thumbsDir)) {
 function respond_json(array $data, int $code = 200): void
 {
     http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($json === false) {
+        http_response_code(500);
+        echo '{"status":"error","message":"Falha ao serializar JSON"}';
+        exit;
+    }
+    echo $json;
     exit;
 }
 
@@ -704,17 +720,31 @@ if ($method === "GET" && $action === "projetos") {
 
 // --- GET: listagem ?scope=mine|all&ownerId=... ---
 if ($method === "GET" && $action === "") {
-    $scope = isset($_GET["scope"]) ? (string)$_GET["scope"] : "mine";
-    $ownerId = isset($_GET["ownerId"]) ? (string)$_GET["ownerId"] : "";
-    $entries = list_project_entries($dataDir);
-    $projects = build_projects_list($entries, $scope, $ownerId, $thumbsDir, false);
+    try {
+        $scope = isset($_GET["scope"]) ? (string)$_GET["scope"] : "mine";
+        $ownerId = isset($_GET["ownerId"]) ? (string)$_GET["ownerId"] : "";
+        $entries = list_project_entries($dataDir);
+        $projects = build_projects_list($entries, $scope, $ownerId, $thumbsDir, false);
 
-    respond_json([
-        "status" => "ok",
-        "scope" => $scope,
-        "ownerId" => $ownerId !== "" ? $ownerId : null,
-        "projects" => $projects,
-    ]);
+        respond_json([
+            "status" => "ok",
+            "scope" => $scope,
+            "ownerId" => $ownerId !== "" ? $ownerId : null,
+            "projects" => $projects,
+        ]);
+    } catch (Throwable $e) {
+        error_log("[PIMO-API] listagem falhou: " . $e->getMessage());
+        // Nunca 500 vazio: resposta JSON válida (projectos corrompidos já são ignorados em list_project_entries).
+        respond_json([
+            "status" => "ok",
+            "scope" => isset($_GET["scope"]) ? (string)$_GET["scope"] : "mine",
+            "ownerId" => isset($_GET["ownerId"]) && (string)$_GET["ownerId"] !== ""
+                ? (string)$_GET["ownerId"]
+                : null,
+            "projects" => [],
+            "warning" => "Listagem parcial indisponível",
+        ], 200);
+    }
 }
 
 respond_json(["status" => "error", "message" => "Método não suportado"], 405);

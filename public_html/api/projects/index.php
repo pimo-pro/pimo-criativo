@@ -36,13 +36,29 @@ if (!is_dir($dataDir)) {
     }
 }
 
-// Arquivo GitHub (best-effort) — no-op se config/token ausentes
-require_once __DIR__ . "/githubSync.php";
+// Arquivo GitHub (best-effort) — no-op se ficheiro/config/token ausentes.
+// Nunca falhar a API de projetos por causa do sync (evita HTTP 500 vazio).
+$githubSyncPath = __DIR__ . "/githubSync.php";
+if (is_file($githubSyncPath)) {
+    try {
+        require_once $githubSyncPath;
+    } catch (Throwable $e) {
+        error_log("[PIMO-API] githubSync.php falhou ao carregar: " . $e->getMessage());
+    }
+} else {
+    error_log("[PIMO-API] githubSync.php ausente — sync GitHub desligado; API de projetos continua.");
+}
 
 function respond_json(array $data, int $code = 200): void
 {
     http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($json === false) {
+        http_response_code(500);
+        echo '{"status":"error","message":"Falha ao serializar JSON"}';
+        exit;
+    }
+    echo $json;
     exit;
 }
 
