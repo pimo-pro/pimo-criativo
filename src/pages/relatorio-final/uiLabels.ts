@@ -58,6 +58,9 @@ export const R = {
   medida: "Medida",
   precoChapa: "Pre\u00e7o da chapa",
   precoTotal: "Pre\u00e7o total",
+  precoM2: "Pre\u00e7o do m\u00b2",
+  areaChapaM2: "\u00c1rea da chapa (m\u00b2)",
+  precoCalcM2: "Pre\u00e7o calculado por m\u00b2",
 
 
   estadoProjeto: "3. Estado do projeto (Design / Produ\u00e7\u00e3o / Montagem)",

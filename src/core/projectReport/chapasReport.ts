@@ -1,6 +1,7 @@
 /**
  * Chapas reais para o detalhe Painéis do Relatório Final.
  * Agrupa por espessura (não repetir mesma espessura).
+ * Cálculo por m²: preço_peça = preço_m² × área_real (L×A/1e6).
  */
 
 import { getPrecoPorMaterial } from "@/core/pricing/pricing";
@@ -10,8 +11,15 @@ import { listIndustrialWoodMaterials } from "@/core/materials/materials.api";
 
 import { makeReportId, type ReportFinanceiroDetalhe } from "./types";
 
+/** Área padrão de chapa industrial (m²) — ~2800×2070 mm. */
+export const AREA_CHAPA_PADRAO_M2 = 5.8;
+
 function round2(n: number): number {
   return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+function round4(n: number): number {
+  return Math.round((Number(n) || 0) * 10000) / 10000;
 }
 
 export function parseMedidaMm(dimensoes: string): { L: number; A: number } {
@@ -26,9 +34,24 @@ export function formatMedidaMm(L: number, A: number): string {
   return `${Math.round(L)} x ${Math.round(A)} mm`;
 }
 
+/** Área real da peça/chapa a partir da medida (mm → m²). */
 export function areaM2FromMedida(dimensoes: string): number {
   const { L, A } = parseMedidaMm(dimensoes);
-  return (Math.max(0, L) / 1000) * (Math.max(0, A) / 1000);
+  return round4((Math.max(0, L) * Math.max(0, A)) / 1_000_000);
+}
+
+export function resolveAreaChapaM2(d: Pick<ReportFinanceiroDetalhe, "areaChapaM2">): number {
+  const a = Number(d.areaChapaM2);
+  return a > 0 ? round4(a) : AREA_CHAPA_PADRAO_M2;
+}
+
+/** Preço calculado por m² = preço_da_chapa / área_da_chapa. */
+export function precoM2FromChapa(
+  precoChapa: number,
+  areaChapaM2: number = AREA_CHAPA_PADRAO_M2
+): number {
+  const area = areaChapaM2 > 0 ? areaChapaM2 : AREA_CHAPA_PADRAO_M2;
+  return round2((Number(precoChapa) || 0) / area);
 }
 
 export function precoChapaFromArea(precoPorM2: number, dimensoes: string): number {
@@ -82,33 +105,65 @@ export function aggregateChapasByEspessura(
       });
       eurM2 = Number(match?.industrialDefaults?.custo_m2) || 0;
     }
+    const areaChapaM2 = AREA_CHAPA_PADRAO_M2;
     const precoUnitario = precoChapaFromArea(eurM2, dimensoes);
-    rows.push({
-      id: makeReportId("ch"),
-      tipo: row.tipo,
-      dimensoes,
-      espessuraMm: esp,
-      quantidade: row.qtd,
-      precoPorM2: eurM2,
-      precoUnitario,
-      total: round2(precoUnitario * row.qtd),
-    });
+    rows.push(
+      recalcChapaDetalhe({
+        id: makeReportId("ch"),
+        tipo: row.tipo,
+        dimensoes,
+        espessuraMm: esp,
+        quantidade: row.qtd,
+        areaChapaM2,
+        precoPorM2: eurM2,
+        precoUnitario,
+        total: 0,
+      })
+    );
   }
   return rows;
 }
 
+/**
+ * Recalcula preço da peça: preco_proporcional = preco_m2 × area_real.
+ * Se só houver preço da chapa, deriva preco_m2 = preco_chapa / area_chapa.
+ */
 export function recalcChapaDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiroDetalhe {
-  const precoPorM2 = Number(d.precoPorM2) || 0;
+  const areaChapaM2 = resolveAreaChapaM2(d);
+  const areaReal = areaM2FromMedida(d.dimensoes) || areaChapaM2;
+  let precoPorM2 = Number(d.precoPorM2) || 0;
   let precoUnitario = Number(d.precoUnitario) || 0;
-  if (precoPorM2 > 0 && d.dimensoes) {
-    precoUnitario = precoChapaFromArea(precoPorM2, d.dimensoes);
+
+  if (precoPorM2 > 0) {
+    precoUnitario = round2(precoPorM2 * areaReal);
+  } else if (precoUnitario > 0 && areaChapaM2 > 0) {
+    precoPorM2 = precoM2FromChapa(precoUnitario, areaChapaM2);
+    precoUnitario = round2(precoPorM2 * areaReal);
   }
+
   const quantidade = Math.max(0, Number(d.quantidade) || 0);
   return {
     ...d,
+    areaChapaM2,
+    precoPorM2,
     precoUnitario,
     total: round2(quantidade * precoUnitario),
   };
+}
+
+/** Ao editar preço da chapa: atualiza €/m² = preço / área_chapa e reaplica à medida. */
+export function applyPrecoChapaEdit(
+  d: ReportFinanceiroDetalhe,
+  precoChapa: number
+): ReportFinanceiroDetalhe {
+  const areaChapaM2 = resolveAreaChapaM2(d);
+  const precoPorM2 = precoM2FromChapa(precoChapa, areaChapaM2);
+  return recalcChapaDetalhe({
+    ...d,
+    areaChapaM2,
+    precoPorM2,
+    precoUnitario: precoChapa,
+  });
 }
 
 export type CatalogoChapaOption = {
@@ -133,16 +188,15 @@ export function listCatalogoChapas(): CatalogoChapaOption[] {
 }
 
 export function detalheFromCatalogoChapa(opt: CatalogoChapaOption): ReportFinanceiroDetalhe {
-  const dimensoes = opt.medidaDefault;
-  const precoUnitario = precoChapaFromArea(opt.precoPorM2, dimensoes);
-  return {
+  return recalcChapaDetalhe({
     id: makeReportId("ch"),
     tipo: opt.label,
-    dimensoes,
+    dimensoes: opt.medidaDefault,
     espessuraMm: opt.espessuraMm,
     quantidade: 1,
+    areaChapaM2: AREA_CHAPA_PADRAO_M2,
     precoPorM2: opt.precoPorM2,
-    precoUnitario,
-    total: precoUnitario,
-  };
+    precoUnitario: 0,
+    total: 0,
+  });
 }

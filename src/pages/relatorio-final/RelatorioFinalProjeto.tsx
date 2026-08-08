@@ -150,9 +150,6 @@ export default function RelatorioFinalProjeto() {
         <InfoGeraisBlock
           style={style}
           value={report.gerais}
-          operadoresCount={report.producao.operadores.length}
-          caixasCount={report.producao.caixas.length}
-          pecasCount={report.producao.pecas.length}
           onChange={(gerais, path) => updateReport((r) => ({ ...r, gerais }), path)}
         />
 

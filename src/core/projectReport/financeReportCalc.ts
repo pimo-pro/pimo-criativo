@@ -33,19 +33,39 @@ export function lineTotalFromQtyPrice(
 }
 
 export function recalcDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiroDetalhe {
-  let precoUnitario = d.precoUnitario;
-  // Chapas com €/m²: recalcular preço unitário a partir da medida
-  if (typeof d.precoPorM2 === "number" && d.precoPorM2 > 0 && d.dimensoes) {
+  // Chapas / painéis com €/m² ou área de referência
+  const hasChapaMeta =
+    (typeof d.precoPorM2 === "number" && d.precoPorM2 > 0) ||
+    (typeof d.areaChapaM2 === "number" && d.areaChapaM2 > 0) ||
+    (typeof d.espessuraMm === "number" && d.espessuraMm > 0);
+
+  if (hasChapaMeta && d.dimensoes) {
+    const areaChapa =
+      typeof d.areaChapaM2 === "number" && d.areaChapaM2 > 0 ? d.areaChapaM2 : 5.8;
     const m = String(d.dimensoes).match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
-    if (m) {
-      const areaM2 = (Math.max(0, Number(m[1]) || 0) / 1000) * (Math.max(0, Number(m[2]) || 0) / 1000);
-      precoUnitario = round2(d.precoPorM2 * areaM2);
+    const areaReal = m
+      ? (Math.max(0, Number(m[1]) || 0) * Math.max(0, Number(m[2]) || 0)) / 1_000_000
+      : areaChapa;
+    let precoPorM2 = Number(d.precoPorM2) || 0;
+    let precoUnitario = Number(d.precoUnitario) || 0;
+    if (precoPorM2 > 0) {
+      precoUnitario = round2(precoPorM2 * areaReal);
+    } else if (precoUnitario > 0 && areaChapa > 0) {
+      precoPorM2 = round2(precoUnitario / areaChapa);
+      precoUnitario = round2(precoPorM2 * areaReal);
     }
+    return {
+      ...d,
+      areaChapaM2: areaChapa,
+      precoPorM2,
+      precoUnitario,
+      total: lineTotalFromQtyPrice(d.quantidade, precoUnitario, d.total),
+    };
   }
+
   return {
     ...d,
-    precoUnitario,
-    total: lineTotalFromQtyPrice(d.quantidade, precoUnitario, d.total),
+    total: lineTotalFromQtyPrice(d.quantidade, d.precoUnitario, d.total),
   };
 }
 

@@ -79,6 +79,8 @@ export type ReportFinanceiroDetalhe = {
   espessuraMm?: number;
   /** EUR/m2 para recalcular preco ao editar medida. */
   precoPorM2?: number;
+  /** Area de referencia da chapa inteira (m2). Padrao industrial: 5.8. */
+  areaChapaM2?: number;
 };
 
 export type ReportFinanceiroLinha = {

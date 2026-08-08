@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateChapasByEspessura,
+  applyPrecoChapaEdit,
+  AREA_CHAPA_PADRAO_M2,
+  areaM2FromMedida,
   precoChapaFromArea,
+  precoM2FromChapa,
   recalcChapaDetalhe,
 } from "./chapasReport";
 import type { ChapasRealSheetRow } from "@/core/industrial/computeChapasReal";
@@ -35,24 +39,55 @@ describe("chapasReport", () => {
     const r10 = rows.find((r) => r.espessuraMm === 10);
     expect(r19?.quantidade).toBe(3);
     expect(r10?.quantidade).toBe(1);
+    expect(r19?.areaChapaM2).toBe(AREA_CHAPA_PADRAO_M2);
   });
 
-  it("recalcula preco ao mudar medida com precoPorM2", () => {
-    const area = 2.8 * 2.07;
-    const unit = precoChapaFromArea(31, "2800 x 2070 mm");
-    expect(unit).toBeCloseTo(31 * area, 1);
+  it("area real = L x A / 1e6", () => {
+    expect(areaM2FromMedida("2800 x 2070 mm")).toBeCloseTo(5.796, 2);
+    expect(areaM2FromMedida("1400 x 2070 mm")).toBeCloseTo(2.898, 2);
+  });
 
-    const next = recalcChapaDetalhe({
+  it("preco m2 = preco_chapa / area_chapa", () => {
+    expect(precoM2FromChapa(174, 5.8)).toBe(30);
+  });
+
+  it("recalcula preco proporcional ao mudar medida", () => {
+    const full = recalcChapaDetalhe({
       id: "1",
       tipo: "MDF",
-      dimensoes: "1400 x 2070 mm",
-      quantidade: 2,
+      dimensoes: "2800 x 2070 mm",
+      quantidade: 1,
       precoUnitario: 0,
       total: 0,
       espessuraMm: 19,
+      areaChapaM2: 5.8,
       precoPorM2: 31,
     });
-    expect(next.precoUnitario).toBeCloseTo(31 * 1.4 * 2.07, 1);
-    expect(next.total).toBeCloseTo(next.precoUnitario * 2, 1);
+    expect(full.precoUnitario).toBeCloseTo(precoChapaFromArea(31, "2800 x 2070 mm"), 1);
+
+    const half = recalcChapaDetalhe({
+      ...full,
+      dimensoes: "1400 x 2070 mm",
+    });
+    expect(half.precoUnitario).toBeCloseTo(31 * areaM2FromMedida("1400 x 2070 mm"), 1);
+    expect(half.precoUnitario).toBeLessThan(full.precoUnitario);
+  });
+
+  it("editar preco da chapa atualiza preco m2", () => {
+    const next = applyPrecoChapaEdit(
+      {
+        id: "1",
+        tipo: "MDF",
+        dimensoes: "2800 x 2070 mm",
+        quantidade: 1,
+        precoUnitario: 0,
+        total: 0,
+        areaChapaM2: 5.8,
+        precoPorM2: 0,
+      },
+      174
+    );
+    expect(next.precoPorM2).toBe(30);
+    expect(next.precoUnitario).toBeCloseTo(30 * areaM2FromMedida("2800 x 2070 mm"), 1);
   });
 });

@@ -43,6 +43,10 @@ function StatCard({ label, value, suffix }: { label: string; value: string | num
 
 export default function PainelGraficoBlock({ style, metricas, report }: Props) {
   const tempo = deriveTempoTrabalhoHoras(report);
+  const operadores = report.producao.operadores.length;
+  const caixas = report.producao.caixas.length;
+  const pecas = report.producao.pecas.length;
+  const totalProjeto = report.financeiro.totalProjeto;
 
   return (
     <section style={reportSection(style)}>
@@ -52,6 +56,14 @@ export default function PainelGraficoBlock({ style, metricas, report }: Props) {
         <StatCard label={R.colaboradores} value={metricas.colaboradores} />
         <StatCard label={R.tempoTrabalho} value={tempo} suffix="h" />
         <StatCard label={R.melhorias} value={metricas.melhorias} />
+        <StatCard label={R.operadoresFunc} value={operadores} />
+        <StatCard label={R.totalCaixas} value={caixas} />
+        <StatCard label={R.totalPecas} value={pecas} />
+        <StatCard
+          label={R.totalProjeto}
+          value={totalProjeto.toFixed(2)}
+          suffix="EUR"
+        />
       </div>
     </section>
   );

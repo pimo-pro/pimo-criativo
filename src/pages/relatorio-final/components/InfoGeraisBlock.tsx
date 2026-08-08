@@ -11,36 +11,10 @@ import { R } from "../uiLabels";
 type Props = {
   style: ReportStyle;
   value: ProjectReportGerais;
-  operadoresCount: number;
-  caixasCount: number;
-  pecasCount: number;
   onChange: (next: ProjectReportGerais, path: string) => void;
 };
 
-function FixedStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      style={{
-        border: "1px solid var(--border, rgba(127,127,127,0.25))",
-        borderRadius: 8,
-        padding: 12,
-        textAlign: "center",
-      }}
-    >
-      <span style={reportLabel}>{label}</span>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
-    </div>
-  );
-}
-
-export default function InfoGeraisBlock({
-  style,
-  value,
-  operadoresCount,
-  caixasCount,
-  pecasCount,
-  onChange,
-}: Props) {
+export default function InfoGeraisBlock({ style, value, onChange }: Props) {
   return (
     <section style={reportSection(style)}>
       <h2 style={reportSectionTitle}>{R.infoGerais}</h2>
@@ -113,11 +87,6 @@ export default function InfoGeraisBlock({
             }
           />
         </label>
-      </div>
-      <div style={{ ...reportGrid3, marginTop: 14 }}>
-        <FixedStat label={R.operadoresFunc} value={operadoresCount} />
-        <FixedStat label={R.totalCaixas} value={caixasCount} />
-        <FixedStat label={R.totalPecas} value={pecasCount} />
       </div>
     </section>
   );

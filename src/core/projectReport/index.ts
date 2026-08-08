@@ -76,12 +76,17 @@ export {
 } from "./materiaisSync";
 
 export {
+  AREA_CHAPA_PADRAO_M2,
   aggregateChapasByEspessura,
   listCatalogoChapas,
   detalheFromCatalogoChapa,
   recalcChapaDetalhe,
+  applyPrecoChapaEdit,
   formatMedidaMm,
   parseMedidaMm,
+  areaM2FromMedida,
+  resolveAreaChapaM2,
+  precoM2FromChapa,
   precoChapaFromArea,
 } from "./chapasReport";
 export type { CatalogoChapaOption } from "./chapasReport";
