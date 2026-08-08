@@ -36,6 +36,9 @@ if (!is_dir($dataDir)) {
     }
 }
 
+// Arquivo GitHub (best-effort) — no-op se config/token ausentes
+require_once __DIR__ . "/githubSync.php";
+
 function respond_json(array $data, int $code = 200): void
 {
     http_response_code($code);
@@ -135,6 +138,9 @@ if ($method === "PUT" && $action === "update") {
     if ($encoded === false || file_put_contents($path, $encoded) === false) {
         respond_json(["status" => "error", "message" => "Falha ao gravar"], 500);
     }
+    if (function_exists("pimo_github_sync_project")) {
+        pimo_github_sync_project($data, "rename");
+    }
     respond_json(["status" => "ok", "project" => $data]);
 }
 
@@ -145,8 +151,15 @@ if ($method === "DELETE" && $action === "delete") {
         respond_json(["status" => "error", "message" => "id inválido"], 400);
     }
     $path = project_path($dataDir, $id);
+    $deletedProject = null;
     if (is_file($path)) {
+        $raw = file_get_contents($path);
+        $decoded = json_decode($raw !== false ? $raw : "null", true);
+        $deletedProject = is_array($decoded) ? $decoded : ["id" => $id];
         @unlink($path);
+    }
+    if (is_array($deletedProject) && function_exists("pimo_github_sync_project")) {
+        pimo_github_sync_project($deletedProject, "delete");
     }
     respond_json(["status" => "ok"]);
 }
@@ -196,6 +209,10 @@ if ($method === "POST") {
     $encoded = json_encode($input, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     if ($encoded === false || file_put_contents($path, $encoded) === false) {
         respond_json(["status" => "error", "message" => "Falha ao gravar (permissões?)"], 500);
+    }
+
+    if (function_exists("pimo_github_sync_project")) {
+        pimo_github_sync_project($input, "save");
     }
 
     respond_json(["status" => "ok", "project" => $input]);

@@ -19,3 +19,7 @@ Deploy no Hostinger
    - `GET /api/projects/{id}`
    - `PUT /api/projects/{id}`
    - `DELETE /api/projects/{id}`
+7. Arquivo GitHub (opcional, best-effort):
+   - Após save/rename/delete, sync para `pimo-pro/pimo-projetos`
+   - Config: copiar `githubSyncConfig.example.php` → `githubSyncConfig.php`
+   - Documentação: `docs/PIMO-ARQUIVO-GITHUB-PROJETOS.md`

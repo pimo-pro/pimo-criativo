@@ -31,6 +31,10 @@ deploy_key.pub
 # Auth PHP (Hostinger) — contém passwordHash
 api/data/users.json
 
+# Arquivo GitHub de projetos — config com token (nunca versionar)
+hostinger/api/projects/githubSyncConfig.php
+public_html/api/projects/githubSyncConfig.php
+
 .claude/
 
 # DEV local (@PIMO-SOON) — nunca incluir na publicacao

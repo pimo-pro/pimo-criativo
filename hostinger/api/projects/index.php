@@ -34,6 +34,9 @@ if (!is_dir($dataDir)) {
     }
 }
 
+// Arquivo GitHub (best-effort) — no-op se config/token ausentes
+require_once __DIR__ . "/githubSync.php";
+
 $thumbsDir = __DIR__ . "/thumbs";
 if (!is_dir($thumbsDir)) {
     @mkdir($thumbsDir, 0755, true);
@@ -375,6 +378,9 @@ if ($method === "PUT" && $action === "update") {
         delete_file_if_exists($path);
     }
     remove_stale_project_files($dataDir, $id, $newPath);
+    if (function_exists("pimo_github_sync_project")) {
+        pimo_github_sync_project($data, "rename");
+    }
     respond_json(["status" => "ok", "project" => $data]);
 }
 
@@ -385,13 +391,18 @@ if ($method === "DELETE" && $action === "delete") {
         respond_json(["status" => "error", "message" => "id inválido"], 400);
     }
     $path = find_project_file($dataDir, $lookup);
+    $deletedProject = null;
     if ($path !== null) {
         $data = read_project_file($path);
+        $deletedProject = is_array($data) ? $data : null;
         $internalId = is_array($data) && isset($data["id"]) ? trim((string)$data["id"]) : "";
         delete_file_if_exists($path);
         if ($internalId !== "") {
             remove_stale_project_files($dataDir, $internalId, "");
         }
+    }
+    if (is_array($deletedProject) && function_exists("pimo_github_sync_project")) {
+        pimo_github_sync_project($deletedProject, "delete");
     }
     respond_json(["status" => "ok"]);
 }
@@ -467,6 +478,10 @@ if ($method === "POST") {
     }
 
     remove_stale_project_files($dataDir, $internalId, $targetPath);
+
+    if (function_exists("pimo_github_sync_project")) {
+        pimo_github_sync_project($input, "save");
+    }
 
     respond_json(["status" => "ok", "project" => $input]);
 }
