@@ -76,6 +76,8 @@ describe("drill principal + DRILL split", () => {
     expect(resolveXmlMachineTarget("cx_gav_lat_dir")).toBe("drill");
     expect(resolveXmlMachineTarget("cx_gav_lat_esq")).toBe("drill");
     expect(resolveXmlMachineTarget("cx_gav_cima")).toBe("drill");
+    expect(resolveXmlMachineTarget("cx_gav_fun")).toBe("drill");
+    expect(resolveXmlMachineTarget("cx_gav_fun")).not.toBe("cnc");
     expect(
       resolveXmlMachineTarget(
         item("cx_gav_lat_dir", { largura: 400, altura: 150 }, cav, {

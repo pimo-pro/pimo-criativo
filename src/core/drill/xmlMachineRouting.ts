@@ -9,6 +9,12 @@
 import type { CutListItemComPreco } from "../types";
 import { isLateralPanel } from "./lateralDowels";
 import { isDrawerPieceTipo } from "../../services/drawerCutlistAdapter";
+import {
+  INDUSTRIAL_DRILL_TIPOS,
+  industrialDrillTokenMatch,
+  industrialExcludeFromCncHeuristic,
+  isIndustrialDrillTipo,
+} from "../industrialAdmin/industrialPieceTables";
 
 /** Destino de ficheiro no export. `completo` = lista principal em `drill/{qr}.xml`. */
 export type XmlMachineTarget = "cnc" | "drill" | "completo";
@@ -45,12 +51,8 @@ const DRILL_TIPOS = new Set([
   "separador",
   "div",
   "sep",
-  // Caixa / variantes industriais (cx_gav_*)
-  "cx_gav_lat_dir",
-  "cx_gav_lat_esq",
-  "cx_gav_cima",
-  "cx_gav_lat_direita",
-  "cx_gav_lat_esquerda",
+  // Modos industriais A/D — registo consolidado (Fase E)
+  ...INDUSTRIAL_DRILL_TIPOS,
 ]);
 
 /** Peças sem furação de máquina (acabamentos / rodapés). */
@@ -98,8 +100,14 @@ export function resolveXmlMachineTarget(
     typeof item === "string" ? "" : String((item as { nome?: string }).nome ?? "");
   if (isExcludedPiece(tipo, nome)) return null;
 
-  // DRILL antes de CNC: laterais / gavetas / div-sep nunca caem em CNC.
-  if (DRILL_TIPOS.has(tipo) || isLateralPanel({ tipo } as CutListItemComPreco)) return "drill";
+  // DRILL antes de CNC: laterais / gavetas / div-sep / tipos industriais nunca caem em CNC.
+  if (
+    isIndustrialDrillTipo(tipo) ||
+    DRILL_TIPOS.has(tipo) ||
+    isLateralPanel({ tipo } as CutListItemComPreco)
+  ) {
+    return "drill";
+  }
 
   // CNC nesting (furos + corte) — nunca entram em *_DRILL.xml
   if (CNC_TIPOS.has(tipo)) return "cnc";
@@ -108,7 +116,7 @@ export function resolveXmlMachineTarget(
   const nomeLower = normalizeTipoToken(nome);
   const token = `${lower} ${nomeLower}`;
 
-  if (token.includes("cx_gav") || token.includes("cx-gav")) return "drill";
+  if (industrialDrillTokenMatch(token)) return "drill";
   if (lower.includes("lateral") && !lower.includes("gaveta")) return "drill";
   if (
     lower.startsWith("gaveta_lat") ||
@@ -130,7 +138,7 @@ export function resolveXmlMachineTarget(
     return "drill";
   }
 
-  // Peças CNC por heurística de nome/tipo (exclui cx_gav_* já tratados acima)
+  // Peças CNC por heurística de nome/tipo (exclui modos industriais A/D via registo)
   if (
     lower === "cima" ||
     lower === "fundo" ||
@@ -140,10 +148,10 @@ export function resolveXmlMachineTarget(
     lower === "prateleira" ||
     (nomeLower.startsWith("porta") && !token.includes("gav")) ||
     ((nomeLower === "cima" || nomeLower.includes("_cima") || nomeLower.endsWith("-cima")) &&
-      !token.includes("cx_gav") &&
+      !industrialExcludeFromCncHeuristic(token) &&
       !token.includes("gav")) ||
     ((nomeLower === "fundo" || nomeLower.includes("_fundo") || nomeLower.endsWith("-fundo")) &&
-      !token.includes("cx_gav") &&
+      !industrialExcludeFromCncHeuristic(token) &&
       !token.includes("gav"))
   ) {
     return "cnc";

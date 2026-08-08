@@ -13,6 +13,7 @@ export {
   DOOR_MIN_HEIGHT_MM,
   DOOR_MIN_WIDTH_MM,
   DOOR_OVERLAY_FABRICO_MM,
+  GAVETA_PORTA_SEP_DOOR_GAP_MM,
 } from "./doorRulesDefaults";
 
 export {

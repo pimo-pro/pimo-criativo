@@ -20,6 +20,7 @@ import { getSettings } from "../../core/settings/settingsService";
 import { devLogger } from "../../utils/devLogger";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 import { commitMaterialSync, refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer } from "../../core/materials/materialSync";
+import { boxUsesGavetaPortaSep } from "../../core/productModes/gavetaPortaSepLayout";
 
 export type LayerActions = Pick<
   ProjectActions,
@@ -58,20 +59,20 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
         const valor = Math.max(0, Math.floor(quantidade));
         updateProject(
           (prev) => {
-            const workspaceBoxes = prev.workspaceBoxes.map((box) =>
-              box.id === prev.selectedWorkspaceBoxId
-                ? {
-                    ...box,
-                    prateleiras: valor,
-                    gavetas: valor > 0 ? 0 : box.gavetas,
-                    drawersLayer: valor > 0 ? [] : box.drawersLayer,
-                    panelIds: ensureBoxPanelIds(box.panelIds, panelIdOptionsFromBox(box, {
-                      prateleiras: valor,
-                      gavetas: valor > 0 ? 0 : box.gavetas,
-                    })),
-                  }
-                : box
-            );
+            const workspaceBoxes = prev.workspaceBoxes.map((box) => {
+              if (box.id !== prev.selectedWorkspaceBoxId) return box;
+              const gps = boxUsesGavetaPortaSep(box);
+              return {
+                ...box,
+                prateleiras: valor,
+                gavetas: !gps && valor > 0 ? 0 : box.gavetas,
+                drawersLayer: !gps && valor > 0 ? [] : box.drawersLayer,
+                panelIds: ensureBoxPanelIds(box.panelIds, panelIdOptionsFromBox(box, {
+                  prateleiras: valor,
+                  gavetas: !gps && valor > 0 ? 0 : box.gavetas,
+                })),
+              };
+            });
             return recomputeState(
               prev,
               {
@@ -95,6 +96,7 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
           (prev) => {
             const workspaceBoxes = prev.workspaceBoxes.map((box) => {
               if (box.id !== prev.selectedWorkspaceBoxId) return box;
+              const gps = boxUsesGavetaPortaSep(box);
 
               if (valor > 0) {
                 const check = canBoxHaveDrawers(
@@ -115,14 +117,14 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
               const updatedBox = {
                 ...box,
                 gavetas: valor,
-                portaTipo: valor > 0 ? ("sem_porta" as const) : box.portaTipo,
-                prateleiras: valor > 0 ? 0 : box.prateleiras,
-                doorsLayer: valor > 0 ? box.doorsLayer : [],
+                portaTipo: !gps && valor > 0 ? ("sem_porta" as const) : box.portaTipo,
+                prateleiras: !gps && valor > 0 ? 0 : box.prateleiras,
+                doorsLayer: gps ? box.doorsLayer : valor > 0 ? [] : box.doorsLayer,
                 drawerConfigError: undefined,
                 panelIds: ensureBoxPanelIds(box.panelIds, panelIdOptionsFromBox(box, {
                   gavetas: valor,
-                  portaTipo: valor > 0 ? "sem_porta" : box.portaTipo,
-                  prateleiras: valor > 0 ? 0 : box.prateleiras,
+                  portaTipo: !gps && valor > 0 ? "sem_porta" : box.portaTipo,
+                  prateleiras: !gps && valor > 0 ? 0 : box.prateleiras,
                 })),
               };
               const layers = regenerateLayersForBox(updatedBox);
@@ -157,6 +159,7 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
           (prev) => {
             const workspaceBoxes = prev.workspaceBoxes.map((box) => {
               if (box.id !== prev.selectedWorkspaceBoxId) return box;
+              const gps = boxUsesGavetaPortaSep(box);
 
               if (valor > 0) {
                 const check = canBoxHaveDrawers(
@@ -177,16 +180,16 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
               const updatedBox = {
                 ...box,
                 gavetas: valor,
-                portaTipo: valor > 0 ? ("sem_porta" as const) : box.portaTipo,
-                prateleiras: valor > 0 ? 0 : box.prateleiras,
-                doorsLayer: valor > 0 ? box.doorsLayer : [],
+                portaTipo: !gps && valor > 0 ? ("sem_porta" as const) : box.portaTipo,
+                prateleiras: !gps && valor > 0 ? 0 : box.prateleiras,
+                doorsLayer: gps ? box.doorsLayer : valor > 0 ? [] : box.doorsLayer,
                 drawerConfigError: undefined,
                 panelIds: ensureBoxPanelIds(
                   box.panelIds,
                   panelIdOptionsFromBox(box, {
                     gavetas: valor,
-                    portaTipo: valor > 0 ? "sem_porta" : box.portaTipo,
-                    prateleiras: valor > 0 ? 0 : box.prateleiras,
+                    portaTipo: !gps && valor > 0 ? "sem_porta" : box.portaTipo,
+                    prateleiras: !gps && valor > 0 ? 0 : box.prateleiras,
                   })
                 ),
               };
@@ -242,15 +245,16 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
           (prev) => {
             const workspaceBoxes = prev.workspaceBoxes.map((box) => {
               if (box.id === prev.selectedWorkspaceBoxId) {
+                const gps = boxUsesGavetaPortaSep(box);
                 const updatedBox = {
                   ...box,
                   portaTipo,
-                  gavetas: portaTipo === "sem_porta" ? box.gavetas : 0,
-                  drawersLayer: portaTipo === "sem_porta" ? box.drawersLayer : [],
+                  gavetas: gps || portaTipo === "sem_porta" ? box.gavetas : 0,
+                  drawersLayer: gps || portaTipo === "sem_porta" ? box.drawersLayer : [],
                   doorsLayer: portaTipo === "sem_porta" ? [] : box.doorsLayer,
                   panelIds: ensureBoxPanelIds(box.panelIds, panelIdOptionsFromBox(box, {
                     portaTipo,
-                    gavetas: portaTipo === "sem_porta" ? box.gavetas : 0,
+                    gavetas: gps || portaTipo === "sem_porta" ? box.gavetas : 0,
                   })),
                 };
                 const layers = regenerateLayersForBox(updatedBox);
@@ -896,15 +900,18 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
           (prev) => {
             const selected = getSelectedOrFirstWorkspaceBox(prev);
             if (!selected) return prev;
+            const gps = boxUsesGavetaPortaSep(selected);
             const normalized = {
               ...selected,
-              ...(selected.gavetas > 0
-                ? { portaTipo: "sem_porta" as const, prateleiras: 0, doorsLayer: [] }
-                : selected.portaTipo !== "sem_porta"
-                  ? { gavetas: 0, drawersLayer: [] }
-                  : selected.prateleiras > 0
+              ...(gps
+                ? null
+                : selected.gavetas > 0
+                  ? { portaTipo: "sem_porta" as const, prateleiras: 0, doorsLayer: [] }
+                  : selected.portaTipo !== "sem_porta"
                     ? { gavetas: 0, drawersLayer: [] }
-                    : null),
+                    : selected.prateleiras > 0
+                      ? { gavetas: 0, drawersLayer: [] }
+                      : null),
             };
             const layers = regenerateLayersForBox(normalized);
             const workspaceBoxes = prev.workspaceBoxes.map((box) =>

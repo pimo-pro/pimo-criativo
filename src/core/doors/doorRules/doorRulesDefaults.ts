@@ -6,6 +6,9 @@
 /** Folga overlay na cutlist industrial de portas (boxManufacturing). */
 export const DOOR_OVERLAY_FABRICO_MM = 2;
 
+/** Fase B — folga lateral/topo da porta parcial (mm). */
+export const GAVETA_PORTA_SEP_DOOR_GAP_MM = DOOR_OVERLAY_FABRICO_MM;
+
 /** Dimensão mínima editável manualmente (doorLayerGeometry). */
 export const DOOR_MIN_HEIGHT_MM = 80;
 

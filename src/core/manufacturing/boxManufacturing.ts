@@ -61,6 +61,11 @@ import { buildIndustrialPieceId, IndustrialError } from "../industrial/Industria
 import { isIndustrialDoorPanelTipo } from "../doors/industrialDoorPanels";
 import { resolveActiveGavetasCount } from "../drawers/drawerModeloAGate";
 import { resolveCustoMontagemPorGavetaEur } from "../financeiro/drawerAssemblyCost";
+import {
+  boxUsesGavetaPortaSep,
+  syncGavetaPortaSepBox,
+} from "../productModes/gavetaPortaSepLayout";
+import { resolveIndustrialPieceLabel } from "../industrialAdmin/industrialModelsRegistry";
 
 type PainelIndustrial = {
   id: string;
@@ -195,9 +200,18 @@ export const PIECE_LABELS: Record<string, string> = {
   gaveta_fundo: "Gaveta fundo",
   gaveta_traseira: "Gaveta traseira",
   frente_fixa: "Frente fixa",
+  cx_gav_lat_dir: "CX GAV lateral direita",
+  cx_gav_lat_esq: "CX GAV lateral esquerda",
+  cx_gav_fun: "CX GAV fundo",
+  cx_gav_cima: "CX GAV cima",
+  a1_cx_lat_dir: "A1 lateral direita",
+  a1_cx_lat_esq: "A1 lateral esquerda",
+  a1_cx_cima: "A1 cima",
+  a1_cx_fundo: "A1 fundo",
+  a1_cx_comp_40: "A1 compensador 40 mm",
 };
 export function getPieceLabel(tipo: string): string {
-  return PIECE_LABELS[tipo] ?? tipo;
+  return resolveIndustrialPieceLabel(tipo) ?? PIECE_LABELS[tipo] ?? tipo;
 }
 
 /** L/A internas inalteradas; P útil = modelo FASE 1 com `profundidadeExterna` (FASE 2). */
@@ -263,15 +277,15 @@ export function gerarModeloIndustrial(box: BoxModule, rules: RulesConfig): Model
   };
 }
 
-export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustrial[] {
-  if (isCaixaFornoBox(box)) {
-    const bodyMaterialId = getMaterialForBox(box, undefined) || "mdf_branco";
+export function gerarPaineis(boxInput: BoxModule, rules: RulesConfig): PainelIndustrial[] {
+  if (isCaixaFornoBox(boxInput)) {
+    const bodyMaterialId = getMaterialForBox(boxInput, undefined) || "mdf_branco";
     const materialInfo = getIndustrialMaterial(bodyMaterialId);
-    const costaMaterial = resolveCostaMaterialForBox(box, bodyMaterialId);
+    const costaMaterial = resolveCostaMaterialForBox(boxInput, bodyMaterialId);
     const costaMaterialInfo = getIndustrialMaterial(costaMaterial.materialId);
-    const separadorMaterial = resolveSeparadorMaterialForBox(box, bodyMaterialId);
+    const separadorMaterial = resolveSeparadorMaterialForBox(boxInput, bodyMaterialId);
     const separadorMaterialInfo = getIndustrialMaterial(separadorMaterial.materialId);
-    return gerarPaineisCaixaForno(box).map((painel) => ({
+    return gerarPaineisCaixaForno(boxInput).map((painel) => ({
       ...painel,
       custo:
         calcularCustoPainel(
@@ -284,16 +298,19 @@ export function gerarPaineis(box: BoxModule, rules: RulesConfig): PainelIndustri
         ) * painel.quantidade,
     }));
   }
-  if (isCornerFixedFrontModel(box.baseCabinetId)) {
-    return gerarPaineisCorner(box, rules);
+  if (isCornerFixedFrontModel(boxInput.baseCabinetId)) {
+    return gerarPaineisCorner(boxInput, rules);
   }
-  if (isPiBaseCabinetId(box.baseCabinetId)) {
-    const materialInfo = getIndustrialMaterial(getMaterialForBox(box, undefined) || "mdf_branco");
-    return gerarPaineisPi(box).map((painel) => ({
+  if (isPiBaseCabinetId(boxInput.baseCabinetId)) {
+    const materialInfo = getIndustrialMaterial(getMaterialForBox(boxInput, undefined) || "mdf_branco");
+    return gerarPaineisPi(boxInput).map((painel) => ({
       ...painel,
       custo: calcularCustoPainel(painel, materialInfo) * painel.quantidade,
     }));
   }
+
+  // Fase B: injecta SEP intermédio sem alterar o path clássico.
+  const box = boxUsesGavetaPortaSep(boxInput) ? syncGavetaPortaSepBox(boxInput) : boxInput;
 
   assertBoxModuleDimensions(box);
 

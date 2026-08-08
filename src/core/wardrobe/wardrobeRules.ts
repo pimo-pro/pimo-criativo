@@ -55,6 +55,32 @@ export function hasWardrobeLowerDrawers(baseCabinetId?: string | null): boolean 
   return cfg === 7 || cfg === 8;
 }
 
+export type WardrobeDrawerSide = "left" | "right";
+
+/** Fase C — gavetas internas num lado + SEP parcial até DIV. */
+export function hasWardrobeSideDrawerBox(baseCabinetId?: string | null): boolean {
+  if (!baseCabinetId) return false;
+  return (
+    baseCabinetId.includes("wardrobe_sep_parcial_gavetas") ||
+    baseCabinetId.includes("sep_parcial_gavetas")
+  );
+}
+
+export function getWardrobeSideDrawerSide(
+  baseCabinetId?: string | null
+): WardrobeDrawerSide {
+  const id = baseCabinetId ?? "";
+  if (
+    id.includes("_esq") ||
+    id.includes("-esq") ||
+    id.includes("_left") ||
+    id.includes("-left")
+  ) {
+    return "left";
+  }
+  return "right";
+}
+
 export type WardrobeWardrobeLocalLayout = {
   group: WardrobeGroup;
   verticalDividerEnabled: boolean;
@@ -183,10 +209,16 @@ export function computeWardrobeLocalLayout(params: {
   const lowerInteriorHeight_mm = Math.max(1, lowerInteriorTopBound_mm - lowerInteriorBottomBound_mm);
   const lowerCabideCenterY_mm = lowerInteriorBottomBound_mm + lowerInteriorHeight_mm / 2;
 
-  // Compartimento inferior inteiro para geração das 3 gavetas no lado direito:
+  // Compartimento inferior para geração das gavetas (cfg7/8 = direita; Fase C = lado escolhido).
   const drawerCompartmentBoxHeightForGen_mm = safeLowerSectionHeightMm;
   const drawerCompartmentBoxWidthForGen_mm = (widthMm + thicknessMm) / 2;
-  const drawerOriginXLocal_mm = rightCompartmentCenterX_mm;
+  const sideDrawer = hasWardrobeSideDrawerBox(baseCabinetId);
+  const drawerSide = getWardrobeSideDrawerSide(baseCabinetId);
+  const drawerOriginXLocal_mm = sideDrawer
+    ? drawerSide === "left"
+      ? leftCompartmentCenterX_mm
+      : rightCompartmentCenterX_mm
+    : rightCompartmentCenterX_mm;
   const drawerOriginYLocal_mm = -heightMm / 2 + safeLowerSectionHeightMm / 2;
 
   return {

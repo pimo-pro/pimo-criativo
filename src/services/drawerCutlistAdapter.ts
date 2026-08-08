@@ -32,6 +32,10 @@ import {
   resolveMaterial,
 } from "../core/materials/materials.api";
 import { resolveIndustrialMaterialKey } from "../core/materials/service";
+import {
+  A1_DRAWER_TIPO_TO_TOKEN,
+  buildA1DrawerIndustrialLabel,
+} from "../core/innerCabinet/a1Naming";
 
 /** Convenção industrial unificada (FASE 2): uma corrediça por lado. */
 export const DRAWER_SLIDES_PER_DRAWER = 2;
@@ -142,7 +146,15 @@ function withDrawerIndustrialMeta(
   drawerIndex1Based: number
 ): CutListItem {
   const tipo = piece.tipo as DrawerPieceTipo;
-  const industrialLabel = resolveDrawerPieceIndustrialLabel(item, boxName, tipo, drawerIndex1Based);
+  const a1Meta = item.metadata as
+    | { innerCabinetId?: string; a1Drawer?: boolean }
+    | undefined;
+  const isA1Drawer = a1Meta?.innerCabinetId === "a_1" || a1Meta?.a1Drawer === true;
+  const a1Token = isA1Drawer ? A1_DRAWER_TIPO_TO_TOKEN[tipo] : undefined;
+  const industrialLabel =
+    a1Token != null
+      ? buildA1DrawerIndustrialLabel(boxName, drawerIndex1Based, a1Token)
+      : resolveDrawerPieceIndustrialLabel(item, boxName, tipo, drawerIndex1Based);
   const rotationMeta = buildCutlistRotationMetadata({
     allowPieceRotation: item.allowPieceRotation,
     lockWoodGrain: item.lockWoodGrain,
@@ -160,6 +172,12 @@ function withDrawerIndustrialMeta(
       frontIntPieceName: item.metadata?.frontIntPieceName,
       frontExtPieceName: item.metadata?.frontExtPieceName,
       panelId: piece.id,
+      ...(isA1Drawer
+        ? {
+            innerCabinetId: "a_1",
+            a1Drawer: true,
+          }
+        : {}),
       ...rotationMeta,
     },
   };
@@ -290,6 +308,20 @@ export function drawerLayerItemToCutList(
   const internalFrontThicknessMm = resolveDrawerInternalFrontThicknessMm(item);
   const internalFrontWidthMm = resolveDrawerInternalFrontWidthMm(item);
 
+  const gpsMeta = item.metadata as { gavetaPortaSep?: boolean; frontHeightMm?: number } | undefined;
+  const isGavetaPortaSep = Boolean(gpsMeta?.gavetaPortaSep);
+  const resolvedFrontWidthMm = isGavetaPortaSep
+    ? Math.max(1, Number(item.width) || 0)
+    : item.width;
+  const resolvedFrontHeightMm = isGavetaPortaSep
+    ? Math.max(
+        1,
+        Number(gpsMeta?.frontHeightMm) > 0
+          ? Number(gpsMeta?.frontHeightMm)
+          : externalFrontHeightMm
+      )
+    : externalFrontHeightMm;
+
   const structuralDrawerRules = {
     slideType: item.slideType ?? "Hettich ArciTech",
     softClose: Boolean(item.softClose),
@@ -302,7 +334,7 @@ export function drawerLayerItemToCutList(
     bottomThicknessMm: bottomMaterial.thicknessMm,
     stackRole,
     drawerCount: stackCount,
-    frontHeightMm: externalFrontHeightMm,
+    frontHeightMm: resolvedFrontHeightMm,
   };
 
   const decorativeDrawerRules = {
@@ -323,7 +355,7 @@ export function drawerLayerItemToCutList(
     bottomThicknessMm: bottomMaterial.thicknessMm,
     stackRole,
     drawerCount: stackCount,
-    frontHeightMm: externalFrontHeightMm,
+    frontHeightMm: resolvedFrontHeightMm,
   };
 
   const externalFrontPiece = withDrawerIndustrialMeta(
@@ -332,8 +364,8 @@ export function drawerLayerItemToCutList(
       nome: `Gaveta ${drawerIndex1Based} - Frente Externa`,
       quantidade: 1,
       dimensoes: {
-        largura: item.width,
-        altura: externalFrontHeightMm,
+        largura: resolvedFrontWidthMm,
+        altura: resolvedFrontHeightMm,
         profundidade: externalFrontThicknessMm,
       },
       espessura: externalFrontThicknessMm,

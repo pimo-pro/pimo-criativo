@@ -17,8 +17,14 @@ import {
   getWardrobeDoorCountForWidth,
   getWardrobeGroupFromBaseCabinetId,
   hasWardrobeLowerDrawers,
+  hasWardrobeSideDrawerBox,
   isWardrobeModel,
 } from "../core/wardrobe/wardrobeRules";
+import {
+  buildPartialSepToDivItems,
+  isPartialSepCavilhaOnly,
+  WARDROBE_PARTIAL_DIV_ID,
+} from "../core/wardrobe/partialSepToDiv";
 import { getCornerCabinetConfig, buildCornerDoorLayerItems } from "../core/cornerCabinet";
 import {
   buildCaixaFornoDoorsLayer,
@@ -29,9 +35,29 @@ import {
   backupLayerMaterials,
   restoreLayerMaterials,
 } from "../core/viewer/materialPreservation";
+import type { DivisorItem, SeparadorItem } from "../core/divSep/types";
+import {
+  boxUsesGavetaPortaSep,
+  buildGavetaPortaSepSeparador,
+  computeGavetaPortaSepLayout,
+  GAVETA_PORTA_SEP_FRONT_GAP_MM,
+  type GavetaPortaSepLayout,
+} from "../core/productModes/gavetaPortaSepLayout";
+import {
+  boxUsesInnerCabinetA1,
+  computeA1Layout,
+  INNER_CABINET_A1_DEFAULT_DRAWER_COUNT,
+  type A1Layout,
+} from "../core/innerCabinet/a1Geometry";
+import { DRAWER_FRONT_LATERAL_GAP_MM } from "../core/drawers/drawerGeometryConstants";
+
 export interface BoxLayersState {
   doorsLayer: DoorLayerItem[];
   drawersLayer: DrawerLayerItem[];
+  /** Fase B / C: SEP persistido no merge do workspace. */
+  separadores?: SeparadorItem[];
+  /** Fase C: DIV ligado ao SEP parcial. */
+  divisores?: DivisorItem[];
 }
 
 export type RegenerateLayersOptions = {
@@ -105,7 +131,19 @@ export function regenerateLayersForBox(
   const boxDepth = clamp(box.dimensoes.profundidade, 100);
   const thickness = clamp(box.espessura, 18);
 
-  const drawerCount = Math.max(0, Math.floor(box.gavetas || 0));
+  const drawerCountRaw = Math.max(0, Math.floor(box.gavetas || 0));
+  const gps = boxUsesGavetaPortaSep(box);
+  const gpsLayout: GavetaPortaSepLayout | null = gps ? computeGavetaPortaSepLayout(box) : null;
+  const a1 = boxUsesInnerCabinetA1(box);
+  const a1Layout: A1Layout | null = a1 ? computeA1Layout(box) : null;
+  const drawerCount = gps
+    ? Math.max(1, drawerCountRaw || 1)
+    : a1
+      ? Math.max(
+          INNER_CABINET_A1_DEFAULT_DRAWER_COUNT,
+          drawerCountRaw || INNER_CABINET_A1_DEFAULT_DRAWER_COUNT
+        )
+      : drawerCountRaw;
   const hasDrawers = drawerCount > 0;
 
   if (isCaixaFornoBox(box)) {
@@ -223,13 +261,16 @@ export function regenerateLayersForBox(
       );
     } else {
       const doorCenterX = 0;
-      const doorPivotX = doorCenterX - doorWidth / 2;
+      const doorWidthGps = gpsLayout ? gpsLayout.doorWidthMm : doorWidth;
+      const doorHeightGps = gpsLayout ? gpsLayout.doorHeightMm : doorHeight;
+      const doorPosYGps = gpsLayout ? gpsLayout.doorPosYMm : doorPosY;
+      const doorPivotX = doorCenterX - doorWidthGps / 2;
       doorsLayer.push({
         id: createId("door"),
         parentBoxId: box.id,
         groupType: "simples",
-        width: doorWidth,
-        height: doorHeight,
+        width: doorWidthGps,
+        height: doorHeightGps,
         thickness,
         materialId: defaultDoorMaterial,
         material: defaultDoorMaterial,
@@ -238,7 +279,7 @@ export function regenerateLayersForBox(
         hingeSide: "left",
         pivot: "left-edge",
         posX: doorPivotX,
-        posY: doorPosY,
+        posY: doorPosYGps,
         posZ: doorPosZ,
         rotY: 0,
       });
@@ -261,8 +302,17 @@ export function regenerateLayersForBox(
     // Usar o domínio de drawers para gerar gavetas
     const isWardrobe = isWardrobeModel(box.baseCabinetId);
     const wardrobeGroup = getWardrobeGroupFromBaseCabinetId(box.baseCabinetId);
+    const sideDrawerBox =
+      isWardrobe &&
+      wardrobeGroup !== "T" &&
+      hasWardrobeSideDrawerBox(box.baseCabinetId) &&
+      boxWidth >= 800;
     const shouldWardrobeLowerRightDrawers =
-      isWardrobe && wardrobeGroup !== "T" && hasWardrobeLowerDrawers(box.baseCabinetId) && boxWidth >= 1200;
+      isWardrobe &&
+      wardrobeGroup !== "T" &&
+      hasWardrobeLowerDrawers(box.baseCabinetId) &&
+      boxWidth >= 1200;
+    const shouldWardrobeSideDrawers = sideDrawerBox || shouldWardrobeLowerRightDrawers;
 
     const feetHeightMm = Math.max(40, box.feetHeight ?? (box.pe_cm ?? 10) * 10);
     const drawerOverrides = buildDrawerParametricOverridesList(box.drawersLayer, drawerCount);
@@ -271,7 +321,68 @@ export function regenerateLayersForBox(
       : undefined;
 
     const config: DrawerGenerationConfig = (() => {
-      if (!shouldWardrobeLowerRightDrawers) {
+      if (gps && gpsLayout) {
+        return {
+          boxWidth,
+          boxHeight: thickness * 2 + gpsLayout.drawerZoneHeightMm,
+          boxDepth,
+          boxThickness: thickness,
+          boxId: box.id,
+          drawerCount: 1,
+          drawerType,
+          heightMode: "custom" as const,
+          customHeights: [gpsLayout.drawerZoneHeightMm],
+          availableDepths: drawerSettings.gavetaProfundidadesDisponiveisMm,
+          drawerSettings: {
+            ...drawerSettings,
+            gavetaFolgaFrenteMm: GAVETA_PORTA_SEP_FRONT_GAP_MM,
+          },
+          materialId: defaultDrawerMaterial,
+          drawerOverrides: [
+            {
+              frontHeightMm: gpsLayout.drawerFrontHeightMm,
+            },
+          ],
+          ergonomicsRules,
+          minDrawerHeightMm: drawerSettings.gavetaAlturaMinimaMm,
+          maxDrawerHeightMm: drawerSettings.gavetaAlturaMaximaMm,
+          espessuraCostaMm,
+          costaAtiva,
+        };
+      }
+
+      // Fase D — caixa interna a_1 (gavetas no vão SEP↔DIV, após −40 mm)
+      if (a1 && a1Layout) {
+        const zoneH = a1Layout.drawerZoneHeightMm;
+        const frontH = Math.max(1, zoneH - 2 * DRAWER_FRONT_LATERAL_GAP_MM);
+        return {
+          boxWidth: a1Layout.outerWidthMm,
+          boxHeight: a1Layout.heightMm,
+          boxDepth: Math.max(boxDepth, a1Layout.depthMm + thickness),
+          boxThickness: thickness,
+          boxId: box.id,
+          drawerCount: a1Layout.drawerCount,
+          drawerType,
+          heightMode: "custom" as const,
+          customHeights: Array.from({ length: a1Layout.drawerCount }, () => zoneH),
+          availableDepths: drawerSettings.gavetaProfundidadesDisponiveisMm,
+          drawerSettings: {
+            ...drawerSettings,
+            gavetaFolgaFrenteMm: DRAWER_FRONT_LATERAL_GAP_MM,
+          },
+          materialId: defaultDrawerMaterial,
+          drawerOverrides: Array.from({ length: a1Layout.drawerCount }, () => ({
+            frontHeightMm: frontH,
+          })),
+          ergonomicsRules,
+          minDrawerHeightMm: drawerSettings.gavetaAlturaMinimaMm,
+          maxDrawerHeightMm: drawerSettings.gavetaAlturaMaximaMm,
+          espessuraCostaMm,
+          costaAtiva,
+        };
+      }
+
+      if (!shouldWardrobeSideDrawers) {
         return {
           boxWidth,
           boxHeight,
@@ -310,7 +421,7 @@ export function regenerateLayersForBox(
         boxId: box.id,
         drawerCount,
         drawerType,
-        heightMode: "equal", // regra obrigatória: 3 gavetas, distribuídas uniformemente
+        heightMode: "equal", // regra obrigatória: gavetas distribuídas uniformemente no compartimento
         availableDepths: drawerSettings.gavetaProfundidadesDisponiveisMm,
         drawerSettings,
         materialId: defaultDrawerMaterial,
@@ -350,14 +461,77 @@ export function regenerateLayersForBox(
             sideBaseElevationMm:
               generatedDrawers[i].metadata?.sideBaseElevationMm ??
               existing.metadata?.sideBaseElevationMm,
+            ...(gpsLayout
+              ? {
+                  frontHeightMm: gpsLayout.drawerFrontHeightMm,
+                  gavetaPortaSep: true,
+                }
+              : {}),
+            ...(a1Layout
+              ? {
+                  frontHeightMm: Math.max(
+                    1,
+                    a1Layout.drawerZoneHeightMm - 2 * DRAWER_FRONT_LATERAL_GAP_MM
+                  ),
+                  ...({
+                    innerCabinetId: "a_1",
+                    a1Drawer: true,
+                  } as object),
+                }
+              : {}),
           },
         };
-        const frontOverride = existing.metadata?.frontHeightMm;
+        const frontOverride =
+          gpsLayout?.drawerFrontHeightMm ??
+          (a1Layout
+            ? Math.max(1, a1Layout.drawerZoneHeightMm - 2 * DRAWER_FRONT_LATERAL_GAP_MM)
+            : undefined) ??
+          existing.metadata?.frontHeightMm;
         if (frontOverride != null && Number.isFinite(frontOverride) && frontOverride > 0) {
           generatedDrawers[i].height = frontOverride;
         }
+        if (gpsLayout) {
+          generatedDrawers[i].width = gpsLayout.drawerFrontWidthMm;
+        }
+        if (a1Layout) {
+          generatedDrawers[i].width = Math.max(
+            1,
+            a1Layout.outerWidthMm - 2 * DRAWER_FRONT_LATERAL_GAP_MM
+          );
+        }
       } else {
         generatedDrawers[i].material = defaultDrawerMaterial;
+        if (gpsLayout) {
+          generatedDrawers[i] = {
+            ...generatedDrawers[i],
+            height: gpsLayout.drawerFrontHeightMm,
+            width: gpsLayout.drawerFrontWidthMm,
+            metadata: {
+              ...generatedDrawers[i].metadata,
+              frontHeightMm: gpsLayout.drawerFrontHeightMm,
+              gavetaPortaSep: true,
+            },
+          };
+        }
+        if (a1Layout) {
+          const frontH = Math.max(
+            1,
+            a1Layout.drawerZoneHeightMm - 2 * DRAWER_FRONT_LATERAL_GAP_MM
+          );
+          generatedDrawers[i] = {
+            ...generatedDrawers[i],
+            height: frontH,
+            width: Math.max(1, a1Layout.outerWidthMm - 2 * DRAWER_FRONT_LATERAL_GAP_MM),
+            metadata: {
+              ...generatedDrawers[i].metadata,
+              frontHeightMm: frontH,
+              ...({
+                innerCabinetId: "a_1",
+                a1Drawer: true,
+              } as object),
+            },
+          };
+        }
       }
     }
 
@@ -373,9 +547,49 @@ export function regenerateLayersForBox(
     }
   }
 
-  const generated = { doorsLayer, drawersLayer };
+  const generated: BoxLayersState = {
+    doorsLayer,
+    drawersLayer,
+  };
+
+  if (gps && gpsLayout) {
+    generated.separadores = [buildGavetaPortaSepSeparador(gpsLayout)];
+  } else if (hasDrawers) {
+    const isWardrobe = isWardrobeModel(box.baseCabinetId);
+    const wardrobeGroup = getWardrobeGroupFromBaseCabinetId(box.baseCabinetId);
+    const sideDrawerBox =
+      isWardrobe &&
+      wardrobeGroup !== "T" &&
+      hasWardrobeSideDrawerBox(box.baseCabinetId) &&
+      boxWidth >= 800;
+    if (sideDrawerBox) {
+      const feetHeightMm = Math.max(40, box.feetHeight ?? (box.pe_cm ?? 10) * 10);
+      try {
+        const built = buildPartialSepToDivItems({
+          baseCabinetId: box.baseCabinetId,
+          widthMm: boxWidth,
+          heightMm: boxHeight,
+          depthMm: boxDepth,
+          feetHeightMm,
+          espessuraMm: thickness,
+        });
+        const keptSeps = (box.separadores ?? []).filter((s) => !isPartialSepCavilhaOnly(s));
+        generated.separadores = [...keptSeps, built.sep];
+        const keptDivs = (box.divisores ?? []).filter((d) => d.id !== WARDROBE_PARTIAL_DIV_ID);
+        generated.divisores = [...keptDivs, built.div];
+      } catch {
+        // Sem DIV vertical (largura < 800): não injecta SEP parcial.
+      }
+    }
+  }
+
   if (materialBackup) {
-    return restoreLayerMaterials(generated, materialBackup);
+    const restored = restoreLayerMaterials(generated, materialBackup);
+    return {
+      ...restored,
+      ...(generated.separadores ? { separadores: generated.separadores } : {}),
+      ...(generated.divisores ? { divisores: generated.divisores } : {}),
+    };
   }
   return generated;
 }

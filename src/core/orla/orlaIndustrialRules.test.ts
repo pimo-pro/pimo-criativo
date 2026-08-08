@@ -40,6 +40,31 @@ describe("orlaIndustrialRules", () => {
     expect(resolveOrlaSidesForPieceTipo("gaveta_fundo")).toEqual([]);
   });
 
+  it("cx_gav: laterais só topo, cima 4 lados, fun sem orla", () => {
+    expect(resolveOrlaSidesForPieceTipo("cx_gav_lat_dir")).toEqual(["front"]);
+    expect(resolveOrlaSidesForPieceTipo("cx_gav_lat_esq")).toEqual(["front"]);
+    expect(resolveOrlaSidesForPieceTipo("cx_gav_cima")).toEqual([
+      "front",
+      "back",
+      "left",
+      "right",
+    ]);
+    expect(resolveOrlaSidesForPieceTipo("cx_gav_fun")).toEqual([]);
+  });
+
+  it("a_1: laterais só topo, cima 4 lados, fundo sem orla, comp front/back", () => {
+    expect(resolveOrlaSidesForPieceTipo("a1_cx_lat_dir")).toEqual(["front"]);
+    expect(resolveOrlaSidesForPieceTipo("a1_cx_lat_esq")).toEqual(["front"]);
+    expect(resolveOrlaSidesForPieceTipo("a1_cx_cima")).toEqual([
+      "front",
+      "back",
+      "left",
+      "right",
+    ]);
+    expect(resolveOrlaSidesForPieceTipo("a1_cx_fundo")).toEqual([]);
+    expect(resolveOrlaSidesForPieceTipo("a1_cx_comp_40")).toEqual(["front", "back"]);
+  });
+
   it("porta simples: 4 lados", () => {
     expect(resolveOrlaSidesForPieceTipo("porta_simples")).toEqual([
       "front",

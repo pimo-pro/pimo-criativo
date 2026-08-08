@@ -59,6 +59,14 @@ function resolveVerticalStackPosition(
   return null;
 }
 
+/** Porta parcial superior (Fase B): centro elevado + uma só folha. */
+function fromPartialUpperDoor(door: DoorLayerItem): DoorPositionKind | null {
+  const posY = Number(door.posY) || 0;
+  const h = Number(door.height) || 0;
+  if (posY > 40 && h > 0) return "cima";
+  return null;
+}
+
 export function resolveDoorPositionKind(
   door: DoorLayerItem | null | undefined,
   doorIndex: number,
@@ -69,6 +77,9 @@ export function resolveDoorPositionKind(
   if (door) {
     const vertical = resolveVerticalStackPosition(door, siblings);
     if (vertical) return vertical;
+
+    const partial = fromPartialUpperDoor(door);
+    if (partial && siblings.length === 1) return partial;
 
     const fromHinge = fromHingeSide(door.hingeSide);
     if (fromHinge) return fromHinge;

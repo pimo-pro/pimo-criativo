@@ -24,6 +24,12 @@ import {
 } from "./dimensions";
 import { absoluteYToLateralPanelY } from "./shelfDrilling";
 import type { DivisorItem, DivSepBoxLike, SeparadorItem } from "./types";
+import {
+  isPartialSepCavilhaOnly,
+  partialSepSideFromId,
+  resolvePartialSepLeftXAbsMm,
+  WARDROBE_PARTIAL_SEP_ID_LEFT,
+} from "../wardrobe/partialSepToDiv";
 
 type HoleBucket = {
   separador: Map<string, PanelDrillHole[]>;
@@ -96,6 +102,11 @@ export function calcDepthHolePositions(comprimento: number, rules?: DivSepRules)
 }
 
 function mapDivCenterXToSepLocalX(box: DivSepBoxLike, sep: SeparadorItem, divCenterX: number): number {
+  if (isPartialSepCavilhaOnly(sep)) {
+    const side = partialSepSideFromId(String(sep.id));
+    const sepLeftX = resolvePartialSepLeftXAbsMm(box, sep, side);
+    return divCenterX - sepLeftX;
+  }
   const internal = getDivSepInternalDims(box);
   const sepDims = resolveSeparadorDimensions(box, sep);
   const sepLeftX = internal.espessura + (internal.larguraInterna - sepDims.larguraMm) / 2;
@@ -135,31 +146,42 @@ function drillLateralAtSepHeight(
   receptorThickness: number,
   rules: DivSepRules,
   includeParafuso: boolean,
-  sepId: string
+  sepId: string,
+  sides: "both" | "left" | "right" = "both"
 ): void {
   // Mesma convenção das prateleiras: Y absoluto → Y local do painel LAT (base = topo FUNDO).
   const centerY = absoluteYToLateralPanelY(box, absoluteCenterY);
   const cavilhaD = getCavilhaDiameterMm(rules);
   const faceCavilhaDepth = Math.min(getCavilhaDepthMm(rules), CAVILHA_FACE_DEPTH_MM);
   const depthPos = calcDepthHolePositions(profundidadeMm, rules);
+  const doLeft = sides === "both" || sides === "left";
+  const doRight = sides === "both" || sides === "right";
   depthPos.cavilha.forEach((latX, i) => {
     const keyL = `divsep-sep-${sepId}-L-${i}`;
     const keyR = `divsep-sep-${sepId}-R-${i}`;
-    pushHole(bucket.lateral_esquerda, latX, centerY, cavilhaD, faceCavilhaDepth, "cavilha", "B", true, {
-      pairedHoleKey: keyL,
-      holeCatalogId: CAVILHA_FACE_HOLE_TYPE_ID,
-      ferragemId: CAVILHA_10x40_FERRAGEM_ID,
-    });
-    pushHole(bucket.lateral_direita, latX, centerY, cavilhaD, faceCavilhaDepth, "cavilha", "B", true, {
-      pairedHoleKey: keyR,
-      holeCatalogId: CAVILHA_FACE_HOLE_TYPE_ID,
-      ferragemId: CAVILHA_10x40_FERRAGEM_ID,
-    });
+    if (doLeft) {
+      pushHole(bucket.lateral_esquerda, latX, centerY, cavilhaD, faceCavilhaDepth, "cavilha", "B", true, {
+        pairedHoleKey: keyL,
+        holeCatalogId: CAVILHA_FACE_HOLE_TYPE_ID,
+        ferragemId: CAVILHA_10x40_FERRAGEM_ID,
+      });
+    }
+    if (doRight) {
+      pushHole(bucket.lateral_direita, latX, centerY, cavilhaD, faceCavilhaDepth, "cavilha", "B", true, {
+        pairedHoleKey: keyR,
+        holeCatalogId: CAVILHA_FACE_HOLE_TYPE_ID,
+        ferragemId: CAVILHA_10x40_FERRAGEM_ID,
+      });
+    }
   });
   if (!includeParafuso) return;
   for (const latX of depthPos.parafuso) {
-    pushHole(bucket.lateral_esquerda, latX, centerY, 5, receptorThickness, "parafuso", "B", true);
-    pushHole(bucket.lateral_direita, latX, centerY, 5, receptorThickness, "parafuso", "B", true);
+    if (doLeft) {
+      pushHole(bucket.lateral_esquerda, latX, centerY, 5, receptorThickness, "parafuso", "B", true);
+    }
+    if (doRight) {
+      pushHole(bucket.lateral_direita, latX, centerY, 5, receptorThickness, "parafuso", "B", true);
+    }
   }
 }
 
@@ -188,7 +210,8 @@ function drillSeparador(
   item: SeparadorItem,
   panelId: string,
   rules: DivSepRules,
-  linkedDivs: DivisorItem[]
+  linkedDivs: DivisorItem[],
+  cavilhaOnlyOnDivForPartialSep: boolean
 ): void {
   const internal = getDivSepInternalDims(box);
   const dims = resolveSeparadorDimensions(box, item);
@@ -196,8 +219,17 @@ function drillSeparador(
   const sepHoles: PanelDrillHole[] = [];
   const panelLarguraMm = item.larguraMm ?? dims.larguraMm;
 
+  const cavilhaOnly =
+    cavilhaOnlyOnDivForPartialSep && isPartialSepCavilhaOnly(item);
+  const lateralSides: "both" | "left" | "right" = cavilhaOnly
+    ? String(item.id) === WARDROBE_PARTIAL_SEP_ID_LEFT
+      ? "left"
+      : "right"
+    : "both";
+
   drillSeparadorEdgeHoles(sepHoles, panelLarguraMm, dims.profundidadeMm, rules, panelId);
   // Receptores LAT: comprimento = Pint (largura real do painel). Peça SEP continua Pint−5.
+  // Fase C (SEP parcial): sem parafusos; só lateral do lado da caixa.
   drillLateralAtSepHeight(
     bucket,
     box,
@@ -205,8 +237,9 @@ function drillSeparador(
     centerY,
     internal.espessura,
     rules,
-    linkedDivs.length > 0,
-    panelId
+    linkedDivs.length > 0 && !cavilhaOnly,
+    panelId,
+    lateralSides
   );
 
   if (rules.enableDivSepCombinations) {
@@ -370,13 +403,20 @@ function buildSepToLinkedDivsMap(box: DivSepBoxLike, rules: DivSepRules): Map<st
   return sepToLinkedDivs;
 }
 
+export type BuildDivSepDrillingOptions = {
+  /** Fase C: SEP parcial → DIV só cavilha (sem parafusos na ligação / laterais). */
+  cavilhaOnlyOnDivForPartialSep?: boolean;
+};
+
 export function buildDivSepDrilling(
   box: DivSepBoxLike,
   panelIds: { divisores?: string[]; separadores?: string[] } | undefined,
-  rules?: DivSepRules
+  rules?: DivSepRules,
+  options?: BuildDivSepDrillingOptions
 ): DivSepDrillingResult {
   const cfg = rules ?? getDivSepRules();
   const bucket = createHoleBucket();
+  const cavilhaOnlyOnDivForPartialSep = options?.cavilhaOnlyOnDivForPartialSep !== false;
 
   const divisores = box.divisores ?? [];
   const separadores = box.separadores ?? [];
@@ -385,7 +425,7 @@ export function buildDivSepDrilling(
   separadores.forEach((sep, i) => {
     const pid = panelIds?.separadores?.[i] ?? sep.id;
     const linkedDivs = sepToLinkedDivs.get(sep.id) ?? [];
-    drillSeparador(bucket, box, sep, pid, cfg, linkedDivs);
+    drillSeparador(bucket, box, sep, pid, cfg, linkedDivs, cavilhaOnlyOnDivForPartialSep);
   });
 
   divisores.forEach((div, i) => {

@@ -11,6 +11,7 @@
 
 import type { OrlaSideId } from "./orlaTypes";
 import { EMPTY_ORLA_SIDES, type PieceOrlaConfig } from "./orlaTypes";
+import { INDUSTRIAL_ORLA_SIDES } from "../industrialAdmin/industrialPieceTables";
 
 /** Espessura mínima de chapa (mm) para aplicar orla — excepto costa (sempre sem orla). */
 export const MIN_ORLA_PANEL_THICKNESS_MM = 16;
@@ -97,6 +98,11 @@ export function resolveOrlaSidesForPieceTipo(
 
   // Costa do módulo — nunca
   if (isCostaPieceTipo(t)) return [];
+
+  // Modos industriais A/D — registo consolidado (Fase E)
+  if (Object.prototype.hasOwnProperty.call(INDUSTRIAL_ORLA_SIDES, t)) {
+    return [...INDUSTRIAL_ORLA_SIDES[t]!];
+  }
 
   // Fundo de gaveta — sem orla
   if (t.includes("gav") && (t.includes("fundo") || t.includes("bottom") || t.includes("base"))) {

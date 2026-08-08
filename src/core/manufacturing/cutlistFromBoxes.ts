@@ -47,6 +47,25 @@ import { resolveCustomIndustrialCutlistForBox } from "../industrialDesigner/cust
 import { resolveDoorIndustrialLabel, resolveDoorLabel, resolveDoorPositionKind } from "../doors/doorLabels";
 import { assertCutlistIndustrialMaterials } from "../industrial/industrialValidation";
 import { buildCutlistRotationMetadata } from "./cutlistRotationMetadata";
+import { boxUsesCxGav } from "../cxGav/cxGavGeometry";
+import { extractCxGavCutlistFromBox } from "../cxGav/cxGavCutlistAdapter";
+import {
+  boxUsesGavetaPortaSep,
+  computeGavetaPortaSepLayout,
+  GAVETA_PORTA_SEP_DOOR_GAP_MM,
+  GAVETA_PORTA_SEP_FRONT_GAP_MM,
+  syncGavetaPortaSepBox,
+} from "../productModes/gavetaPortaSepLayout";
+import {
+  boxUsesWardrobePartialSep,
+  syncWardrobePartialSepBox,
+} from "../wardrobe/partialSepToDiv";
+import { boxUsesInnerCabinetA1 } from "../innerCabinet/a1Geometry";
+import { extractA1CutlistFromBox } from "../innerCabinet/a1CutlistAdapter";
+import {
+  resolveActiveIndustrialModels,
+  shouldSkipClassicDrawerCutlist,
+} from "../industrialAdmin/industrialModelsRegistry";
 
 /** Portas empilhadas (ex. caixa forno): dobradiças usam a altura da folha, não a lateral inteira. */
 function resolveDoorOpeningHeightForHinges(
@@ -143,7 +162,16 @@ export function cutlistComPrecoFromBox(
     return priced;
   }
 
-  const syncedBox = syncCornerWorkspaceBoxDoorsLayer(box);
+  // Industrial Admin: syncOrder (B=10, C=20). Path clássico + corner intactos.
+  const syncedBox0 = syncCornerWorkspaceBoxDoorsLayer(box);
+  const activeModes = resolveActiveIndustrialModels(syncedBox0);
+  const syncedBox1 = boxUsesGavetaPortaSep(syncedBox0)
+    ? syncGavetaPortaSepBox(syncedBox0)
+    : syncedBox0;
+  const syncedBox = boxUsesWardrobePartialSep(syncedBox1)
+    ? syncWardrobePartialSepBox(syncedBox1)
+    : syncedBox1;
+  void activeModes;
   const chaveCaixa = `${jsonIndustrialBoxParaCutlist(syncedBox)}\0${JSON.stringify(rules)}\0${projectMaterialId ?? ""}`;
   const entradaCaixa = cutlistPorCaixaCache.get(syncedBox.id);
   if (entradaCaixa && entradaCaixa.chave === chaveCaixa) {
@@ -182,8 +210,11 @@ export function cutlistComPrecoFromBox(
   const hasDrawers = isPiBox
     ? drawersLayer.length > 0
     : resolveActiveGavetasCount(box) > 0 || drawersLayer.length > 0;
-  // Roupeiros: gavetas apenas na zona inferior; furos 32mm de prateleira devem ser calculados sem “bloqueio” por gavetas.
-  const hasDrawersForShelfDrilling = isWardrobeModel(box.baseCabinetId) ? false : hasDrawers;
+  // Roupeiros / gaveta+porta+SEP: furos 32mm de prateleira sem “bloqueio” por gavetas.
+  const hasDrawersForShelfDrilling =
+    isWardrobeModel(box.baseCabinetId) || boxUsesGavetaPortaSep(syncedBox)
+      ? false
+      : hasDrawers;
 
   const baseItem = {
     sourceType: "parametric" as const,
@@ -219,7 +250,9 @@ export function cutlistComPrecoFromBox(
   const doorPanelsInOrder = modelo.paineis.filter((p) => isIndustrialDoorPanelTipo(p.tipo));
   const doorDrillHolesByIndex = new Map<number, PanelDrillHole[]>();
   const hingePositionsBySide: Partial<Record<"left" | "right", number[]>> = {};
-  const divSepDrilling = buildDivSepDrilling(box, box.panelIds);
+  const divSepDrilling = buildDivSepDrilling(syncedBox, syncedBox.panelIds, undefined, {
+    cavilhaOnlyOnDivForPartialSep: true,
+  });
   const divShelfDrilling = buildDivShelfDrilling(box, box.panelIds, effRules);
   const useDivShelfMode = boxUsesDivShelfMode(box);
   const hasShelvesForPanelDrilling = hasShelves && !useDivShelfMode;
@@ -555,7 +588,8 @@ export function cutlistComPrecoFromBox(
     };
   }
 
-  if (drawersLayer.length > 0) {
+  // Fase D / Industrial Admin: skipClassicDrawerCutlist (a_1) — evita duplicar gavetas.
+  if (drawersLayer.length > 0 && !shouldSkipClassicDrawerCutlist(syncedBox)) {
     const rankedByPosY = drawersLayer
       .map((layer, index) => ({ drawerIndex1: index + 1, posY: Number(layer.posY) || 0 }))
       .sort((a, b) => a.posY - b.posY);
@@ -742,6 +776,75 @@ export function cutlistComPrecoFromBox(
         }
       }
     }
+  }
+
+  // Ordem adapter Industrial Admin: cx_gav(10) → gps patch(20) → a1(30)
+  // cx_gav (caixa cavita) — path paramétrico aditivo; não altera carcaça clássica.
+  if (boxUsesCxGav(syncedBox)) {
+    const cxCutlist = extractCxGavCutlistFromBox(syncedBox, bodyMaterialKey, box.nome);
+    const cxItems = calcularPrecoCutList(cxCutlist).map((item) => ({
+      ...baseItem,
+      ...item,
+      materialId: resolveIndustrialMaterialKey(item.materialId, bodyMaterialKey),
+      material: item.material ?? material,
+      visualMaterial,
+      faceMaterials: baseItem.faceMaterials,
+    }));
+    items.push(...cxItems);
+  }
+
+  // Fase B — folgas 2 mm na frente da gaveta e porta parcial (sem duplicar peças).
+  if (boxUsesGavetaPortaSep(syncedBox)) {
+    const layout = computeGavetaPortaSepLayout(syncedBox);
+    const boxLabel =
+      String(box.nome || "BOX")
+        .trim()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_\-]/g, "")
+        .slice(0, 32) || "BOX";
+    for (const item of items) {
+      if (item.tipo === "gaveta_frente_ext" || item.tipo === "gaveta_frente") {
+        item.dimensoes = {
+          ...item.dimensoes,
+          largura: layout.drawerFrontWidthMm,
+          altura: layout.drawerFrontHeightMm,
+        };
+        item.metadata = {
+          ...(item.metadata ?? {}),
+          industrialGapMm: GAVETA_PORTA_SEP_FRONT_GAP_MM,
+          gavetaPortaSep: true,
+        };
+      }
+      if (isIndustrialDoorPanelTipo(item.tipo)) {
+        item.dimensoes = {
+          ...item.dimensoes,
+          largura: layout.doorWidthMm,
+          altura: layout.doorHeightMm,
+        };
+        item.metadata = {
+          ...(item.metadata ?? {}),
+          industrialGapMm: GAVETA_PORTA_SEP_DOOR_GAP_MM,
+          portaParcial: true,
+          industrialLabel:
+            (typeof item.metadata?.industrialLabel === "string" && item.metadata.industrialLabel) ||
+            `${boxLabel}_port_cima`,
+        };
+      }
+    }
+  }
+
+  // Fase D — caixa interna a_1 + compensador 40 mm (aditivo; não substitui carcaça mãe).
+  if (boxUsesInnerCabinetA1(syncedBox)) {
+    const a1Raw = extractA1CutlistFromBox(syncedBox, bodyMaterialKey, box.nome);
+    const a1Items = calcularPrecoCutList(a1Raw).map((item) => ({
+      ...baseItem,
+      ...item,
+      materialId: resolveIndustrialMaterialKey(item.materialId, bodyMaterialKey),
+      material: item.material ?? material,
+      visualMaterial,
+      faceMaterials: baseItem.faceMaterials,
+    }));
+    items.push(...a1Items);
   }
 
   const prevById = new Map((box.cutListComPreco ?? []).map((x) => [x.id, x]));
