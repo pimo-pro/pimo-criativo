@@ -75,6 +75,8 @@ export {
   materiaisFromFerragensDetalhe,
 } from "./materiaisSync";
 
+export { buildOrlaDetalheFromState, recalcOrlaDetalhe } from "./orlaReport";
+
 export {
   AREA_CHAPA_PADRAO_M2,
   aggregateChapasByEspessura,

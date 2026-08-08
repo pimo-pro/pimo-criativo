@@ -32,6 +32,7 @@ import { withDerivedMetricas } from "./deriveMetricas";
 import { ensureFinanceiroShape, updateFinanceiroLinha } from "./financeReportCalc";
 import { ensureFerragensFromMateriais } from "./materiaisSync";
 import { migrateProjectReport } from "./migrateReport";
+import { buildOrlaDetalheFromState } from "./orlaReport";
 import { isManualPath } from "./projectReportStore";
 import {
   applyTrakToReportParts,
@@ -244,6 +245,42 @@ function seedChapasDetalhe(
   }
 }
 
+function seedOrlaDetalhe(
+  fin: ProjectReportFinanceiro,
+  state: ProjectState | null
+): ProjectReportFinanceiro {
+  const orla = fin.linhas.find((l) => l.key === "orla");
+  if ((orla?.detalhe?.length ?? 0) > 0) return fin;
+  const detalhe = buildOrlaDetalheFromState(state);
+  if (detalhe.length === 0) {
+    // Fallback: uma linha a partir do total seed se existir
+    const total = Number(orla?.total) || 0;
+    if (!(total > 0)) return fin;
+    return updateFinanceiroLinha(fin, "orla", {
+      detalhe: [
+        {
+          id: makeReportId("or"),
+          tipo: "Orla",
+          dimensoes: "m",
+          quantidade: Number(orla?.quantidade) || 1,
+          precoUnitario:
+            orla?.precoUnitario != null
+              ? Number(orla.precoUnitario)
+              : Number(orla?.quantidade)
+                ? round2Safe(total / Number(orla.quantidade))
+                : total,
+          total,
+        },
+      ],
+    });
+  }
+  return updateFinanceiroLinha(fin, "orla", { detalhe });
+}
+
+function round2Safe(n: number): number {
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+
 function mergeBySourceId<T extends { id: string; sourceId?: string }>(
   existing: T[],
   incoming: T[],
@@ -269,6 +306,7 @@ export async function seedOrMergeProjectReport(
   const seededMateriais = buildMateriais(state);
   let seededFinanceiro = buildFinanceiroFromState(state);
   seededFinanceiro = seedChapasDetalhe(seededFinanceiro, id, state);
+  seededFinanceiro = seedOrlaDetalhe(seededFinanceiro, state);
   const trak = await importTrakSnapshot(id);
 
   if (!existing) {
@@ -369,6 +407,10 @@ export async function seedOrMergeProjectReport(
       }),
     });
     financeiro = seedChapasDetalhe(financeiro, id, state);
+    financeiro = seedOrlaDetalhe(financeiro, state);
+  } else {
+    // Mesmo com financeiro manual, popular Orla se detalhe ainda vazio
+    financeiro = seedOrlaDetalhe(financeiro, state);
   }
 
   const ferr = ensureFerragensFromMateriais(financeiro, materiaisSeed, ferrCatalog);

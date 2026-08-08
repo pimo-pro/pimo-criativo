@@ -158,7 +158,18 @@ export function updateFinanceiroLinha(
   const linhas = fin.linhas.map((l) => {
     if (l.key !== key) return l;
     const next: ReportFinanceiroLinha = { ...l, ...patch };
-    if (patch.quantidade !== undefined || patch.precoUnitario !== undefined) {
+    // Edicao top-level de qty/preco sem detalhe: limpar detalhe para o total reflectir a linha
+    if (
+      patch.detalhe === undefined &&
+      (patch.quantidade !== undefined || patch.precoUnitario !== undefined)
+    ) {
+      next.detalhe = [];
+      next.total = lineTotalFromQtyPrice(
+        patch.quantidade !== undefined ? patch.quantidade : l.quantidade,
+        patch.precoUnitario !== undefined ? patch.precoUnitario : l.precoUnitario,
+        l.total
+      );
+    } else if (patch.quantidade !== undefined || patch.precoUnitario !== undefined) {
       next.total = lineTotalFromQtyPrice(
         patch.quantidade !== undefined ? patch.quantidade : l.quantidade,
         patch.precoUnitario !== undefined ? patch.precoUnitario : l.precoUnitario,
