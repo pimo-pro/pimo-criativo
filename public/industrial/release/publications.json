@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T19:58:19.057Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(api): evitar 500 em /api/projects (githubSync no deploy + require seguro)",
+      "version": "v6.0808.2058"
+    },
+    {
       "publishedAt": "2026-08-08T19:34:13.699Z",
       "author": "pimo-pro",
       "commitMessage": "fix(pipro): quebrar ciclos de import TDZ (kO before initialization)",
