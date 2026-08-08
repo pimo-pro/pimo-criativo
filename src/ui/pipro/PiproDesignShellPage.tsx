@@ -1,25 +1,20 @@
 /**
- * Shell de design pipro v2 — mesma arquitectura da página principal (LegacyApp),
- * dedicado a criar/editar modelos pipro (não projectos).
- * Rota: /admin/pipro/workspace2
+ * Workspace Pipro v2 — layout único e mínimo.
+ * Header → LeftToolbar → LeftPanel → Workspace → BottomInfo (+ painel industrial).
+ * Rota: /admin/pipro/workspace2 (fora do AppChromeLayout / LegacyApp).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Header from "../../components/layout/header/Header";
 import LeftToolbar from "../../components/layout/left-toolbar/LeftToolbar";
 import LeftPanel from "../../components/layout/left-panel/LeftPanel";
-import ToolbarModals from "../../components/layout/ToolbarModals";
 import Workspace from "../../components/layout/workspace/Workspace";
-import Footer from "../../components/layout/footer/Footer";
 import BottomInfoToolbar from "../../components/layout/bottom-info-toolbar/BottomInfoToolbar";
-import BottomInfoPanelsOverlay from "../../components/layout/bottom-info-toolbar/BottomInfoPanelsOverlay";
 import { BottomInfoProvider } from "../../context/BottomInfoContext";
 import { PimoViewerProvider } from "../../context/PimoViewerContext";
 import { ProjectProvider } from "../../context/ProjectProvider";
 import { WorkspaceUndoRedoRegistryProvider } from "../../context/WorkspaceUndoRedoRegistryContext";
 import { MaterialProvider } from "../../context/materialContext";
-import { ToolbarModalProvider } from "../../context/ToolbarModalContext";
 import { ToastProvider } from "../../context/ToastContext";
 import { SettingsProvider } from "../../context/SettingsContext";
 import { useProject } from "../../context/useProject";
@@ -40,6 +35,7 @@ import {
   PIPRO_MODELS_PUBLIC_PATH,
   PIPRO_WORKSPACE_V2_PATH,
 } from "../routes/piproPaths";
+import logoPimo from "../../assets/logo-pi.png";
 
 const muted: CSSProperties = { color: "var(--text-muted)", fontSize: 11 };
 const row: CSSProperties = {
@@ -62,7 +58,6 @@ function PiproDesignBridge({
   const bootRef = useRef(false);
   const syncingRef = useRef(false);
 
-  // Boot: limpar sala + carregar modelo pipro → project state
   useEffect(() => {
     if (bootRef.current) return;
     bootRef.current = true;
@@ -97,12 +92,10 @@ function PiproDesignBridge({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once
   }, [editId]);
 
-  // Project box → pipro (dims/material editados no LeftPanel)
   useEffect(() => {
     if (syncingRef.current) return;
     const box = project.workspaceBoxes.find((b) => b.id === PIPRO_DESIGN_BOX_ID);
     if (!box && project.workspaceBoxes[0]) {
-      // permitir edição se o id regenerou
       const first = project.workspaceBoxes[0];
       const changed = syncPiproFromProjectBox(workspace, first);
       if (changed) {
@@ -218,7 +211,8 @@ function PiproIndustrialSidePanel({
   );
 }
 
-function PiproShellToolbar({
+/** Barra superior única — sem switcher de projectos / industrial / upload. */
+function PiproShellHeader({
   workspace,
   onRefresh,
 }: {
@@ -248,19 +242,26 @@ function PiproShellToolbar({
   };
 
   return (
-    <div
-      data-testid="pipro-shell-toolbar"
+    <header
+      data-testid="pipro-shell-header"
       style={{
+        flexShrink: 0,
+        minHeight: 45,
+        background: "linear-gradient(90deg, var(--black), var(--navy))",
+        borderBottom: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",
-        gap: 8,
-        padding: "6px 12px",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        fontSize: 12,
+        gap: 12,
+        padding: "0 16px",
         flexWrap: "wrap",
       }}
     >
-      <strong style={{ marginRight: 8 }}>Workspace Pipro v2</strong>
+      <img
+        src={logoPimo}
+        alt="PIMO"
+        style={{ height: 36, width: "auto", display: "block", objectFit: "contain" }}
+      />
+      <strong style={{ fontSize: 14 }}>Workspace Pipro v2</strong>
       <span style={muted}>
         {workspace.modelId ? `Modelo: ${workspace.modelId}` : "Novo modelo"} · motor{" "}
         {workspace.state.engineEnabled ? "ON" : "OFF"}
@@ -275,7 +276,7 @@ function PiproShellToolbar({
       <button type="button" onClick={() => navigate(PIPRO_MODELS_PUBLIC_PATH)}>
         Biblioteca /moveis
       </button>
-      <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+      <label style={{ display: "flex", gap: 4, alignItems: "center", fontSize: 12 }}>
         <input
           type="checkbox"
           checked={workspace.state.engineEnabled}
@@ -289,7 +290,7 @@ function PiproShellToolbar({
         />
         Motor unificado
       </label>
-    </div>
+    </header>
   );
 }
 
@@ -302,108 +303,91 @@ function PiproDesignShellInner() {
   const leftPanelTab = useUiStore((state) => state.selectedTool);
   const setLeftPanelTab = useUiStore((state) => state.setSelectedTool);
   const clearSelection = useUiStore((state) => state.clearSelection);
-  const photoModePanelOpen = useUiStore((state) => state.photoModePanelOpen);
-  const setPhotoModePanelOpen = useUiStore((state) => state.setPhotoModePanelOpen);
   const [leftWidth, setLeftWidth] = useState(260);
   const resizeState = useRef({ active: false, startX: 0, startWidth: 260 });
   const viewerOptions = useMemo(() => DEFAULT_VIEWER_OPTIONS, []);
-  const navigate = useNavigate();
 
   const clampLeftWidth = (value: number) => Math.min(420, Math.max(220, value));
 
   return (
-    <div className="app-root" data-testid="pipro-design-shell-page">
+    <div
+      className="app-root"
+      data-testid="pipro-design-shell-page"
+      style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
+    >
       <PiproDesignBridge workspace={workspace} onPanelRefresh={refresh} />
-      <Header />
-      <PiproShellToolbar workspace={workspace} onRefresh={refresh} />
+      <PiproShellHeader workspace={workspace} onRefresh={refresh} />
 
-      <div className="app-main">
+      <div className="app-main" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <BottomInfoProvider>
-          <ToolbarModalProvider>
-            <div
-              className="app-main-content-fixed"
-              style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
-            >
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div className="app-panels" style={{ flex: 1, minHeight: 0 }}>
+              <div style={{ position: "relative", zIndex: 20 }}>
+                <LeftToolbar
+                  selectedId={leftPanelTab}
+                  onSelect={(id) => {
+                    setLeftPanelTab(id);
+                    clearSelection();
+                    if (!leftOpen) setLeftOpen(true);
+                  }}
+                />
+              </div>
               <div
+                className="panel panel-shell panel-shell--side left-panel panel-shell-left"
                 style={{
-                  position: "relative",
-                  flex: 1,
-                  minHeight: 0,
+                  width: leftOpen ? leftWidth : 0,
+                  minWidth: leftOpen ? leftWidth : 0,
+                  maxWidth: leftOpen ? leftWidth : 0,
                   overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
+                  transition: "width 0.2s ease",
+                  position: "relative",
                 }}
               >
-                <div className="app-panels" style={{ flex: 1, minHeight: 0 }}>
-                  <div style={{ position: "relative", zIndex: 20 }}>
-                    <LeftToolbar
-                      selectedId={leftPanelTab}
-                      onSelect={(id) => {
-                        if (photoModePanelOpen) setPhotoModePanelOpen(false);
-                        setLeftPanelTab(id);
-                        clearSelection();
-                        if (!leftOpen) setLeftOpen(true);
-                      }}
-                    />
-                  </div>
+                <LeftPanel activeTab={leftPanelTab} />
+                {leftOpen && (
                   <div
-                    className="panel panel-shell panel-shell--side left-panel panel-shell-left"
-                    style={{
-                      width: leftOpen ? leftWidth : 0,
-                      minWidth: leftOpen ? leftWidth : 0,
-                      maxWidth: leftOpen ? leftWidth : 0,
-                      overflow: "hidden",
-                      transition: "width 0.2s ease",
-                      position: "relative",
+                    className="panel-resizer"
+                    onPointerDown={(e) => {
+                      resizeState.current = {
+                        active: true,
+                        startX: e.clientX,
+                        startWidth: leftWidth,
+                      };
+                      e.currentTarget.setPointerCapture(e.pointerId);
                     }}
-                  >
-                    <LeftPanel activeTab={leftPanelTab} />
-                    {leftOpen && (
-                      <div
-                        className="panel-resizer"
-                        onPointerDown={(e) => {
-                          resizeState.current = {
-                            active: true,
-                            startX: e.clientX,
-                            startWidth: leftWidth,
-                          };
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                        }}
-                        onPointerMove={(e) => {
-                          if (!resizeState.current.active) return;
-                          const delta = e.clientX - resizeState.current.startX;
-                          setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
-                        }}
-                        onPointerUp={() => {
-                          resizeState.current.active = false;
-                        }}
-                        onPointerCancel={() => {
-                          resizeState.current.active = false;
-                        }}
-                      />
-                    )}
-                  </div>
-                  <Workspace
-                    viewerBackground={VIEWER_BACKGROUND}
-                    viewerHeight="100%"
-                    viewerOptions={viewerOptions}
+                    onPointerMove={(e) => {
+                      if (!resizeState.current.active) return;
+                      const delta = e.clientX - resizeState.current.startX;
+                      setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
+                    }}
+                    onPointerUp={() => {
+                      resizeState.current.active = false;
+                    }}
+                    onPointerCancel={() => {
+                      resizeState.current.active = false;
+                    }}
                   />
-                  <PiproIndustrialSidePanel workspace={workspace} onChange={refresh} />
-                  <ToolbarModals />
-                </div>
-                <BottomInfoPanelsOverlay />
+                )}
               </div>
-              <BottomInfoToolbar />
+              <Workspace
+                viewerBackground={VIEWER_BACKGROUND}
+                viewerHeight="100%"
+                viewerOptions={viewerOptions}
+              />
+              <PiproIndustrialSidePanel workspace={workspace} onChange={refresh} />
             </div>
-          </ToolbarModalProvider>
+            <BottomInfoToolbar />
+          </div>
         </BottomInfoProvider>
       </div>
-
-      <Footer
-        onShowAjuda={() => navigate("/ajuda")}
-        onShowUserProjects={() => navigate("/meus-projetos")}
-        onShowLanding={() => navigate("/apresentacao")}
-      />
     </div>
   );
 }

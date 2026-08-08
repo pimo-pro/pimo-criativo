@@ -617,19 +617,22 @@ export default function App() {
                 </PermissionRoute>
               }
             />
-            <Route
-              path={PIPRO_WORKSPACE_V2_PATH}
-              element={
-                <PermissionRoute check={canAccessAdminPanel}>
-                  <Suspense fallback={<PageContainer><Card>A carregar Workspace v2…</Card></PageContainer>}>
-                    <PiproDesignShellPage />
-                  </Suspense>
-                </PermissionRoute>
-              }
-            />
           </Route>
           <Route path="/v4" element={<V4Page />} /> {/* TEMPORARY — remove before production */}
         </Route>
+        {/* Workspace Pipro v2: layout próprio — fora do AppChromeLayout (evita Header/Footer duplicados). */}
+        <Route
+          path={PIPRO_WORKSPACE_V2_PATH}
+          element={
+            <ProtectedRoute>
+              <PermissionRoute check={canAccessAdminPanel}>
+                <Suspense fallback={<PageContainer><Card>A carregar Workspace v2…</Card></PageContainer>}>
+                  <PiproDesignShellPage />
+                </Suspense>
+              </PermissionRoute>
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={<LegacyApp />} />
         {/* Fase 8 — redirects → Hub /documentacao */}
         <Route path="/painel-referencia" element={<Navigate to="/documentacao#refs" replace />} />
