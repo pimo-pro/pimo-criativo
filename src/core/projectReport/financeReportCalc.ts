@@ -33,9 +33,19 @@ export function lineTotalFromQtyPrice(
 }
 
 export function recalcDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiroDetalhe {
+  let precoUnitario = d.precoUnitario;
+  // Chapas com €/m²: recalcular preço unitário a partir da medida
+  if (typeof d.precoPorM2 === "number" && d.precoPorM2 > 0 && d.dimensoes) {
+    const m = String(d.dimensoes).match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+    if (m) {
+      const areaM2 = (Math.max(0, Number(m[1]) || 0) / 1000) * (Math.max(0, Number(m[2]) || 0) / 1000);
+      precoUnitario = round2(d.precoPorM2 * areaM2);
+    }
+  }
   return {
     ...d,
-    total: lineTotalFromQtyPrice(d.quantidade, d.precoUnitario, d.total),
+    precoUnitario,
+    total: lineTotalFromQtyPrice(d.quantidade, precoUnitario, d.total),
   };
 }
 

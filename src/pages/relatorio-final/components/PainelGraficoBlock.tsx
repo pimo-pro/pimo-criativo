@@ -1,49 +1,57 @@
-import type { ProjectReportMetricas, ReportStyle } from "@/core/projectReport";
+import {
+  deriveTempoTrabalhoHoras,
+  type ProjectReport,
+  type ProjectReportMetricas,
+  type ReportStyle,
+} from "@/core/projectReport";
 import {
   reportGrid3,
-  reportInput,
   reportLabel,
   reportSection,
   reportSectionTitle,
 } from "../reportStyles";
 import { R } from "../uiLabels";
-import SimpleBarChart from "./SimpleBarChart";
+import ProgressCircle from "./ProgressCircle";
 
 type Props = {
   style: ReportStyle;
-  value: ProjectReportMetricas;
-  onChange: (next: ProjectReportMetricas) => void;
+  metricas: ProjectReportMetricas;
+  report: ProjectReport;
 };
 
-const FIELDS: Array<{ key: keyof ProjectReportMetricas; label: string }> = [
-  { key: "tarefasConcluidas", label: R.tarefasConcluidas },
-  { key: "erros", label: R.erros },
-  { key: "errosCorrigidos", label: R.errosCorrigidos },
-  { key: "melhorias", label: R.melhoriasAplicadas },
-  { key: "ordensTrabalho", label: R.ordensTrabalho },
-  { key: "colaboradores", label: R.colaboradores },
-];
+function StatCard({ label, value, suffix }: { label: string; value: string | number; suffix?: string }) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border, rgba(127,127,127,0.25))",
+        borderRadius: 8,
+        padding: 12,
+      }}
+    >
+      <span style={reportLabel}>{label}</span>
+      <div style={{ fontSize: 22, fontWeight: 700 }}>
+        {value}
+        {suffix ? (
+          <span style={{ fontSize: 13, fontWeight: 500, marginLeft: 4, color: "var(--text-muted)" }}>
+            {suffix}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
-export default function PainelGraficoBlock({ style, value, onChange }: Props) {
+export default function PainelGraficoBlock({ style, metricas, report }: Props) {
+  const tempo = deriveTempoTrabalhoHoras(report);
+
   return (
     <section style={reportSection(style)}>
       <h2 style={reportSectionTitle}>{R.painelGrafico}</h2>
-      <SimpleBarChart metricas={value} />
+      <ProgressCircle metricas={metricas} />
       <div style={{ ...reportGrid3, marginTop: 14 }}>
-        {FIELDS.map((f) => (
-          <label key={f.key}>
-            <span style={reportLabel}>{f.label}</span>
-            <input
-              type="number"
-              min={0}
-              style={reportInput}
-              value={value[f.key]}
-              onChange={(e) =>
-                onChange({ ...value, [f.key]: Math.max(0, Number(e.target.value) || 0) })
-              }
-            />
-          </label>
-        ))}
+        <StatCard label={R.colaboradores} value={metricas.colaboradores} />
+        <StatCard label={R.tempoTrabalho} value={tempo} suffix="h" />
+        <StatCard label={R.melhorias} value={metricas.melhorias} />
       </div>
     </section>
   );

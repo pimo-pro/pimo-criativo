@@ -11,7 +11,7 @@ import { emptyQualidade, emptyGerais, emptyMetricas, emptyDesign, emptyProducao,
 function baseReport(): ProjectReport {
   return {
     projectId: "p1",
-    version: 1,
+    version: 2,
     reportStyle: "classic",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",

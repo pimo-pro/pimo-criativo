@@ -9,7 +9,10 @@ import autoTable from "jspdf-autotable";
 import { isInternalProjectId } from "@/core/projects/projectIdentity";
 
 import { buildChartMetrics } from "./chartMetrics";
-import type { ProjectReport } from "./types";
+import { deriveMetricas } from "./deriveMetricas";
+import { getFerragensDetalhe } from "./materiaisSync";
+import { joinTextoItems } from "./migrateReport";
+import type { ProjectReport, ReportTextoItem } from "./types";
 
 function safeName(name: string): string {
   return (name || "projeto")
@@ -41,9 +44,15 @@ function ensureSpace(doc: jsPDF, y: number, need = 30): number {
   return y;
 }
 
+function itemsText(items: ReportTextoItem[] | undefined): string {
+  const joined = joinTextoItems(items);
+  return joined || "-";
+}
+
 export function exportProjectReportPdf(report: ProjectReport): void {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   let y = 16;
+  const metricas = deriveMetricas(report);
 
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
@@ -68,7 +77,7 @@ export function exportProjectReportPdf(report: ProjectReport): void {
   y += 8;
 
   y = sectionTitle(doc, "Metricas", y);
-  const metrics = buildChartMetrics(report.metricas);
+  const metrics = buildChartMetrics(metricas);
   autoTable(doc, {
     startY: y,
     head: [["Indicador", "Valor"]],
@@ -88,10 +97,10 @@ export function exportProjectReportPdf(report: ProjectReport): void {
       ["Conclusao", report.design.dataConclusao || "-"],
       ["Revisoes antes", String(report.design.revisoesAntesProducao)],
       ["Revisoes apos", String(report.design.revisoesAposProducao)],
-      ["Erros", report.design.errosDesign || "-"],
-      ["Solucoes", report.design.solucoesAplicadas || "-"],
-      ["Melhorias propostas", report.design.melhoriasPropostas || "-"],
-      ["Melhorias implementadas", report.design.melhoriasImplementadas || "-"],
+      ["Erros", itemsText(report.design.errosDesign)],
+      ["Solucoes", itemsText(report.design.solucoesAplicadas)],
+      ["Melhorias propostas", itemsText(report.design.melhoriasPropostas)],
+      ["Melhorias implementadas", itemsText(report.design.melhoriasImplementadas)],
     ],
     styles: { fontSize: 8 },
     margin: { left: 14, right: 14 },
@@ -111,7 +120,9 @@ export function exportProjectReportPdf(report: ProjectReport): void {
       ["Fim", report.producao.dataFim || "-"],
       ["Horas efetivas", String(report.producao.horasEfetivas)],
       ["Re-producoes", String(report.producao.reProducoes)],
-      ["Erros", report.producao.erros || "-"],
+      ["Erros", itemsText(report.producao.erros)],
+      ["Solucoes", itemsText(report.producao.solucoesAplicadas)],
+      ["Melhorias", itemsText(report.producao.melhoriasImplementadas)],
     ],
     styles: { fontSize: 8 },
     margin: { left: 14, right: 14 },
@@ -129,6 +140,9 @@ export function exportProjectReportPdf(report: ProjectReport): void {
       ["Inicio", report.montagem.dataInicio || "-"],
       ["Fim", report.montagem.dataFim || "-"],
       ["Intervencoes pos", String(report.montagem.intervencoesPos)],
+      ["Erros", itemsText(report.montagem.erros)],
+      ["Solucoes", itemsText(report.montagem.solucoesAplicadas)],
+      ["Melhorias", itemsText(report.montagem.melhoriasImplementadas)],
     ],
     styles: { fontSize: 8 },
     margin: { left: 14, right: 14 },
@@ -137,19 +151,19 @@ export function exportProjectReportPdf(report: ProjectReport): void {
 
   y = ensureSpace(doc, y, 40);
   y = sectionTitle(doc, "Materiais / ferragens", y);
+  const ferragens = getFerragensDetalhe(report.financeiro);
   autoTable(doc, {
     startY: y,
-    head: [["Tipo", "Qtd", "Obs", "Erro", "Substituicao"]],
+    head: [["Tipo", "Qtd", "Preco unit.", "Total"]],
     body:
-      report.materiais.length > 0
-        ? report.materiais.map((m) => [
+      ferragens.length > 0
+        ? ferragens.map((m) => [
             m.tipo,
             String(m.quantidade),
-            m.observacoes || "",
-            m.temErro ? "Sim" : "",
-            m.substituicao || "",
+            m.precoUnitario.toFixed(2),
+            (m.quantidade * m.precoUnitario).toFixed(2),
           ])
-        : [["-", "0", "Sem linhas", "", ""]],
+        : [["-", "0", "-", "Sem linhas"]],
     styles: { fontSize: 7 },
     margin: { left: 14, right: 14 },
   });
@@ -162,8 +176,8 @@ export function exportProjectReportPdf(report: ProjectReport): void {
     head: [["Linha", "Qtd", "Preco unit.", "Total"]],
     body: report.financeiro.linhas.map((l) => [
       l.label,
-      l.quantidade == null ? "-" : String(l.quantidade),
-      l.precoUnitario == null ? "-" : l.precoUnitario.toFixed(2),
+      l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
+      l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
       l.total.toFixed(2),
     ]),
     styles: { fontSize: 7 },

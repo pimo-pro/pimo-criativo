@@ -7,8 +7,15 @@ export type ChartMetricItem = {
   color: string;
 };
 
-export function buildChartMetrics(metricas: ProjectReportMetricas): ChartMetricItem[] {
+/** Fatias do gráfico circular principal (ordens / tarefas / erros / corrigidos). */
+export function buildCircleChartMetrics(metricas: ProjectReportMetricas): ChartMetricItem[] {
   return [
+    {
+      key: "ordensTrabalho",
+      label: "Ordens de trabalho",
+      value: metricas.ordensTrabalho,
+      color: "#7c3aed",
+    },
     {
       key: "tarefasConcluidas",
       label: "Tarefas conclu\u00eddas",
@@ -22,13 +29,13 @@ export function buildChartMetrics(metricas: ProjectReportMetricas): ChartMetricI
       value: metricas.errosCorrigidos,
       color: "#ea580c",
     },
+  ];
+}
+
+export function buildChartMetrics(metricas: ProjectReportMetricas): ChartMetricItem[] {
+  return [
+    ...buildCircleChartMetrics(metricas),
     { key: "melhorias", label: "Melhorias", value: metricas.melhorias, color: "#2563eb" },
-    {
-      key: "ordensTrabalho",
-      label: "Ordens de trabalho",
-      value: metricas.ordensTrabalho,
-      color: "#7c3aed",
-    },
     {
       key: "colaboradores",
       label: "Colaboradores",

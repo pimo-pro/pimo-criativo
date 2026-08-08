@@ -8,6 +8,12 @@ import { FINANCEIRO_IVA_DEFAULT_PCT } from "../financeiro/financeiroUnificadoTyp
 
 export type ReportStyle = "classic" | "cards";
 
+/** Item de texto livre (erros, solucoes, melhorias). */
+export type ReportTextoItem = {
+  id: string;
+  texto: string;
+};
+
 export type ReportOperador = {
   id: string;
   nome: string;
@@ -69,6 +75,10 @@ export type ReportFinanceiroDetalhe = {
   quantidade: number;
   precoUnitario: number;
   total: number;
+  /** Espessura em mm (chapas / paineis). */
+  espessuraMm?: number;
+  /** EUR/m2 para recalcular preco ao editar medida. */
+  precoPorM2?: number;
 };
 
 export type ReportFinanceiroLinha = {
@@ -105,10 +115,10 @@ export type ProjectReportDesign = {
   dataConclusao: string;
   revisoesAntesProducao: number;
   revisoesAposProducao: number;
-  errosDesign: string;
-  solucoesAplicadas: string;
-  melhoriasPropostas: string;
-  melhoriasImplementadas: string;
+  errosDesign: ReportTextoItem[];
+  solucoesAplicadas: ReportTextoItem[];
+  melhoriasPropostas: ReportTextoItem[];
+  melhoriasImplementadas: ReportTextoItem[];
 };
 
 export type ProjectReportProducao = {
@@ -119,9 +129,9 @@ export type ProjectReportProducao = {
   dataFim: string;
   horasEfetivas: number;
   reProducoes: number;
-  erros: string;
-  solucoesAplicadas: string;
-  melhoriasImplementadas: string;
+  erros: ReportTextoItem[];
+  solucoesAplicadas: ReportTextoItem[];
+  melhoriasImplementadas: ReportTextoItem[];
 };
 
 export type ProjectReportMontagem = {
@@ -130,6 +140,9 @@ export type ProjectReportMontagem = {
   dataInicio: string;
   dataFim: string;
   intervencoesPos: number;
+  erros: ReportTextoItem[];
+  solucoesAplicadas: ReportTextoItem[];
+  melhoriasImplementadas: ReportTextoItem[];
 };
 
 export type ProjectReportFinanceiro = {
@@ -163,7 +176,8 @@ export type ProjectReportQualidade = {
 
 export type ProjectReport = {
   projectId: string;
-  version: 1;
+  /** v2: listas de itens em design/producao/montagem. */
+  version: 2;
   reportStyle: ReportStyle;
   createdAt: string;
   updatedAt: string;
@@ -172,6 +186,7 @@ export type ProjectReport = {
   design: ProjectReportDesign;
   producao: ProjectReportProducao;
   montagem: ProjectReportMontagem;
+  /** Espelho legado da linha Ferragens (sincronizado a partir do detalhe financeiro). */
   materiais: ReportMaterialLinha[];
   financeiro: ProjectReportFinanceiro;
   /** Paths JSON tocados pelo utilizador - merge de seed nao os sobrescreve. */
@@ -184,6 +199,7 @@ export type ProjectReport = {
 export const PROJECT_REPORT_STORAGE_KEY = "pimo_project_reports_v1";
 export const PROJECT_REPORT_IVA_DEFAULT = FINANCEIRO_IVA_DEFAULT_PCT;
 export const HISTORY_MAX_ENTRIES = 200;
+export const PROJECT_REPORT_VERSION = 2 as const;
 
 export const FINANCEIRO_REPORT_LABELS: Record<FinanceiroCustoKey, string> = {
   paineis: "Painéis",
@@ -232,10 +248,10 @@ export function emptyDesign(): ProjectReportDesign {
     dataConclusao: "",
     revisoesAntesProducao: 0,
     revisoesAposProducao: 0,
-    errosDesign: "",
-    solucoesAplicadas: "",
-    melhoriasPropostas: "",
-    melhoriasImplementadas: "",
+    errosDesign: [],
+    solucoesAplicadas: [],
+    melhoriasPropostas: [],
+    melhoriasImplementadas: [],
   };
 }
 
@@ -248,9 +264,9 @@ export function emptyProducao(): ProjectReportProducao {
     dataFim: "",
     horasEfetivas: 0,
     reProducoes: 0,
-    erros: "",
-    solucoesAplicadas: "",
-    melhoriasImplementadas: "",
+    erros: [],
+    solucoesAplicadas: [],
+    melhoriasImplementadas: [],
   };
 }
 
@@ -261,6 +277,9 @@ export function emptyMontagem(): ProjectReportMontagem {
     dataInicio: "",
     dataFim: "",
     intervencoesPos: 0,
+    erros: [],
+    solucoesAplicadas: [],
+    melhoriasImplementadas: [],
   };
 }
 

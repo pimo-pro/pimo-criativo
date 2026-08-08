@@ -57,4 +57,22 @@ describe("financeReportCalc", () => {
     expect(row?.total).toBe(40);
     expect(row?.quantidade).toBe(14);
   });
+
+  it("recalcula total do projeto ao alterar detalhe ferragens", () => {
+    const fin = ensureFinanceiroShape(null);
+    const next = updateFinanceiroLinha(fin, "ferragens", {
+      detalhe: [
+        {
+          id: "a",
+          tipo: "Parafuso",
+          dimensoes: "",
+          quantidade: 100,
+          precoUnitario: 0.15,
+          total: 0,
+        },
+      ],
+    });
+    expect(next.subtotal).toBe(15);
+    expect(next.totalProjeto).toBeGreaterThan(15);
+  });
 });

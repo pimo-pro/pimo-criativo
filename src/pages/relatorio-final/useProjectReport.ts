@@ -5,6 +5,7 @@ import {
   saveProjectReport,
   seedOrMergeProjectReport,
   setReportStyle,
+  withDerivedMetricas,
   withHistoryForPath,
   type ProjectReport,
   type ReportStyle,
@@ -87,7 +88,7 @@ export function useProjectReport(projectKey: string | undefined) {
           next = markManualPath(next, manualPath);
           next = withHistoryForPath(prev, next, manualPath);
         }
-        return next;
+        return withDerivedMetricas(next);
       });
       setDirty(true);
       setSaveMsg(null);

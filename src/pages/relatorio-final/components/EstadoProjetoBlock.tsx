@@ -19,11 +19,11 @@ import {
   reportTable,
   reportTableWrap,
   reportTd,
-  reportTextarea,
   reportTh,
 } from "../reportStyles";
 import { R } from "../uiLabels";
 import EditableModal from "./EditableModal";
+import ReportItemsList from "./ReportItemsList";
 
 type Props = {
   style: ReportStyle;
@@ -97,10 +97,7 @@ function OperadoresEditor({
         type="button"
         variant="secondary"
         onClick={() =>
-          onChange([
-            ...list,
-            { id: makeReportId("op"), nome: "", horas: 0, tarefas: "" },
-          ])
+          onChange([...list, { id: makeReportId("op"), nome: "", horas: 0, tarefas: "" }])
         }
       >
         {R.adicionarPessoa}
@@ -125,7 +122,7 @@ export default function EstadoProjetoBlock({
       <h2 style={reportSectionTitle}>{R.estadoProjeto}</h2>
 
       <div style={{ display: "grid", gap: 16 }}>
-        <div style={reportSection(style === "cards" ? "classic" : "classic")}>
+        <div style={reportSection("classic")}>
           <h3 style={{ margin: "0 0 10px", fontSize: 14 }}>{R.design}</h3>
           <div style={reportGrid3}>
             <label>
@@ -177,24 +174,29 @@ export default function EstadoProjetoBlock({
               />
             </label>
           </div>
-          <div style={{ ...reportGrid3, marginTop: 10 }}>
-            {(
-              [
-                ["errosDesign", R.errosDesign],
-                ["solucoesAplicadas", R.solucoes],
-                ["melhoriasPropostas", R.melhoriasPropostas],
-                ["melhoriasImplementadas", R.melhoriasImpl],
-              ] as const
-            ).map(([key, label]) => (
-              <label key={key} style={{ gridColumn: "1 / -1" }}>
-                <span style={reportLabel}>{label}</span>
-                <textarea
-                  style={reportTextarea}
-                  value={design[key]}
-                  onChange={(e) => onDesign({ ...design, [key]: e.target.value })}
-                />
-              </label>
-            ))}
+          <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
+            <ReportItemsList
+              label={R.errosDesign}
+              items={design.errosDesign}
+              onChange={(errosDesign) => onDesign({ ...design, errosDesign })}
+            />
+            <ReportItemsList
+              label={R.solucoes}
+              items={design.solucoesAplicadas}
+              onChange={(solucoesAplicadas) => onDesign({ ...design, solucoesAplicadas })}
+            />
+            <ReportItemsList
+              label={R.melhoriasPropostas}
+              items={design.melhoriasPropostas}
+              onChange={(melhoriasPropostas) => onDesign({ ...design, melhoriasPropostas })}
+            />
+            <ReportItemsList
+              label={R.melhoriasImpl}
+              items={design.melhoriasImplementadas}
+              onChange={(melhoriasImplementadas) =>
+                onDesign({ ...design, melhoriasImplementadas })
+              }
+            />
           </div>
         </div>
 
@@ -269,23 +271,24 @@ export default function EstadoProjetoBlock({
               />
             </label>
           </div>
-          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-            {(
-              [
-                ["erros", R.errosProducao],
-                ["solucoesAplicadas", R.solucoes],
-                ["melhoriasImplementadas", R.melhoriasImpl],
-              ] as const
-            ).map(([key, label]) => (
-              <label key={key}>
-                <span style={reportLabel}>{label}</span>
-                <textarea
-                  style={reportTextarea}
-                  value={producao[key]}
-                  onChange={(e) => onProducao({ ...producao, [key]: e.target.value })}
-                />
-              </label>
-            ))}
+          <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
+            <ReportItemsList
+              label={R.errosProducao}
+              items={producao.erros}
+              onChange={(erros) => onProducao({ ...producao, erros })}
+            />
+            <ReportItemsList
+              label={R.solucoes}
+              items={producao.solucoesAplicadas}
+              onChange={(solucoesAplicadas) => onProducao({ ...producao, solucoesAplicadas })}
+            />
+            <ReportItemsList
+              label={R.melhoriasImpl}
+              items={producao.melhoriasImplementadas}
+              onChange={(melhoriasImplementadas) =>
+                onProducao({ ...producao, melhoriasImplementadas })
+              }
+            />
           </div>
         </div>
 
@@ -341,6 +344,25 @@ export default function EstadoProjetoBlock({
               />
             </label>
           </div>
+          <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
+            <ReportItemsList
+              label={R.errosMontagem}
+              items={montagem.erros}
+              onChange={(erros) => onMontagem({ ...montagem, erros })}
+            />
+            <ReportItemsList
+              label={R.solucoes}
+              items={montagem.solucoesAplicadas}
+              onChange={(solucoesAplicadas) => onMontagem({ ...montagem, solucoesAplicadas })}
+            />
+            <ReportItemsList
+              label={R.melhoriasImpl}
+              items={montagem.melhoriasImplementadas}
+              onChange={(melhoriasImplementadas) =>
+                onMontagem({ ...montagem, melhoriasImplementadas })
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -385,11 +407,7 @@ export default function EstadoProjetoBlock({
         </div>
       </EditableModal>
 
-      <EditableModal
-        open={modal === "pecas"}
-        title={R.listaPecas}
-        onClose={() => setModal(null)}
-      >
+      <EditableModal open={modal === "pecas"} title={R.listaPecas} onClose={() => setModal(null)}>
         <div style={reportTableWrap}>
           <table style={reportTable}>
             <thead>

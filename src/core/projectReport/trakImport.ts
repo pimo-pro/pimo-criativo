@@ -198,16 +198,13 @@ export function applyTrakToReportParts(
   producao: ProjectReportProducao;
   montagem: ProjectReportMontagem;
 } {
+  // Ordens / tarefas: cache TRAK (erros/melhorias/colaboradores sao derivados depois).
   const metricas = { ...existing.metricas };
-  if (!isManual("metricas")) {
-    metricas.ordensTrabalho = Math.max(metricas.ordensTrabalho, snap.metricas.ordensTrabalho);
-    metricas.tarefasConcluidas = Math.max(
-      metricas.tarefasConcluidas,
-      snap.metricas.tarefasConcluidas
-    );
-    metricas.colaboradores = Math.max(metricas.colaboradores, snap.metricas.colaboradores);
-    if (!metricas.erros) metricas.erros = snap.metricas.erros;
-  }
+  metricas.ordensTrabalho = Math.max(metricas.ordensTrabalho, snap.metricas.ordensTrabalho);
+  metricas.tarefasConcluidas = Math.max(
+    metricas.tarefasConcluidas,
+    snap.metricas.tarefasConcluidas
+  );
 
   const producao = { ...existing.producao };
   if (!isManual("producao.dataInicio") && !producao.dataInicio) {

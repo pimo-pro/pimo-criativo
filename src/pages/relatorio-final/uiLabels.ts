@@ -42,6 +42,23 @@ export const R = {
   melhoriasAplicadas: "Melhorias aplicadas",
   ordensTrabalho: "Ordens de trabalho",
   colaboradores: "Colaboradores",
+  tempoTrabalho: "Tempo de trabalho",
+  adicionar: "Adicionar",
+  excluir: "Excluir",
+  semItens: "Sem itens.",
+  novoItem: "Novo item",
+  editarItem: "Editar item",
+  errosMontagem: "Erros na Montagem",
+  operadoresFunc: "Operadores / funcion\u00e1rios",
+  materiaisHintFerragens:
+    "Ferragens do projeto (fonte \u00fanica da linha Ferragens no Financeiro).",
+  adicionarChapa: "Adicionar chapa",
+  escolherChapa: "Escolher chapa do cat\u00e1logo",
+  espessura: "Espessura",
+  medida: "Medida",
+  precoChapa: "Pre\u00e7o da chapa",
+  precoTotal: "Pre\u00e7o total",
+
 
   estadoProjeto: "3. Estado do projeto (Design / Produ\u00e7\u00e3o / Montagem)",
   design: "3.1 Design",

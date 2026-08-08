@@ -7,6 +7,7 @@ export type {
   ReportMaterialLinha,
   ReportFinanceiroLinha,
   ReportFinanceiroDetalhe,
+  ReportTextoItem,
   ProjectReportGerais,
   ProjectReportMetricas,
   ProjectReportDesign,
@@ -21,6 +22,7 @@ export type {
 export {
   PROJECT_REPORT_STORAGE_KEY,
   PROJECT_REPORT_IVA_DEFAULT,
+  PROJECT_REPORT_VERSION,
   FINANCEIRO_REPORT_LABELS,
   HISTORY_MAX_ENTRIES,
   makeReportId,
@@ -51,8 +53,38 @@ export {
 } from "./financeReportCalc";
 
 export { seedOrMergeProjectReport } from "./seedProjectReport";
-export { buildChartMetrics } from "./chartMetrics";
+export { buildChartMetrics, buildCircleChartMetrics } from "./chartMetrics";
 export type { ChartMetricItem } from "./chartMetrics";
+
+export {
+  deriveMetricas,
+  withDerivedMetricas,
+  deriveTempoTrabalhoHoras,
+  deriveColaboradores,
+  deriveErrosCount,
+  deriveErrosCorrigidosCount,
+  deriveMelhoriasCount,
+} from "./deriveMetricas";
+
+export { migrateProjectReport, stringToTextoItems, joinTextoItems } from "./migrateReport";
+
+export {
+  applyFerragensDetalhe,
+  ensureFerragensFromMateriais,
+  getFerragensDetalhe,
+  materiaisFromFerragensDetalhe,
+} from "./materiaisSync";
+
+export {
+  aggregateChapasByEspessura,
+  listCatalogoChapas,
+  detalheFromCatalogoChapa,
+  recalcChapaDetalhe,
+  formatMedidaMm,
+  parseMedidaMm,
+  precoChapaFromArea,
+} from "./chapasReport";
+export type { CatalogoChapaOption } from "./chapasReport";
 
 export {
   appendHistoryEntry,

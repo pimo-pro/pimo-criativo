@@ -3,14 +3,17 @@
  * Nao escreve em ProjectState, work-orders nem overrides industriais.
  */
 
+import { withDerivedMetricas } from "./deriveMetricas";
+import { migrateProjectReport } from "./migrateReport";
+import { recalcFinanceiro } from "./financeReportCalc";
 import {
   emptyGerais,
   emptyQualidade,
   PROJECT_REPORT_STORAGE_KEY,
+  PROJECT_REPORT_VERSION,
   type ProjectReport,
   type ReportStyle,
 } from "./types";
-import { recalcFinanceiro } from "./financeReportCalc";
 
 type ReportMap = Record<string, ProjectReport>;
 
@@ -37,28 +40,36 @@ function writeMap(map: ReportMap): void {
 }
 
 function normalizeReport(raw: ProjectReport): ProjectReport {
-  const ratingRaw = Number(raw.qualidade?.rating);
+  const migrated = migrateProjectReport(raw);
+  const ratingRaw = Number(migrated.qualidade?.rating);
   const rating =
     ratingRaw >= 1 && ratingRaw <= 5 ? (Math.round(ratingRaw) as 1 | 2 | 3 | 4 | 5) : 3;
 
-  return {
-    ...raw,
-    version: 1,
-    reportStyle: raw.reportStyle === "cards" ? "cards" : "classic",
-    gerais: { ...emptyGerais(), ...(raw.gerais ?? {}) },
-    manualPaths: Array.isArray(raw.manualPaths) ? raw.manualPaths : [],
-    history: Array.isArray(raw.history) ? raw.history : [],
-    notas: Array.isArray(raw.notas) ? raw.notas : [],
+  const base: ProjectReport = {
+    ...migrated,
+    version: PROJECT_REPORT_VERSION,
+    reportStyle: migrated.reportStyle === "cards" ? "cards" : "classic",
+    gerais: { ...emptyGerais(), ...(migrated.gerais ?? {}) },
+    manualPaths: Array.isArray(migrated.manualPaths) ? migrated.manualPaths : [],
+    history: Array.isArray(migrated.history) ? migrated.history : [],
+    notas: Array.isArray(migrated.notas) ? migrated.notas : [],
     qualidade: {
       rating,
-      observacoes: Array.isArray(raw.qualidade?.observacoes)
-        ? raw.qualidade.observacoes.map(String)
+      observacoes: Array.isArray(migrated.qualidade?.observacoes)
+        ? migrated.qualidade.observacoes.map(String)
         : [],
     },
     financeiro: recalcFinanceiro(
-      raw.financeiro ?? { ivaPct: 23, linhas: [], subtotal: 0, ivaValor: 0, totalProjeto: 0 }
+      migrated.financeiro ?? {
+        ivaPct: 23,
+        linhas: [],
+        subtotal: 0,
+        ivaValor: 0,
+        totalProjeto: 0,
+      }
     ),
   };
+  return withDerivedMetricas(base);
 }
 
 export function loadProjectReport(projectId: string): ProjectReport | null {

@@ -10,6 +10,7 @@ import { COMPONENT_TYPES_DEFAULT, type ComponentType } from "@/core/components/c
 import { FERRAGENS_DEFAULT, type Ferragem } from "@/core/ferragens/ferragens";
 import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificado";
 import { FINANCEIRO_CUSTO_KEYS } from "@/core/financeiro/financeiroUnificadoTypes";
+import { computeChapasReal } from "@/core/industrial/computeChapasReal";
 import { buildFerragensTotaisPdfData } from "@/core/industrial/industrialBottomSectionData";
 import {
   resolveEmpresaExecutora,
@@ -26,7 +27,11 @@ import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 import { safeGetItem } from "@/utils/storage";
 import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolveProjectCutlistFromRecord";
 
-import { ensureFinanceiroShape } from "./financeReportCalc";
+import { aggregateChapasByEspessura } from "./chapasReport";
+import { withDerivedMetricas } from "./deriveMetricas";
+import { ensureFinanceiroShape, updateFinanceiroLinha } from "./financeReportCalc";
+import { ensureFerragensFromMateriais } from "./materiaisSync";
+import { migrateProjectReport } from "./migrateReport";
 import { isManualPath } from "./projectReportStore";
 import {
   applyTrakToReportParts,
@@ -39,7 +44,9 @@ import {
   emptyGerais,
   emptyQualidade,
   makeReportId,
+  PROJECT_REPORT_VERSION,
   type ProjectReport,
+  type ProjectReportFinanceiro,
   type ReportCaixa,
   type ReportMaterialLinha,
   type ReportPeca,
@@ -74,7 +81,7 @@ function findOfflineProject(projectId: string) {
 function resolveDisplayProjectName(
   name: string,
   stateName: string | undefined,
-  projectKey: string,
+  projectKey: string
 ): string {
   const fromOffline = name.trim();
   if (fromOffline && !isInternalProjectId(fromOffline)) return fromOffline;
@@ -207,6 +214,32 @@ function buildFinanceiroFromState(state: ProjectState | null) {
   }
 }
 
+function seedChapasDetalhe(
+  fin: ProjectReportFinanceiro,
+  projectId: string,
+  state: ProjectState | null
+): ProjectReportFinanceiro {
+  const paineis = fin.linhas.find((l) => l.key === "paineis");
+  if ((paineis?.detalhe?.length ?? 0) > 0) return fin;
+
+  const offline = findOfflineProject(projectId);
+  if (!offline && !state) return fin;
+  try {
+    const ctx = offline
+      ? resolveProjectCutlistFromRecord(toSavedRecordFromOffline(offline))
+      : null;
+    const cutlist = ctx?.cutListItems ?? [];
+    const boxes = (state?.boxes ?? []).map((b) => ({ id: b.id }));
+    const chapas = computeChapasReal(cutlist, state?.projectName || projectId, boxes);
+    if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;
+    const detalhe = aggregateChapasByEspessura(chapas.sheets);
+    if (detalhe.length === 0) return fin;
+    return updateFinanceiroLinha(fin, "paineis", { detalhe });
+  } catch {
+    return fin;
+  }
+}
+
 function mergeBySourceId<T extends { id: string; sourceId?: string }>(
   existing: T[],
   incoming: T[],
@@ -225,11 +258,13 @@ export async function seedOrMergeProjectReport(
   const id = projectId.trim();
   const now = new Date().toISOString();
   const { state, name, ownerName, createdAt, updatedAt } = reviveProjectState(id);
+  const ferrCatalog = loadFerragens();
 
   const seededCaixas = buildCaixas(state);
   const seededPecas = buildPecas(id);
   const seededMateriais = buildMateriais(state);
-  const seededFinanceiro = buildFinanceiroFromState(state);
+  let seededFinanceiro = buildFinanceiroFromState(state);
+  seededFinanceiro = seedChapasDetalhe(seededFinanceiro, id, state);
   const trak = await importTrakSnapshot(id);
 
   if (!existing) {
@@ -238,9 +273,10 @@ export async function seedOrMergeProjectReport(
       caixas: seededCaixas,
       pecas: seededPecas,
     };
-    return {
+    const ferr = ensureFerragensFromMateriais(seededFinanceiro, seededMateriais, ferrCatalog);
+    const report: ProjectReport = {
       projectId: id,
-      version: 1,
+      version: PROJECT_REPORT_VERSION,
       reportStyle: "classic",
       createdAt: now,
       updatedAt: now,
@@ -257,17 +293,19 @@ export async function seedOrMergeProjectReport(
       design: emptyDesign(),
       producao,
       montagem: trakIntoEmptyMontagem(trak),
-      materiais: seededMateriais,
-      financeiro: seededFinanceiro,
+      materiais: ferr.materiais,
+      financeiro: ferr.financeiro,
       manualPaths: [],
       history: [],
       notas: [],
       qualidade: emptyQualidade(),
     };
+    return withDerivedMetricas(report);
   }
 
-  const gerais = { ...emptyGerais(), ...existing.gerais };
-  if (!isManualPath(existing, "gerais.nomeProjeto")) {
+  const migrated = migrateProjectReport(existing);
+  const gerais = { ...emptyGerais(), ...migrated.gerais };
+  if (!isManualPath(migrated, "gerais.nomeProjeto")) {
     const resolvedName = resolveDisplayProjectName(name, state?.projectName, id);
     if (
       resolvedName &&
@@ -276,73 +314,79 @@ export async function seedOrMergeProjectReport(
       gerais.nomeProjeto = resolvedName;
     }
   }
-  if (!isManualPath(existing, "gerais.designer") && !gerais.designer) {
+  if (!isManualPath(migrated, "gerais.designer") && !gerais.designer) {
     gerais.designer = resolveProjectDesigner(state, ownerName);
   }
-  if (!isManualPath(existing, "gerais.empresa") && !gerais.empresa) {
+  if (!isManualPath(migrated, "gerais.empresa") && !gerais.empresa) {
     gerais.empresa = resolveEmpresaExecutora(state);
   }
-  if (!isManualPath(existing, "gerais.materiaisDescricao") && !gerais.materiaisDescricao) {
+  if (!isManualPath(migrated, "gerais.materiaisDescricao") && !gerais.materiaisDescricao) {
     gerais.materiaisDescricao = resolveMateriaisProjeto(state);
   }
-  if (!isManualPath(existing, "gerais.dataInicioExecucao") && !gerais.dataInicioExecucao) {
+  if (!isManualPath(migrated, "gerais.dataInicioExecucao") && !gerais.dataInicioExecucao) {
     gerais.dataInicioExecucao = toDateInput(createdAt);
   }
 
   const applied = applyTrakToReportParts(
     {
-      metricas: existing.metricas,
-      producao: existing.producao,
-      montagem: existing.montagem,
+      metricas: migrated.metricas,
+      producao: migrated.producao,
+      montagem: migrated.montagem,
     },
     trak,
-    (path) => isManualPath(existing, path)
+    (path) => isManualPath(migrated, path)
   );
 
   const caixas = mergeBySourceId(
     applied.producao.caixas,
     seededCaixas,
-    isManualPath(existing, "producao.caixas")
+    isManualPath(migrated, "producao.caixas")
   );
   const pecas = mergeBySourceId(
     applied.producao.pecas,
     seededPecas,
-    isManualPath(existing, "producao.pecas")
+    isManualPath(migrated, "producao.pecas")
   );
-  const materiais = mergeBySourceId(
-    existing.materiais,
+  const materiaisSeed = mergeBySourceId(
+    migrated.materiais,
     seededMateriais,
-    isManualPath(existing, "materiais")
+    isManualPath(migrated, "materiais")
   );
 
-  let financeiro = existing.financeiro;
-  if (!isManualPath(existing, "financeiro")) {
+  let financeiro = migrated.financeiro;
+  if (!isManualPath(migrated, "financeiro")) {
     const seedMap = new Map(seededFinanceiro.linhas.map((l) => [l.key, l]));
     financeiro = ensureFinanceiroShape({
-      ivaPct: existing.financeiro.ivaPct,
-      linhas: existing.financeiro.linhas.map((l) => {
+      ivaPct: migrated.financeiro.ivaPct,
+      linhas: migrated.financeiro.linhas.map((l) => {
         if (l.key === "iva" || l.key === "total") return l;
         if ((l.total ?? 0) > 0 || (l.detalhe?.length ?? 0) > 0) return l;
         return seedMap.get(l.key) ?? l;
       }),
     });
+    financeiro = seedChapasDetalhe(financeiro, id, state);
   }
 
-  return {
-    ...existing,
+  const ferr = ensureFerragensFromMateriais(financeiro, materiaisSeed, ferrCatalog);
+
+  const report: ProjectReport = {
+    ...migrated,
+    version: PROJECT_REPORT_VERSION,
     gerais,
     metricas: applied.metricas,
+    design: migrated.design,
     producao: {
       ...applied.producao,
       caixas,
       pecas,
     },
     montagem: applied.montagem,
-    materiais,
-    financeiro,
-    history: existing.history ?? [],
-    notas: existing.notas ?? [],
-    qualidade: existing.qualidade ?? emptyQualidade(),
+    materiais: ferr.materiais,
+    financeiro: ferr.financeiro,
+    history: migrated.history ?? [],
+    notas: migrated.notas ?? [],
+    qualidade: migrated.qualidade ?? emptyQualidade(),
     updatedAt: now,
   };
+  return withDerivedMetricas(report);
 }

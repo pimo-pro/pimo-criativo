@@ -3,7 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Loader from "@/components/ui/Loader";
 import PageContainer from "@/components/ui/PageContainer";
-import { emptyQualidade, exportProjectReportPdf, type ReportStyle } from "@/core/projectReport";
+import {
+  deriveMetricas,
+  emptyQualidade,
+  exportProjectReportPdf,
+  getFerragensDetalhe,
+  materiaisFromFerragensDetalhe,
+  type ReportStyle,
+} from "@/core/projectReport";
 import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
 import { printHideClass, reportPageShell, reportSection, reportSectionTitle } from "./reportStyles";
 import { useProjectReport } from "./useProjectReport";
@@ -38,6 +45,9 @@ export default function RelatorioFinalProjeto() {
   const [histOpen, setHistOpen] = useState(false);
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
 
+  const metricas = useMemo(() => (report ? deriveMetricas(report) : null), [report]);
+  const ferragensCount = report ? getFerragensDetalhe(report.financeiro).length : 0;
+
   if (loading) {
     return (
       <PageContainer>
@@ -46,7 +56,7 @@ export default function RelatorioFinalProjeto() {
     );
   }
 
-  if (error || !report) {
+  if (error || !report || !metricas) {
     return (
       <PageContainer>
         <p style={{ color: "var(--pi-btn-danger-bg, #dc2626)" }}>
@@ -140,14 +150,13 @@ export default function RelatorioFinalProjeto() {
         <InfoGeraisBlock
           style={style}
           value={report.gerais}
+          operadoresCount={report.producao.operadores.length}
+          caixasCount={report.producao.caixas.length}
+          pecasCount={report.producao.pecas.length}
           onChange={(gerais, path) => updateReport((r) => ({ ...r, gerais }), path)}
         />
 
-        <PainelGraficoBlock
-          style={style}
-          value={report.metricas}
-          onChange={(metricas) => updateReport((r) => ({ ...r, metricas }), "metricas")}
-        />
+        <PainelGraficoBlock style={style} metricas={metricas} report={report} />
 
         <EstadoProjetoBlock
           style={style}
@@ -165,14 +174,22 @@ export default function RelatorioFinalProjeto() {
 
         <MateriaisBlock
           style={style}
-          value={report.materiais}
-          onChange={(materiais) => updateReport((r) => ({ ...r, materiais }), "materiais")}
+          financeiro={report.financeiro}
+          onChange={(financeiro, materiais) =>
+            updateReport((r) => ({ ...r, financeiro, materiais }), "financeiro")
+          }
         />
 
         <FinanceiroBlock
           style={style}
           value={report.financeiro}
-          onChange={(financeiro) => updateReport((r) => ({ ...r, financeiro }), "financeiro")}
+          onChange={(financeiro) =>
+            updateReport((r) => ({
+              ...r,
+              financeiro,
+              materiais: materiaisFromFerragensDetalhe(getFerragensDetalhe(financeiro)),
+            }), "financeiro")
+          }
         />
 
         <NotasBlock
@@ -206,7 +223,7 @@ export default function RelatorioFinalProjeto() {
             </div>
             <div>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{R.materiaisFerragens}</div>
-              <div style={{ fontSize: 22, fontWeight: 700 }}>{report.materiais.length}</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{ferragensCount}</div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{R.qualidadeLabel}</div>
