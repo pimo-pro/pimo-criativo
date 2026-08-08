@@ -1,9 +1,12 @@
 /**
- * Sidebar Industrial Admin — item Industrial Models (Fase F).
+ * Sidebar Industrial Admin — Industrial Models + Workspace Design Mode.
  * Somente navegação; sem lógica industrial.
  */
 
-import { INDUSTRIAL_ADMIN_MODELS_PATH } from "../routes/industrialAdminRoutes";
+import {
+  INDUSTRIAL_ADMIN_MODELS_PATH,
+  PIPRO_WORKSPACE_PATH,
+} from "../routes/industrialAdminRoutes";
 
 export type AdminSidebarItem = {
   label: string;
@@ -14,6 +17,10 @@ export const industrialAdminSidebarItems: readonly AdminSidebarItem[] = [
   {
     label: "Industrial Models",
     path: INDUSTRIAL_ADMIN_MODELS_PATH,
+  },
+  {
+    label: "Workspace Design Mode",
+    path: PIPRO_WORKSPACE_PATH,
   },
 ];
 

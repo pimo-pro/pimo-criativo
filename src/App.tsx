@@ -77,6 +77,17 @@ import IndustrialMontagemPage from "./app/industrial/operations/montagem/index";
 import IndustrialEmbalagemPage from "./app/industrial/operations/embalagem/index";
 import IndustrialAdminSettingsPage from "./app/admin/settings/industrial/index";
 import RealtimeAlertsAdminPage from "./app/admin/system-settings/industrial/realtime-alerts";
+import {
+  INDUSTRIAL_ADMIN_MODELS_PATH,
+  IndustrialModelsPage,
+  PIPRO_WORKSPACE_PATH,
+  WorkspaceDesignModePage,
+} from "./ui/routes/industrialAdminRoutes";
+import {
+  PIPRO_MODELS_PUBLIC_PATH,
+  PiproModelsPage,
+} from "./ui/routes/piproRoutes";
+import { AdminSidebar } from "./ui/layout/AdminSidebar";
 import PieceMainView from "./app/industrial/piece/PieceMainView";
 import IndustrialSupervisorDashboardPage from "./app/industrial/supervisor/index";
 import SupervisorProjectPage from "./app/industrial/supervisor/SupervisorProjectPage";
@@ -446,6 +457,7 @@ export default function App() {
           />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path={PIPRO_MODELS_PUBLIC_PATH} element={<PiproModelsPage />} />
           {ajudaRoutes.map((route) => (
             <Route key={route.path} path={route.path} element={route.element} />
           ))}
@@ -565,6 +577,37 @@ export default function App() {
             <Route path="/industrial/operations/embalagem" element={<IndustrialEmbalagemPage />} />
             <Route path="/admin/settings/industrial" element={<IndustrialAdminSettingsPage />} />
             <Route path="/admin/system-settings/industrial/realtime-alerts" element={<RealtimeAlertsAdminPage />} />
+            <Route
+              path={INDUSTRIAL_ADMIN_MODELS_PATH}
+              element={
+                <PermissionRoute check={canAccessAdminPanel}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 16,
+                      minHeight: "100vh",
+                      padding: 16,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <aside style={{ width: 220, flexShrink: 0 }}>
+                      <AdminSidebar activePath={INDUSTRIAL_ADMIN_MODELS_PATH} />
+                    </aside>
+                    <main style={{ flex: 1, minWidth: 0 }}>
+                      <IndustrialModelsPage />
+                    </main>
+                  </div>
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path={PIPRO_WORKSPACE_PATH}
+              element={
+                <PermissionRoute check={canAccessAdminPanel}>
+                  <WorkspaceDesignModePage />
+                </PermissionRoute>
+              }
+            />
           </Route>
           <Route path="/v4" element={<V4Page />} /> {/* TEMPORARY — remove before production */}
         </Route>
