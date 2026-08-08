@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T19:34:13.699Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(pipro): quebrar ciclos de import TDZ (kO before initialization)",
+      "version": "v6.0808.2034"
+    },
+    {
       "publishedAt": "2026-08-08T19:21:14.324Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Unified Industrial Box Engine + Workspace Design Mode + Página pública /moveis",
