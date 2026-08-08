@@ -1,11 +1,21 @@
 {
-  "updatedAt": "2026-08-08T21:47:25.172Z",
+  "updatedAt": "2026-08-08T22:16:24.303Z",
   "news": [
+    {
+      "version": "v6.0808.2316",
+      "title": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
+      "description": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
+      "publishedAt": "2026-08-08T22:16:24.219Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "67e7b22c"
+    },
     {
       "version": "v6.0808.2247",
       "title": "Auto deploy",
       "description": "Auto deploy",
-      "publishedAt": "2026-08-08T21:47:25.086Z",
+      "publishedAt": "2026-08-08T22:49:03+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",

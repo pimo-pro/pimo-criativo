@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T22:16:23.616Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
+      "version": "v6.0808.2316"
+    },
+    {
       "publishedAt": "2026-08-08T21:47:24.155Z",
       "author": "pimo-pro",
       "commitMessage": "Auto deploy",
