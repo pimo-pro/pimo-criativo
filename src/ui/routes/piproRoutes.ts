@@ -1,30 +1,30 @@
 /**
  * Rotas públicas da biblioteca pipro (móveis).
+ * Paths em piproPaths — sem import de páginas (evita ciclo PiproModelsPage ↔ routes).
  */
 
-import type { ComponentType } from "react";
-import { PiproModelsPage } from "../pipro/PiproModelsPage";
-import { PIPRO_WORKSPACE_PATH } from "./industrialAdminRoutes";
+import {
+  PIPRO_MODELS_PUBLIC_PATH,
+  PIPRO_WORKSPACE_NEW_PATH,
+  PIPRO_WORKSPACE_PATH,
+  piproWorkspaceEditPath,
+} from "./piproPaths";
 
 export type PiproPublicRoute = {
   path: string;
   label: string;
-  Component: ComponentType;
 };
 
-export const PIPRO_MODELS_PUBLIC_PATH = "/moveis";
-export const PIPRO_WORKSPACE_NEW_PATH = PIPRO_WORKSPACE_PATH;
-
-export function piproWorkspaceEditPath(modelId: string): string {
-  return `${PIPRO_WORKSPACE_PATH}?id=${encodeURIComponent(modelId)}`;
-}
+export {
+  PIPRO_MODELS_PUBLIC_PATH,
+  PIPRO_WORKSPACE_NEW_PATH,
+  PIPRO_WORKSPACE_PATH,
+  piproWorkspaceEditPath,
+};
 
 export const piproPublicRoutes: readonly PiproPublicRoute[] = [
   {
     path: PIPRO_MODELS_PUBLIC_PATH,
     label: "Móveis pipro",
-    Component: PiproModelsPage,
   },
 ];
-
-export { PiproModelsPage };

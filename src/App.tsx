@@ -81,13 +81,13 @@ import {
   INDUSTRIAL_ADMIN_MODELS_PATH,
   IndustrialModelsPage,
   PIPRO_WORKSPACE_PATH,
-  WorkspaceDesignModePage,
 } from "./ui/routes/industrialAdminRoutes";
-import {
-  PIPRO_MODELS_PUBLIC_PATH,
-  PiproModelsPage,
-} from "./ui/routes/piproRoutes";
+import { PIPRO_MODELS_PUBLIC_PATH } from "./ui/routes/piproPaths";
 import { AdminSidebar } from "./ui/layout/AdminSidebar";
+
+/** Lazy: evita ciclos TDZ (routes ↔ páginas) e mantém motor/viewer fora do chunk inicial. */
+const PiproModelsPage = lazy(() => import("./ui/pipro/PiproModelsPage"));
+const WorkspaceDesignModePage = lazy(() => import("./ui/pipro/WorkspaceDesignModePage"));
 import PieceMainView from "./app/industrial/piece/PieceMainView";
 import IndustrialSupervisorDashboardPage from "./app/industrial/supervisor/index";
 import SupervisorProjectPage from "./app/industrial/supervisor/SupervisorProjectPage";
@@ -457,7 +457,14 @@ export default function App() {
           />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path={PIPRO_MODELS_PUBLIC_PATH} element={<PiproModelsPage />} />
+          <Route
+            path={PIPRO_MODELS_PUBLIC_PATH}
+            element={
+              <Suspense fallback={<PageContainer><Card>A carregar móveis…</Card></PageContainer>}>
+                <PiproModelsPage />
+              </Suspense>
+            }
+          />
           {ajudaRoutes.map((route) => (
             <Route key={route.path} path={route.path} element={route.element} />
           ))}
@@ -604,7 +611,9 @@ export default function App() {
               path={PIPRO_WORKSPACE_PATH}
               element={
                 <PermissionRoute check={canAccessAdminPanel}>
-                  <WorkspaceDesignModePage />
+                  <Suspense fallback={<PageContainer><Card>A carregar Workspace…</Card></PageContainer>}>
+                    <WorkspaceDesignModePage />
+                  </Suspense>
                 </PermissionRoute>
               }
             />

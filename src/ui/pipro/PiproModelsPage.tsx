@@ -9,7 +9,7 @@ import {
   PIPRO_MODELS_PUBLIC_PATH,
   PIPRO_WORKSPACE_NEW_PATH,
   piproWorkspaceEditPath,
-} from "../routes/piproRoutes";
+} from "../routes/piproPaths";
 
 export function PiproModelsPage() {
   const navigate = useNavigate();

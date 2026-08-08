@@ -14,7 +14,7 @@ import {
 } from "../../core/pipro/piproModelsRegistry";
 import { summarizePiproModel } from "../components/PiproModelCard";
 import { PiproModelsPage } from "./PiproModelsPage";
-import { PIPRO_MODELS_PUBLIC_PATH } from "../routes/piproRoutes";
+import { PIPRO_MODELS_PUBLIC_PATH } from "../routes/piproPaths";
 
 describe("PiproModelsPage", () => {
   beforeEach(() => {

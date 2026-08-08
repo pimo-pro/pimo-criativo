@@ -4,10 +4,16 @@
  */
 
 import type { BoxModule, CutListItem, CutListItemComPreco } from "../types";
-import type { IndustrialModeId } from "../industrialAdmin/industrialModelsRegistry";
 
-/** IDs estáveis das 4 funcionalidades (não são modos novos). */
-export type IndustrialFeatureId = IndustrialModeId;
+/**
+ * IDs estáveis das 4 funcionalidades (≡ modos A–D).
+ * Definidos aqui (sem import do registry Fase E) para evitar puxar o registo no grafo do motor.
+ */
+export type IndustrialFeatureId =
+  | "cx_gav_cavita"
+  | "gaveta_porta_sep_prateleiras"
+  | "wardrobe_sep_parcial_gavetas"
+  | "inner_cabinet_a1";
 
 export type IndustrialSyncPatch = {
   id: string;

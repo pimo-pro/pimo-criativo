@@ -1,20 +1,22 @@
 /**
- * Rotas Industrial Admin UI (Fase F) + Workspace Design Mode (pipro).
- * Declara path + componente; mount em App.
+ * Rotas Industrial Admin UI (Fase F).
+ * Paths em industrialAdminPaths / piproPaths — sem import cruzado de páginas.
  */
 
 import type { ComponentType } from "react";
 import { IndustrialModelsPage } from "../industrialAdmin/IndustrialModelsPage";
-import { WorkspaceDesignModePage } from "../pipro/WorkspaceDesignModePage";
+import { INDUSTRIAL_ADMIN_MODELS_PATH } from "./industrialAdminPaths";
+import { PIPRO_WORKSPACE_PATH } from "./piproPaths";
 
 export type IndustrialAdminRoute = {
   path: string;
   label: string;
-  Component: ComponentType;
+  /** Carregamento lazy no App — não importar páginas aqui. */
+  Component?: ComponentType;
 };
 
-export const INDUSTRIAL_ADMIN_MODELS_PATH = "/admin/industrial/models";
-export const PIPRO_WORKSPACE_PATH = "/admin/pipro/workspace";
+export { INDUSTRIAL_ADMIN_MODELS_PATH } from "./industrialAdminPaths";
+export { PIPRO_WORKSPACE_PATH } from "./piproPaths";
 
 export const industrialAdminRoutes: readonly IndustrialAdminRoute[] = [
   {
@@ -25,8 +27,7 @@ export const industrialAdminRoutes: readonly IndustrialAdminRoute[] = [
   {
     path: PIPRO_WORKSPACE_PATH,
     label: "Workspace Design Mode",
-    Component: WorkspaceDesignModePage,
   },
 ];
 
-export { IndustrialModelsPage, WorkspaceDesignModePage };
+export { IndustrialModelsPage };

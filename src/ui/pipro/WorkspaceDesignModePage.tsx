@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AdminSidebar } from "../layout/AdminSidebar";
-import { PIPRO_WORKSPACE_PATH } from "../routes/industrialAdminRoutes";
+import { PIPRO_WORKSPACE_PATH } from "../routes/piproPaths";
 import { PiproDesignWorkspace } from "../../core/pipro/PiproDesignWorkspace";
 import { loadPiproModel } from "../../core/pipro/piproModelsRegistry";
 import { INDUSTRIAL_FEATURES } from "../../core/unifiedIndustrialBox/industrialFeatures";
