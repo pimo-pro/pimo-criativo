@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-08T22:16:24.303Z",
+  "updatedAt": "2026-08-08T22:34:58.119Z",
   "news": [
+    {
+      "version": "v6.0808.2334",
+      "title": "PIMO — Financeiro v2.2: accordions nos itens, correção de Orla, preços editáveis",
+      "description": "PIMO — Financeiro v2.2: accordions nos itens, correção de Orla, preços editáveis",
+      "publishedAt": "2026-08-08T22:34:58.016Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "64c48bcd"
+    },
     {
       "version": "v6.0808.2316",
       "title": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
       "description": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
-      "publishedAt": "2026-08-08T22:16:24.219Z",
+      "publishedAt": "2026-08-08T23:18:06+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
       "commit": "67e7b22c"
+    },
+    {
+      "version": "v2.1-relatorio-final",
+      "title": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
+      "description": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
+      "publishedAt": "2026-08-08T23:14:25+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "67e7b22"
     },
     {
       "version": "v6.0808.2247",

@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T22:34:57.342Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Financeiro v2.2: accordions nos itens, correção de Orla, preços editáveis",
+      "version": "v6.0808.2334"
+    },
+    {
       "publishedAt": "2026-08-08T22:16:23.616Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Relatório Final v2.1: cartões adicionais no Painel gráfico + cálculo por m² nos Paineis",
