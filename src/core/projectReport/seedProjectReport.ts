@@ -228,7 +228,11 @@ function seedChapasDetalhe(
     const ctx = offline
       ? resolveProjectCutlistFromRecord(toSavedRecordFromOffline(offline))
       : null;
-    const cutlist = ctx?.cutListItems ?? [];
+    const cutlist = (ctx?.cutListItems ?? []).map((item) => ({
+      ...item,
+      precoUnitario: Number((item as { precoUnitario?: number }).precoUnitario) || 0,
+      precoTotal: Number((item as { precoTotal?: number }).precoTotal) || 0,
+    }));
     const boxes = (state?.boxes ?? []).map((b) => ({ id: b.id }));
     const chapas = computeChapasReal(cutlist, state?.projectName || projectId, boxes);
     if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;

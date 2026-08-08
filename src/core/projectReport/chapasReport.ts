@@ -65,7 +65,7 @@ export function aggregateChapasByEspessura(
     const dimensoes = formatMedidaMm(row.L, row.A);
     let eurM2 = 0;
     try {
-      eurM2 = Number(getPrecoPorMaterial(row.material)) || 0;
+      eurM2 = Number(getPrecoPorMaterial(row.material, esp)) || 0;
     } catch {
       eurM2 = 0;
     }
