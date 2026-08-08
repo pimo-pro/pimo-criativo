@@ -1,11 +1,21 @@
 {
-  "updatedAt": "2026-08-08T17:53:50.387Z",
+  "updatedAt": "2026-08-08T19:21:14.951Z",
   "news": [
+    {
+      "version": "v6.0808.2021",
+      "title": "Fases A–F concluídas — Sistema Industrial + Industrial Admin UI (parte 1)",
+      "description": "Fases A–F concluídas — Sistema Industrial + Industrial Admin UI (parte 1)\n\n- Conclusão das Fases A/B/C/D/E/F\n- Sistema Industrial completo (cx_gav, gaveta_porta_sep, SEP parcial, a_1)\n- Consolidação industrial (Industrial Admin System)\n- Nova página: Industrial Models (UI)\n- Pipeline clássico intacto\n- 45/45 testes verdes",
+      "publishedAt": "2026-08-08T19:21:14.854Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "212f4399"
+    },
     {
       "version": "v6.0808.1853",
       "title": "Fases A–F concluídas — Sistema Industrial + Industrial Admin UI (parte 1)",
       "description": "Fases A–F concluídas — Sistema Industrial + Industrial Admin UI (parte 1)\n\n- Conclusão das Fases A/B/C/D/E/F\n- Sistema Industrial completo (cx_gav, gaveta_porta_sep, SEP parcial, a_1)\n- Consolidação industrial (Industrial Admin System)\n- Nova página: Industrial Models (UI)\n- Pipeline clássico intacto\n- 45/45 testes verdes",
-      "publishedAt": "2026-08-08T17:53:50.295Z",
+      "publishedAt": "2026-08-08T18:55:34+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",

@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-08T19:21:14.324Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Unified Industrial Box Engine + Workspace Design Mode + Página pública /moveis",
+      "version": "v6.0808.2021"
+    },
+    {
       "publishedAt": "2026-08-08T17:53:49.768Z",
       "author": "pimo-pro",
       "commitMessage": "fix(build): corrigir tipos grain/metadata para publicação A–F",
