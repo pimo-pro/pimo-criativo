@@ -15,6 +15,7 @@ import { PimoViewerProvider } from "../../context/PimoViewerContext";
 import { ProjectProvider } from "../../context/ProjectProvider";
 import { WorkspaceUndoRedoRegistryProvider } from "../../context/WorkspaceUndoRedoRegistryContext";
 import { MaterialProvider } from "../../context/materialContext";
+import { ToolbarModalProvider } from "../../context/ToolbarModalContext";
 import { ToastProvider } from "../../context/ToastContext";
 import { SettingsProvider } from "../../context/SettingsContext";
 import { useProject } from "../../context/useProject";
@@ -83,12 +84,16 @@ function PiproDesignBridge({
         engineEnabled: true,
       });
     }
-    syncingRef.current = true;
-    actions.applyDesignWorkspaceState(applyPiproToProjectState(project, workspace), {
-      pushUndo: false,
-    });
-    syncingRef.current = false;
-    onPanelRefresh();
+    // Adiar um tick: evita aplicar estado enquanto o Viewer ainda monta o canvas.
+    const bootTimer = window.setTimeout(() => {
+      syncingRef.current = true;
+      actions.applyDesignWorkspaceState(applyPiproToProjectState(project, workspace), {
+        pushUndo: false,
+      });
+      syncingRef.current = false;
+      onPanelRefresh();
+    }, 0);
+    return () => window.clearTimeout(bootTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once
   }, [editId]);
 
@@ -112,7 +117,7 @@ function PiproDesignBridge({
     if (changed) {
       onPanelRefresh();
     }
-  }, [project.workspaceBoxes, project, workspace, actions, onPanelRefresh]);
+  }, [project.workspaceBoxes, workspace, actions, onPanelRefresh]);
 
   return null;
 }
@@ -320,72 +325,89 @@ function PiproDesignShellInner() {
 
       <div className="app-main" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <BottomInfoProvider>
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <div className="app-panels" style={{ flex: 1, minHeight: 0 }}>
-              <div style={{ position: "relative", zIndex: 20 }}>
-                <LeftToolbar
-                  selectedId={leftPanelTab}
-                  onSelect={(id) => {
-                    setLeftPanelTab(id);
-                    clearSelection();
-                    if (!leftOpen) setLeftOpen(true);
-                  }}
-                />
-              </div>
+          {/*
+            ToolbarModalProvider é obrigatório: Workspace/UnifiedTopToolbar chamam useToolbarModal().
+            Sem ele o React rebenta → ecrã preto. Não montamos ToolbarModals (sem overlays de projecto).
+          */}
+          <ToolbarModalProvider>
+            <div
+              className="app-main-content-fixed"
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <div
-                className="panel panel-shell panel-shell--side left-panel panel-shell-left"
                 style={{
-                  width: leftOpen ? leftWidth : 0,
-                  minWidth: leftOpen ? leftWidth : 0,
-                  maxWidth: leftOpen ? leftWidth : 0,
-                  overflow: "hidden",
-                  transition: "width 0.2s ease",
                   position: "relative",
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
-                <LeftPanel activeTab={leftPanelTab} />
-                {leftOpen && (
+                <div className="app-panels" style={{ flex: 1, minHeight: 0 }}>
+                  <div style={{ position: "relative", zIndex: 20 }}>
+                    <LeftToolbar
+                      selectedId={leftPanelTab}
+                      onSelect={(id) => {
+                        setLeftPanelTab(id);
+                        clearSelection();
+                        if (!leftOpen) setLeftOpen(true);
+                      }}
+                    />
+                  </div>
                   <div
-                    className="panel-resizer"
-                    onPointerDown={(e) => {
-                      resizeState.current = {
-                        active: true,
-                        startX: e.clientX,
-                        startWidth: leftWidth,
-                      };
-                      e.currentTarget.setPointerCapture(e.pointerId);
+                    className="panel panel-shell panel-shell--side left-panel panel-shell-left"
+                    style={{
+                      width: leftOpen ? leftWidth : 0,
+                      minWidth: leftOpen ? leftWidth : 0,
+                      maxWidth: leftOpen ? leftWidth : 0,
+                      overflow: "hidden",
+                      transition: "width 0.2s ease",
+                      position: "relative",
                     }}
-                    onPointerMove={(e) => {
-                      if (!resizeState.current.active) return;
-                      const delta = e.clientX - resizeState.current.startX;
-                      setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
-                    }}
-                    onPointerUp={() => {
-                      resizeState.current.active = false;
-                    }}
-                    onPointerCancel={() => {
-                      resizeState.current.active = false;
-                    }}
+                  >
+                    <LeftPanel activeTab={leftPanelTab} />
+                    {leftOpen && (
+                      <div
+                        className="panel-resizer"
+                        onPointerDown={(e) => {
+                          resizeState.current = {
+                            active: true,
+                            startX: e.clientX,
+                            startWidth: leftWidth,
+                          };
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                        }}
+                        onPointerMove={(e) => {
+                          if (!resizeState.current.active) return;
+                          const delta = e.clientX - resizeState.current.startX;
+                          setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
+                        }}
+                        onPointerUp={() => {
+                          resizeState.current.active = false;
+                        }}
+                        onPointerCancel={() => {
+                          resizeState.current.active = false;
+                        }}
+                      />
+                    )}
+                  </div>
+                  <Workspace
+                    viewerBackground={VIEWER_BACKGROUND}
+                    viewerHeight="100%"
+                    viewerOptions={viewerOptions}
                   />
-                )}
+                  <PiproIndustrialSidePanel workspace={workspace} onChange={refresh} />
+                </div>
               </div>
-              <Workspace
-                viewerBackground={VIEWER_BACKGROUND}
-                viewerHeight="100%"
-                viewerOptions={viewerOptions}
-              />
-              <PiproIndustrialSidePanel workspace={workspace} onChange={refresh} />
+              <BottomInfoToolbar />
             </div>
-            <BottomInfoToolbar />
-          </div>
+          </ToolbarModalProvider>
         </BottomInfoProvider>
       </div>
     </div>
