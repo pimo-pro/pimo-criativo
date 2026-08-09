@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-09T13:31:19.629Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Release v6.0809.1402 (Relatório Final v3.2) — baseline oficial sem alterações adicionais",
+      "version": "v6.0809.1431"
+    },
+    {
       "publishedAt": "2026-08-09T13:02:42.103Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Relatório Final v3.2: Painéis com chapas (L×A), preço por metro, sem secção Materiais",
