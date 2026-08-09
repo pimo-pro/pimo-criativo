@@ -271,12 +271,13 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
 
     if (snap.chapas.mode === "real" && (snap.chapasReaisMeta?.countMonetizado ?? 0) > 0) {
       expect(snap.custosEffective.paineis).toBe(0);
-      expect(labels).toContain("Painéis (substituídos por chapas)");
+      expect(labels).toContain("Painéis");
       const n = snap.chapasReaisMeta!.countMonetizado;
       const unit = snap.chapasReaisMeta!.custoChapaDerived;
       expect(unit).toBeGreaterThan(0);
       expect(snap.custosEffective.chapasReais).toBe(Math.round(n * unit * 100) / 100);
-      expect(labels.some((l) => l.startsWith("Chapas reais ("))).toBe(true);
+      // UI não lista «Chapas reais» — valor continua em custosEffective.
+      expect(labels.some((l) => l.startsWith("Chapas reais"))).toBe(false);
       assertNoMaterialDoubleCount({
         pieceMaterialSum: snap.custosEffective.paineis,
         chapasReais: snap.custosEffective.chapasReais,

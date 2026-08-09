@@ -12,7 +12,7 @@ import { buildChartMetrics } from "./chartMetrics";
 import { deriveMetricas } from "./deriveMetricas";
 import { getFerragensDetalhe } from "./materiaisSync";
 import { joinTextoItems } from "./migrateReport";
-import type { ProjectReport, ReportTextoItem } from "./types";
+import { FINANCEIRO_REPORT_LABELS, type ProjectReport, type ReportTextoItem } from "./types";
 
 function safeName(name: string): string {
   return (name || "projeto")
@@ -156,12 +156,16 @@ export function exportProjectReportPdf(report: ProjectReport): void {
   autoTable(doc, {
     startY: y,
     head: [["Linha", "Qtd", "Preco unit.", "Total"]],
-    body: report.financeiro.linhas.map((l) => [
-      l.label,
-      l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
-      l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
-      l.total.toFixed(2),
-    ]),
+    body: report.financeiro.linhas
+      .filter((l) => l.key !== "chapasReais")
+      .map((l) => [
+        l.key in FINANCEIRO_REPORT_LABELS
+          ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
+          : l.label,
+        l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
+        l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
+        l.total.toFixed(2),
+      ]),
     styles: { fontSize: 7 },
     margin: { left: 14, right: 14 },
   });

@@ -51,8 +51,8 @@ const zeroCustos = {
   portes: 0,
 } as FinanceiroUnificadoSnapshot["custosEffective"];
 
-describe("Fase 5C — labels Chapas reais / Painéis", () => {
-  it("por_chapas_reais com N×€ → label Chapas reais (N × €)", () => {
+describe("Labels Financeiro UI — Painéis / Gavetas (sem Chapas reais)", () => {
+  it("não expõe linha «Chapas reais» nos custos UI", () => {
     const snap = baseSnap({
       materialCostMode: "por_chapas_reais",
       chapasReaisMeta: {
@@ -64,26 +64,13 @@ describe("Fase 5C — labels Chapas reais / Painéis", () => {
       totalProjeto: 127.5,
     });
     const labels = financeiroCustoRows(snap).map((r) => r.label);
-    expect(labels).toContain("Chapas reais (3 × 42.50 €)");
-    expect(labels).toContain("Painéis (substituídos por chapas)");
+    expect(labels.some((l) => l.startsWith("Chapas reais"))).toBe(false);
+    expect(labels).toContain("Painéis");
+    expect(labels).toContain("Gavetas");
+    expect(labels).not.toContain("Gavetas (montagem N × 15 €)");
   });
 
-  it("por_chapas_reais + nesting estimado → label 0 €", () => {
-    const snap = baseSnap({
-      materialCostMode: "por_chapas_reais",
-      chapas: { count: 2, mode: "estimado" },
-      chapasReaisMeta: {
-        countMonetizado: 0,
-        custoChapaDerived: 40,
-        nestingMode: "estimado",
-      },
-      custosEffective: { ...zeroCustos, chapasReais: 0, paineis: 0 },
-    });
-    const labels = financeiroCustoRows(snap).map((r) => r.label);
-    expect(labels).toContain("Chapas reais (0 € — nesting estimado)");
-  });
-
-  it("por_peca → labels genéricos (sem N×€)", () => {
+  it("por_peca → Painéis genérico, sem Chapas reais", () => {
     const snap = baseSnap({
       materialCostMode: "por_peca",
       chapasReaisMeta: {
@@ -94,8 +81,8 @@ describe("Fase 5C — labels Chapas reais / Painéis", () => {
       custosEffective: { ...zeroCustos, paineis: 200, chapasReais: 0 },
     });
     const labels = financeiroCustoRows(snap).map((r) => r.label);
-    expect(labels).toContain("Chapas reais");
     expect(labels).toContain("Painéis");
+    expect(labels.some((l) => l.startsWith("Chapas reais"))).toBe(false);
     expect(labels).not.toContain("Painéis (substituídos por chapas)");
   });
 

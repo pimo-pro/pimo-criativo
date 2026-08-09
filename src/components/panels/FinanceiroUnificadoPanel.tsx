@@ -130,7 +130,7 @@ export default function FinanceiroUnificadoPanel({ embedded }: { embedded?: bool
               <div style={{ marginTop: 10, display: "grid", gap: 4 }}>
                 {snap.chapas.mode === "estimado" ? (
                   <p style={{ ...microMuted, color: "#ea580c", fontWeight: 600 }}>
-                    Chapas em modo estimado: custo «Chapas reais» = 0 € até haver nesting real
+                    Chapas em modo estimado: custo de chapas = 0 € até haver nesting real
                     (sheets[]).
                   </p>
                 ) : null}

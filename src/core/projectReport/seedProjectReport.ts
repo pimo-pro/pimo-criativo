@@ -43,6 +43,7 @@ import {
 import {
   emptyDesign,
   emptyGerais,
+  FINANCEIRO_REPORT_LABELS,
   emptyQualidade,
   makeReportId,
   PROJECT_REPORT_VERSION,
@@ -250,21 +251,26 @@ function seedChapasDetalhe(
   }
 }
 
-/** Portas/Remates = 0 €; limpa detalhe de madeira fantasma. */
+/** Portas/Remates = 0 €; limpa detalhe de madeira fantasma; labels UI actualizados. */
 function applyIndustrialReportLinhas(fin: ProjectReportFinanceiro): ProjectReportFinanceiro {
   return ensureFinanceiroShape({
     ivaPct: fin.ivaPct,
     linhas: fin.linhas.map((l) => {
+      const label =
+        l.key in FINANCEIRO_REPORT_LABELS
+          ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
+          : l.label;
       if (l.key === "portas" || l.key === "remates") {
         return {
           ...l,
+          label,
           quantidade: null,
           precoUnitario: null,
           total: 0,
           detalhe: [],
         };
       }
-      return l;
+      return { ...l, label };
     }),
   });
 }

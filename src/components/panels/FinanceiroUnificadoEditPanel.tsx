@@ -28,7 +28,7 @@ const CUSTO_FIELD_KEYS: FinanceiroCustoKey[] = [
   "operacoes",
   "desperdicio",
   "serragem",
-  "chapasReais",
+  // chapasReais omitido da UI — madeira/chapas em Painéis
   "maoDeObra",
   "logistica",
   "operacoesAvancadas",
@@ -37,26 +37,8 @@ const CUSTO_FIELD_KEYS: FinanceiroCustoKey[] = [
   "portes",
 ];
 
-function custoFieldLabel(key: FinanceiroCustoKey, snap: FinanceiroUnificadoSnapshot): string {
-  if (key === "paineis") {
-    if (
-      snap.materialCostMode === "por_chapas_reais" &&
-      (snap.custosEffective.paineis ?? 0) === 0
-    ) {
-      return "Painéis (substituídos por chapas)";
-    }
-    return "Painéis";
-  }
-  if (key === "chapasReais") {
-    const meta = snap.chapasReaisMeta;
-    const n = meta?.countMonetizado ?? 0;
-    const unit = meta?.custoChapaDerived ?? 0;
-    const valor = snap.custosEffective.chapasReais ?? 0;
-    if (snap.materialCostMode === "por_chapas_reais" && valor > 0 && n > 0 && unit > 0) {
-      return `Chapas reais (${n} × ${unit.toFixed(2)} €)`;
-    }
-    return "Chapas reais";
-  }
+function custoFieldLabel(key: FinanceiroCustoKey, _snap: FinanceiroUnificadoSnapshot): string {
+  if (key === "paineis") return "Painéis";
   if (key === "remates") return "Remates / Rodapés";
   if (key === "operacoes") return "Operações (CNC/Drill)";
   if (key === "desperdicio") return "Desperdício";

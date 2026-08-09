@@ -579,33 +579,7 @@ export function financeiroMetricRows(snap: FinanceiroUnificadoSnapshot): Array<[
   return rows;
 }
 
-function labelChapasReais(snap: FinanceiroUnificadoSnapshot): string {
-  const meta = snap.chapasReaisMeta;
-  const n = meta?.countMonetizado ?? 0;
-  const unit = meta?.custoChapaDerived ?? 0;
-  const valor = snap.custosEffective.chapasReais ?? 0;
-  if (snap.materialCostMode !== "por_chapas_reais") {
-    return "Chapas reais";
-  }
-  if (valor > 0 && n > 0 && unit > 0) {
-    return `Chapas reais (${n} × ${unit.toFixed(2)} €)`;
-  }
-  if (meta?.nestingMode === "estimado") {
-    return "Chapas reais (0 € — nesting estimado)";
-  }
-  if (!(unit > 0)) {
-    return "Chapas reais (0 € — sem €/m² derivado)";
-  }
-  return "Chapas reais (0 €)";
-}
-
-function labelPaineis(snap: FinanceiroUnificadoSnapshot): string {
-  if (
-    snap.materialCostMode === "por_chapas_reais" &&
-    (snap.custosEffective.paineis ?? 0) === 0
-  ) {
-    return "Painéis (substituídos por chapas)";
-  }
+function labelPaineis(_snap: FinanceiroUnificadoSnapshot): string {
   return "Painéis";
 }
 
@@ -617,7 +591,7 @@ export function financeiroCustoRows(
     { label: labelPaineis(snap), valor: snap.custosEffective.paineis },
     { label: "Portas", valor: snap.custosEffective.portas },
     {
-      label: "Gavetas (montagem N × 15 €)",
+      label: "Gavetas",
       valor: snap.custosEffective.gavetas,
     },
     { label: "Ferragens", valor: snap.custosEffective.ferragens },
@@ -631,7 +605,7 @@ export function financeiroCustoRows(
     { label: "Operações (CNC/Drill)", valor: snap.custosEffective.operacoes },
     { label: "Desperdício", valor: snap.custosEffective.desperdicio },
     { label: "Serragem", valor: snap.custosEffective.serragem },
-    { label: labelChapasReais(snap), valor: snap.custosEffective.chapasReais },
+    // «Chapas reais» não aparece na UI — madeira/chapas ficam em Painéis.
     { label: "Mão de obra", valor: snap.custosEffective.maoDeObra },
     { label: "Logística", valor: snap.custosEffective.logistica },
     { label: "Ops avançadas", valor: snap.custosEffective.operacoesAvancadas },

@@ -3,6 +3,7 @@ import Button from "@/components/ui/Button";
 import {
   applyPrecoPorMetroEdit,
   detalheFromCatalogoChapa,
+  FINANCEIRO_REPORT_LABELS,
   listCatalogoChapas,
   makeReportId,
   recalcChapaDetalhe,
@@ -174,7 +175,9 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
             </tr>
           </thead>
           <tbody>
-            {value.linhas.map((linha) => {
+            {value.linhas
+              .filter((linha) => linha.key !== "chapasReais")
+              .map((linha) => {
               const locked = linha.key === "iva" || linha.key === "total";
               const bold = linha.key === "total";
               const key = isCustoKey(linha.key) ? linha.key : null;
@@ -182,6 +185,10 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
               const isPaineis = key === "paineis";
               const isOrla = key === "orla";
               const detalhe = key ? detailOrSeed(linha) : [];
+              const displayLabel =
+                key && key in FINANCEIRO_REPORT_LABELS
+                  ? FINANCEIRO_REPORT_LABELS[key]
+                  : linha.label;
 
               return (
                 <Fragment key={linha.key}>
@@ -214,11 +221,11 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                             toggleKey(key);
                           }}
                         >
-                          {linha.label}
+                          {displayLabel}
                           {isOpen ? " ▾" : " ▸"}
                         </button>
                       ) : (
-                        linha.label
+                        displayLabel
                       )}
                     </td>
                     <td style={reportTd}>
