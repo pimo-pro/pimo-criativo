@@ -42,6 +42,9 @@ import { computeCustosAvancadosFinanceiras } from "./computeCustosAvancadosFinan
 import { computeOperacoesIndustriaisAvancadas } from "./computeOperacoesIndustriaisAvancadas";
 import { computeMontagemGavetasEur } from "./drawerAssemblyCost";
 import {
+  isFallbackCarcassWoodTipo,
+} from "./industrialWoodFinanceRules";
+import {
   computeOrlaFerragem,
   syncOrlaPiecesForProject,
 } from "../orla/orlaCalculator";
@@ -318,13 +321,32 @@ export function computeFinanceiroUnificado(
   const custoOrla = orlaLive.custo;
 
   const custosComputed = emptyCustos();
+  let materialCostModeEarly: "por_peca" | "por_chapas_reais" = "por_peca";
+  try {
+    materialCostModeEarly =
+      getSettings().orcamentos?.custosIndustriais?.materialCostMode === "por_chapas_reais"
+        ? "por_chapas_reais"
+        : "por_peca";
+  } catch {
+    materialCostModeEarly = "por_peca";
+  }
+  const industrialChapasMode = materialCostModeEarly === "por_chapas_reais";
+
   for (const item of cutlist) {
-    const key = classifyFinanceiroCustoKey(String(item.tipo ?? ""));
+    const tipo = String(item.tipo ?? "");
+    const key = classifyFinanceiroCustoKey(tipo);
     if (NON_CUTLIST_CUSTO_KEYS.has(key)) continue;
+    // Modo industrial: madeira de porta/gaveta/remate não entra em nenhum bucket de madeira
+    // (fica nas chapas reais ou, em fallback, só carcaça em Painéis).
+    if (industrialChapasMode) {
+      if (key === "portas" || key === "remates") continue;
+      if (key === "paineis" && !isFallbackCarcassWoodTipo(tipo)) continue;
+    }
     custosComputed[key] += Number(item.precoTotal) || 0;
   }
-  // Remates/rodapés: madeira classificada em Painéis/chapas — linha Remates sempre 0 €.
+  // Linhas industriais: Remates e Portas nunca somam madeira.
   custosComputed.remates = 0;
+  custosComputed.portas = 0;
   custosComputed.ferragens = ferragensEur;
   custosComputed.orla = custoOrla;
 
@@ -411,9 +433,9 @@ export function computeFinanceiroUnificado(
   const custosEffective = emptyCustos();
   const custoKeysOverridden: FinanceiroCustoKey[] = [];
   for (const key of FINANCEIRO_CUSTO_MATERIAL_KEYS) {
-    // Remates: madeira nas chapas/Painéis — sem preço próprio (ignorar override fantasma).
-    if (key === "remates") {
-      custosEffective.remates = 0;
+    // Remates e Portas: madeira nas chapas — sem preço próprio (ignorar override fantasma).
+    if (key === "remates" || key === "portas") {
+      custosEffective[key] = 0;
       continue;
     }
     const ov = overrides.custos?.[key];
@@ -594,11 +616,14 @@ export function financeiroCustoRows(
   const rows: Array<{ label: string; valor: number | null; emBreve?: boolean; total?: boolean }> = [
     { label: labelPaineis(snap), valor: snap.custosEffective.paineis },
     { label: "Portas", valor: snap.custosEffective.portas },
-    { label: "Gavetas", valor: snap.custosEffective.gavetas }, // montagem N×€/gaveta (Fase 2)
+    {
+      label: "Gavetas (montagem N × 15 €)",
+      valor: snap.custosEffective.gavetas,
+    },
     { label: "Ferragens", valor: snap.custosEffective.ferragens },
     { label: "Orla", valor: snap.custosEffective.orla },
   ];
-  // Remates só aparecem com valor > 0 (sem peças reais o Unificado força 0).
+  // Remates só aparecem com valor > 0 (Unificado força 0 no modo industrial).
   if ((snap.custosEffective.remates ?? 0) > 0) {
     rows.push({ label: "Remates / Rodapés", valor: snap.custosEffective.remates });
   }

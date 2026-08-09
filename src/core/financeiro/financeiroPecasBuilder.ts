@@ -23,6 +23,7 @@ import {
 } from "../pdf/industrialListQr";
 import { formatEtqForPdf } from "../pdf/pdfIndustrialListShell";
 import { classifyFinanceiroCustoKey } from "./financeiroUnificado";
+import { isBundledSheetWoodTipo } from "./industrialWoodFinanceRules";
 import {
   computeFinanceiroUnificado,
   type FinanceiroUnificadoProjectSlice,
@@ -347,6 +348,13 @@ export function buildFinanceiroPecasRows(
   });
   const opsAvancadas = computeOperacoesIndustriaisAvancadas(cutlist);
   const pieceMaterialKeySet = new Set<string>(FINANCEIRO_PIECE_MATERIAL_KEYS);
+  let industrialChapasMode = false;
+  try {
+    industrialChapasMode =
+      getSettings().orcamentos?.custosIndustriais?.materialCostMode === "por_chapas_reais";
+  } catch {
+    industrialChapasMode = false;
+  }
 
   return cutlist.map((item, index0) => {
     const custoKeyRaw = classifyFinanceiroCustoKey(String(item.tipo ?? ""));
@@ -364,10 +372,11 @@ export function buildFinanceiroPecasRows(
         ? "paineis"
         : (custoKeyRaw as FinanceiroCustoMaterialKey);
 
-    const baseMaterial =
-      avancados.suppressPieceMaterial && pieceMaterialKeySet.has(custoKey)
-        ? 0
-        : Number(item.precoTotal) || 0;
+    // Modo chapas: madeira de porta/gaveta/remate = 0; suppress zera Painéis/portas/remates.
+    const suppressWood =
+      (avancados.suppressPieceMaterial && pieceMaterialKeySet.has(custoKey)) ||
+      (industrialChapasMode && isBundledSheetWoodTipo(String(item.tipo ?? "")));
+    const baseMaterial = suppressWood ? 0 : Number(item.precoTotal) || 0;
     const precoMaterial = round2(baseMaterial * (scales[custoKey] ?? 1));
     const pieceKey = panelIdFromCutListItem(item);
     const precoOrla = orlaByPiece.get(pieceKey) ?? orlaByPiece.get(item.id) ?? 0;

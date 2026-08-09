@@ -14,8 +14,10 @@ import { useProject } from "../context/useProject";
 import {
   isCarcassPanelForAdminCost,
   isDoorPieceForAdminCost,
+  isFallbackCarcassWoodTipo,
 } from "../core/financeiro/cutlistAdminCostPartition";
 import { resolveCustoMontagemPorGavetaEur } from "../core/financeiro/drawerAssemblyCost";
+import { getSettings } from "../core/settings/settingsService";
 import { gerarModeloIndustrial } from "../core/manufacturing/boxManufacturing";
 import { cutlistComPrecoFromBox } from "../core/manufacturing/cutlistFromBoxes";
 import { gerarFerragensIndustriais, agruparPorComponente } from "../core/industriais/ferragensIndustriais";
@@ -279,6 +281,13 @@ export function useCutlistData() {
     const allRemates: RemateRow[] = [];
 
     const montagemPorGavetaEur = resolveCustoMontagemPorGavetaEur();
+    let industrialChapasMode = false;
+    try {
+      industrialChapasMode =
+        getSettings().orcamentos?.custosIndustriais?.materialCostMode === "por_chapas_reais";
+    } catch {
+      industrialChapasMode = false;
+    }
 
     boxes.forEach((box) => {
       const { profundidadeExternaMm, profundidadeInternaUtilMm } = computeBoxProfundidadeLeituraMm(
@@ -295,8 +304,12 @@ export function useCutlistData() {
 
         const doorItems = modernCutlist.filter((item) => isDoorPieceForAdminCost(item.tipo));
         for (const item of modernCutlist) {
-          // Painéis = carcaça + portas de módulo + madeira de gavetas; remates fora.
-          if (!isCarcassPanelForAdminCost(item.tipo)) continue;
+          // Modo chapas: Painéis = só carcaça; porta/gaveta/remate madeira = 0 (nas chapas).
+          if (industrialChapasMode) {
+            if (!isFallbackCarcassWoodTipo(item.tipo)) continue;
+          } else if (!isCarcassPanelForAdminCost(item.tipo)) {
+            continue;
+          }
           totalPaineisQty += item.quantidade;
           custoTotalPaineis += item.precoTotal;
           allPaineis.push(
@@ -326,7 +339,11 @@ export function useCutlistData() {
         totalAreaMm2 += modelo.cutlist.areaTotal_mm2;
         const doorPanels = modelo.paineis.filter((p) => isDoorPieceForAdminCost(p.tipo));
         modelo.paineis.forEach((p) => {
-          if (!isCarcassPanelForAdminCost(p.tipo)) return;
+          if (industrialChapasMode) {
+            if (!isFallbackCarcassWoodTipo(p.tipo)) return;
+          } else if (!isCarcassPanelForAdminCost(p.tipo)) {
+            return;
+          }
           totalPaineisQty += p.quantidade;
           custoTotalPaineis += p.custo;
           allPaineis.push({
@@ -432,7 +449,10 @@ export function useCutlistData() {
         altura_mm: remate.height,
         profundidade_mm: remate.depth,
         quantidade: 1,
-        custo: project.cutListComPreco?.find((item) => item.id === remate.id)?.precoTotal ?? 0,
+        // Modo industrial: madeira nas chapas — sem preço próprio de remate.
+        custo: industrialChapasMode
+          ? 0
+          : project.cutListComPreco?.find((item) => item.id === remate.id)?.precoTotal ?? 0,
       });
     });
 

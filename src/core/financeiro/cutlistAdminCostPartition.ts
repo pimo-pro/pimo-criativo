@@ -7,6 +7,12 @@
 import { isIndustrialDoorPanelTipo } from "../doors/industrialDoorPanels";
 import { classifyFinanceiroCustoKey } from "./financeiroUnificado";
 
+export {
+  isBundledSheetWoodTipo,
+  isFallbackCarcassWoodTipo,
+  isRemateOrRodapeTipo,
+} from "./industrialWoodFinanceRules";
+
 /** Peça cujo material deve ir para Painéis (exclui remates/divisão; inclui gaveta_* e porta_* módulo). */
 export function isCarcassPanelForAdminCost(tipo: string): boolean {
   return classifyFinanceiroCustoKey(tipo) === "paineis";

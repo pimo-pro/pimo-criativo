@@ -220,8 +220,8 @@ function seedChapasDetalhe(
   projectId: string,
   state: ProjectState | null
 ): ProjectReportFinanceiro {
-  const paineis = fin.linhas.find((l) => l.key === "paineis");
-  if ((paineis?.detalhe?.length ?? 0) > 0) return fin;
+  const chapasLinha = fin.linhas.find((l) => l.key === "chapasReais");
+  if ((chapasLinha?.detalhe?.length ?? 0) > 0) return fin;
 
   const offline = findOfflineProject(projectId);
   if (!offline && !state) return fin;
@@ -239,7 +239,7 @@ function seedChapasDetalhe(
     if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;
     const detalhe = aggregateChapasByEspessura(chapas.sheets);
     if (detalhe.length === 0) return fin;
-    return updateFinanceiroLinha(fin, "paineis", { detalhe });
+    return updateFinanceiroLinha(fin, "chapasReais", { detalhe });
   } catch {
     return fin;
   }
@@ -398,12 +398,28 @@ export async function seedOrMergeProjectReport(
   let financeiro = migrated.financeiro;
   if (!isManualPath(migrated, "financeiro")) {
     const seedMap = new Map(seededFinanceiro.linhas.map((l) => [l.key, l]));
+    /** Keys industriais: sempre re-seed do Unificado (anti sticky madeira antiga). */
+    const FORCE_RESEED = new Set([
+      "paineis",
+      "portas",
+      "gavetas",
+      "remates",
+      "chapasReais",
+    ]);
     financeiro = ensureFinanceiroShape({
       ivaPct: migrated.financeiro.ivaPct,
       linhas: migrated.financeiro.linhas.map((l) => {
         if (l.key === "iva" || l.key === "total") return l;
+        const seeded = seedMap.get(l.key);
+        if (FORCE_RESEED.has(l.key) && seeded) {
+          // Preservar detalhe de chapasReais se já existir; totais vêm do Unificado.
+          if (l.key === "chapasReais" && (l.detalhe?.length ?? 0) > 0) {
+            return { ...seeded, detalhe: l.detalhe };
+          }
+          return seeded;
+        }
         if ((l.total ?? 0) > 0 || (l.detalhe?.length ?? 0) > 0) return l;
-        return seedMap.get(l.key) ?? l;
+        return seeded ?? l;
       }),
     });
     financeiro = seedChapasDetalhe(financeiro, id, state);

@@ -82,10 +82,30 @@ export function validateSettings(input: Partial<SettingsSchema> | SettingsSchema
       valorHoraMaquina: clamp(toNumber(merged.precos.valorHoraMaquina, settingsDefaults.precos.valorHoraMaquina), 0, 10000),
     },
     orcamentos: (() => {
-      const n = normalizeOrcamentosSettings(merged.orcamentos);
+      let n = normalizeOrcamentosSettings(merged.orcamentos);
       // Soft-migrate: stub day-1 → SSOT central (flags + tarifas).
       if (isOrcamentosDay1IndustrialStub(n)) {
-        return orcamentosDefaultsFromCentral();
+        n = orcamentosDefaultsFromCentral();
+      }
+      // Financeiro Industrial v3: madeira = chapas reais; ferragens unificadas (Secção 4).
+      // Garante o live mesmo com blob local legado em por_peca / unificação off.
+      n = {
+        ...n,
+        custosIndustriais: {
+          ...n.custosIndustriais,
+          materialCostMode: "por_chapas_reais",
+        },
+        ferragens: {
+          ...n.ferragens,
+          enableUnificacao: true,
+        },
+      };
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("pimo_financeiro_industrial_v3_migrated", "1");
+        }
+      } catch {
+        /* ignore */
       }
       // MO financeira = EUR manual: flag on sem valor → desligar (não forçar 35 €/h).
       if (n.custosIndustriais.enableMaoDeObra && !(n.custosIndustriais.valorHoraMaquina > 0)) {

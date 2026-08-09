@@ -390,10 +390,10 @@ export default function OrcamentosAdminSettings() {
               <option value="por_chapas_reais">Por chapas reais (default — fonte única madeira)</option>
             </select>
             <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--text-muted)" }}>
-              Default = «Por chapas reais» (fonte única de madeira). Com nesting Real: Painéis /
-              portas / remates a 0 €; Chapas = N × €/chapa. Sem sheets reais: fallback Painéis por
-              peça (remates sem linha de madeira). €/chapa = derivado (€/m² × área chapa). Gavetas =
-              N × 15 € (montagem). MO e logística = EUR manual Admin. Portes P3.6 intactos.
+              Financeiro Industrial v3: o runtime força «Por chapas reais» + ferragens unificadas
+              (mesmo se o rascunho mostrar outro valor até Guardar). Com nesting Real: Painéis /
+              portas / remates a 0 €; Chapas = N × €/chapa. Sem sheets: fallback só carcaça em
+              Painéis. Gavetas = N × 15 € (montagem).
             </p>
             {draft.custosIndustriais.materialCostMode === "por_chapas_reais" ? (
               <div style={{ ...bannerStyle, marginTop: 8 }}>

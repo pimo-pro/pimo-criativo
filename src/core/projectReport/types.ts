@@ -206,7 +206,7 @@ export const PROJECT_REPORT_VERSION = 2 as const;
 export const FINANCEIRO_REPORT_LABELS: Record<FinanceiroCustoKey, string> = {
   paineis: "Painéis",
   portas: "Portas",
-  gavetas: "Gavetas",
+  gavetas: "Gavetas (montagem N × 15 €)",
   ferragens: "Ferragens",
   orla: "Orla",
   remates: "Remates / Rodapés",
