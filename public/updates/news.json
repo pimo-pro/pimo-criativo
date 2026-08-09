@@ -1,11 +1,21 @@
 {
-  "updatedAt": "2026-08-09T13:31:20.398Z",
+  "updatedAt": "2026-08-09T18:29:36.985Z",
   "news": [
+    {
+      "version": "v6.0809.1929",
+      "title": "PIMO — Relatório Final: reforma visual (painel cards + feedback unificado)",
+      "description": "PIMO — Relatório Final: reforma visual (painel cards + feedback unificado)",
+      "publishedAt": "2026-08-09T18:29:36.890Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "7913bce1"
+    },
     {
       "version": "v6.0809.1431",
       "title": "PIMO — Release v6.0809.1402 (Relatório Final v3.2) — baseline oficial sem alterações adicionais",
       "description": "PIMO — Release v6.0809.1402 (Relatório Final v3.2) — baseline oficial sem alterações adicionais",
-      "publishedAt": "2026-08-09T13:31:20.304Z",
+      "publishedAt": "2026-08-09T14:32:56+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",

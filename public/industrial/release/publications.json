@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-09T18:29:36.228Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Relatório Final: reforma visual (painel cards + feedback unificado)",
+      "version": "v6.0809.1929"
+    },
+    {
       "publishedAt": "2026-08-09T13:31:19.629Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Release v6.0809.1402 (Relatório Final v3.2) — baseline oficial sem alterações adicionais",
