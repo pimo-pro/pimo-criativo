@@ -220,8 +220,13 @@ function seedChapasDetalhe(
   projectId: string,
   state: ProjectState | null
 ): ProjectReportFinanceiro {
-  const chapasLinha = fin.linhas.find((l) => l.key === "chapasReais");
-  if ((chapasLinha?.detalhe?.length ?? 0) > 0) return fin;
+  const paineis = fin.linhas.find((l) => l.key === "paineis");
+  // Migrar detalhe legado de chapasReais → Painéis ▸
+  const chapasLegado = fin.linhas.find((l) => l.key === "chapasReais");
+  if ((paineis?.detalhe?.length ?? 0) === 0 && (chapasLegado?.detalhe?.length ?? 0) > 0) {
+    return updateFinanceiroLinha(fin, "paineis", { detalhe: chapasLegado!.detalhe });
+  }
+  if ((paineis?.detalhe?.length ?? 0) > 0) return fin;
 
   const offline = findOfflineProject(projectId);
   if (!offline && !state) return fin;
@@ -239,10 +244,29 @@ function seedChapasDetalhe(
     if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;
     const detalhe = aggregateChapasByEspessura(chapas.sheets);
     if (detalhe.length === 0) return fin;
-    return updateFinanceiroLinha(fin, "chapasReais", { detalhe });
+    return updateFinanceiroLinha(fin, "paineis", { detalhe });
   } catch {
     return fin;
   }
+}
+
+/** Portas/Remates = 0 €; limpa detalhe de madeira fantasma. */
+function applyIndustrialReportLinhas(fin: ProjectReportFinanceiro): ProjectReportFinanceiro {
+  return ensureFinanceiroShape({
+    ivaPct: fin.ivaPct,
+    linhas: fin.linhas.map((l) => {
+      if (l.key === "portas" || l.key === "remates") {
+        return {
+          ...l,
+          quantidade: null,
+          precoUnitario: null,
+          total: 0,
+          detalhe: [],
+        };
+      }
+      return l;
+    }),
+  });
 }
 
 function seedOrlaDetalhe(
@@ -412,9 +436,12 @@ export async function seedOrMergeProjectReport(
         if (l.key === "iva" || l.key === "total") return l;
         const seeded = seedMap.get(l.key);
         if (FORCE_RESEED.has(l.key) && seeded) {
-          // Preservar detalhe de chapasReais se já existir; totais vêm do Unificado.
-          if (l.key === "chapasReais" && (l.detalhe?.length ?? 0) > 0) {
+          // Preservar detalhe de chapas em Painéis ▸
+          if (l.key === "paineis" && (l.detalhe?.length ?? 0) > 0) {
             return { ...seeded, detalhe: l.detalhe };
+          }
+          if (l.key === "portas" || l.key === "remates") {
+            return { ...seeded, total: 0, detalhe: [], quantidade: null, precoUnitario: null };
           }
           return seeded;
         }
@@ -425,9 +452,11 @@ export async function seedOrMergeProjectReport(
     financeiro = seedChapasDetalhe(financeiro, id, state);
     financeiro = seedOrlaDetalhe(financeiro, state);
   } else {
-    // Mesmo com financeiro manual, popular Orla se detalhe ainda vazio
+    // Mesmo com financeiro manual, popular Orla / chapas se vazio
+    financeiro = seedChapasDetalhe(financeiro, id, state);
     financeiro = seedOrlaDetalhe(financeiro, state);
   }
+  financeiro = applyIndustrialReportLinhas(financeiro);
 
   const ferr = ensureFerragensFromMateriais(financeiro, materiaisSeed, ferrCatalog);
 

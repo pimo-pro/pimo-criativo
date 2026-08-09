@@ -18,7 +18,6 @@ import { R } from "./uiLabels";
 import InfoGeraisBlock from "./components/InfoGeraisBlock";
 import PainelGraficoBlock from "./components/PainelGraficoBlock";
 import EstadoProjetoBlock from "./components/EstadoProjetoBlock";
-import MateriaisBlock from "./components/MateriaisBlock";
 import FinanceiroBlock from "./components/FinanceiroBlock";
 import NotasBlock from "./components/NotasBlock";
 import QualidadeBlock from "./components/QualidadeBlock";
@@ -166,14 +165,6 @@ export default function RelatorioFinalProjeto() {
           }
           onMontagem={(montagem, path) =>
             updateReport((r) => ({ ...r, montagem }), path ?? "montagem")
-          }
-        />
-
-        <MateriaisBlock
-          style={style}
-          financeiro={report.financeiro}
-          onChange={(financeiro, materiais) =>
-            updateReport((r) => ({ ...r, financeiro, materiais }), "financeiro")
           }
         />
 

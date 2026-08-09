@@ -75,11 +75,17 @@ export type ReportFinanceiroDetalhe = {
   quantidade: number;
   precoUnitario: number;
   total: number;
-  /** Espessura em mm (chapas / paineis). */
+  /** Espessura em mm (chapas / painéis). */
   espessuraMm?: number;
-  /** EUR/m2 para recalcular preco ao editar medida. */
+  /** Comprimento da peça (mm) — preço linear. */
+  comprimentoMm?: number;
+  /** Largura da peça (mm). */
+  larguraMm?: number;
+  /** EUR por metro linear (comprimento). */
+  precoPorMetro?: number;
+  /** @deprecated legado €/m² — migrado para precoPorMetro. */
   precoPorM2?: number;
-  /** Area de referencia da chapa inteira (m2). Padrao industrial: 5.8. */
+  /** @deprecated legado área chapa. */
   areaChapaM2?: number;
 };
 

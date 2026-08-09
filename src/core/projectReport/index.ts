@@ -84,12 +84,15 @@ export {
   detalheFromCatalogoChapa,
   recalcChapaDetalhe,
   applyPrecoChapaEdit,
+  applyPrecoPorMetroEdit,
   formatMedidaMm,
   parseMedidaMm,
+  resolveDimensoesMm,
   areaM2FromMedida,
   resolveAreaChapaM2,
   precoM2FromChapa,
   precoChapaFromArea,
+  precoPorMetroFromM2,
 } from "./chapasReport";
 export type { CatalogoChapaOption } from "./chapasReport";
 

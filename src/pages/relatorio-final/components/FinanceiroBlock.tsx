@@ -1,17 +1,14 @@
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
 import {
-  applyPrecoChapaEdit,
-  areaM2FromMedida,
-  AREA_CHAPA_PADRAO_M2,
+  applyPrecoPorMetroEdit,
   detalheFromCatalogoChapa,
   listCatalogoChapas,
   makeReportId,
-  precoM2FromChapa,
   recalcChapaDetalhe,
   recalcFinanceiro,
   recalcOrlaDetalhe,
-  resolveAreaChapaM2,
+  resolveDimensoesMm,
   updateFinanceiroLinha,
   type ProjectReportFinanceiro,
   type ReportFinanceiroDetalhe,
@@ -77,6 +74,8 @@ function emptyDetalheRow(label = ""): ReportFinanceiroDetalhe {
 
 /** Se não houver detalhe, cria linha a partir do total da linha-mãe. */
 function detailOrSeed(linha: ReportFinanceiroLinha): ReportFinanceiroDetalhe[] {
+  // Portas / Remates: sem madeira no modo industrial — nunca inventar detalhe.
+  if (linha.key === "portas" || linha.key === "remates") return [];
   if ((linha.detalhe?.length ?? 0) > 0) return linha.detalhe;
   const total = Number(linha.total) || 0;
   if (!(total > 0) && linha.quantidade == null && linha.precoUnitario == null) return [];
@@ -203,7 +202,13 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                             textDecoration: "underline",
                           }}
                           onClick={() => {
-                            if (!isOpen && (linha.detalhe?.length ?? 0) === 0 && detalhe.length > 0) {
+                            if (
+                              key !== "portas" &&
+                              key !== "remates" &&
+                              !isOpen &&
+                              (linha.detalhe?.length ?? 0) === 0 &&
+                              detalhe.length > 0
+                            ) {
                               setDetalhe(key, detalhe);
                             }
                             toggleKey(key);
@@ -276,25 +281,18 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                                   <thead>
                                     <tr>
                                       <th style={reportTh}>{R.tipo}</th>
-                                      <th style={reportTh}>{R.medida}</th>
+                                      <th style={reportTh}>{R.comprimentoMm}</th>
+                                      <th style={reportTh}>{R.larguraMm}</th>
                                       <th style={reportTh}>{R.espessura}</th>
                                       <th style={reportTh}>{R.quantidade}</th>
-                                      <th style={reportTh}>{R.areaChapaM2}</th>
-                                      <th style={reportTh}>{R.precoM2}</th>
-                                      <th style={reportTh}>{R.precoCalcM2}</th>
-                                      <th style={reportTh}>{R.precoChapa}</th>
+                                      <th style={reportTh}>{R.precoPorMetroEur}</th>
                                       <th style={reportTh}>{R.precoTotal}</th>
                                       <th style={reportTh} />
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {(paineisLinha?.detalhe ?? detalhe).map((d, idx) => {
-                                      const areaChapa = resolveAreaChapaM2(d);
-                                      const areaReal = areaM2FromMedida(d.dimensoes) || areaChapa;
-                                      const precoCalcM2 =
-                                        areaChapa > 0
-                                          ? precoM2FromChapa(Number(d.precoUnitario) || 0, areaChapa)
-                                          : 0;
+                                      const dims = resolveDimensoesMm(d);
                                       const rows = paineisLinha?.detalhe ?? detalhe;
                                       return (
                                         <tr key={d.id}>
@@ -311,12 +309,42 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                                           </td>
                                           <td style={reportTd}>
                                             <input
-                                              style={{ ...reportInput, minHeight: 32 }}
-                                              value={d.dimensoes}
-                                              title={`Área real: ${areaReal.toFixed(3)} m²`}
+                                              type="number"
+                                              min={0}
+                                              style={{ ...reportInput, minHeight: 32, width: 90 }}
+                                              value={dims.L || ""}
+                                              placeholder="-"
                                               onChange={(e) => {
                                                 const next = [...rows];
-                                                next[idx] = { ...d, dimensoes: e.target.value };
+                                                next[idx] = {
+                                                  ...d,
+                                                  comprimentoMm: Math.max(
+                                                    0,
+                                                    Number(e.target.value) || 0
+                                                  ),
+                                                  larguraMm: dims.A,
+                                                };
+                                                setPaineisDetalhe(next);
+                                              }}
+                                            />
+                                          </td>
+                                          <td style={reportTd}>
+                                            <input
+                                              type="number"
+                                              min={0}
+                                              style={{ ...reportInput, minHeight: 32, width: 90 }}
+                                              value={dims.A || ""}
+                                              placeholder="-"
+                                              onChange={(e) => {
+                                                const next = [...rows];
+                                                next[idx] = {
+                                                  ...d,
+                                                  comprimentoMm: dims.L,
+                                                  larguraMm: Math.max(
+                                                    0,
+                                                    Number(e.target.value) || 0
+                                                  ),
+                                                };
                                                 setPaineisDetalhe(next);
                                               }}
                                             />
@@ -360,60 +388,15 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                                               type="number"
                                               min={0}
                                               step={0.01}
-                                              style={{ ...reportInput, minHeight: 32, width: 80 }}
-                                              value={areaChapa || AREA_CHAPA_PADRAO_M2}
-                                              onChange={(e) => {
-                                                const area = Math.max(
-                                                  0.01,
-                                                  Number(e.target.value) || AREA_CHAPA_PADRAO_M2
-                                                );
-                                                const next = [...rows];
-                                                next[idx] = {
-                                                  ...d,
-                                                  areaChapaM2: area,
-                                                  precoPorM2:
-                                                    precoM2FromChapa(Number(d.precoUnitario) || 0, area) ||
-                                                    Number(d.precoPorM2) ||
-                                                    0,
-                                                };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              step={0.01}
-                                              style={{ ...reportInput, minHeight: 32, width: 90 }}
-                                              value={displayQtyPrice(d.precoPorM2)}
-                                              placeholder="-"
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = {
-                                                  ...d,
-                                                  areaChapaM2: areaChapa,
-                                                  precoPorM2: Math.max(0, Number(e.target.value) || 0),
-                                                };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            {precoCalcM2 > 0 ? precoCalcM2.toFixed(2) : "-"}
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              step={0.01}
                                               style={{ ...reportInput, minHeight: 32, width: 100 }}
-                                              value={displayQtyPrice(d.precoUnitario)}
+                                              value={displayQtyPrice(
+                                                d.precoPorMetro ?? d.precoUnitario
+                                              )}
                                               placeholder="-"
                                               onChange={(e) => {
                                                 const next = [...rows];
-                                                next[idx] = applyPrecoChapaEdit(
-                                                  { ...d, areaChapaM2: areaChapa },
+                                                next[idx] = applyPrecoPorMetroEdit(
+                                                  d,
                                                   Math.max(0, Number(e.target.value) || 0)
                                                 );
                                                 setPaineisDetalhe(next);
@@ -757,7 +740,7 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                 {opt.label} ({opt.espessuraMm} mm)
               </span>
               <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                {opt.precoPorM2.toFixed(2)} EUR/m2
+                {opt.precoPorMetro.toFixed(2)} EUR/m
               </span>
             </button>
           ))}

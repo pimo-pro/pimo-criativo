@@ -150,27 +150,7 @@ export function exportProjectReportPdf(report: ProjectReport): void {
   y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
 
   y = ensureSpace(doc, y, 40);
-  y = sectionTitle(doc, "Materiais / ferragens", y);
-  const ferragens = getFerragensDetalhe(report.financeiro);
-  autoTable(doc, {
-    startY: y,
-    head: [["Tipo", "Qtd", "Preco unit.", "Total"]],
-    body:
-      ferragens.length > 0
-        ? ferragens.map((m) => [
-            m.tipo,
-            String(m.quantidade),
-            m.precoUnitario.toFixed(2),
-            (m.quantidade * m.precoUnitario).toFixed(2),
-          ])
-        : [["-", "0", "-", "Sem linhas"]],
-    styles: { fontSize: 7 },
-    margin: { left: 14, right: 14 },
-  });
-  y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
-
-  y = ensureSpace(doc, y, 40);
-  y = sectionTitle(doc, "Financeiro", y);
+  y = sectionTitle(doc, "4. Financeiro (custos dinâmicos)", y);
   autoTable(doc, {
     startY: y,
     head: [["Linha", "Qtd", "Preco unit.", "Total"]],
@@ -184,6 +164,26 @@ export function exportProjectReportPdf(report: ProjectReport): void {
     margin: { left: 14, right: 14 },
   });
   y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
+
+  // Ferragens (detalhe) — dentro do Financeiro, sem secção Materiais separada
+  const ferragens = getFerragensDetalhe(report.financeiro);
+  if (ferragens.length > 0) {
+    y = ensureSpace(doc, y, 30);
+    y = sectionTitle(doc, "Ferragens", y);
+    autoTable(doc, {
+      startY: y,
+      head: [["Tipo", "Qtd", "Preco unit.", "Total"]],
+      body: ferragens.map((m) => [
+        m.tipo,
+        String(m.quantidade),
+        m.precoUnitario.toFixed(2),
+        (m.quantidade * m.precoUnitario).toFixed(2),
+      ]),
+      styles: { fontSize: 7 },
+      margin: { left: 14, right: 14 },
+    });
+    y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
+  }
 
   y = ensureSpace(doc, y);
   y = sectionTitle(doc, "Notas do projeto", y);

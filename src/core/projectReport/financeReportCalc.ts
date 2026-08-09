@@ -4,6 +4,7 @@
 
 import { FINANCEIRO_CUSTO_KEYS } from "../financeiro/financeiroUnificadoTypes";
 import type { FinanceiroCustoKey } from "../financeiro/financeiroUnificadoTypes";
+import { recalcChapaDetalhe } from "./chapasReport";
 import {
   FINANCEIRO_REPORT_LABELS,
   PROJECT_REPORT_IVA_DEFAULT,
@@ -33,34 +34,16 @@ export function lineTotalFromQtyPrice(
 }
 
 export function recalcDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiroDetalhe {
-  // Chapas / painéis com €/m² ou área de referência
+  // Chapas / painéis: preço por metro linear
   const hasChapaMeta =
+    (typeof d.precoPorMetro === "number" && d.precoPorMetro > 0) ||
+    (typeof d.comprimentoMm === "number" && d.comprimentoMm > 0) ||
     (typeof d.precoPorM2 === "number" && d.precoPorM2 > 0) ||
     (typeof d.areaChapaM2 === "number" && d.areaChapaM2 > 0) ||
     (typeof d.espessuraMm === "number" && d.espessuraMm > 0);
 
-  if (hasChapaMeta && d.dimensoes) {
-    const areaChapa =
-      typeof d.areaChapaM2 === "number" && d.areaChapaM2 > 0 ? d.areaChapaM2 : 5.8;
-    const m = String(d.dimensoes).match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
-    const areaReal = m
-      ? (Math.max(0, Number(m[1]) || 0) * Math.max(0, Number(m[2]) || 0)) / 1_000_000
-      : areaChapa;
-    let precoPorM2 = Number(d.precoPorM2) || 0;
-    let precoUnitario = Number(d.precoUnitario) || 0;
-    if (precoPorM2 > 0) {
-      precoUnitario = round2(precoPorM2 * areaReal);
-    } else if (precoUnitario > 0 && areaChapa > 0) {
-      precoPorM2 = round2(precoUnitario / areaChapa);
-      precoUnitario = round2(precoPorM2 * areaReal);
-    }
-    return {
-      ...d,
-      areaChapaM2: areaChapa,
-      precoPorM2,
-      precoUnitario,
-      total: lineTotalFromQtyPrice(d.quantidade, precoUnitario, d.total),
-    };
+  if (hasChapaMeta) {
+    return recalcChapaDetalhe(d);
   }
 
   return {
