@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-09T18:47:07.945Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Relatório/Financeiro: remover Chapas reais da UI e título Gavetas limpo",
+      "version": "v6.0809.1947"
+    },
+    {
       "publishedAt": "2026-08-09T18:29:36.228Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Relatório Final: reforma visual (painel cards + feedback unificado)",
