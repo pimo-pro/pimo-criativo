@@ -40,6 +40,13 @@ describe("cutlistAdminCostPartition — Painéis inclui portas e madeira de gave
     }
   });
 
+  it("classifica remate/rodapé como Painéis (sem linha de madeira própria)", () => {
+    for (const tipo of ["remate", "rodape", "roda_pe", "rodapé"]) {
+      expect(classifyFinanceiroCustoKey(tipo)).toBe("paineis");
+      expect(isCarcassPanelForAdminCost(tipo)).toBe(true);
+    }
+  });
+
   it("reserva bucket portas para tipos de divisão", () => {
     expect(classifyFinanceiroCustoKey("porta_divisao")).toBe("portas");
     expect(isCarcassPanelForAdminCost("porta_divisao")).toBe(false);

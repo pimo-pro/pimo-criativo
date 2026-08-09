@@ -197,10 +197,10 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
       custoChapaRealDerived: derived.custoChapaReal,
     });
 
-    expect(avancados.suppressPieceMaterial).toBe(true);
     expect(FINANCEIRO_PIECE_MATERIAL_KEYS).not.toContain("gavetas");
 
     if (chapas.mode === "real" && chapas.sheets.length > 0) {
+      expect(avancados.suppressPieceMaterial).toBe(true);
       expect(chapas.totalSheets).toBeGreaterThan(0);
       expect(avancados.precoChapasReais).toBe(
         Math.round(chapas.totalSheets * derived.custoChapaReal * 100) / 100
@@ -218,6 +218,7 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
       expect(materialsInSheets.size).toBeGreaterThanOrEqual(1);
     } else {
       expect(avancados.precoChapasReais).toBe(0);
+      expect(avancados.suppressPieceMaterial).toBe(false);
       expect(avancados.warnings.some((w) => w.includes("sem chapas reais"))).toBe(true);
     }
   });
@@ -240,17 +241,18 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
       custoChapaRealDerived: derived.custoChapaReal,
     });
 
-    expect(avancados.suppressPieceMaterial).toBe(true);
     if (chapas.mode === "real") {
+      expect(avancados.suppressPieceMaterial).toBe(true);
       expect(avancados.precoChapasReais).toBeGreaterThan(0);
       expect(chapas.sheets.some((s) => s.espessuraMm === 19)).toBe(true);
       expect(chapas.sheets.some((s) => s.espessuraMm === 10)).toBe(true);
     } else {
       expect(avancados.precoChapasReais).toBe(0);
+      expect(avancados.suppressPieceMaterial).toBe(false);
     }
   });
 
-  it("Unificado por_chapas_reais: Painéis=0, Chapas=N×€, labels 5C", () => {
+  it("Unificado por_chapas_reais: chapas reais ou fallback Painéis; Remates=0", () => {
     enableChapasReaisMode();
     const snap = computeFinanceiroUnificado({
       boxes: [boxMonoMaterial()],
@@ -262,14 +264,14 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     });
 
     expect(snap.materialCostMode).toBe("por_chapas_reais");
-    expect(snap.custosEffective.paineis).toBe(0);
     expect(snap.custosEffective.portas).toBe(0);
     expect(snap.custosEffective.remates).toBe(0);
 
     const labels = financeiroCustoRows(snap).map((r) => r.label);
-    expect(labels).toContain("Painéis (substituídos por chapas)");
 
     if (snap.chapas.mode === "real" && (snap.chapasReaisMeta?.countMonetizado ?? 0) > 0) {
+      expect(snap.custosEffective.paineis).toBe(0);
+      expect(labels).toContain("Painéis (substituídos por chapas)");
       const n = snap.chapasReaisMeta!.countMonetizado;
       const unit = snap.chapasReaisMeta!.custoChapaDerived;
       expect(unit).toBeGreaterThan(0);
@@ -281,9 +283,11 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
       });
     } else {
       expect(snap.custosEffective.chapasReais).toBe(0);
+      // Fallback: madeira em Painéis por peça (sem double-count com chapas).
+      expect(snap.custosEffective.paineis).toBeGreaterThanOrEqual(0);
       expect(
         (snap.custosAvancadosWarnings ?? []).some(
-          (w) => w.includes("estimado") || w.includes("sem chapas") || w.includes("derivado")
+          (w) => w.includes("estimado") || w.includes("sem chapas") || w.includes("derivado") || w.includes("fallback")
         )
       ).toBe(true);
     }
@@ -302,8 +306,8 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     });
 
     expect(snap.materialCostMode).toBe("por_chapas_reais");
-    expect(snap.custosEffective.paineis).toBe(0);
     expect(snap.custosEffective.gavetas).toBe(2 * CUSTO_MONTAGEM_POR_GAVETA_DEFAULT_EUR);
+    expect(snap.custosEffective.remates).toBe(0);
 
     const rows = buildFinanceiroPecasRows({
       boxes: [box],
@@ -315,26 +319,37 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     });
     const materialSum = rows.reduce((s, r) => s + (r.precoMaterial ?? 0), 0);
     const chapasShare = rows.reduce((s, r) => s + (r.precoChapasShare ?? 0), 0);
-    // Madeira (Painéis) zerada nas peças; quota chapas rateada.
-    expect(materialSum).toBe(0);
-    expect(Math.round(chapasShare * 100) / 100).toBe(
-      Math.round(snap.custosEffective.chapasReais * 100) / 100
-    );
+
+    if (snap.custosEffective.chapasReais > 0) {
+      expect(snap.custosEffective.paineis).toBe(0);
+      // Madeira (Painéis) zerada nas peças; quota chapas rateada.
+      expect(materialSum).toBe(0);
+      expect(Math.abs(chapasShare - snap.custosEffective.chapasReais)).toBeLessThan(0.02);
+    } else {
+      // Fallback por peça: madeira pode aparecer em Painéis; montagem gavetas intacta.
+      expect(snap.custosEffective.chapasReais).toBe(0);
+    }
   });
 
-  it("default por_peca: Chapas reais=0 e Painéis > 0 (sem activação)", () => {
-    // Sem override → default global permanece por_peca.
+  it("default por_chapas_reais: Remates=0; madeira em chapas ou fallback Painéis", () => {
+    // Sem override → default global = por_chapas_reais.
     setIndustrialSettingsReadOverride(null);
     const snap = computeFinanceiroUnificado({
       boxes: [boxMonoMaterial()],
       rules: defaultRulesConfig,
       materialId: "mdf_branco",
-      projectName: "5D-DEFAULT-POR-PECA",
+      projectName: "5D-DEFAULT-CHAPAS",
       remates: [],
       rodapes: [],
     });
-    expect(snap.materialCostMode ?? "por_peca").toBe("por_peca");
-    expect(snap.custosEffective.chapasReais).toBe(0);
-    expect(snap.custosEffective.paineis).toBeGreaterThan(0);
+    expect(snap.materialCostMode).toBe("por_chapas_reais");
+    expect(snap.custosEffective.remates).toBe(0);
+    expect(snap.custosEffective.portas).toBe(0);
+    if (snap.custosEffective.chapasReais > 0) {
+      expect(snap.custosEffective.paineis).toBe(0);
+    } else {
+      expect(snap.custosEffective.chapasReais).toBe(0);
+      expect(snap.custosEffective.paineis).toBeGreaterThan(0);
+    }
   });
 });

@@ -95,7 +95,7 @@ describe("computeCustosAvancadosFinanceiras (P3.9 F3c)", () => {
     });
   });
 
-  it("por_chapas_reais sem derivado → chapasReais 0 + warning", () => {
+  it("por_chapas_reais sem derivado → chapasReais 0 + fallback (sem suppress)", () => {
     const r = computeCustosAvancadosFinanceiras({
       cutlist: [piece({ id: "a" })],
       chapasCount: 3,
@@ -108,7 +108,7 @@ describe("computeCustosAvancadosFinanceiras (P3.9 F3c)", () => {
       },
     });
     expect(r.precoChapasReais).toBe(0);
-    expect(r.suppressPieceMaterial).toBe(true);
+    expect(r.suppressPieceMaterial).toBe(false);
     expect(r.warnings.some((w) => w.includes("derivado=0"))).toBe(true);
   });
 
@@ -206,7 +206,7 @@ describe("computeCustosAvancadosFinanceiras (P3.9 F3c)", () => {
     expect(r.logisticaByPieceId.size).toBe(0);
   });
 
-  it("por_chapas_reais sem sheets reais → chapasReais 0 + warning", () => {
+  it("por_chapas_reais sem sheets reais → chapasReais 0 + fallback (sem suppress)", () => {
     const r = computeCustosAvancadosFinanceiras({
       cutlist: [piece({ id: "a" })],
       chapasCount: 0,
@@ -220,7 +220,7 @@ describe("computeCustosAvancadosFinanceiras (P3.9 F3c)", () => {
       },
     });
     expect(r.precoChapasReais).toBe(0);
-    expect(r.suppressPieceMaterial).toBe(true);
+    expect(r.suppressPieceMaterial).toBe(false);
     expect(r.warnings.some((w) => w.includes("sem chapas reais"))).toBe(true);
   });
 });

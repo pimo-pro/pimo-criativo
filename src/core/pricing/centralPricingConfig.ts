@@ -265,7 +265,7 @@ function mapMarketToLegacy(src: CentralPricingFile): {
       precoCorteManualPorMetro: 0,
       precoMeQuadrilha: 0,
     },
-    ferragens: { enableUnificacao: false },
+    ferragens: { enableUnificacao: true },
   });
 
   const financeiroAdmin = normalizeFinanceiroAdminSettings({

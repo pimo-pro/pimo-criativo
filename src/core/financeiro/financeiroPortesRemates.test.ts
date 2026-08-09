@@ -50,9 +50,9 @@ describe("portes — escolha explícita", () => {
 });
 
 describe("remates — classificação e linhas UI", () => {
-  it("classifica remate/rodape em remates", () => {
-    expect(classifyFinanceiroCustoKey("remate")).toBe("remates");
-    expect(classifyFinanceiroCustoKey("rodape")).toBe("remates");
+  it("classifica remate/rodape em Painéis (madeira única; linha Remates = 0)", () => {
+    expect(classifyFinanceiroCustoKey("remate")).toBe("paineis");
+    expect(classifyFinanceiroCustoKey("rodape")).toBe("paineis");
     expect(classifyFinanceiroCustoKey("lateral")).toBe("paineis");
     expect(classifyFinanceiroCustoKey("porta_simples")).toBe("paineis");
     expect(classifyFinanceiroCustoKey("porta_dupla")).toBe("paineis");

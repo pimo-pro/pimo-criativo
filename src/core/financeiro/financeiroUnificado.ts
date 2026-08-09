@@ -47,8 +47,6 @@ import {
 } from "../orla/orlaCalculator";
 import { normalizeOrlaPresets, DEFAULT_ORLA_PRESETS } from "../orla/orlaPresets";
 import type { CutListItem } from "../types";
-import type { RematePiece } from "../remate/rematePieceTypes";
-import type { ProjectRodape } from "../rodape/rodapeTypes";
 import {
   FINANCEIRO_CUSTO_MATERIAL_KEYS,
   FINANCEIRO_IVA_DEFAULT_PCT,
@@ -58,24 +56,6 @@ import {
   type FinanceiroOverrides,
   type FinanceiroUnificadoSnapshot,
 } from "./financeiroUnificadoTypes";
-
-/** Remate/rodapé conta como peça real só com dims > 0 e visible !== false. */
-function hasRealRemateOrRodapePieces(
-  remates: readonly RematePiece[] | undefined,
-  rodapes: readonly ProjectRodape[] | undefined
-): boolean {
-  for (const r of remates ?? []) {
-    if (r.visible === false) continue;
-    if ((Number(r.width) || 0) > 0 && (Number(r.height) || 0) > 0) return true;
-  }
-  for (const r of rodapes ?? []) {
-    if (r.visible === false) continue;
-    const L = Number(r.dimensions?.widthMm ?? r.autoLengthMm) || 0;
-    const A = Number(r.heightMm ?? r.dimensions?.heightMm) || 0;
-    if (L > 0 && A > 0) return true;
-  }
-  return false;
-}
 
 /** Recalcula orla industrial (nunca confiar em ferragemOrla stale). */
 function computeOrlaFinanceirasLive(
@@ -159,8 +139,9 @@ export function classifyFinanceiroCustoKey(tipo: string): FinanceiroCustoKey {
   // Folhas de módulo (armário) = Painéis. Bucket «portas» reservado a portas de divisão (futuro).
   if (isIndustrialDoorPanelTipo(tipo) || isIndustrialDoorPanelTipo(t)) return "paineis";
   if (t.includes("porta")) return "portas";
-  // Fase 2: madeira de gaveta = Painéis. Bucket «gavetas» = só montagem (fora do cutlist).
+  // Madeira de gaveta = Painéis. Bucket «gavetas» = só montagem N×15 € (fora do cutlist).
   if (isDrawerPieceTipo(tipo) || t.includes("gaveta")) return "paineis";
+  // Remates/rodapés = madeira nas chapas/Painéis — sem linha de madeira própria (anti double-count).
   if (
     t.includes("remate") ||
     t.includes("rodape") ||
@@ -168,7 +149,7 @@ export function classifyFinanceiroCustoKey(tipo: string): FinanceiroCustoKey {
     t.includes("roda-pe") ||
     t.includes("rodapé")
   ) {
-    return "remates";
+    return "paineis";
   }
   return "paineis";
 }
@@ -337,17 +318,13 @@ export function computeFinanceiroUnificado(
   const custoOrla = orlaLive.custo;
 
   const custosComputed = emptyCustos();
-  const hasRematesReais = hasRealRemateOrRodapePieces(project.remates, project.rodapes);
   for (const item of cutlist) {
     const key = classifyFinanceiroCustoKey(String(item.tipo ?? ""));
     if (NON_CUTLIST_CUSTO_KEYS.has(key)) continue;
-    // Sem peças remate/rodapé reais: nunca acumular neste bucket (sem fallback).
-    if (key === "remates" && !hasRematesReais) continue;
     custosComputed[key] += Number(item.precoTotal) || 0;
   }
-  if (!hasRematesReais) {
-    custosComputed.remates = 0;
-  }
+  // Remates/rodapés: madeira classificada em Painéis/chapas — linha Remates sempre 0 €.
+  custosComputed.remates = 0;
   custosComputed.ferragens = ferragensEur;
   custosComputed.orla = custoOrla;
 
@@ -434,8 +411,8 @@ export function computeFinanceiroUnificado(
   const custosEffective = emptyCustos();
   const custoKeysOverridden: FinanceiroCustoKey[] = [];
   for (const key of FINANCEIRO_CUSTO_MATERIAL_KEYS) {
-    // Remates: sem peças reais, ignorar override fantasma (ex. 20€).
-    if (key === "remates" && !hasRematesReais) {
+    // Remates: madeira nas chapas/Painéis — sem preço próprio (ignorar override fantasma).
+    if (key === "remates") {
       custosEffective.remates = 0;
       continue;
     }

@@ -165,8 +165,9 @@ export const FINANCEIRO_CUSTO_MATERIAL_KEYS: FinanceiroCustoMaterialKey[] = [
   "operacoesAvancadas",
 ];
 
-/** Keys de material peç substituídas por chapasReais no modo exclusivo.
- * Fase 2: `gavetas` = montagem unitária (não madeira) — não entra na suppress.
+/** Keys de material peç substituídas por chapasReais quando há € de chapas reais.
+ * `gavetas` = montagem unitária (não madeira) — não entra na suppress.
+ * `remates` mantido na lista por segurança (linha forçada a 0 no Unificado).
  */
 export const FINANCEIRO_PIECE_MATERIAL_KEYS: Array<
   Extract<FinanceiroCustoMaterialKey, "paineis" | "portas" | "remates">

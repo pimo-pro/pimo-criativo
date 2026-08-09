@@ -117,9 +117,9 @@ export default function OrcamentosAdminSettings() {
       />
 
       <div style={bannerStyle}>
-        Defaults day-1 = 0 EUR e flags off. ADM / Montagem / Portes / IVA continuam em{" "}
-        <strong>Financeiro (ADM / Montagem / Portes)</strong>. enableUnificacao=false preserva
-        totais actuais.
+        Defaults: madeira = chapas reais; ferragens unificadas (catálogo = Secção 4); tarifas
+        industriais 0 / flags off. ADM / Montagem / Portes / IVA em{" "}
+        <strong>Financeiro (ADM / Montagem / Portes)</strong>.
       </div>
 
       <AdminStickyActionBar>
@@ -139,9 +139,8 @@ export default function OrcamentosAdminSettings() {
       <div style={cardStyle}>
         <h3 style={{ margin: 0, fontSize: 14 }}>Ferragens (P3.9 F2)</h3>
         <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
-          Default off = Unificado Via A, Pecas Via B (comportamento actual). Com unificacao on:
-          ambos usam catalogo B + fallback A. STRICT = avisos no relatorio, sem bloquear
-          CNC/PDF/financeiro.
+          Default on = Unificado e Peças usam catálogo B (fonte alinhada à Secção 4) + fallback A.
+          STRICT = avisos no relatório, sem bloquear CNC/PDF/financeiro. Desligar volta à Via A.
         </p>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
           <input
@@ -387,14 +386,14 @@ export default function OrcamentosAdminSettings() {
                 }));
               }}
             >
-              <option value="por_peca">Por peça (default de fábrica)</option>
-              <option value="por_chapas_reais">Por chapas reais (exclusivo)</option>
+              <option value="por_peca">Por peça (fallback / legado)</option>
+              <option value="por_chapas_reais">Por chapas reais (default — fonte única madeira)</option>
             </select>
             <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--text-muted)" }}>
-              Activação controlada (Fase 5): o default global permanece «Por peça». «Por chapas
-              reais» substitui Painéis/portas/remates (anti double-count). €/chapa = derivado
-              (€/m² × área chapa), sem tarifa manual. MO e logística = EUR manual Admin (sem
-              tempo/peso). Portes P3.6 intactos.
+              Default = «Por chapas reais» (fonte única de madeira). Com nesting Real: Painéis /
+              portas / remates a 0 €; Chapas = N × €/chapa. Sem sheets reais: fallback Painéis por
+              peça (remates sem linha de madeira). €/chapa = derivado (€/m² × área chapa). Gavetas =
+              N × 15 € (montagem). MO e logística = EUR manual Admin. Portes P3.6 intactos.
             </p>
             {draft.custosIndustriais.materialCostMode === "por_chapas_reais" ? (
               <div style={{ ...bannerStyle, marginTop: 8 }}>

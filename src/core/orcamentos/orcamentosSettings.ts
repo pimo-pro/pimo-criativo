@@ -1,6 +1,7 @@
 /**
  * P3.9 — defaults + normalização Orçamentos.
- * Day-1: — a 0, flags off, enableUnificacao false.
+ * Day-1: tarifas industriais a 0 / flags off;
+ * madeira = chapas reais; ferragens unificadas (catálogo = Secção 4).
  */
 
 import type {
@@ -90,7 +91,7 @@ export function defaultOrcamentosSettings(): OrcamentosSettings {
       valor: 0,
     },
     ferragens: {
-      enableUnificacao: false,
+      enableUnificacao: true,
     },
   };
 }

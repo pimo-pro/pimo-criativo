@@ -9,7 +9,8 @@ import type { DoorLayerItem as DoorLayer } from "../../models/BoxLayers";
 
 /**
  * Proxy CAIXA 1201: modulo 600x720x560, porta dupla, 1 prateleira, sem gavetas.
- * Alvo mercado: paineis ~66, orla industrial completa (estrutura+portas), ferragens ~10-12, CNC, total 180-360.
+ * Modelo industrial: madeira = chapas reais (ou fallback Painéis); Remates/Portas = 0;
+ * Gavetas = N×15; ferragens unificadas (catálogo).
  */
 describe("CAIXA 1201 — precos de mercado", () => {
   it("costa 10mm usa 20 EUR/m2; 19mm usa 31 EUR/m2", () => {
@@ -86,11 +87,16 @@ describe("CAIXA 1201 — precos de mercado", () => {
     });
 
     const c = snap.custosEffective;
+    const madeira = (Number(c.paineis) || 0) + (Number(c.chapasReais) || 0);
     const total = Number(snap.totalProjeto) || Number(snap.subtotalComAdmin) || 0;
 
     // Diagnostico embutido na mensagem de falha
     const diag = JSON.stringify({
       paineis: c.paineis,
+      chapasReais: c.chapasReais,
+      madeira,
+      remates: c.remates,
+      portas: c.portas,
       orla: c.orla,
       ferragens: c.ferragens,
       operacoes: c.operacoes,
@@ -101,16 +107,23 @@ describe("CAIXA 1201 — precos de mercado", () => {
       subtotal: snap.subtotal,
       subtotalComAdmin: snap.subtotalComAdmin,
       totalProjeto: snap.totalProjeto,
+      materialCostMode: snap.materialCostMode,
       ops: snap.operacoesBreakdown,
     });
 
-    expect(c.paineis, diag).toBeGreaterThan(40);
-    expect(c.paineis, diag).toBeLessThan(95);
+    // Madeira única: chapas reais OU fallback Painéis (nunca ambos; remates/portas = 0).
+    expect(madeira, diag).toBeGreaterThan(40);
+    expect(c.remates, diag).toBe(0);
+    expect(c.portas, diag).toBe(0);
+    if ((Number(c.chapasReais) || 0) > 0) {
+      expect(c.paineis, diag).toBe(0);
+    }
     expect(c.orla, diag).toBeGreaterThan(0.5);
     // Orla industrial completa (não só portas) — faixa alargada pós-restauro regras oficiais.
     expect(c.orla, diag).toBeLessThan(40);
+    // Ferragens unificadas (catálogo B + fallback A)
     expect(c.ferragens, diag).toBeGreaterThan(7);
-    expect(c.ferragens, diag).toBeLessThan(15);
+    expect(c.ferragens, diag).toBeLessThan(30);
     // CNC/Drill a 50% das tarifas anteriores (~2–12)
     expect(c.operacoes, diag).toBeGreaterThan(2);
     expect(c.operacoes, diag).toBeLessThan(12);
@@ -121,8 +134,8 @@ describe("CAIXA 1201 — precos de mercado", () => {
     expect(c.adm, diag).toBeGreaterThan(0);
     expect(c.adm / Math.max(1e-6, snap.subtotal), diag).toBeCloseTo(0.05, 2);
 
-    // Com Desperdício/Serragem/MO activos + IVA 23%: faixa ~200–360
+    // Chapas reais + IVA: total pode superar o antigo teto por-peça (~360).
     expect(total, diag).toBeGreaterThan(90);
-    expect(total, diag).toBeLessThan(360);
+    expect(total, diag).toBeLessThan(650);
   });
 });

@@ -158,27 +158,30 @@ export function computeCustosAvancadosFinanceiras(input: {
       : 0;
 
   const warnings: string[] = [];
-  const suppressPieceMaterial = tarifas.materialCostMode === "por_chapas_reais";
+  const wantsChapasReais = tarifas.materialCostMode === "por_chapas_reais";
 
   // --- Chapas reais ---
+  // Suppress de madeira por peça só quando há € de chapas reais (anti double-count).
+  // Sem nesting Real / sem €/chapa → fallback Painéis por peça (avisos).
   let precoChapasReais = 0;
   const custoChapa =
     typeof input.custoChapaRealDerived === "number" && Number.isFinite(input.custoChapaRealDerived)
       ? Math.max(0, input.custoChapaRealDerived)
       : 0;
-  if (suppressPieceMaterial) {
+  if (wantsChapasReais) {
     if (!input.chapasModeReal || !(chapasCount > 0)) {
       warnings.push(
-        "materialCostMode=por_chapas_reais sem chapas reais → chapasReais=0 (estimadas)"
+        "materialCostMode=por_chapas_reais sem chapas reais → chapasReais=0; fallback Painéis por peça"
       );
     } else if (!(custoChapa > 0)) {
       warnings.push(
-        "custoChapaReal derivado=0 (sem €/m² ou área chapa) → chapasReais=0"
+        "custoChapaReal derivado=0 (sem €/m² ou área chapa) → chapasReais=0; fallback Painéis por peça"
       );
     } else {
       precoChapasReais = round2(chapasCount * custoChapa);
     }
   }
+  const suppressPieceMaterial = precoChapasReais > 0;
 
   // --- Mão de obra (EUR manual Admin; independente de tempo / montagem) ---
   // Campo legado `valorHoraMaquina` = total EUR manual (não €/h × minutos).

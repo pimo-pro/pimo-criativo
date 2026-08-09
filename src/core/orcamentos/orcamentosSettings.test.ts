@@ -8,22 +8,24 @@ import {
 import { ORCAMENTOS_MATERIAL_COST_MODE_DEFAULT } from "./chapasReaisActivation";
 
 describe("orcamentosSettings (P3.9)", () => {
-  it("defaults are day-1 neutral (0 / flags off / unificacao off)", () => {
+  it("defaults: chapas reais + ferragens unificadas; tarifas industriais 0 / flags off", () => {
     const d = defaultOrcamentosSettings();
     expect(d.perfuracoes.drillEurPorFuro).toBe(0);
     expect(d.custosIndustriais.enableDesperdicio).toBe(false);
     expect(d.margemGanho.enabled).toBe(false);
-    expect(d.ferragens.enableUnificacao).toBe(false);
+    expect(d.ferragens.enableUnificacao).toBe(true);
     expect(d.operacoesAvancadas.precoForo5mm).toBe(0);
     expect(d.operacoesAvancadas.precoMeQuadrilha).toBe(0);
   });
 
-  it("Fase 5E — default materialCostMode permanece por_peca (activação só Admin)", () => {
-    expect(ORCAMENTOS_MATERIAL_COST_MODE_DEFAULT).toBe("por_peca");
-    expect(defaultOrcamentosSettings().custosIndustriais.materialCostMode).toBe("por_peca");
+  it("default materialCostMode = por_chapas_reais (fonte única madeira)", () => {
+    expect(ORCAMENTOS_MATERIAL_COST_MODE_DEFAULT).toBe("por_chapas_reais");
+    expect(defaultOrcamentosSettings().custosIndustriais.materialCostMode).toBe(
+      "por_chapas_reais"
+    );
     expect(
       normalizeOrcamentosSettings({}).custosIndustriais.materialCostMode
-    ).toBe("por_peca");
+    ).toBe("por_chapas_reais");
   });
 
   it("legado custoMontagemPorPeca=22 → normaliza para 15 EUR", () => {
@@ -54,22 +56,22 @@ describe("orcamentosSettings (P3.9)", () => {
       perfuracoes: { drillEurPorFuro: 0.05 },
     });
     expect(n.operacoesAvancadas.precoForoCalcoGrupo).toBe(0);
-    expect(n.ferragens.enableUnificacao).toBe(false);
+    expect(n.ferragens.enableUnificacao).toBe(true);
   });
 
   it("normalize fills missing ferragens block", () => {
     const n = normalizeOrcamentosSettings({
       perfuracoes: { drillEurPorFuro: 0.05 },
     });
-    expect(n.ferragens.enableUnificacao).toBe(false);
+    expect(n.ferragens.enableUnificacao).toBe(true);
     expect(n.perfuracoes.drillEurPorFuro).toBe(0.05);
   });
 
-  it("merge preserves enableUnificacao", () => {
+  it("merge preserves enableUnificacao off", () => {
     const base = defaultOrcamentosSettings();
     const m = mergeOrcamentosSettings(base, {
-      ferragens: { enableUnificacao: true },
+      ferragens: { enableUnificacao: false },
     });
-    expect(m.ferragens.enableUnificacao).toBe(true);
+    expect(m.ferragens.enableUnificacao).toBe(false);
   });
 });
