@@ -1,11 +1,21 @@
 {
-  "updatedAt": "2026-08-09T11:38:38.823Z",
+  "updatedAt": "2026-08-09T12:35:22.152Z",
   "news": [
+    {
+      "version": "v6.0809.1335",
+      "title": "PIMO — Financeiro Industrial v3.1: correção final de portas=0€, gavetas=15€, remates=0€, chapas reais como fonte única",
+      "description": "PIMO — Financeiro Industrial v3.1: correção final de portas=0€, gavetas=15€, remates=0€, chapas reais como fonte única",
+      "publishedAt": "2026-08-09T12:35:22.051Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "52727f9e"
+    },
     {
       "version": "v6.0809.1238",
       "title": "PIMO — Financeiro Industrial v3.0: modo chapas reais por defeito, remates a 0€, gavetas 15€, ferragens unificadas",
       "description": "PIMO — Financeiro Industrial v3.0: modo chapas reais por defeito, remates a 0€, gavetas 15€, ferragens unificadas",
-      "publishedAt": "2026-08-09T11:38:38.732Z",
+      "publishedAt": "2026-08-09T12:40:25+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
