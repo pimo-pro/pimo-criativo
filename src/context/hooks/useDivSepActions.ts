@@ -3,12 +3,18 @@ import type { ProjectActions } from "../projectTypes";
 import { appendChangelog } from "../projectState";
 import { ensureBoxPanelIds, createStableId } from "../../core/box/panelIds";
 import { getSelectedOrFirstWorkspaceBox } from "../projectHelpers";
-import type { DivisorItem, SeparadorItem } from "../../core/divSep/types";
 import {
   clampDivisorPosition,
   clampSeparadorPosition,
-  getDivSepInternalDims,
 } from "../../core/divSep/dimensions";
+import {
+  applyDivisorLinkUpdate,
+  applySeparadorAncoraUpdate,
+  autoLinkDivisorsToSeparador,
+  buildAutoDivisorItem,
+  buildAutoSeparadorItem,
+  refreshSeparadorWidthsAfterDivChange,
+} from "../../core/divSep/autoLink";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 
 export type DivSepActions = Pick<
@@ -21,16 +27,6 @@ export type DivSepActions = Pick<
   | "updateDivisor"
 >;
 
-function defaultSeparadorPosition(box: Parameters<typeof getDivSepInternalDims>[0]): number {
-  const internal = getDivSepInternalDims(box);
-  return Math.round(internal.alturaInterna / 2);
-}
-
-function defaultDivisorPosition(box: Parameters<typeof getDivSepInternalDims>[0]): number {
-  const internal = getDivSepInternalDims(box);
-  return Math.round(internal.larguraInterna / 2);
-}
-
 export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepActions {
   const { updateProject, recomputeState: recompute } = ctx;
 
@@ -41,22 +37,23 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
           (prev) => {
             const selected = getSelectedOrFirstWorkspaceBox(prev);
             if (!selected) return prev;
-            const newItem: SeparadorItem = {
-              id: createStableId(),
-              positionMm: defaultSeparadorPosition(selected),
-              referenceEdge: "bottom",
-            };
+            const newItem = buildAutoSeparadorItem(selected, createStableId());
             const separadores = [...(selected.separadores ?? []), newItem];
+            const divisores = autoLinkDivisorsToSeparador(
+              selected.divisores ?? [],
+              newItem.id
+            );
             const workspaceBoxes = prev.workspaceBoxes.map((box) =>
               box.id === selected.id
                 ? {
                     ...box,
                     separadores,
+                    divisores,
                     panelIds: ensureBoxPanelIds(box.panelIds, {
                       prateleiras: box.prateleiras,
                       portaTipo: box.portaTipo,
                       gavetas: box.gavetas,
-                      divisoresCount: box.divisores?.length ?? 0,
+                      divisoresCount: divisores.length,
                       separadoresCount: separadores.length,
                     }),
                   }
@@ -84,23 +81,24 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
           (prev) => {
             const selected = getSelectedOrFirstWorkspaceBox(prev);
             if (!selected) return prev;
-            const newItem: DivisorItem = {
-              id: createStableId(),
-              positionMm: defaultDivisorPosition(selected),
-              referenceEdge: "left",
-            };
+            const newItem = buildAutoDivisorItem(selected, createStableId());
             const divisores = [...(selected.divisores ?? []), newItem];
+            const separadores = refreshSeparadorWidthsAfterDivChange(
+              { ...selected, divisores },
+              selected.separadores ?? []
+            );
             const workspaceBoxes = prev.workspaceBoxes.map((box) =>
               box.id === selected.id
                 ? {
                     ...box,
                     divisores,
+                    separadores,
                     panelIds: ensureBoxPanelIds(box.panelIds, {
                       prateleiras: box.prateleiras,
                       portaTipo: box.portaTipo,
                       gavetas: box.gavetas,
                       divisoresCount: divisores.length,
-                      separadoresCount: box.separadores?.length ?? 0,
+                      separadoresCount: separadores.length,
                     }),
                   }
                 : box
@@ -135,7 +133,11 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
                     separadores,
                     divisores: (box.divisores ?? []).map((div) =>
                       div.linkedSeparadorId === id
-                        ? { ...div, linkedSeparadorId: undefined }
+                        ? {
+                            ...div,
+                            linkedSeparadorId: undefined,
+                            posicaoRelativaAoSep: undefined,
+                          }
                         : div
                     ),
                     panelIds: ensureBoxPanelIds(box.panelIds, {
@@ -160,17 +162,23 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
             const selected = getSelectedOrFirstWorkspaceBox(prev);
             if (!selected) return prev;
             const divisores = (selected.divisores ?? []).filter((d) => d.id !== id);
+            const boxAfter = { ...selected, divisores };
+            const separadores = refreshSeparadorWidthsAfterDivChange(
+              boxAfter,
+              selected.separadores ?? []
+            );
             const workspaceBoxes = prev.workspaceBoxes.map((box) =>
               box.id === selected.id
                 ? {
                     ...box,
                     divisores,
+                    separadores,
                     panelIds: ensureBoxPanelIds(box.panelIds, {
                       prateleiras: box.prateleiras,
                       portaTipo: box.portaTipo,
                       gavetas: box.gavetas,
                       divisoresCount: divisores.length,
-                      separadoresCount: box.separadores?.length ?? 0,
+                      separadoresCount: separadores.length,
                     }),
                   }
                 : box
@@ -192,7 +200,7 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
               if (box.id !== owner.id) return box;
               const separadores = (box.separadores ?? []).map((item) => {
                 if (item.id !== id) return item;
-                const merged = { ...item, ...partial };
+                const merged = applySeparadorAncoraUpdate(item, partial);
                 if (partial.positionMm != null) {
                   merged.positionMm = clampSeparadorPosition(box, merged, partial.positionMm);
                 }
@@ -217,13 +225,18 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
               if (box.id !== owner.id) return box;
               const divisores = (box.divisores ?? []).map((item) => {
                 if (item.id !== id) return item;
-                const merged = { ...item, ...partial };
+                const merged = applyDivisorLinkUpdate(item, partial);
                 if (partial.positionMm != null) {
                   merged.positionMm = clampDivisorPosition(box, merged, partial.positionMm);
                 }
                 return merged;
               });
-              return { ...box, divisores };
+              const nextBox = { ...box, divisores };
+              const separadores =
+                partial.positionMm != null || partial.referenceEdge != null
+                  ? refreshSeparadorWidthsAfterDivChange(nextBox, box.separadores ?? [])
+                  : box.separadores ?? [];
+              return { ...box, divisores, separadores };
             });
             return recompute(prev, { workspaceBoxes }, true);
           },

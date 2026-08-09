@@ -1,7 +1,15 @@
 import type { Group } from "three";
 import type { DoorLayerItem, DrawerLayerItem } from "../models/BoxLayers";
 import type { DrawerHeightMode } from "./drawers/drawerHeightModeTypes";
-export type { DivisorItem, SeparadorItem, DivisorReferenceEdge, SeparadorReferenceEdge, DivisorPrateleiraLado } from "./divSep/types";
+export type {
+  DivisorItem,
+  SeparadorItem,
+  DivisorReferenceEdge,
+  SeparadorReferenceEdge,
+  DivisorPrateleiraLado,
+  DivisorPosicaoRelativaAoSep,
+  SeparadorAncoraHorizontal,
+} from "./divSep/types";
 
 export type OperationResult<T> = {
   success: boolean;

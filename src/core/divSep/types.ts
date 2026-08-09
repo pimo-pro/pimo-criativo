@@ -7,6 +7,12 @@ export type SeparadorReferenceEdge = "top" | "bottom";
 /** Lado do compartimento onde as prateleiras são colocadas em relação ao DIV. */
 export type DivisorPrateleiraLado = "esquerda" | "direita";
 
+/** Posição do DIV relativamente ao SEP ligado (rosto a rosto). */
+export type DivisorPosicaoRelativaAoSep = "baixo" | "cima";
+
+/** Âncora horizontal do SEP na largura interna da caixa. */
+export type SeparadorAncoraHorizontal = "completo" | "esquerda" | "direita";
+
 /** Divisório vertical (DIV) — peça interna da caixa. */
 export interface DivisorItem {
   id: string;
@@ -19,8 +25,19 @@ export interface DivisorItem {
   profundidadeMm?: number;
   /** ID do separador ao qual este DIV termina (ligação explícita SEP+DIV). */
   linkedSeparadorId?: string;
+  /**
+   * Posição relativamente ao SEP ligado.
+   * Omitido + ligado ⇒ "baixo" (compatível com projectos antigos).
+   * Irrelevante quando não há `linkedSeparadorId`.
+   */
+  posicaoRelativaAoSep?: DivisorPosicaoRelativaAoSep;
   /** Lado do compartimento com furos de prateleira quando há prateleiras no módulo. */
   prateleiraLado?: DivisorPrateleiraLado;
+  /**
+   * Centros Y absolutos (mm) das prateleiras escolhidos na grelha industrial.
+   * Omitido = distribuição automática das N prateleiras na zona do DIV.
+   */
+  prateleiraYsMm?: number[];
 }
 
 /** Separador horizontal (SEP) — peça interna da caixa. */
@@ -33,6 +50,11 @@ export interface SeparadorItem {
   larguraMm?: number;
   /** Profundidade (mm). Omitido = profundidade interna − folga frontal. */
   profundidadeMm?: number;
+  /**
+   * Âncora horizontal: completo (centrado) | esquerda | direita.
+   * Omitido ⇒ "completo" (compatível com projectos antigos).
+   */
+  ancoraHorizontal?: SeparadorAncoraHorizontal;
 }
 
 export type DivSepBoxLike = {
@@ -48,3 +70,26 @@ export type DivSepBoxLike = {
   divisores?: DivisorItem[];
   separadores?: SeparadorItem[];
 };
+
+/**
+ * Posição efectiva do DIV face ao SEP.
+ * Omitido ⇒ "baixo" (compatível com projectos antigos / ligação efectiva).
+ */
+export function resolvePosicaoRelativaAoSep(
+  div: Pick<DivisorItem, "posicaoRelativaAoSep">
+): DivisorPosicaoRelativaAoSep {
+  return div.posicaoRelativaAoSep === "cima" ? "cima" : "baixo";
+}
+
+/**
+ * Âncora horizontal efectiva do SEP.
+ * Projectos antigos sem o campo ⇒ "completo".
+ */
+export function resolveAncoraHorizontal(
+  sep: Pick<SeparadorItem, "ancoraHorizontal">
+): SeparadorAncoraHorizontal {
+  if (sep.ancoraHorizontal === "esquerda" || sep.ancoraHorizontal === "direita") {
+    return sep.ancoraHorizontal;
+  }
+  return "completo";
+}

@@ -1,8 +1,17 @@
 import { getProfundidadeInternaUtilMm } from "../box/boxDepthHelpers";
 import { resolveCostaThicknessMm } from "../materials/materials.api";
+import {
+  isPartialSepCavilhaOnly,
+  partialSepSideFromId,
+  resolvePartialSepLeftXAbsMm,
+} from "../wardrobe/partialSepToDiv";
 import { getDivSepRules } from "./cavilhaRules";
-import { resolveDivisorLinkedHeightMm, findSeparadorById } from "./coupling";
+import {
+  resolveDivisorLinkedHeightMm,
+  resolveEffectiveLinkedSeparador,
+} from "./coupling";
 import type { DivisorItem, DivSepBoxLike, SeparadorItem } from "./types";
+import { resolveAncoraHorizontal } from "./types";
 
 const SHELF_WIDTH_CLEARANCE_MM = 2;
 const SHELF_DEPTH_CLEARANCE_MM = 5;
@@ -40,15 +49,66 @@ export function getDivSepInternalDims(box: DivSepBoxLike): DivSepInternalDims {
   };
 }
 
+/** Centro X do DIV sem depender de altura (evita ciclos com SEP parcial). */
+function resolveDivisorCenterXLight(box: DivSepBoxLike, item: DivisorItem): number {
+  const internal = getDivSepInternalDims(box);
+  const half = internal.espessura / 2;
+  const pos = Math.max(0, Number(item.positionMm) || 0);
+  const minX = internal.espessura + half;
+  const maxX = internal.espessura + internal.larguraInterna - half;
+  if (item.referenceEdge === "right") {
+    const fromRight = internal.espessura + internal.larguraInterna - pos;
+    return Math.min(maxX, Math.max(minX, fromRight));
+  }
+  const fromLeft = internal.espessura + pos;
+  return Math.min(maxX, Math.max(minX, fromLeft));
+}
+
+/**
+ * Largura SEP por âncora horizontal a partir dos DIV existentes.
+ * Sem DIV: mesma largura que completo (não inventa meio vão).
+ */
+function resolveAncloredSeparadorWidthMm(
+  box: DivSepBoxLike,
+  ancora: "esquerda" | "direita"
+): number {
+  const internal = getDivSepInternalDims(box);
+  const clear = SHELF_WIDTH_CLEARANCE_MM;
+  const divisores = box.divisores ?? [];
+  if (divisores.length === 0) {
+    return Math.max(1, internal.larguraInterna - clear);
+  }
+
+  const half = internal.espessura / 2;
+  if (ancora === "direita") {
+    let rightmost = resolveDivisorCenterXLight(box, divisores[0]!);
+    for (let i = 1; i < divisores.length; i++) {
+      const cx = resolveDivisorCenterXLight(box, divisores[i]!);
+      if (cx > rightmost) rightmost = cx;
+    }
+    const divRight = rightmost + half;
+    const innerRight = internal.espessura + internal.larguraInterna;
+    return Math.max(1, innerRight - divRight - clear);
+  }
+
+  let leftmost = resolveDivisorCenterXLight(box, divisores[0]!);
+  for (let i = 1; i < divisores.length; i++) {
+    const cx = resolveDivisorCenterXLight(box, divisores[i]!);
+    if (cx < leftmost) leftmost = cx;
+  }
+  const divLeft = leftmost - half;
+  const innerLeft = internal.espessura;
+  return Math.max(1, divLeft - innerLeft - clear);
+}
+
 export function resolveDivisorDimensions(
   box: DivSepBoxLike,
   item: DivisorItem
 ): { larguraMm: number; alturaMm: number; profundidadeMm: number } {
   const internal = getDivSepInternalDims(box);
-  const linkedSep =
-    getDivSepRules().enableDivSepCombinations
-      ? findSeparadorById(box, item.linkedSeparadorId)
-      : undefined;
+  const linkedSep = getDivSepRules().enableDivSepCombinations
+    ? resolveEffectiveLinkedSeparador(box, item)
+    : undefined;
   const alturaMm = linkedSep
     ? resolveDivisorLinkedHeightMm(box, item, linkedSep)
     : item.alturaMm ?? internal.alturaInterna;
@@ -64,26 +124,50 @@ export function resolveSeparadorDimensions(
   item: SeparadorItem
 ): { larguraMm: number; alturaMm: number; profundidadeMm: number } {
   const internal = getDivSepInternalDims(box);
+  const ancora = resolveAncoraHorizontal(item);
+  let larguraMm: number;
+  if (item.larguraMm != null && item.larguraMm > 0) {
+    larguraMm = item.larguraMm;
+  } else if (ancora === "esquerda" || ancora === "direita") {
+    larguraMm = resolveAncloredSeparadorWidthMm(box, ancora);
+  } else {
+    larguraMm = Math.max(1, internal.larguraInterna - SHELF_WIDTH_CLEARANCE_MM);
+  }
   return {
-    larguraMm: item.larguraMm ?? Math.max(1, internal.larguraInterna - SHELF_WIDTH_CLEARANCE_MM),
+    larguraMm: Math.max(1, larguraMm),
     alturaMm: internal.espessura,
     profundidadeMm: item.profundidadeMm ?? Math.max(1, internal.profundidadeInterna - SHELF_DEPTH_CLEARANCE_MM),
   };
 }
 
+/**
+ * Aresta esquerda absoluta do SEP (mm).
+ * Completo = centrado; esquerda/direita = encostado à LAT; wardrobe parcial = helper dedicado.
+ */
+export function resolveSeparadorLeftXAbsMm(box: DivSepBoxLike, item: SeparadorItem): number {
+  if (isPartialSepCavilhaOnly(item)) {
+    const side = partialSepSideFromId(String(item.id));
+    return resolvePartialSepLeftXAbsMm(box, item, side);
+  }
+  const internal = getDivSepInternalDims(box);
+  const dims = resolveSeparadorDimensions(box, item);
+  const ancora = resolveAncoraHorizontal(item);
+  if (ancora === "esquerda") return internal.espessura;
+  if (ancora === "direita") {
+    return internal.espessura + internal.larguraInterna - dims.larguraMm;
+  }
+  return internal.espessura + (internal.larguraInterna - dims.larguraMm) / 2;
+}
+
+/** Centro X absoluto do SEP (mm). */
+export function resolveSeparadorCenterX(box: DivSepBoxLike, item: SeparadorItem): number {
+  const dims = resolveSeparadorDimensions(box, item);
+  return resolveSeparadorLeftXAbsMm(box, item) + dims.larguraMm / 2;
+}
+
 /** Centro X absoluto do divisório (mm, origem = canto inferior-esquerdo-frontal da caixa). */
 export function resolveDivisorCenterX(box: DivSepBoxLike, item: DivisorItem): number {
-  const internal = getDivSepInternalDims(box);
-  const dims = resolveDivisorDimensions(box, item);
-  const pos = Math.max(0, Number(item.positionMm) || 0);
-  const minX = internal.espessura + dims.larguraMm / 2;
-  const maxX = internal.espessura + internal.larguraInterna - dims.larguraMm / 2;
-  if (item.referenceEdge === "right") {
-    const fromRight = internal.espessura + internal.larguraInterna - pos;
-    return Math.min(maxX, Math.max(minX, fromRight));
-  }
-  const fromLeft = internal.espessura + pos;
-  return Math.min(maxX, Math.max(minX, fromLeft));
+  return resolveDivisorCenterXLight(box, item);
 }
 
 /** Centro Y absoluto do separador (mm, origem = base da caixa). */

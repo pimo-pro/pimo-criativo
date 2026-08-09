@@ -1,23 +1,24 @@
 import type { RulesConfig } from "../rules/rulesConfig";
 import type { PanelDrillHole } from "../types";
 import { getDivSepRules } from "./cavilhaRules";
-import { resolveSeparadorBottomY } from "./coupling";
+import { resolveSeparadorBottomY, resolveDivisorBottomYAbs } from "./coupling";
 import {
   getDivSepInternalDims,
   resolveDivisorCenterX,
   resolveDivisorDimensions,
 } from "./dimensions";
 import type { DivisorItem, DivSepBoxLike } from "./types";
+import { resolvePosicaoRelativaAoSep } from "./types";
 
 const SHELF_DIV_CLEARANCE_MM = 1;
 const SHELF_GRID_STEP_MM = 32;
-/** Altura mínima (mm) da zona acima do SEP para eventual activação futura de prateleiras. */
+/** Altura mínima (mm) de referência para zona acima do SEP sem DIV acima. */
 export const MIN_ABOVE_SEP_SHELF_HEIGHT_MM = 500;
 
 export type VerticalCompartment = {
   yMin: number;
   yMax: number;
-  /** Zona utilizável para prateleiras curtas (LAT+DIV). Acima do SEP superior = false por omissão. */
+  /** Zona utilizável para prateleiras curtas (LAT+DIV). */
   shelfEnabled: boolean;
 };
 
@@ -50,6 +51,17 @@ function roundHoleMm(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
+/** True se existe pelo menos um DIV ligado acima de um SEP. */
+export function boxHasDivisorAboveSep(box: DivSepBoxLike): boolean {
+  return (box.divisores ?? []).some(
+    (div) => Boolean(div.linkedSeparadorId) && resolvePosicaoRelativaAoSep(div) === "cima"
+  );
+}
+
+export function isDivisorAboveSep(div: DivisorItem): boolean {
+  return Boolean(div.linkedSeparadorId) && resolvePosicaoRelativaAoSep(div) === "cima";
+}
+
 /** Compartimentos verticais delimitados pelos SEP (mm absolutos na caixa). */
 export function resolveVerticalCompartments(box: DivSepBoxLike): VerticalCompartment[] {
   const internal = getDivSepInternalDims(box);
@@ -64,6 +76,7 @@ export function resolveVerticalCompartments(box: DivSepBoxLike): VerticalCompart
     .map((y) => Math.round(y))
     .sort((a, b) => a - b);
 
+  const enableAbove = boxHasDivisorAboveSep(box);
   const zones: VerticalCompartment[] = [];
   for (let i = 0; i < boundaries.length - 1; i++) {
     const yMin = boundaries[i]!;
@@ -73,23 +86,25 @@ export function resolveVerticalCompartments(box: DivSepBoxLike): VerticalCompart
     zones.push({
       yMin,
       yMax,
-      // Acima do SEP: desactivado (prateleiras só no compartimento LAT+DIV+SEP).
-      // Altura < 500 mm acima do SEP nunca activa prateleiras industriais.
-      shelfEnabled: !isTopZoneAboveSeparador,
+      // Acima do SEP: só com DIV acima (Fase F). Sem DIV acima permanece desactivado.
+      shelfEnabled: !isTopZoneAboveSeparador || enableAbove,
     });
   }
   return zones.length > 0 ? zones : [{ yMin: yBottom, yMax: yTop, shelfEnabled: true }];
 }
 
-function calcShelfGridYs(
+/**
+ * Grelha industrial de prateleiras (margens + passo 32 mm).
+ * Exportada para UI de posição exacta — mesmo motor dos furos.
+ */
+export function resolveShelfGridYs(
   yMin: number,
   yMax: number,
-  rules: RulesConfig
+  rules?: Pick<RulesConfig, "furos"> | RulesConfig | null
 ): number[] {
   const cfg = rules?.furos?.tecnicos?.prateleira;
-  if (!cfg?.enabled) return [];
-  const margemTopo = cfg.margemTopo ?? 200;
-  const margemBase = cfg.margemBase ?? 200;
+  const margemTopo = cfg?.margemTopo ?? 200;
+  const margemBase = cfg?.margemBase ?? 200;
 
   const zoneMin = yMin + margemBase;
   const zoneMax = yMax - margemTopo;
@@ -102,24 +117,36 @@ function calcShelfGridYs(
   return ys;
 }
 
+/** Grelha na zona principal do DIV (para escolha de posição exacta). */
+export function resolveDivShelfGridYs(
+  box: DivSepBoxLike,
+  div: DivisorItem,
+  rules?: Pick<RulesConfig, "furos"> | RulesConfig | null
+): number[] {
+  const zone = resolvePrimaryDivShelfPlacementZone(box, div);
+  if (!zone) return [];
+  const divBottomY = resolveDivisorBottomYAbs(box, div);
+  const divTopY = divBottomY + resolveDivisorDimensions(box, div).alturaMm;
+  const bounds = resolveEffectiveShelfBounds(zone, divBottomY, divTopY);
+  if (!bounds) return [];
+  return resolveShelfGridYs(bounds.yMin, bounds.yMax, rules);
+}
+
+function calcShelfGridYs(yMin: number, yMax: number, rules: RulesConfig): number[] {
+  return resolveShelfGridYs(yMin, yMax, rules);
+}
+
 /** Converte Y absoluto da caixa → Y local do painel lateral (base = topo do FUNDO). */
 export function absoluteYToLateralPanelY(box: DivSepBoxLike, absoluteY: number): number {
   const espessura = Math.max(0, Number(box.espessura) || 0);
-  // Convenção industrial (cutlist / TCN / SEP na LAT): Y desde a base do painel.
-  // Laterais inset (entre CIMA e FUNDO): base do painel = espessura (topo do FUNDO).
-  // Antes: alturaCaixa − absoluteY (Y desde o topo) → CNC lia como base → furos demasiado altos / sobre SEP.
   return roundHoleMm(absoluteY - espessura);
 }
 
 function absoluteYToDivisorPanelY(divBottomY: number, _divHeightMm: number, absoluteY: number): number {
-  // Mesma convenção industrial que a LAT: Y desde a base do painel.
-  // LAT e DIV partilham a base (topo do FUNDO = espessura) → mesmo absoluteY ⇒ mesmo Y local.
-  // Antes: divTop − absoluteY (desde o topo) → na chapa os Y não coincidiam com a LAT.
   void _divHeightMm;
   return roundHoleMm(absoluteY - divBottomY);
 }
 
-/** ID do painel DIV alinhado com `getArrayPanelId` em boxManufacturing. */
 function resolveDivisorShelfPanelId(
   panelIds: { divisores?: string[] } | undefined,
   index: number
@@ -129,10 +156,6 @@ function resolveDivisorShelfPanelId(
   return `divisorio-${index + 1}`;
 }
 
-/**
- * Face do DIV virada para o compartimento das prateleiras.
- * direita = face A (lado direito do DIV); esquerda = face B (lado esquerdo).
- */
 function resolveDivisorShelfFace(lado: "esquerda" | "direita"): "A" | "B" {
   return lado === "direita" ? "A" : "B";
 }
@@ -193,7 +216,7 @@ export function buildDivShelfDrilling(
     const divFace = resolveDivisorShelfFace(lado);
     const divHoles: PanelDrillHole[] = [];
     const divDims = resolveDivisorDimensions(box, div);
-    const divBottomY = internal.espessura;
+    const divBottomY = resolveDivisorBottomYAbs(box, div);
     const divTopY = divBottomY + divDims.alturaMm;
 
     const lateralTipo = lado === "esquerda" ? "lateral_esquerda" : "lateral_direita";
@@ -206,9 +229,9 @@ export function buildDivShelfDrilling(
     const divXFundo = divDims.profundidadeMm - margemFundo;
 
     for (const zone of compartments) {
-      // Clamp só no Y útil (LAT+DIV); nunca desactiva o lado do DIV num compartimento válido.
       const shelfBounds = resolveEffectiveShelfBounds(zone, divBottomY, divTopY);
       if (!shelfBounds) continue;
+      // Furos: grelha completa automática (pipeline actual).
       const absoluteYs = calcShelfGridYs(shelfBounds.yMin, shelfBounds.yMax, rules);
       for (const absoluteY of absoluteYs) {
         const lateralY = absoluteYToLateralPanelY(box, absoluteY);
@@ -231,7 +254,6 @@ export function buildDivShelfDrilling(
           face: "B",
           topDrillable: true,
         });
-        // Mesma grelha absoluta Y → Y local do DIV; face = lado das prateleiras.
         divHoles.push({
           x: divXFrente,
           y: divisorY,
@@ -256,7 +278,6 @@ export function buildDivShelfDrilling(
     if (divHoles.length) {
       const deduped = dedupePanelDrillHoles(divHoles);
       divisorio.set(panelId, deduped);
-      // Alias para caixas que ainda referenciam o id do item DIV.
       if (div.id && div.id !== panelId) divisorio.set(div.id, deduped);
     }
   });
@@ -270,10 +291,7 @@ export function buildDivShelfDrilling(
 }
 
 /** Largura da prateleira no compartimento entre lateral e DIV (mm). */
-export function resolveShelfWidthForDivSide(
-  box: DivSepBoxLike,
-  div: DivisorItem
-): number {
+export function resolveShelfWidthForDivSide(box: DivSepBoxLike, div: DivisorItem): number {
   const internal = getDivSepInternalDims(box);
   const divCenterX = resolveDivisorCenterX(box, div);
   const divDims = resolveDivisorDimensions(box, div);
@@ -292,17 +310,17 @@ export function boxUsesDivShelfMode(box: DivSepBoxLike): boolean {
 }
 
 /**
- * Zonas industriais onde cada DIV pode receber prateleiras (shelfEnabled + apoio LAT+DIV).
- * Nunca inclui a zona acima do SEP.
+ * Zonas industriais onde cada DIV pode receber prateleiras.
+ * Zona acima do SEP só para DIV ligado acima.
  */
 export function resolveDivShelfPlacementZones(
   box: DivSepBoxLike,
   div: DivisorItem
 ): VerticalCompartment[] {
-  const internal = getDivSepInternalDims(box);
   const divDims = resolveDivisorDimensions(box, div);
-  const divBottomY = internal.espessura;
+  const divBottomY = resolveDivisorBottomYAbs(box, div);
   const divTopY = divBottomY + divDims.alturaMm;
+  const allowAbove = isDivisorAboveSep(div);
 
   const sepBottoms = (box.separadores ?? [])
     .map((s) => resolveSeparadorBottomY(box, s))
@@ -311,38 +329,64 @@ export function resolveDivShelfPlacementZones(
 
   return resolveVerticalCompartments(box).filter((zone) => {
     if (!zone.shelfEnabled) return false;
-    // Cinto de segurança: qualquer zona que comece no SEP ou acima fica excluída.
-    if (highestSepBottom != null && zone.yMin >= highestSepBottom - 0.5) return false;
-    // Zona acima do SEP superior nunca é válida (mesmo se shelfEnabled falhar).
-    if (highestSepBottom != null && zone.yMax > highestSepBottom + 0.5 && zone.yMin >= highestSepBottom - 0.5) {
-      return false;
+    if (!allowAbove) {
+      if (highestSepBottom != null && zone.yMin >= highestSepBottom - 0.5) return false;
+      if (
+        highestSepBottom != null &&
+        zone.yMax > highestSepBottom + 0.5 &&
+        zone.yMin >= highestSepBottom - 0.5
+      ) {
+        return false;
+      }
     }
     return resolveEffectiveShelfBounds(zone, divBottomY, divTopY) != null;
   });
 }
 
-/** Compartimento principal LAT+DIV+SEP (mais baixo entre as zonas válidas). */
+/** Compartimento principal: mais baixo (DIV abaixo) ou mais alto (DIV acima). */
 export function resolvePrimaryDivShelfPlacementZone(
   box: DivSepBoxLike,
   div: DivisorItem
 ): VerticalCompartment | null {
   const zones = resolveDivShelfPlacementZones(box, div);
   if (zones.length === 0) return null;
+  if (isDivisorAboveSep(div)) {
+    return zones.reduce((best, zone) => (zone.yMin > best.yMin ? zone : best));
+  }
   return zones.reduce((best, zone) => (zone.yMin < best.yMin ? zone : best));
 }
 
 /**
- * Centros Y absolutos (mm, origem = base da caixa) das N prateleiras industriais.
- * Exactamente N, todos dentro da zona LAT+DIV+SEP — nenhum acima do SEP.
+ * Centros Y absolutos das N prateleiras.
+ * Com `prateleiraYsMm`: posições exactas na grelha.
+ * Sem: distribuição automática (comportamento anterior).
  */
 export function resolveDivShelfAbsoluteCenterYs(
   box: DivSepBoxLike,
   div: DivisorItem,
-  count: number
+  count: number,
+  rules?: Pick<RulesConfig, "furos"> | RulesConfig | null
 ): number[] {
   const n = Math.max(0, Math.floor(count));
   const zone = resolvePrimaryDivShelfPlacementZone(box, div);
   if (!zone || n < 1) return [];
+
+  const divBottomY = resolveDivisorBottomYAbs(box, div);
+  const divTopY = divBottomY + resolveDivisorDimensions(box, div).alturaMm;
+  const bounds = resolveEffectiveShelfBounds(zone, divBottomY, divTopY);
+  if (!bounds) return [];
+
+  const grid = resolveShelfGridYs(bounds.yMin, bounds.yMax, rules);
+  const selected = (div.prateleiraYsMm ?? [])
+    .map((y) => roundHoleMm(y))
+    .filter((y) => grid.some((g) => Math.abs(g - y) <= 0.6))
+    .sort((a, b) => a - b);
+
+  if (selected.length > 0) {
+    return selected.slice(0, n);
+  }
+
+  // Automático (legado): espaçamento uniforme na zona.
   const spacing = (zone.yMax - zone.yMin) / (n + 1);
   const ys: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -351,11 +395,6 @@ export function resolveDivShelfAbsoluteCenterYs(
   return ys;
 }
 
-/**
- * Número exacto de painéis prateleira no modo DIV.
- * Exactamente N por DIV com pelo menos um compartimento válido (LAT+DIV+SEP) —
- * nunca N × zonas (evita duplicar acima do SEP).
- */
 export function countDivShelfPanels(box: DivSepBoxLike): number {
   const n = Math.max(0, Math.floor(box.prateleiras ?? 0));
   if (n <= 0) return 0;

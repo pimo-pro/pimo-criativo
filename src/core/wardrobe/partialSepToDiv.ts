@@ -109,13 +109,6 @@ export function buildPartialSepToDivItems(params: {
   const sepPositionMm = Math.max(T, lowerH - T / 2);
   const sepId = partialSepIdForSide(side);
 
-  const sep: SeparadorItem = {
-    id: sepId,
-    positionMm: sepPositionMm,
-    referenceEdge: "bottom",
-    larguraMm: sepWidthMm,
-  };
-
   // Centro DIV desde aresta esquerda externa ≈ fromLeft;
   // resolveDivisorCenterX (ref left): center ≈ T + positionMm ⇒ positionMm = fromLeft - T
   const div: DivisorItem = {
@@ -123,6 +116,15 @@ export function buildPartialSepToDivItems(params: {
     positionMm: Math.max(T / 2, fromLeft - T),
     referenceEdge: "left",
     linkedSeparadorId: sepId,
+    posicaoRelativaAoSep: "baixo",
+  };
+
+  const sep: SeparadorItem = {
+    id: sepId,
+    positionMm: sepPositionMm,
+    referenceEdge: "bottom",
+    larguraMm: sepWidthMm,
+    ancoraHorizontal: side === "left" ? "esquerda" : "direita",
   };
 
   return { side, sep, div, sepWidthMm, sepPositionMm };

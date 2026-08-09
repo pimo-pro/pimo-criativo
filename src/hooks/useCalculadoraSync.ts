@@ -105,6 +105,10 @@ function getStructureFingerprint(
     referenceEdge: d.referenceEdge,
     alturaMm: d.alturaMm,
     profundidadeMm: d.profundidadeMm,
+    linkedSeparadorId: d.linkedSeparadorId,
+    posicaoRelativaAoSep: d.posicaoRelativaAoSep,
+    prateleiraLado: d.prateleiraLado,
+    prateleiraYsMm: d.prateleiraYsMm,
   }));
   const sepSig = (wsBox.separadores ?? []).map((s) => ({
     id: s.id,
@@ -112,6 +116,7 @@ function getStructureFingerprint(
     referenceEdge: s.referenceEdge,
     larguraMm: s.larguraMm,
     profundidadeMm: s.profundidadeMm,
+    ancoraHorizontal: s.ancoraHorizontal,
   }));
   const m = getSettings().modeloPI;
   const piDrillSig =

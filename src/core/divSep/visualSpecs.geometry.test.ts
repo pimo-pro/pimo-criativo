@@ -119,4 +119,90 @@ describe("SEP/DIV geometry — encaixe rosto a rosto (gap 0)", () => {
       expect(sepDims.alturaMm).toBe(DIV_SEP_ESPESSURA);
     }
   });
+
+  it("DIV acima do SEP: base no topo do SEP, topo na CIMA, sem overlap", () => {
+    const sep = defaultSeparadorItem({ id: "sep-cima", positionMm: 300 });
+    const div = defaultDivisorItem({
+      id: "div-cima",
+      linkedSeparadorId: "sep-cima",
+      posicaoRelativaAoSep: "cima",
+      positionMm: 281,
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 600, altura: 900, profundidade: 560 },
+      separadores: [sep],
+      divisores: [div],
+    });
+
+    const internal = getDivSepInternalDims(box);
+    const sepTopY = resolveSeparadorBottomY(box, sep) + resolveSeparadorDimensions(box, sep).alturaMm;
+    const cimaBottomY = internal.espessura + internal.alturaInterna;
+    const dims = resolveDivisorDimensions(box, div);
+    const linkedH = resolveDivisorLinkedHeightMm(box, div, sep);
+
+    expect(dims.alturaMm).toBe(cimaBottomY - sepTopY);
+    expect(dims.alturaMm).toBe(linkedH);
+
+    const heightM = box.dimensoes.altura / 1000;
+    const specs = getDivSepMeshSpecs(
+      box,
+      box.dimensoes.largura / 1000,
+      heightM,
+      0.56,
+      DIV_SEP_ESPESSURA / 1000
+    );
+    const sepSpec = specs.find((s) => s.name === `divsep-sep-${sep.id}`)!;
+    const divSpec = specs.find((s) => s.name === `divsep-div-${div.id}`)!;
+    const sepY = absYRangeFromSpec(sepSpec, heightM);
+    const divY = absYRangeFromSpec(divSpec, heightM);
+
+    expect(roundMm(divY.yMin)).toBe(roundMm(sepY.yMax));
+    expect(yOverlapMm(divY, sepY)).toBe(0);
+    expect(roundMm(divY.yMax)).toBe(roundMm(cimaBottomY));
+  });
+
+  it("DIV completo + SEP: auto-converte altura (não atravessa)", () => {
+    const sep = defaultSeparadorItem({ id: "sep-auto", positionMm: 400 });
+    const div = defaultDivisorItem({
+      id: "div-auto",
+      positionMm: 281,
+      // sem linkedSeparadorId
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 600, altura: 900, profundidade: 560 },
+      separadores: [sep],
+      divisores: [div],
+    });
+    const internal = getDivSepInternalDims(box);
+    const dims = resolveDivisorDimensions(box, div);
+    expect(dims.alturaMm).toBeLessThan(internal.alturaInterna);
+    expect(roundMm(dims.alturaMm)).toBe(
+      roundMm(resolveSeparadorBottomY(box, sep) - internal.espessura)
+    );
+  });
+
+  it("SEP ancora direita: largura parcial e mesh ancorada à LAT dir", () => {
+    const div = defaultDivisorItem({ id: "div-anc", positionMm: 281 });
+    const sep = defaultSeparadorItem({
+      id: "sep-anc",
+      positionMm: 400,
+      ancoraHorizontal: "direita",
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 600, altura: 900, profundidade: 560 },
+      divisores: [div],
+      separadores: [sep],
+    });
+    const internal = getDivSepInternalDims(box);
+    const dims = resolveSeparadorDimensions(box, sep);
+    expect(dims.larguraMm).toBeLessThan(internal.larguraInterna - 2);
+
+    const heightM = 0.9;
+    const specs = getDivSepMeshSpecs(box, 0.6, heightM, 0.56, DIV_SEP_ESPESSURA / 1000);
+    const sepSpec = specs.find((s) => s.name === `divsep-sep-${sep.id}`)!;
+    const halfW = dims.larguraMm / 2000;
+    const centerAbsMm = (sepSpec.pos[0]! + 0.6 / 2) * 1000;
+    const rightEdge = centerAbsMm + halfW * 1000;
+    expect(roundMm(rightEdge)).toBe(roundMm(internal.espessura + internal.larguraInterna));
+  });
 });

@@ -10,6 +10,7 @@ import {
   countDivShelfPanels,
   MIN_ABOVE_SEP_SHELF_HEIGHT_MM,
   resolveDivShelfAbsoluteCenterYs,
+  resolveDivShelfGridYs,
   resolveDivShelfPlacementZones,
   resolvePrimaryDivShelfPlacementZone,
   resolveShelfWidthForDivSide,
@@ -282,11 +283,69 @@ describe("buildDivShelfDrilling — prateleiras com DIV", () => {
     expect(result.divisorio.get("uuid-only")?.length ?? 0).toBeGreaterThan(0);
   });
 
-  it(`desactiva zona acima do SEP quando altura < ${MIN_ABOVE_SEP_SHELF_HEIGHT_MM} mm`, () => {
+  it(`desactiva zona acima do SEP sem DIV acima (mesmo se altura < ${MIN_ABOVE_SEP_SHELF_HEIGHT_MM} mm)`, () => {
     const zones = resolveVerticalCompartments(box);
     const topZone = zones[zones.length - 1]!;
     expect(topZone.yMax - topZone.yMin).toBeLessThan(MIN_ABOVE_SEP_SHELF_HEIGHT_MM);
     expect(topZone.shelfEnabled).toBe(false);
+  });
+
+  it("activa zona acima do SEP quando existe DIV ligado acima", () => {
+    const sepLow = defaultSeparadorItem({ id: "sep-low", positionMm: 400 });
+    const divAbove = defaultDivisorItem({
+      id: "div-above-shelf",
+      linkedSeparadorId: "sep-low",
+      posicaoRelativaAoSep: "cima",
+      positionMm: 281,
+      prateleiraLado: "direita",
+    });
+    const tallBox = makeDivSepTestBox({
+      dimensoes: { largura: 600, altura: 2000, profundidade: 560 },
+      prateleiras: 2,
+      separadores: [sepLow],
+      divisores: [divAbove],
+      panelIds: { divisores: ["pid-div-above"] },
+    });
+    const zones = resolveVerticalCompartments(tallBox);
+    const topZone = zones[zones.length - 1]!;
+    expect(topZone.shelfEnabled).toBe(true);
+
+    const placement = resolveDivShelfPlacementZones(tallBox, divAbove);
+    expect(placement.length).toBeGreaterThan(0);
+    expect(placement.some((z) => z.yMin >= topZone.yMin - 0.5)).toBe(true);
+
+    const result = buildDivShelfDrilling(tallBox, tallBox.panelIds, SHELF_RULES);
+    expect(result).not.toBeNull();
+    const sepBottomY = roundMm(resolveSeparadorBottomY(tallBox, sepLow));
+    const absYs = toAbsoluteLateralYs(
+      tallBox.espessura,
+      result!.lateral_direita.map((h) => roundMm(h.y))
+    );
+    expect(absYs.some((y) => y > sepBottomY)).toBe(true);
+  });
+
+  it("prateleiraYsMm escolhe posições exactas na grelha", () => {
+    const linkedDiv = defaultDivisorItem({
+      id: "div-exact",
+      positionMm: 281,
+      linkedSeparadorId: "sep-shelf",
+      prateleiraLado: "direita",
+    });
+    const linkedBox = makeDivSepTestBox({
+      dimensoes: { largura: 600, altura: 900, profundidade: 560 },
+      prateleiras: 2,
+      separadores: [sep],
+      divisores: [linkedDiv],
+    });
+    const grid = resolveDivShelfGridYs(linkedBox, linkedDiv, SHELF_RULES);
+    expect(grid.length).toBeGreaterThanOrEqual(2);
+    const chosen = [grid[0]!, grid[2] ?? grid[1]!];
+    const withExact = {
+      ...linkedDiv,
+      prateleiraYsMm: chosen,
+    };
+    const ys = resolveDivShelfAbsoluteCenterYs(linkedBox, withExact, 2, SHELF_RULES);
+    expect(ys).toEqual(chosen.slice(0, 2));
   });
 
   it("com N prateleiras e DIV+SEP, countDivShelfPanels = N (sem duplicar acima do SEP)", () => {

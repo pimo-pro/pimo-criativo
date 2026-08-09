@@ -35,6 +35,7 @@ import { getWardrobeGroupFromBaseCabinetId, isWardrobeVerticalDividerEnabled } f
 import { getCornerCabinetConfig } from "../../core/cornerCabinet";
 import {
   boxUsesDivShelfMode,
+  resolveDivShelfAbsoluteCenterYs,
   resolvePrimaryDivShelfPlacementZone,
   resolveShelfWidthForDivSide,
 } from "../../core/divSep/shelfDrilling";
@@ -325,14 +326,12 @@ function getShelfSpecs(width: number, height: number, depth: number, count: numb
           ? -width / 2 + THICKNESS_M + shelfWidthM / 2 + 0.001
           : divCenterXM + THICKNESS_M / 2 + shelfWidthM / 2 + 0.001;
 
-      // SSOT industrial: exactamente N na zona LAT+DIV+SEP — nunca acima do SEP.
+      // SSOT industrial: exactamente N na zona do DIV (abaixo ou acima do SEP).
       const zone = resolvePrimaryDivShelfPlacementZone(divShelfBox, div);
       if (!zone) continue;
-      const zoneHeightM = (zone.yMax - zone.yMin) / 1000;
-      const zoneCenterYM = (zone.yMin + zone.yMax) / 2000 - height / 2;
-      const zoneSpacing = zoneHeightM / (count + 1);
-      for (let i = 0; i < count; i++) {
-        const y = zoneCenterYM - zoneHeightM / 2 + THICKNESS_M + zoneSpacing * (i + 1);
+      const absYs = resolveDivShelfAbsoluteCenterYs(divShelfBox, div, count);
+      for (const absY of absYs) {
+        const y = absY / 1000 - height / 2;
         specs.push({
           size: [shelfWidthM, THICKNESS_M, shelfDepth],
           pos: [shelfCenterX, y, centerZ],
