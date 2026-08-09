@@ -58,7 +58,9 @@ export function deriveMelhoriasCount(
   return (
     countItems(report.design?.melhoriasPropostas) +
     countItems(report.design?.melhoriasImplementadas) +
+    countItems(report.producao?.melhoriasPropostas) +
     countItems(report.producao?.melhoriasImplementadas) +
+    countItems(report.montagem?.melhoriasPropostas) +
     countItems(report.montagem?.melhoriasImplementadas)
   );
 }

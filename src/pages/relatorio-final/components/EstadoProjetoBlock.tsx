@@ -23,7 +23,7 @@ import {
 } from "../reportStyles";
 import { R } from "../uiLabels";
 import EditableModal from "./EditableModal";
-import ReportItemsList from "./ReportItemsList";
+import ReportFeedbackPanel from "./ReportFeedbackPanel";
 
 type Props = {
   style: ReportStyle;
@@ -174,30 +174,35 @@ export default function EstadoProjetoBlock({
               />
             </label>
           </div>
-          <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
-            <ReportItemsList
-              label={R.errosDesign}
-              items={design.errosDesign}
-              onChange={(errosDesign) => onDesign({ ...design, errosDesign })}
-            />
-            <ReportItemsList
-              label={R.solucoes}
-              items={design.solucoesAplicadas}
-              onChange={(solucoesAplicadas) => onDesign({ ...design, solucoesAplicadas })}
-            />
-            <ReportItemsList
-              label={R.melhoriasPropostas}
-              items={design.melhoriasPropostas}
-              onChange={(melhoriasPropostas) => onDesign({ ...design, melhoriasPropostas })}
-            />
-            <ReportItemsList
-              label={R.melhoriasImpl}
-              items={design.melhoriasImplementadas}
-              onChange={(melhoriasImplementadas) =>
-                onDesign({ ...design, melhoriasImplementadas })
-              }
-            />
-          </div>
+          <ReportFeedbackPanel
+            buckets={[
+              {
+                kind: "erro",
+                label: R.erro,
+                items: design.errosDesign,
+                onChange: (errosDesign) => onDesign({ ...design, errosDesign }),
+              },
+              {
+                kind: "solucao",
+                label: R.solucaoAplicada,
+                items: design.solucoesAplicadas,
+                onChange: (solucoesAplicadas) => onDesign({ ...design, solucoesAplicadas }),
+              },
+              {
+                kind: "melhoriaProposta",
+                label: R.melhoriaProposta,
+                items: design.melhoriasPropostas,
+                onChange: (melhoriasPropostas) => onDesign({ ...design, melhoriasPropostas }),
+              },
+              {
+                kind: "melhoriaImpl",
+                label: R.melhoriaImplementada,
+                items: design.melhoriasImplementadas,
+                onChange: (melhoriasImplementadas) =>
+                  onDesign({ ...design, melhoriasImplementadas }),
+              },
+            ]}
+          />
         </div>
 
         <div style={reportSection("classic")}>
@@ -271,25 +276,35 @@ export default function EstadoProjetoBlock({
               />
             </label>
           </div>
-          <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
-            <ReportItemsList
-              label={R.errosProducao}
-              items={producao.erros}
-              onChange={(erros) => onProducao({ ...producao, erros })}
-            />
-            <ReportItemsList
-              label={R.solucoes}
-              items={producao.solucoesAplicadas}
-              onChange={(solucoesAplicadas) => onProducao({ ...producao, solucoesAplicadas })}
-            />
-            <ReportItemsList
-              label={R.melhoriasImpl}
-              items={producao.melhoriasImplementadas}
-              onChange={(melhoriasImplementadas) =>
-                onProducao({ ...producao, melhoriasImplementadas })
-              }
-            />
-          </div>
+          <ReportFeedbackPanel
+            buckets={[
+              {
+                kind: "erro",
+                label: R.erro,
+                items: producao.erros,
+                onChange: (erros) => onProducao({ ...producao, erros }),
+              },
+              {
+                kind: "solucao",
+                label: R.solucaoAplicada,
+                items: producao.solucoesAplicadas,
+                onChange: (solucoesAplicadas) => onProducao({ ...producao, solucoesAplicadas }),
+              },
+              {
+                kind: "melhoriaProposta",
+                label: R.melhoriaProposta,
+                items: producao.melhoriasPropostas,
+                onChange: (melhoriasPropostas) => onProducao({ ...producao, melhoriasPropostas }),
+              },
+              {
+                kind: "melhoriaImpl",
+                label: R.melhoriaImplementada,
+                items: producao.melhoriasImplementadas,
+                onChange: (melhoriasImplementadas) =>
+                  onProducao({ ...producao, melhoriasImplementadas }),
+              },
+            ]}
+          />
         </div>
 
         <div style={reportSection("classic")}>
@@ -344,25 +359,35 @@ export default function EstadoProjetoBlock({
               />
             </label>
           </div>
-          <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
-            <ReportItemsList
-              label={R.errosMontagem}
-              items={montagem.erros}
-              onChange={(erros) => onMontagem({ ...montagem, erros })}
-            />
-            <ReportItemsList
-              label={R.solucoes}
-              items={montagem.solucoesAplicadas}
-              onChange={(solucoesAplicadas) => onMontagem({ ...montagem, solucoesAplicadas })}
-            />
-            <ReportItemsList
-              label={R.melhoriasImpl}
-              items={montagem.melhoriasImplementadas}
-              onChange={(melhoriasImplementadas) =>
-                onMontagem({ ...montagem, melhoriasImplementadas })
-              }
-            />
-          </div>
+          <ReportFeedbackPanel
+            buckets={[
+              {
+                kind: "erro",
+                label: R.erro,
+                items: montagem.erros,
+                onChange: (erros) => onMontagem({ ...montagem, erros }),
+              },
+              {
+                kind: "solucao",
+                label: R.solucaoAplicada,
+                items: montagem.solucoesAplicadas,
+                onChange: (solucoesAplicadas) => onMontagem({ ...montagem, solucoesAplicadas }),
+              },
+              {
+                kind: "melhoriaProposta",
+                label: R.melhoriaProposta,
+                items: montagem.melhoriasPropostas,
+                onChange: (melhoriasPropostas) => onMontagem({ ...montagem, melhoriasPropostas }),
+              },
+              {
+                kind: "melhoriaImpl",
+                label: R.melhoriaImplementada,
+                items: montagem.melhoriasImplementadas,
+                onChange: (melhoriasImplementadas) =>
+                  onMontagem({ ...montagem, melhoriasImplementadas }),
+              },
+            ]}
+          />
         </div>
       </div>
 

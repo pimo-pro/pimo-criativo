@@ -3,10 +3,11 @@ import { buildCircleChartMetrics, type ProjectReportMetricas } from "@/core/proj
 type Props = {
   metricas: ProjectReportMetricas;
   size?: number;
+  showLegend?: boolean;
 };
 
 /** Grafico circular (donut) SVG — cores alinhadas a chartMetrics. */
-export default function ProgressCircle({ metricas, size = 200 }: Props) {
+export default function ProgressCircle({ metricas, size = 200, showLegend = true }: Props) {
   const items = buildCircleChartMetrics(metricas);
   const total = items.reduce((s, i) => s + Math.max(0, i.value), 0);
   const stroke = 22;
@@ -80,32 +81,34 @@ export default function ProgressCircle({ metricas, size = 200 }: Props) {
           </text>
         </svg>
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: 6,
-          fontSize: 12,
-          color: "var(--text-muted)",
-        }}
-      >
-        {items.map((item) => (
-          <div key={`leg-${item.key}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 2,
-                background: item.color,
-                flexShrink: 0,
-              }}
-            />
-            <span>
-              {item.label}: <strong style={{ color: "var(--text-main)" }}>{item.value}</strong>
-            </span>
-          </div>
-        ))}
-      </div>
+      {showLegend ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: 6,
+            fontSize: 12,
+            color: "var(--text-muted)",
+          }}
+        >
+          {items.map((item) => (
+            <div key={`leg-${item.key}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  background: item.color,
+                  flexShrink: 0,
+                }}
+              />
+              <span>
+                {item.label}: <strong style={{ color: "var(--text-main)" }}>{item.value}</strong>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

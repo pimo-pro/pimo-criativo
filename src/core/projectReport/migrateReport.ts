@@ -74,6 +74,7 @@ function migrateProducao(raw: unknown): ProjectReportProducao {
     reProducoes: Math.max(0, Number(p.reProducoes) || 0),
     erros: stringToTextoItems(p.erros, "pe"),
     solucoesAplicadas: stringToTextoItems(p.solucoesAplicadas, "ps"),
+    melhoriasPropostas: stringToTextoItems(p.melhoriasPropostas, "pp"),
     melhoriasImplementadas: stringToTextoItems(p.melhoriasImplementadas, "pi"),
   };
 }
@@ -94,6 +95,7 @@ function migrateMontagem(raw: unknown): ProjectReportMontagem {
     intervencoesPos: Math.max(0, Number(m.intervencoesPos) || 0),
     erros: stringToTextoItems(m.erros, "me"),
     solucoesAplicadas: stringToTextoItems(m.solucoesAplicadas, "ms"),
+    melhoriasPropostas: stringToTextoItems(m.melhoriasPropostas, "mp"),
     melhoriasImplementadas: stringToTextoItems(m.melhoriasImplementadas, "mi"),
   };
 }

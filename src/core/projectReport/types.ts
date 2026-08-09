@@ -139,6 +139,7 @@ export type ProjectReportProducao = {
   reProducoes: number;
   erros: ReportTextoItem[];
   solucoesAplicadas: ReportTextoItem[];
+  melhoriasPropostas: ReportTextoItem[];
   melhoriasImplementadas: ReportTextoItem[];
 };
 
@@ -150,6 +151,7 @@ export type ProjectReportMontagem = {
   intervencoesPos: number;
   erros: ReportTextoItem[];
   solucoesAplicadas: ReportTextoItem[];
+  melhoriasPropostas: ReportTextoItem[];
   melhoriasImplementadas: ReportTextoItem[];
 };
 
@@ -274,6 +276,7 @@ export function emptyProducao(): ProjectReportProducao {
     reProducoes: 0,
     erros: [],
     solucoesAplicadas: [],
+    melhoriasPropostas: [],
     melhoriasImplementadas: [],
   };
 }
@@ -287,6 +290,7 @@ export function emptyMontagem(): ProjectReportMontagem {
     intervencoesPos: 0,
     erros: [],
     solucoesAplicadas: [],
+    melhoriasPropostas: [],
     melhoriasImplementadas: [],
   };
 }
