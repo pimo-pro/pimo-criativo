@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-09T13:02:42.103Z",
+      "author": "pimo-pro",
+      "commitMessage": "PIMO — Relatório Final v3.2: Painéis com chapas (L×A), preço por metro, sem secção Materiais",
+      "version": "v6.0809.1402"
+    },
+    {
       "publishedAt": "2026-08-09T12:35:21.396Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Financeiro Industrial v3.1: correção final de portas=0€, gavetas=15€, remates=0€, chapas reais como fonte única",

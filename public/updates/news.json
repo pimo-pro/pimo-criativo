@@ -1,11 +1,21 @@
 {
-  "updatedAt": "2026-08-09T12:35:22.152Z",
+  "updatedAt": "2026-08-09T13:02:42.835Z",
   "news": [
+    {
+      "version": "v6.0809.1402",
+      "title": "PIMO — Relatório Final v3.2: Painéis com chapas (L×A), preço por metro, sem secção Materiais",
+      "description": "PIMO — Relatório Final v3.2: Painéis com chapas (L×A), preço por metro, sem secção Materiais",
+      "publishedAt": "2026-08-09T13:02:42.737Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "ee053611"
+    },
     {
       "version": "v6.0809.1335",
       "title": "PIMO — Financeiro Industrial v3.1: correção final de portas=0€, gavetas=15€, remates=0€, chapas reais como fonte única",
       "description": "PIMO — Financeiro Industrial v3.1: correção final de portas=0€, gavetas=15€, remates=0€, chapas reais como fonte única",
-      "publishedAt": "2026-08-09T12:35:22.051Z",
+      "publishedAt": "2026-08-09T13:37:00+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
