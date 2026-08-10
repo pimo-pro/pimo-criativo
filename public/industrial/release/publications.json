@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-10T15:45:32.793Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(div-sep): furos dinâmicos do SEP 2 com Referência Esquerda/Direita (khaled-pro)",
+      "version": "v6.0810.1645"
+    },
+    {
       "publishedAt": "2026-08-10T14:03:15.208Z",
       "author": "pimo-pro",
       "commitMessage": "feat(gavetas): percentuais Admin para altura de laterais e costa",

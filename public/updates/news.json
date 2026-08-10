@@ -1,11 +1,11 @@
 {
-  "updatedAt": "2026-08-10T15:25:43.384Z",
+  "updatedAt": "2026-08-10T15:45:32.892Z",
   "news": [
     {
       "version": "v6.0810.1624",
       "title": "Gavetas: regra única de redução das laterais (%)",
       "description": "Activada a regra única «Redução das laterais (%)» no Admin (Regras das Gavetas). Um percentual inteiro define o factor (1 − %/100) aplicado a laterais, costa e frente interna, com cascata Parametrics → layers → viewer → cutlist → CNC.",
-      "publishedAt": "2026-08-10T15:25:12.534Z",
+      "publishedAt": "2026-08-10T15:45:32.890Z",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
