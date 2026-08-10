@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Expansão Prateleiras DIV/SEP — Direção dinâmica + grelha segmentada + margens
+- Direção configurável: Direita, Esquerda, Superior, Inferior (visível conforme DIV/SEP)
+- Passo de grelha 32 mm (padrão) ou 64 mm (dobro)
+- Grelha contínua ou segmentada (blocos 4–8 centrados no LAT)
+- Margem superior/inferior com centragem automática da grelha
+- Migração dinâmica com SEP parcial (furos + prateleiras + LAT)
+- Integração total: 3D · cutlist · furação industrial
+- Validação: 44 testes núcleo + integração cutlist/phaseG/drillingAdapter
+
 ### Quadro V6 — Furos Intermédios Industriais
 - Regra: distância real do intermédio à face = **38 + b1(NL)** (frente e traseira espelhadas)
 - Padrão por lado: `X1=38` · `X_mid_F=38+b1` · `X_mid_R=D−(38+b1)` · `X_last=D−38`

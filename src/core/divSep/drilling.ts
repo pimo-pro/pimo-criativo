@@ -1,3 +1,11 @@
+/**
+ * Furação estrutural DIV/SEP (cavilhas + parafusos).
+ * Os furos de prateleira (grelha 32/64, segmentada, direcção) vivem em `shelfDrilling.ts`
+ * e são fundidos no cutlist via `buildDivShelfDrilling` — este módulo não os gera.
+ *
+ * A migração dinâmica Esquerda ↔ Direita (SEP.ancoraHorizontal + shelfOptions.direcao)
+ * altera quais laterais recebem cavilhas de SEP parcial via `resolveSeparadorLateralSides`.
+ */
 import type { PanelDrillHole } from "../types";
 import type { DivSepRules } from "../../admin/rules/divSepRules/rulesDefaults";
 import { CORNER_FF_EDGE_DOWEL_DEPTH_MM } from "../cornerCabinet/cornerFixedFrontDowels";
@@ -44,7 +52,11 @@ function resolveSeparadorLateralSides(
   return "both";
 }
 
-/** SEP parcial (esquerda/direita ou wardrobe): só cavilha, sem parafuso Ø5. */
+/**
+ * SEP parcial (esquerda/direita ou wardrobe): sem parafuso Ø5 nos receptores
+ * CIMA/FUNDO e na peça DIV. No LAT genérico (SEP 2), o Ø5 continua activo
+ * no lado da âncora — ver `drillSeparador`.
+ */
 function isSeparadorCavilhaOnly(item: SeparadorItem): boolean {
   if (isPartialSepCavilhaOnly(item)) return true;
   return resolveAncoraHorizontal(item) !== "completo";
@@ -251,10 +263,12 @@ function drillSeparador(
   const panelLarguraMm = dims.larguraMm;
 
   // Âncora esquerda/direita (ex. SEP 2) e wardrobe parcial: furos só no lado que toca a LAT.
-  const cavilhaOnly =
-    (cavilhaOnlyOnDivForPartialSep && isPartialSepCavilhaOnly(item)) ||
-    isSeparadorCavilhaOnly(item);
+  const wardrobePartialLatCavilhaOnly =
+    cavilhaOnlyOnDivForPartialSep && isPartialSepCavilhaOnly(item);
   const lateralSides = resolveSeparadorLateralSides(item);
+  // LAT: cavilha + Ø5 (prof. = espessura) no lado da âncora, com DIV ligado.
+  // Wardrobe parcial mantém só cavilha no LAT. DIV/CIMA/FUNDO ficam sem Ø5 via isSeparadorCavilhaOnly.
+  const includeLatParafuso = linkedDivs.length > 0 && !wardrobePartialLatCavilhaOnly;
 
   drillSeparadorEdgeHoles(
     sepHoles,
@@ -265,7 +279,6 @@ function drillSeparador(
     lateralSides
   );
   // Receptores LAT: comprimento = Pint (largura real do painel). Peça SEP continua Pint−5.
-  // SEP parcial / wardrobe: sem parafusos Ø5; só cavilha no lado seleccionado.
   drillLateralAtSepHeight(
     bucket,
     box,
@@ -273,7 +286,7 @@ function drillSeparador(
     centerY,
     internal.espessura,
     rules,
-    linkedDivs.length > 0 && !cavilhaOnly,
+    includeLatParafuso,
     panelId,
     lateralSides
   );

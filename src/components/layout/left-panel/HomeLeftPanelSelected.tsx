@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
-import UnifiedPopover, { StepperPopover } from "../../ui/UnifiedPopover";
+import UnifiedPopover from "../../ui/UnifiedPopover";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import Panel from "../../ui/Panel";
 import { NumericInput } from "../../ui/NumericInput";
@@ -8,6 +8,7 @@ import BoxLayersPanel from "./BoxLayersPanel";
 import BoxPecasObservacoesSection from "../../settings/observacoes/BoxPecasObservacoesSection";
 import DivSepPanel from "./DivSepPanel";
 import GavetasPopoverPanel from "./GavetasPopoverPanel";
+import PrateleirasPopoverPanel from "./PrateleirasPopoverPanel";
 import { useToast } from "../../../context/ToastContext";
 import { getMaterialByIdOrLabel } from "../../../core/materials";
 import type { UseMaterialsForPickerResult } from "./hooks/useMaterialsForPicker";
@@ -284,18 +285,27 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
                 )}
               </UnifiedPopover>
 
-              <StepperPopover
+              <UnifiedPopover
                 id={BOX_PANEL_IDS.prateleiras}
-                label="Prateleiras"
-                value={selectedPrateleiras}
-                onChange={(v) => actions.setPrateleiras(v)}
                 fullWidth
                 layout={panelPopoverLayout}
                 open={isPanelOpen(BOX_PANEL_IDS.prateleiras)}
                 onOpenChange={(open) => setPanelOpen(BOX_PANEL_IDS.prateleiras, open)}
                 triggerVariant="ghost"
                 triggerTitle="Número de prateleiras internas do módulo."
-              />
+                trigger={
+                  <span>
+                    Prateleiras — <strong>{selectedPrateleiras}</strong>
+                  </span>
+                }
+              >
+                <PrateleirasPopoverPanel
+                  box={selectedBox}
+                  value={selectedPrateleiras}
+                  onCountChange={(v) => actions.setPrateleiras(v)}
+                  onShelfOptionsChange={(partial) => actions.setShelfOptions(partial)}
+                />
+              </UnifiedPopover>
               <UnifiedPopover
                 id={BOX_PANEL_IDS.divisores}
                 fullWidth

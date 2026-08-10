@@ -9,6 +9,7 @@ import {
   resolveSeparadorDimensions,
 } from "../../../core/divSep/dimensions";
 import { resolveDivShelfGridYs } from "../../../core/divSep/shelfDrilling";
+import { resolveShelfGridStepMm } from "../../../core/divSep/shelfOptions";
 import type {
   DivisorPosicaoRelativaAoSep,
   DivisorPrateleiraLado,
@@ -357,11 +358,12 @@ export default function DivSepPanel({
                       const maxShelves = Math.max(0, Math.floor(box.prateleiras ?? 0));
                       const gridYs = resolveDivShelfGridYs(box, div);
                       const selected = div.prateleiraYsMm ?? [];
+                      const stepMm = resolveShelfGridStepMm(box);
                       if (gridYs.length === 0 || maxShelves < 1) return null;
                       return (
                         <div style={{ fontSize: 11, marginBottom: 4 }}>
                           <div style={{ marginBottom: 4 }}>
-                            Posição exacta das prateleiras (grelha 32 mm) — até {maxShelves}
+                            Posição exacta das prateleiras (grelha {stepMm} mm) — até {maxShelves}
                           </div>
                           <div
                             style={{

@@ -7,6 +7,27 @@ export type SeparadorReferenceEdge = "top" | "bottom";
 /** Lado do compartimento onde as prateleiras são colocadas em relação ao DIV. */
 export type DivisorPrateleiraLado = "esquerda" | "direita";
 
+/** Direção das prateleiras no contexto DIV/SEP (grelha + compartimento). */
+export type PrateleiraDirecao = "direita" | "esquerda" | "superior" | "inferior";
+
+/** Passo da grelha de furos de prateleira (mm). */
+export type PrateleiraGridStepMm = 32 | 64;
+
+/** Modo de exibição da grelha de furação. */
+export type PrateleiraGridMode = "continua" | "segmentada";
+
+/**
+ * Opções avançadas de prateleiras (nível caixa).
+ * Omitidas ⇒ comportamento legado (direita, 32 mm, grelha contínua, margem 0).
+ */
+export type BoxShelfOptions = {
+  direcao?: PrateleiraDirecao;
+  distanciaEntreFurosMm?: PrateleiraGridStepMm;
+  gridMode?: PrateleiraGridMode;
+  /** Margem igual topo/base (mm). 0 = grelha padrão das regras; >0 = zona centrada. */
+  margemSuperiorInferiorMm?: number;
+};
+
 /** Posição do DIV relativamente ao SEP ligado (rosto a rosto). */
 export type DivisorPosicaoRelativaAoSep = "baixo" | "cima";
 
@@ -69,6 +90,8 @@ export type DivSepBoxLike = {
   prateleiras?: number;
   divisores?: DivisorItem[];
   separadores?: SeparadorItem[];
+  /** Opções avançadas de prateleiras (grelha / direcção). */
+  shelfOptions?: BoxShelfOptions;
 };
 
 /**

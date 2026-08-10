@@ -595,6 +595,7 @@ export const convertWorkspaceToBox = (box: WorkspaceBox): BoxModule => {
     europeanDrawerConfig: box.europeanDrawerConfig,
     divisores: box.divisores ?? [],
     separadores: box.separadores ?? [],
+    shelfOptions: box.shelfOptions,
     catalogItemId: box.catalogItemId,
     baseCabinetId: box.baseCabinetId,
     piHideDrawerHoles: box.piHideDrawerHoles === true,

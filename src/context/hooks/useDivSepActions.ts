@@ -15,6 +15,7 @@ import {
   buildAutoSeparadorItem,
   refreshSeparadorWidthsAfterDivChange,
 } from "../../core/divSep/autoLink";
+import { migrateShelfOnSeparadorAncoraChange } from "../../core/divSep/shelfOptions";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 
 export type DivSepActions = Pick<
@@ -198,6 +199,8 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
             if (!owner) return prev;
             const workspaceBoxes = prev.workspaceBoxes.map((box) => {
               if (box.id !== owner.id) return box;
+              let shelfOptions = box.shelfOptions;
+              let divisores = box.divisores ?? [];
               const separadores = (box.separadores ?? []).map((item) => {
                 if (item.id !== id) return item;
                 const merged = applySeparadorAncoraUpdate(item, partial);
@@ -206,7 +209,16 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
                 }
                 return merged;
               });
-              return { ...box, separadores };
+              if (partial.ancoraHorizontal != null) {
+                const migrated = migrateShelfOnSeparadorAncoraChange(
+                  { ...box, separadores },
+                  id,
+                  partial.ancoraHorizontal
+                );
+                shelfOptions = migrated.shelfOptions;
+                divisores = migrated.divisores;
+              }
+              return { ...box, separadores, divisores, shelfOptions };
             });
             return recompute(prev, { workspaceBoxes }, true);
           },
@@ -236,7 +248,14 @@ export function useDivSepActions(ctx: ProjectActionsExecutionContext): DivSepAct
                 partial.positionMm != null || partial.referenceEdge != null
                   ? refreshSeparadorWidthsAfterDivChange(nextBox, box.separadores ?? [])
                   : box.separadores ?? [];
-              return { ...box, divisores, separadores };
+              let shelfOptions = box.shelfOptions;
+              if (partial.prateleiraLado === "esquerda" || partial.prateleiraLado === "direita") {
+                shelfOptions = {
+                  ...(shelfOptions ?? {}),
+                  direcao: partial.prateleiraLado,
+                };
+              }
+              return { ...box, divisores, separadores, shelfOptions };
             });
             return recompute(prev, { workspaceBoxes }, true);
           },

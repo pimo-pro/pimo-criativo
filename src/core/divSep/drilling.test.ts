@@ -461,7 +461,7 @@ describe("SEP LAT Y — caso industrial H=720 T=19 pos=600", () => {
 });
 
 describe("SEP âncora esquerda — furos dinâmicos (SEP 2)", () => {
-  it("Referência=Esquerda: cavilhas só na LAT esq + aresta L; sem parafuso Ø5 em LAT/CIMA/FUNDO", () => {
+  it("Referência=Esquerda: cavilha+Ø5 na LAT esq (30 mm); sem Ø5 em DIV/CIMA/FUNDO; LAT dir limpa", () => {
     const rules = DIV_SEP_TEST_RULES;
     const sep = defaultSeparadorItem({
       id: "sep-2",
@@ -481,17 +481,28 @@ describe("SEP âncora esquerda — furos dinâmicos (SEP 2)", () => {
     const panelIds = box.panelIds!;
     const { getExtraHoles } = buildDivSepDrilling(box, panelIds, rules);
     const sepDims = resolveSeparadorDimensions(box, sep);
+    const internal = getDivSepInternalDims(box);
+    const depthPos = calcDepthHolePositions(internal.profundidadeInterna, rules);
+    const dist = getParafusoDistanceFromCavilhaMm(rules);
     const sepHoles = getExtraHoles("separador", panelIds.separadores![0]!);
     const latLeft = getExtraHoles("lateral_esquerda");
     const latRight = getExtraHoles("lateral_direita");
     const fundo = getExtraHoles("fundo");
     const cima = getExtraHoles("cima");
+    const divHoles = getExtraHoles("divisorio", panelIds.divisores![0]!);
 
-    expect(latLeft.filter((h) => h.holeType === "cavilha").length).toBeGreaterThan(0);
+    const leftCav = latLeft.filter((h) => h.holeType === "cavilha");
+    const leftPar = latLeft.filter((h) => h.holeType === "parafuso");
+    expect(leftCav.length).toBeGreaterThan(0);
+    expect(leftPar.length).toBeGreaterThan(0);
     expect(latRight.filter((h) => h.holeType === "cavilha" || h.holeType === "parafuso").length).toBe(0);
-    expect(latLeft.some((h) => h.holeType === "parafuso")).toBe(false);
+    expect(leftCav.map((h) => roundMm(h.x)).sort()).toEqual(depthPos.cavilha.map(roundMm).sort());
+    expect(leftPar.map((h) => roundMm(h.x)).sort()).toEqual(depthPos.parafuso.map(roundMm).sort());
+    expect(leftPar.every((h) => roundMm(h.depth) === roundMm(internal.espessura))).toBe(true);
+    expect(roundMm(Math.abs(depthPos.parafuso[0]! - depthPos.cavilha[0]!))).toBe(roundMm(dist));
     expect(fundo.some((h) => h.holeType === "parafuso")).toBe(false);
     expect(cima.some((h) => h.holeType === "parafuso")).toBe(false);
+    expect(divHoles.some((h) => h.holeType === "parafuso")).toBe(false);
 
     const edgeL = sepHoles.filter((h) => isSeparadorEdgeCavilha(h, sepDims.larguraMm) && h.x <= PANEL_EDGE_EPS_MM);
     const edgeR = sepHoles.filter(
@@ -502,7 +513,7 @@ describe("SEP âncora esquerda — furos dinâmicos (SEP 2)", () => {
     expect(sepHoles.some((h) => h.holeType === "parafuso")).toBe(false);
   });
 
-  it("Referência=Direita: cavilhas só na LAT dir + aresta R; sem parafuso Ø5", () => {
+  it("Referência=Direita: cavilha+Ø5 na LAT dir; LAT esq limpa; sem Ø5 no DIV", () => {
     const rules = DIV_SEP_TEST_RULES;
     const sep = defaultSeparadorItem({
       id: "sep-dir",
@@ -522,13 +533,22 @@ describe("SEP âncora esquerda — furos dinâmicos (SEP 2)", () => {
     const panelIds = box.panelIds!;
     const { getExtraHoles } = buildDivSepDrilling(box, panelIds, rules);
     const sepDims = resolveSeparadorDimensions(box, sep);
+    const internal = getDivSepInternalDims(box);
+    const depthPos = calcDepthHolePositions(internal.profundidadeInterna, rules);
     const sepHoles = getExtraHoles("separador", panelIds.separadores![0]!);
     const latLeft = getExtraHoles("lateral_esquerda");
     const latRight = getExtraHoles("lateral_direita");
+    const divHoles = getExtraHoles("divisorio", panelIds.divisores![0]!);
 
-    expect(latRight.filter((h) => h.holeType === "cavilha").length).toBeGreaterThan(0);
+    const rightCav = latRight.filter((h) => h.holeType === "cavilha");
+    const rightPar = latRight.filter((h) => h.holeType === "parafuso");
+    expect(rightCav.length).toBeGreaterThan(0);
+    expect(rightPar.length).toBeGreaterThan(0);
     expect(latLeft.filter((h) => h.holeType === "cavilha" || h.holeType === "parafuso").length).toBe(0);
-    expect(latRight.some((h) => h.holeType === "parafuso")).toBe(false);
+    expect(rightCav.map((h) => roundMm(h.x)).sort()).toEqual(depthPos.cavilha.map(roundMm).sort());
+    expect(rightPar.map((h) => roundMm(h.x)).sort()).toEqual(depthPos.parafuso.map(roundMm).sort());
+    expect(rightPar.every((h) => roundMm(h.depth) === roundMm(internal.espessura))).toBe(true);
+    expect(divHoles.some((h) => h.holeType === "parafuso")).toBe(false);
 
     const edgeL = sepHoles.filter((h) => isSeparadorEdgeCavilha(h, sepDims.larguraMm) && h.x <= PANEL_EDGE_EPS_MM);
     const edgeR = sepHoles.filter(

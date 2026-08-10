@@ -235,6 +235,7 @@ export function useProjectActions(params: UseProjectActionsParams): ProjectActio
         "setTipoBorda",
         "setTipoFundo",
         "setPrateleiras",
+        "setShelfOptions",
         "setGavetas",
         "setEuropeanDrawerConfig",
         "addDoorLayerItem",

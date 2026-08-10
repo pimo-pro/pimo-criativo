@@ -355,6 +355,8 @@ export interface BoxModule {
   divisores: import("./divSep/types").DivisorItem[];
   /** Separadores horizontais (SEP) internos. */
   separadores: import("./divSep/types").SeparadorItem[];
+  /** Opções avançadas de prateleiras (grelha / direcção DIV-SEP). */
+  shelfOptions?: import("./divSep/types").BoxShelfOptions;
   /** ID do item de catálogo que originou a caixa. */
   catalogItemId?: string;
   /** ID do modelo base que originou a caixa. */
@@ -472,6 +474,8 @@ export interface WorkspaceBox {
   divisores: import("./divSep/types").DivisorItem[];
   /** Separadores horizontais (SEP) internos. */
   separadores: import("./divSep/types").SeparadorItem[];
+  /** Opções avançadas de prateleiras (grelha / direcção DIV-SEP). */
+  shelfOptions?: import("./divSep/types").BoxShelfOptions;
   /** Id do material (CRUD) ou label legado. Usado para resolver material no Viewer e em exports. */
   material?: string;
   /** false = veio fixo no nesting; true = permite rodar mesmo com material de madeira. */

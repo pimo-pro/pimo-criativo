@@ -21,10 +21,15 @@ import { devLogger } from "../../utils/devLogger";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 import { commitMaterialSync, refreshViewerAfterMaterialSync, syncDrawerFrontMaterialToViewer } from "../../core/materials/materialSync";
 import { boxUsesGavetaPortaSep } from "../../core/productModes/gavetaPortaSepLayout";
+import {
+  applyShelfDirecaoToBox,
+  mergeShelfOptions,
+} from "../../core/divSep/shelfOptions";
 
 export type LayerActions = Pick<
   ProjectActions,
   | "setPrateleiras"
+  | "setShelfOptions"
   | "setGavetas"
   | "setEuropeanDrawerConfig"
   | "setDrawerHeightMode"
@@ -85,6 +90,30 @@ export function useLayerActions(ctx: ProjectActionsExecutionContext): LayerActio
               },
               true
             );
+          },
+          true
+        );
+      },
+      setShelfOptions: (partial) => {
+        updateProject(
+          (prev) => {
+            const workspaceBoxes = prev.workspaceBoxes.map((box) => {
+              if (box.id !== prev.selectedWorkspaceBoxId) return box;
+              if (partial.direcao != null) {
+                const applied = applyShelfDirecaoToBox(box, partial.direcao);
+                return {
+                  ...box,
+                  shelfOptions: mergeShelfOptions(applied.shelfOptions, partial),
+                  divisores: applied.divisores,
+                  separadores: applied.separadores,
+                };
+              }
+              return {
+                ...box,
+                shelfOptions: mergeShelfOptions(box.shelfOptions, partial),
+              };
+            });
+            return recomputeState(prev, { workspaceBoxes }, true);
           },
           true
         );

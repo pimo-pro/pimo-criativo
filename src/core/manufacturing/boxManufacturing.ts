@@ -46,7 +46,9 @@ import {
   boxUsesDivShelfMode,
   countDivShelfPanels,
   resolvePrimaryDivShelfPlacementZone,
+  resolveSepOnlyShelfPlacementZone,
   resolveShelfWidthForDivSide,
+  resolveShelfWidthForSepOnly,
 } from "../divSep/shelfDrilling";
 import { gerarFerragensPi, gerarGavetasPi, gerarPaineisPi } from "../../data/moveisUnificados/pi/manufacturing";
 import { isCornerFixedFrontModel, gerarPaineisCorner, computeCornerLayoutForBox, resolveCornerDoorGapSettings } from "../cornerCabinet";
@@ -435,25 +437,47 @@ export function gerarPaineis(boxInput: BoxModule, rules: RulesConfig): PainelInd
     if (boxUsesDivShelfMode(box)) {
       const divisores = box.divisores ?? [];
       let shelfIndex = 0;
-      for (const div of divisores) {
-        const larguraPrateleira = clampPositive(resolveShelfWidthForDivSide(box, div));
-        // Exactamente N peças por DIV no compartimento LAT+DIV+SEP (nunca × zonas / acima do SEP).
-        if (resolvePrimaryDivShelfPlacementZone(box, div) == null) continue;
-        for (let i = 0; i < nPrateleiras; i++) {
-          const prateleiraId = getArrayPanelId(box, "prateleiras", shelfIndex);
-          assertPanelDimensions(box, prateleiraId, "prateleira", larguraPrateleira, profundidadePrateleira, espessura);
-          paineis.push({
-            id: prateleiraId,
-            tipo: "prateleira",
-            largura_mm: larguraPrateleira,
-            altura_mm: profundidadePrateleira,
-            espessura_mm: espessura,
-            material,
-            orientacaoFibra: "none",
-            quantidade: 1,
-            custo: 0,
-          });
-          shelfIndex += 1;
+      if (divisores.length === 0) {
+        const larguraPrateleira = clampPositive(resolveShelfWidthForSepOnly(box));
+        if (resolveSepOnlyShelfPlacementZone(box) != null) {
+          for (let i = 0; i < nPrateleiras; i++) {
+            const prateleiraId = getArrayPanelId(box, "prateleiras", shelfIndex);
+            assertPanelDimensions(box, prateleiraId, "prateleira", larguraPrateleira, profundidadePrateleira, espessura);
+            paineis.push({
+              id: prateleiraId,
+              tipo: "prateleira",
+              largura_mm: larguraPrateleira,
+              altura_mm: profundidadePrateleira,
+              espessura_mm: espessura,
+              material,
+              orientacaoFibra: "none",
+              quantidade: 1,
+              custo: 0,
+            });
+            shelfIndex += 1;
+          }
+        }
+      } else {
+        for (const div of divisores) {
+          const larguraPrateleira = clampPositive(resolveShelfWidthForDivSide(box, div));
+          // Exactamente N peças por DIV no compartimento LAT+DIV+SEP (nunca × zonas / acima do SEP).
+          if (resolvePrimaryDivShelfPlacementZone(box, div) == null) continue;
+          for (let i = 0; i < nPrateleiras; i++) {
+            const prateleiraId = getArrayPanelId(box, "prateleiras", shelfIndex);
+            assertPanelDimensions(box, prateleiraId, "prateleira", larguraPrateleira, profundidadePrateleira, espessura);
+            paineis.push({
+              id: prateleiraId,
+              tipo: "prateleira",
+              largura_mm: larguraPrateleira,
+              altura_mm: profundidadePrateleira,
+              espessura_mm: espessura,
+              material,
+              orientacaoFibra: "none",
+              quantidade: 1,
+              custo: 0,
+            });
+            shelfIndex += 1;
+          }
         }
       }
     } else {

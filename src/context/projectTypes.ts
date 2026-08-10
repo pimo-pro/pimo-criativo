@@ -524,6 +524,8 @@ export interface ProjectActions {
   selectModelInstance: (_boxId: string, _modelInstanceId: string | null) => void;
   renameBox: (_nome: string) => void;
   setPrateleiras: (_quantidade: number) => void;
+  /** Opções avançadas de prateleiras (direcção, passo, grelha, margem). */
+  setShelfOptions: (_partial: Partial<import("../core/divSep/types").BoxShelfOptions>) => void;
   setGavetas: (_quantidade: number) => void;
   /** Legacy stub — ignora config europeia; aplica só contagem clássica. */
   setEuropeanDrawerConfig?: (

@@ -213,3 +213,15 @@ export function clampSeparadorPosition(box: DivSepBoxLike, item: SeparadorItem, 
   const maxPos = internal.alturaInterna - half;
   return Math.min(maxPos, Math.max(minPos, positionMm));
 }
+
+/** Largura útil de prateleira a vão completo (modo só-SEP / legado sem DIV). */
+export function resolveFullInternalShelfWidthMm(box: DivSepBoxLike): number {
+  const internal = getDivSepInternalDims(box);
+  return Math.max(1, internal.larguraInterna - SHELF_WIDTH_CLEARANCE_MM);
+}
+
+/** Profundidade útil de prateleira (vão interno − folga frontal). */
+export function resolveInternalShelfDepthMm(box: DivSepBoxLike): number {
+  const internal = getDivSepInternalDims(box);
+  return Math.max(1, internal.profundidadeInterna - SHELF_DEPTH_CLEARANCE_MM);
+}

@@ -11,6 +11,23 @@ export {
   resolvePosicaoRelativaAoSep,
   resolveAncoraHorizontal,
 } from "./types";
+export type {
+  DivisorPrateleiraLado,
+  PrateleiraDirecao,
+  PrateleiraGridStepMm,
+  PrateleiraGridMode,
+  BoxShelfOptions,
+} from "./types";
+export {
+  resolveAvailableShelfDirecoes,
+  resolveShelfDirecao,
+  resolveShelfGridStepMm,
+  resolveShelfGridMode,
+  resolveShelfMargemMm,
+  applyShelfDirecaoToBox,
+  migrateShelfOnSeparadorAncoraChange,
+  mergeShelfOptions,
+} from "./shelfOptions";
 export {
   findSeparadorById,
   isDivisorLinkedToSeparador,
@@ -23,6 +40,22 @@ export {
   DIV_SEP_VERTICAL_CLEARANCE_MM,
 } from "./coupling";
 export {
+  resolveVerticalCompartments,
+  separadorCutsShelfSide,
+  resolveShelfGridYs,
+  resolveDivShelfGridYs,
+  resolveDivShelfAbsoluteCenterYs,
+  resolveSepOnlyShelfAbsoluteCenterYs,
+  resolveSepOnlyShelfPlacementZone,
+  resolvePrimaryDivShelfPlacementZone,
+  boxHasDivisorAboveSep,
+  buildDivShelfDrilling,
+  buildSegmentedShelfGridYs,
+  resolveShelfWidthForSepOnly,
+  boxUsesDivShelfMode,
+  countDivShelfPanels,
+} from "./shelfDrilling";
+export {
   getDivSepInternalDims,
   resolveDivisorDimensions,
   resolveSeparadorDimensions,
@@ -32,6 +65,8 @@ export {
   resolveSeparadorLeftXAbsMm,
   clampDivisorPosition,
   clampSeparadorPosition,
+  resolveFullInternalShelfWidthMm,
+  resolveInternalShelfDepthMm,
 } from "./dimensions";
 export {
   buildAutoDivisorItem,
@@ -40,16 +75,6 @@ export {
   autoLinkDivisorsToSeparador,
   pickPreferredSeparador,
 } from "./autoLink";
-export {
-  resolveVerticalCompartments,
-  separadorCutsShelfSide,
-  resolveShelfGridYs,
-  resolveDivShelfGridYs,
-  resolveDivShelfAbsoluteCenterYs,
-  resolvePrimaryDivShelfPlacementZone,
-  boxHasDivisorAboveSep,
-  buildDivShelfDrilling,
-} from "./shelfDrilling";
 export {
   calcularPosicaoCavilha,
   calcularPosicoesCavilha,

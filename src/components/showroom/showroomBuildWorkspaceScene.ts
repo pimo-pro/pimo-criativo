@@ -192,6 +192,7 @@ export function buildShowroomWorkspaceSceneGroup(project: ProjectState): THREE.G
       drillMarkersByPanel,
       divisores: wsBox.divisores,
       separadores: wsBox.separadores,
+      shelfOptions: wsBox.shelfOptions,
       noBackPanel: resolveNoBackPanel(wsBox),
       costaMaterialId: wsBox.costaMaterialId,
       separadorMaterialId: wsBox.separadorMaterialId,

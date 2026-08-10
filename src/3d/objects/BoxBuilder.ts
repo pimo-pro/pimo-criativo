@@ -37,7 +37,10 @@ import {
   boxUsesDivShelfMode,
   resolveDivShelfAbsoluteCenterYs,
   resolvePrimaryDivShelfPlacementZone,
+  resolveSepOnlyShelfAbsoluteCenterYs,
+  resolveSepOnlyShelfPlacementZone,
   resolveShelfWidthForDivSide,
+  resolveShelfWidthForSepOnly,
 } from "../../core/divSep/shelfDrilling";
 import type { DivSepBoxLike } from "../../core/divSep/types";
 import { resolveDivisorCenterX } from "../../core/divSep/dimensions";
@@ -129,6 +132,8 @@ export type BoxOptions = {
   /** Divisórios e separadores dinâmicos (estado da caixa). */
   divisores?: import("../../core/divSep/types").DivisorItem[];
   separadores?: import("../../core/divSep/types").SeparadorItem[];
+  /** Opções avançadas de prateleiras (grelha / direcção). */
+  shelfOptions?: import("../../core/divSep/types").BoxShelfOptions;
   /** Material industrial do corpo (canonicalId) para painéis com material próprio (costa/separador). */
   bodyMaterialId?: string;
   /** Override de material da COSTA (canonicalId). */
@@ -304,41 +309,58 @@ function getShelfSpecs(width: number, height: number, depth: number, count: numb
   const yMin = -height / 2 + THICKNESS_M + spacing;
 
   const divShelfBox: DivSepBoxLike | null =
-    opts?.divisores?.length && count >= 1
+    ((opts?.divisores?.length ?? 0) > 0 || (opts?.separadores?.length ?? 0) > 0) && count >= 1
       ? {
           dimensoes: { largura: width * 1000, altura: height * 1000, profundidade: depth * 1000 },
           espessura: THICKNESS_M * 1000,
           profundidadeExterna: depth * 1000,
           prateleiras: count,
-          divisores: opts.divisores,
-          separadores: opts.separadores,
+          divisores: opts?.divisores,
+          separadores: opts?.separadores,
+          shelfOptions: opts?.shelfOptions,
         }
       : null;
 
   if (divShelfBox && boxUsesDivShelfMode(divShelfBox)) {
-    for (const div of opts!.divisores!) {
-      const shelfWidthM = Math.max(0.001, resolveShelfWidthForDivSide(divShelfBox, div) / 1000);
-      const divCenterXAbs = resolveDivisorCenterX(divShelfBox, div);
-      const divCenterXM = divCenterXAbs / 1000 - width / 2;
-      const lado = div.prateleiraLado ?? "direita";
-      const shelfCenterX =
-        lado === "esquerda"
-          ? -width / 2 + THICKNESS_M + shelfWidthM / 2 + 0.001
-          : divCenterXM + THICKNESS_M / 2 + shelfWidthM / 2 + 0.001;
-
-      // SSOT industrial: exactamente N na zona do DIV (abaixo ou acima do SEP).
-      const zone = resolvePrimaryDivShelfPlacementZone(divShelfBox, div);
-      if (!zone) continue;
-      const absYs = resolveDivShelfAbsoluteCenterYs(divShelfBox, div, count);
-      for (const absY of absYs) {
-        const y = absY / 1000 - height / 2;
-        specs.push({
-          size: [shelfWidthM, THICKNESS_M, shelfDepth],
-          pos: [shelfCenterX, y, centerZ],
-        });
+    const divisores = opts?.divisores ?? [];
+    if (divisores.length === 0) {
+      const zone = resolveSepOnlyShelfPlacementZone(divShelfBox);
+      if (zone) {
+        const shelfWidthM = Math.max(0.001, resolveShelfWidthForSepOnly(divShelfBox) / 1000);
+        const absYs = resolveSepOnlyShelfAbsoluteCenterYs(divShelfBox, count);
+        for (const absY of absYs) {
+          const y = absY / 1000 - height / 2;
+          specs.push({
+            size: [shelfWidthM, THICKNESS_M, shelfDepth],
+            pos: [0, y, centerZ],
+          });
+        }
+        return specs;
       }
+    } else {
+      for (const div of divisores) {
+        const shelfWidthM = Math.max(0.001, resolveShelfWidthForDivSide(divShelfBox, div) / 1000);
+        const divCenterXAbs = resolveDivisorCenterX(divShelfBox, div);
+        const divCenterXM = divCenterXAbs / 1000 - width / 2;
+        const lado = div.prateleiraLado ?? "direita";
+        const shelfCenterX =
+          lado === "esquerda"
+            ? -width / 2 + THICKNESS_M + shelfWidthM / 2 + 0.001
+            : divCenterXM + THICKNESS_M / 2 + shelfWidthM / 2 + 0.001;
+
+        const zone = resolvePrimaryDivShelfPlacementZone(divShelfBox, div);
+        if (!zone) continue;
+        const absYs = resolveDivShelfAbsoluteCenterYs(divShelfBox, div, count);
+        for (const absY of absYs) {
+          const y = absY / 1000 - height / 2;
+          specs.push({
+            size: [shelfWidthM, THICKNESS_M, shelfDepth],
+            pos: [shelfCenterX, y, centerZ],
+          });
+        }
+      }
+      return specs;
     }
-    return specs;
   }
 
   for (let i = 0; i < count; i++) {
