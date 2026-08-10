@@ -120,7 +120,7 @@ describe("stack din?mico anti-sobreposi??o", () => {
     // folga CIMA = frontH×(1−ratio) − elevação − T (ratio Admin 0,75; elev highest 17)
     const frontHTop = heights[2]!;
     const expectedCimaClearance =
-      frontHTop * (1 - settingsDefaults.gavetas.gavetaPercentualReducaoLaterais) - 17 - T;
+      frontHTop * (settingsDefaults.gavetas.gavetaReducaoPercentual / 100) - 17 - T;
     expect(cimaUnderside - bodyTop2).toBeCloseTo(expectedCimaClearance, 1);
 
     const geo2 = resolveDrawerFrontStackGeometry({

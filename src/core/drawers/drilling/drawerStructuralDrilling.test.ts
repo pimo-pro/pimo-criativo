@@ -18,7 +18,7 @@ import { DRAWER_DOWEL_EDGE_DEPTH_MM } from "./drawerDowelInterlock";
 
 /** Dimensões de referência alinhadas com XML_COMPLITO. */
 const LATERAL = { largura: 521, altura: 150, espessura: 16 } as const;
-const COSTA = { largura: 489, altura: 127.5, espessura: 16 } as const; // lat × 0,85
+const COSTA = { largura: 489, altura: 112.5, espessura: 16 } as const; // lat × factor (25% → 0,75)
 const FRENTE = { largura: 598, altura: 178, espessura: 19 } as const;
 
 describe("Furação estrutural de gaveta (TechnicalDrillHole) — golden XML_COMPLITO", () => {
@@ -88,9 +88,9 @@ describe("Furação estrutural de gaveta (TechnicalDrillHole) — golden XML_COM
     );
   });
 
-  it("costa — Y=15/H-15 Depth 30; altura costa = lat × percentualCosta", () => {
+  it("costa — Y=15/H-15 Depth 30; altura costa = lat × factor único", () => {
     const sideH = 150;
-    const costaH = sideH * 0.85;
+    const costaH = sideH * (1 - 25 / 100);
     expect(costaH).toBe(COSTA.altura);
     const holes = computeDrawerCostaStructuralHoles({
       largura: COSTA.largura,
@@ -102,7 +102,7 @@ describe("Furação estrutural de gaveta (TechnicalDrillHole) — golden XML_COM
     const cavilhas = holes.filter((h) => h.tipo === "cavilha");
     expect(cavilhas).toHaveLength(4);
     expect(cavilhas.every((h) => h.profundidade === 30 && h.diametro === 10)).toBe(true);
-    expect([...new Set(cavilhas.map((h) => h.y))].sort((a, b) => a - b)).toEqual([15, 112.5]); // 127.5−15
+    expect([...new Set(cavilhas.map((h) => h.y))].sort((a, b) => a - b)).toEqual([15, 97.5]); // 112.5−15
   });
 
   it("frente interna — 4 cavilhas face prof.13 (Y=15 / H-35)", () => {

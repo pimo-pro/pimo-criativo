@@ -15,7 +15,7 @@ import { DRAWER_VERTICAL_GAP_MM } from "./drawerGeometryConstants";
 export const DRAWER_TOP_FRONT_CIMA_OVERHANG_BELOW_MM = 2;
 
 /**
- * @deprecated Preferir settings.gavetas.gavetaPercentualReducaoLaterais.
+ * @deprecated Preferir settings.gavetas.gavetaReducaoPercentual.
  * Valor legado (mm) — não usar em geometria nova.
  */
 export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM = 64.5;
@@ -25,20 +25,37 @@ export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_LOWEST_MM = DRAWER_LATERAL_HEIGHT
 export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_OTHER_MM = DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM;
 
 /**
+ * Converte % Admin (inteiro) → factor decimal: 25 → 0,75.
+ * laterais = frente × factor; costa = laterais × factor.
+ */
+export function drawerReductionPercentToFactor(percent: number): number {
+  const p = Math.round(Number(percent));
+  const safe = Number.isFinite(p)
+    ? p
+    : settingsDefaults.gavetas.gavetaReducaoPercentual;
+  return Math.max(0.01, Math.min(0.99, 1 - safe / 100));
+}
+
+/** Factor default a partir de settings.gavetas.gavetaReducaoPercentual. */
+export function resolveDefaultDrawerHeightReductionFactor(): number {
+  return drawerReductionPercentToFactor(settingsDefaults.gavetas.gavetaReducaoPercentual);
+}
+
+/**
  * Altura madeira das laterais: sideH = frontH × heightRatio.
- * Ratio default = settings.gavetas.gavetaPercentualReducaoLaterais (Admin).
+ * Ratio default = factor de gavetaReducaoPercentual (Admin).
  */
 export function resolveDrawerWoodBodyHeightForStackRoleMm(
   frontHeightMm: number,
   _stackRole: DrawerStackRole = "middle",
-  heightRatio: number = settingsDefaults.gavetas.gavetaPercentualReducaoLaterais
+  heightRatio: number = resolveDefaultDrawerHeightReductionFactor()
 ): number {
   void _stackRole;
   const frontH = Math.max(0, Number(frontHeightMm) || 0);
   const ratio =
     Number.isFinite(heightRatio) && heightRatio > 0
       ? heightRatio
-      : settingsDefaults.gavetas.gavetaPercentualReducaoLaterais;
+      : resolveDefaultDrawerHeightReductionFactor();
   return Math.max(1, frontH * ratio);
 }
 

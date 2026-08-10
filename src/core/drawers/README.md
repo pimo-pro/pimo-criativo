@@ -43,7 +43,7 @@ Uma gaveta é composta por **5 peças principais de madeira**:
 2. **LATERAIS** (esquerda + direita)
   - Formam as paredes internas
   - Largura corpo = `larguraInterna - 14mm` (7mm cada lado para corrediças)
-  - Altura = `alturaFrente × gavetaPercentualReducaoLaterais` (default 0,75 — Admin)
+  - Altura = `alturaFrente × (1 − gavetaReducaoPercentual/100)` (default 25% → 0,75 — Admin)
   - Espessura = 16mm (configurável)
   - Profundidade = comprimento_corrediça − 10 mm
   - **Encostadas no fundo e traseira**
@@ -59,7 +59,7 @@ Uma gaveta é composta por **5 peças principais de madeira**:
 4. **TRASEIRA** (parede do fundo)
   - Fecha o fundo da gaveta
   - Largura = larguraCorpo − 2 × espessura_lateral
-  - Altura = `alturaLaterais × gavetaPercentualReducaoCosta` (default 0,85 — Admin)
+  - Altura = `alturaLaterais × (1 − gavetaReducaoPercentual/100)` (mesmo factor — Admin)
   - Espessura = 16mm (configurável)
   - **Encostada nas laterais**
 

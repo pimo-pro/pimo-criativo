@@ -9,7 +9,7 @@ import {
   resolveDrawerGroupPosZMm,
   resolveDrawerViewerPosZAdjustmentMm,
 } from "../core/drawers/drawerViewerLayout";
-import { DRAWER_SIDE_BASE_ELEVATION_MM, DRAWER_SIDE_TOP_CLEARANCE_RATIO } from "../core/drawers/drawerGeometryConstants";
+import { DRAWER_SIDE_BASE_ELEVATION_MM } from "../core/drawers/drawerGeometryConstants";
 import { drawerGroupToLayerItems, generateDrawerGroup } from "../core/drawers";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 
@@ -65,7 +65,7 @@ describe("drawerViewerLayout — geometria 3D industrial", () => {
     expect(spec.leftSideDepthM).toBeCloseTo(0.49, 3);
     expect(spec.leftSidePosZ).toBeCloseTo(resolveDrawerBodyCenterZMm(19, 490) / 1000, 4);
     expect(spec.leftSidePosY).toBeCloseTo(
-      resolveDrawerBodyCenterOffsetYMm(layer.height!) / 1000,
+      (layer.leftSidePosY ?? layer.bodyCenterOffsetY ?? 0) / 1000,
       4
     );
     expect(spec.heightM).toBeGreaterThan(spec.woodBodyHeightM ?? 0);
@@ -93,7 +93,7 @@ describe("drawerViewerLayout — geometria 3D industrial", () => {
     expect(front.maxZ - latEsq.maxZ).toBeGreaterThan(0);
   });
 
-  it("delta altura frente vs corpo = 25% da frente", () => {
+  it("factor único: laterais = frente × f; costa = laterais × f", () => {
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: 400,
@@ -107,9 +107,9 @@ describe("drawerViewerLayout — geometria 3D industrial", () => {
       drawerSettings: settingsDefaults.gavetas,
     });
     const [layer] = drawerGroupToLayerItems(group);
-    expect(layer.height! - (layer.backHeight ?? 0)).toBeCloseTo(
-      layer.height! * DRAWER_SIDE_TOP_CLEARANCE_RATIO,
-      0
-    );
+    const f = 1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
+    const sideH = layer.leftSideHeight ?? layer.bodyHeight ?? 0;
+    expect(sideH).toBeCloseTo((layer.height ?? 0) * f, 1);
+    expect(layer.backHeight ?? 0).toBeCloseTo(sideH * f, 1);
   });
 });

@@ -32,6 +32,7 @@ import {
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "./drawerGeometryConstants";
 import { resolveDrawerBodyElevationForStackRoleMm } from "./drawerStackPosition";
+import { drawerReductionPercentToFactor } from "./drawerSolidWorksStackGeometry";
 import {
   DRAWER_SLIDE_LENGTHS_MM,
   isDrawerSlideLengthMm,
@@ -209,13 +210,8 @@ function resolveDrawerSettings(
     gavetaEspessuraTraseiraMm: normalizePositiveNumber(settings?.gavetaEspessuraTraseiraMm, defaults.gavetaEspessuraTraseiraMm),
     gavetaEspessuraFundoMm: normalizePositiveNumber(settings?.gavetaEspessuraFundoMm, defaults.gavetaEspessuraFundoMm),
     gavetaRecuoCorpoMm: normalizePositiveNumber(settings?.gavetaRecuoCorpoMm, defaults.gavetaRecuoCorpoMm),
-    gavetaPercentualReducaoLaterais: normalizePositiveNumber(
-      settings?.gavetaPercentualReducaoLaterais,
-      defaults.gavetaPercentualReducaoLaterais
-    ),
-    gavetaPercentualReducaoCosta: normalizePositiveNumber(
-      settings?.gavetaPercentualReducaoCosta,
-      defaults.gavetaPercentualReducaoCosta
+    gavetaReducaoPercentual: Math.round(
+      normalizePositiveNumber(settings?.gavetaReducaoPercentual, defaults.gavetaReducaoPercentual)
     ),
     gavetaRecuoProfundidadeCorredicaMm: normalizePositiveNumber(
       settings?.gavetaRecuoProfundidadeCorredicaMm,
@@ -366,11 +362,12 @@ export function calculateDrawerSpecs(
   const frontHeight = clampMm(frontHeightOverride ?? drawerHeight);
 
   // ===== CORPO =====
-  // Laterais = frente × percentual Admin; costa = laterais × percentual Admin.
+  // Factor único Admin: laterais = frente × f; costa = laterais × f; frente_int = frente × f.
+  const heightFactor = drawerReductionPercentToFactor(settings.gavetaReducaoPercentual);
   const woodBodyHeight = resolveDrawerWoodBodyHeightMm(
     frontHeight,
     dimensions.stackRole,
-    settings.gavetaPercentualReducaoLaterais
+    heightFactor
   );
   const bodyHeight =
     metalBoxEnabled && resolvedMetalHeight > 0 ? resolvedMetalHeight : woodBodyHeight;
@@ -393,7 +390,8 @@ export function calculateDrawerSpecs(
 
   const needsStructuralFrontInt = metalBoxEnabled;
   const internalFrontWidth = needsStructuralFrontInt ? bodyWidth : 0;
-  const internalFrontHeight = needsStructuralFrontInt ? bodyHeight : 0;
+  // Frente interna segue o mesmo factor das laterais (frente × f), não a altura metal.
+  const internalFrontHeight = needsStructuralFrontInt ? woodBodyHeight : 0;
   const internalFrontThickness = needsStructuralFrontInt ? sideThickness : 0;
   const externalFrontWidth = frontWidth;
   const externalFrontHeight = frontHeight;
@@ -412,11 +410,9 @@ export function calculateDrawerSpecs(
   const rightSideDepth = woodSideDepth;
 
   // ===== TRASEIRA =====
-  // Largura = vão entre laterais; altura = laterais × percentualCosta.
+  // Largura = vão entre laterais; altura = laterais × mesmo factor.
   const backWidth = clampMm(bodyWidth - 2 * sideThickness);
-  const backHeight = clampMm(
-    Math.max(1, woodBodyHeight * settings.gavetaPercentualReducaoCosta)
-  );
+  const backHeight = clampMm(Math.max(1, woodBodyHeight * heightFactor));
 
   // ===== FUNDO =====
   // Vão entre laterais × comprimento das laterais + entradas industriais:

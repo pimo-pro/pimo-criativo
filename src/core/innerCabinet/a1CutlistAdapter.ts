@@ -92,10 +92,9 @@ function buildA1DrawerPieces(
     const frontH = Math.max(1, layout.drawerZoneHeightMm - 2 * gap);
     const bodyW = Math.max(1, frontW - 2 * sideT);
     const bodyD = Math.max(150, layout.depthMm - 50);
-    const latRatio = settingsDefaults.gavetas.gavetaPercentualReducaoLaterais;
-    const costaRatio = settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
+    const latRatio = 1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
     const sideH = Math.max(1, Math.round(frontH * latRatio));
-    const costaH = Math.max(1, Math.round(sideH * costaRatio));
+    const costaH = Math.max(1, Math.round(sideH * latRatio));
 
     const specs: Array<{
       tipo: string;

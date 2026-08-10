@@ -33,7 +33,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(resolveXmlMachineTarget("gaveta_lat_esq")).toBe("drill");
   });
 
-  it("SSOT: costa = laterais × percentualCosta; fundo = vão+laterais / sideDepth+frente+costa", () => {
+  it("SSOT: costa = laterais × factor único; fundo = vão+laterais / sideDepth+frente+costa", () => {
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 1046,
@@ -52,10 +52,8 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
       }
     );
     const sideH = specs.leftSide.height;
-    expect(specs.back.height).toBeCloseTo(
-      sideH * settingsDefaults.gavetas.gavetaPercentualReducaoCosta,
-      5
-    );
+    const f = 1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
+    expect(specs.back.height).toBeCloseTo(sideH * f, 5);
     const internalW = specs.back.width;
     const sideDepth = resolveDrawerSideDepthMm(specs.body.depth);
     expect(specs.bottom.width).toBe(
@@ -96,7 +94,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(specs.bottom.width).toBe(1020);
     expect(specs.bottom.height).toBe(516);
     expect(specs.back.height).toBeCloseTo(
-      specs.leftSide.height * settingsDefaults.gavetas.gavetaPercentualReducaoCosta,
+      specs.leftSide.height * (1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100),
       5
     );
   });
@@ -173,10 +171,10 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(groove?.y).toBe(DRAWER_SIDE_BASE_ELEVATION_MM + sideH - 13);
   });
 
-  it("costa: altura lat×percentualCosta; Y golden 15 / H−15", () => {
+  it("costa: altura lat×factor único; Y golden 15 / H−15", () => {
     const sideH = 150;
-    const costaH = sideH * settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
-    expect(costaH).toBeCloseTo(127.5, 5);
+    const costaH = sideH * (1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100);
+    expect(costaH).toBeCloseTo(112.5, 5);
     const costa = computeDrawerCostaStructuralHoles({
       largura: 489,
       altura: costaH,
@@ -218,7 +216,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(groove.depth).toBe((fundo?.espessura ?? 10) + 1);
 
     expect(costa!.dimensoes.altura).toBeCloseTo(
-      (lat?.dimensoes.altura ?? 0) * settingsDefaults.gavetas.gavetaPercentualReducaoCosta,
+      (lat?.dimensoes.altura ?? 0) * (1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100),
       5
     );
 

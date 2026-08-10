@@ -45,6 +45,19 @@ function pickOption<T extends readonly string[]>(
   return options.includes(value as T[number]) ? (value as T[number]) : (fallback as T[number]);
 }
 
+/**
+ * % inteiro Admin; migra factor legado `gavetaPercentualReducaoLaterais` (ex. 0,75 → 25).
+ */
+function resolveGavetaReducaoPercentual(gavetas: Record<string, unknown>): number {
+  const direct = Number(gavetas.gavetaReducaoPercentual);
+  if (Number.isFinite(direct)) return direct;
+  const oldFactor = Number(gavetas.gavetaPercentualReducaoLaterais);
+  if (Number.isFinite(oldFactor) && oldFactor > 0 && oldFactor < 1) {
+    return (1 - oldFactor) * 100;
+  }
+  return settingsDefaults.gavetas.gavetaReducaoPercentual;
+}
+
 function pickDrawerCapacity(value: unknown): 30 | 40 | 50 | 70 {
   const numeric = Number(value);
   return DRAWER_LOAD_CAPACITIES.includes(numeric as 30 | 40 | 50 | 70)
@@ -237,21 +250,10 @@ export function validateSettings(input: Partial<SettingsSchema> | SettingsSchema
         0,
         200
       ),
-      gavetaPercentualReducaoLaterais: clamp(
-        toNumber(
-          merged.gavetas.gavetaPercentualReducaoLaterais,
-          settingsDefaults.gavetas.gavetaPercentualReducaoLaterais
-        ),
-        0.4,
-        0.95
-      ),
-      gavetaPercentualReducaoCosta: clamp(
-        toNumber(
-          merged.gavetas.gavetaPercentualReducaoCosta,
-          settingsDefaults.gavetas.gavetaPercentualReducaoCosta
-        ),
-        0.5,
-        0.98
+      gavetaReducaoPercentual: clamp(
+        Math.round(resolveGavetaReducaoPercentual(merged.gavetas as Record<string, unknown>)),
+        5,
+        60
       ),
       gavetaRecuoProfundidadeCorredicaMm: clamp(
         toNumber(

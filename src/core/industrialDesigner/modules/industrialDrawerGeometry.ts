@@ -66,9 +66,9 @@ export function computeIndustrialDrawerSingleLayout(
   const frontExtT = espMm;
   const sideThicknessMm = DRAWER_SIDE_THICKNESS_MM;
   const frontIntW = frontExtW - 2 * sideThicknessMm;
-  const latRatio = settingsDefaults.gavetas.gavetaPercentualReducaoLaterais;
-  const costaRatio = settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
-  const frontIntH = Math.round(frontExtH * latRatio);
+  const heightFactor =
+    1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
+  const frontIntH = Math.round(frontExtH * heightFactor);
   const frontIntT = sideThicknessMm;
   const sideHeightMm = frontIntH;
   const sideDepthMm = Math.max(200, innerD - INDUSTRIAL_DRAWER_BODY_FRONT_CLEARANCE_MM);
@@ -77,7 +77,7 @@ export function computeIndustrialDrawerSingleLayout(
   const bottomW = frontIntW;
   const bottomD = Math.max(150, sideDepthMm - backT);
   const backW = frontIntW;
-  const backH = Math.max(1, Math.round(sideHeightMm * costaRatio));
+  const backH = Math.max(1, Math.round(sideHeightMm * heightFactor));
 
   const drawerFrontY = espMm + 2;
   const drawerBodyY = drawerFrontY + DRAWER_SIDE_BASE_ELEVATION_MM;
