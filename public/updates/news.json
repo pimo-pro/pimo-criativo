@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-10T19:57:00.000Z",
+  "updatedAt": "2026-08-10T22:08:28.320Z",
   "news": [
+    {
+      "version": "v6.0810.2308",
+      "title": "Expansão Prateleiras DIV/SEP — Direção dinâmica + grelha segmentada + margens",
+      "description": "Expansão Prateleiras DIV/SEP — Direção dinâmica + grelha segmentada + margens\n\nExpansão industrial completa do sistema de prateleiras para caixas com DIV e SEP.\nInclui direção configurável (Direita, Esquerda, Superior, Inferior), passo 32/64 mm, grelha contínua ou segmentada (blocos 4–8), margens superiores/inferiores com centragem automática, migração dinâmica com SEP parcial, integração total com 3D, cutlist e furação industrial.\nValidação completa: 44 testes núcleo + integração cutlist/phaseG/drillingAdapter.",
+      "publishedAt": "2026-08-10T22:08:28.192Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "4b054706"
+    },
     {
       "version": "v6.0810.2057",
       "title": "SEP 2 — Migração lateral completa + prateleiras contínuas",
       "description": "Correção industrial que garante que, ao mover o SEP 2 para Esquerda/Direita, todas as regras e furos migram com a peça. O lado livre passa a ter grelha contínua de prateleiras (LAT + DIV), sem intervalos ou furos residuais. SEP parcial deixa de cortar o lado oposto; DIV mantém altura completa. Inclui validação total (67/67 testes) e Phase G.",
-      "publishedAt": "2026-08-10T19:57:00.000Z",
+      "publishedAt": "2026-08-10T20:59:11+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
       "commit": "b104123"
+    },
+    {
+      "version": "v6.0810.1645",
+      "title": "Release v6.0810.1645",
+      "description": "Release v6.0810.1645",
+      "publishedAt": "2026-08-10T16:47:27+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "46b32b2"
     },
     {
       "version": "v6.0810.1624",
@@ -25,7 +45,7 @@
       "version": "v6.0810.1503",
       "title": "feat(gavetas): percentuais Admin para altura de laterais e costa",
       "description": "feat(gavetas): percentuais Admin para altura de laterais e costa",
-      "publishedAt": "2026-08-10T14:03:15.835Z",
+      "publishedAt": "2026-08-10T15:05:05+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
