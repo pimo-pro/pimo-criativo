@@ -7,8 +7,8 @@ import {
   resolveDivisorCenterX,
   resolveDivisorDimensions,
 } from "./dimensions";
-import type { DivisorItem, DivSepBoxLike } from "./types";
-import { resolvePosicaoRelativaAoSep } from "./types";
+import type { DivisorItem, DivisorPrateleiraLado, DivSepBoxLike, SeparadorItem } from "./types";
+import { resolveAncoraHorizontal, resolvePosicaoRelativaAoSep } from "./types";
 
 const SHELF_DIV_CLEARANCE_MM = 1;
 const SHELF_GRID_STEP_MM = 32;
@@ -23,6 +23,28 @@ export type VerticalCompartment = {
 };
 
 const MIN_SHELF_COMPARTMENT_HEIGHT_MM = 80;
+
+/**
+ * SEP parcial só corta o vão que ocupa; SEP completo corta ambos os lados.
+ * No lado livre (sem SEP), a grelha de prateleiras é contínua — sem “furos do meio”.
+ */
+export function separadorCutsShelfSide(
+  sep: SeparadorItem,
+  side: DivisorPrateleiraLado
+): boolean {
+  const ancora = resolveAncoraHorizontal(sep);
+  if (ancora === "completo") return true;
+  return ancora === side;
+}
+
+function separadoresCuttingShelfSide(
+  box: DivSepBoxLike,
+  side?: DivisorPrateleiraLado
+): SeparadorItem[] {
+  const seps = box.separadores ?? [];
+  if (!side) return seps;
+  return seps.filter((sep) => separadorCutsShelfSide(sep, side));
+}
 
 function compartmentHasDivSupport(
   zone: VerticalCompartment,
@@ -51,23 +73,39 @@ function roundHoleMm(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
-/** True se existe pelo menos um DIV ligado acima de um SEP. */
-export function boxHasDivisorAboveSep(box: DivSepBoxLike): boolean {
-  return (box.divisores ?? []).some(
-    (div) => Boolean(div.linkedSeparadorId) && resolvePosicaoRelativaAoSep(div) === "cima"
+/** True se existe pelo menos um DIV ligado acima de um SEP que corta o lado indicado. */
+export function boxHasDivisorAboveSep(
+  box: DivSepBoxLike,
+  shelfSide?: DivisorPrateleiraLado
+): boolean {
+  const cuttingIds = new Set(
+    separadoresCuttingShelfSide(box, shelfSide).map((s) => s.id)
   );
+  return (box.divisores ?? []).some((div) => {
+    if (!Boolean(div.linkedSeparadorId) || resolvePosicaoRelativaAoSep(div) !== "cima") {
+      return false;
+    }
+    if (!shelfSide) return true;
+    return cuttingIds.has(String(div.linkedSeparadorId));
+  });
 }
 
 export function isDivisorAboveSep(div: DivisorItem): boolean {
   return Boolean(div.linkedSeparadorId) && resolvePosicaoRelativaAoSep(div) === "cima";
 }
 
-/** Compartimentos verticais delimitados pelos SEP (mm absolutos na caixa). */
-export function resolveVerticalCompartments(box: DivSepBoxLike): VerticalCompartment[] {
+/**
+ * Compartimentos verticais delimitados pelos SEP (mm absolutos na caixa).
+ * Com `shelfSide`, SEP parciais do lado oposto são ignorados (vão contínuo).
+ */
+export function resolveVerticalCompartments(
+  box: DivSepBoxLike,
+  shelfSide?: DivisorPrateleiraLado
+): VerticalCompartment[] {
   const internal = getDivSepInternalDims(box);
   const yBottom = internal.espessura;
   const yTop = internal.espessura + internal.alturaInterna;
-  const separadores = box.separadores ?? [];
+  const separadores = separadoresCuttingShelfSide(box, shelfSide);
   if (separadores.length === 0) {
     return [{ yMin: yBottom, yMax: yTop, shelfEnabled: true }];
   }
@@ -76,7 +114,7 @@ export function resolveVerticalCompartments(box: DivSepBoxLike): VerticalCompart
     .map((y) => Math.round(y))
     .sort((a, b) => a - b);
 
-  const enableAbove = boxHasDivisorAboveSep(box);
+  const enableAbove = boxHasDivisorAboveSep(box, shelfSide);
   const zones: VerticalCompartment[] = [];
   for (let i = 0; i < boundaries.length - 1; i++) {
     const yMin = boundaries[i]!;
@@ -204,7 +242,6 @@ export function buildDivShelfDrilling(
   const margemFrente = cfg.margemFrente ?? cfg.distanciaDaBorda ?? 60;
   const margemFundo = cfg.margemFundo ?? cfg.distanciaDaBorda ?? 60;
   const profundidadeLateral = internal.profundidadeInterna;
-  const compartments = resolveVerticalCompartments(box);
 
   const lateral_esquerda: PanelDrillHole[] = [];
   const lateral_direita: PanelDrillHole[] = [];
@@ -212,6 +249,8 @@ export function buildDivShelfDrilling(
 
   divisores.forEach((div, index) => {
     const lado = div.prateleiraLado ?? "direita";
+    // Compartimentos por lado: SEP parcial do lado oposto não parte a grelha.
+    const compartments = resolveVerticalCompartments(box, lado);
     const panelId = resolveDivisorShelfPanelId(panelIds, index);
     const divFace = resolveDivisorShelfFace(lado);
     const divHoles: PanelDrillHole[] = [];
@@ -312,22 +351,25 @@ export function boxUsesDivShelfMode(box: DivSepBoxLike): boolean {
 /**
  * Zonas industriais onde cada DIV pode receber prateleiras.
  * Zona acima do SEP só para DIV ligado acima.
+ * SEP parcial do lado oposto a `prateleiraLado` não bloqueia nem parte a zona.
  */
 export function resolveDivShelfPlacementZones(
   box: DivSepBoxLike,
   div: DivisorItem
 ): VerticalCompartment[] {
+  const lado = div.prateleiraLado ?? "direita";
   const divDims = resolveDivisorDimensions(box, div);
   const divBottomY = resolveDivisorBottomYAbs(box, div);
   const divTopY = divBottomY + divDims.alturaMm;
   const allowAbove = isDivisorAboveSep(div);
 
-  const sepBottoms = (box.separadores ?? [])
+  const cuttingSeps = separadoresCuttingShelfSide(box, lado);
+  const sepBottoms = cuttingSeps
     .map((s) => resolveSeparadorBottomY(box, s))
     .filter((y) => Number.isFinite(y) && y > 0);
   const highestSepBottom = sepBottoms.length > 0 ? Math.max(...sepBottoms) : null;
 
-  return resolveVerticalCompartments(box).filter((zone) => {
+  return resolveVerticalCompartments(box, lado).filter((zone) => {
     if (!zone.shelfEnabled) return false;
     if (!allowAbove) {
       if (highestSepBottom != null && zone.yMin >= highestSepBottom - 0.5) return false;

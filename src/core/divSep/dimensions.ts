@@ -109,9 +109,19 @@ export function resolveDivisorDimensions(
   const linkedSep = getDivSepRules().enableDivSepCombinations
     ? resolveEffectiveLinkedSeparador(box, item)
     : undefined;
-  const alturaMm = linkedSep
-    ? resolveDivisorLinkedHeightMm(box, item, linkedSep)
-    : item.alturaMm ?? internal.alturaInterna;
+  let alturaMm: number;
+  if (linkedSep) {
+    const ancora = resolveAncoraHorizontal(linkedSep);
+    // SEP parcial genérico (SEP 2 esq/dir): DIV altura completa — encaixe lateral na face do DIV.
+    // Wardrobe parcial e SEP completo mantêm acoplamento vertical (rosto a rosto).
+    if (ancora !== "completo" && !isPartialSepCavilhaOnly(linkedSep)) {
+      alturaMm = item.alturaMm ?? internal.alturaInterna;
+    } else {
+      alturaMm = resolveDivisorLinkedHeightMm(box, item, linkedSep);
+    }
+  } else {
+    alturaMm = item.alturaMm ?? internal.alturaInterna;
+  }
   return {
     larguraMm: internal.espessura,
     alturaMm: Math.max(1, alturaMm),

@@ -490,3 +490,86 @@ describe("buildDivShelfDrilling — flag enableShelfHoles", () => {
     expect(buildDivShelfDrilling(box, box.panelIds, rules)).toBeNull();
   });
 });
+
+describe("SEP parcial — migração de lado e prateleiras contínuas", () => {
+  beforeEach(() => {
+    divSepRulesStore.patch({ enableShelfHoles: true });
+  });
+
+  it("SEP âncora esquerda: lado direito contínuo; lado esquerdo partido pelo SEP", () => {
+    const sep = defaultSeparadorItem({
+      id: "sep-2",
+      positionMm: 400,
+      ancoraHorizontal: "esquerda",
+    });
+    const div = defaultDivisorItem({
+      id: "div-1",
+      positionMm: 300,
+      prateleiraLado: "direita",
+      linkedSeparadorId: "sep-2",
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 800, altura: 1600, profundidade: 560 },
+      prateleiras: 3,
+      separadores: [sep],
+      divisores: [div],
+    });
+
+    const freeSide = resolveVerticalCompartments(box, "direita");
+    expect(freeSide).toHaveLength(1);
+    expect(freeSide[0]!.shelfEnabled).toBe(true);
+    expect(freeSide[0]!.yMax - freeSide[0]!.yMin).toBeGreaterThan(500);
+
+    const occupied = resolveVerticalCompartments(box, "esquerda");
+    expect(occupied.length).toBeGreaterThanOrEqual(2);
+    expect(occupied.some((z) => z.shelfEnabled)).toBe(true);
+  });
+
+  it("prateleiras no lado livre não partem a grelha na Y do SEP parcial", () => {
+    const sep = defaultSeparadorItem({
+      id: "sep-2",
+      positionMm: 500,
+      ancoraHorizontal: "esquerda",
+    });
+    const div = defaultDivisorItem({
+      id: "div-free",
+      positionMm: 350,
+      prateleiraLado: "direita",
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 800, altura: 1600, profundidade: 560 },
+      prateleiras: 2,
+      separadores: [sep],
+      divisores: [div],
+      panelIds: { divisores: ["pid-free"] },
+    });
+    const sepBottom = resolveSeparadorBottomY(box, sep);
+    const result = buildDivShelfDrilling(box, box.panelIds, SHELF_RULES)!;
+    const absoluteYs = [
+      ...new Set(result.lateral_direita.map((h) => roundMm(h.y + Number(box.espessura ?? 19)))),
+    ].sort((a, b) => a - b);
+
+    expect(absoluteYs.length).toBeGreaterThan(2);
+    expect(absoluteYs.some((y) => y < sepBottom - 50)).toBe(true);
+    expect(absoluteYs.some((y) => y > sepBottom + 50)).toBe(true);
+    const nearSep = absoluteYs.filter((y) => Math.abs(y - sepBottom) < 250);
+    const gaps = nearSep.slice(1).map((y, i) => y - nearSep[i]!);
+    expect(gaps.every((g) => g <= 40)).toBe(true);
+  });
+
+  it("SEP âncora direita: limpa o lado esquerdo (contínuo)", () => {
+    const sep = defaultSeparadorItem({
+      id: "sep-r",
+      positionMm: 400,
+      ancoraHorizontal: "direita",
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 800, altura: 1200, profundidade: 560 },
+      separadores: [sep],
+      divisores: [defaultDivisorItem({ prateleiraLado: "esquerda" })],
+    });
+    const left = resolveVerticalCompartments(box, "esquerda");
+    expect(left).toHaveLength(1);
+    expect(left[0]!.shelfEnabled).toBe(true);
+  });
+});

@@ -42,6 +42,7 @@ export {
 } from "./autoLink";
 export {
   resolveVerticalCompartments,
+  separadorCutsShelfSide,
   resolveShelfGridYs,
   resolveDivShelfGridYs,
   resolveDivShelfAbsoluteCenterYs,
