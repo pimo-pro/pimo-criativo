@@ -25,11 +25,30 @@ import {
 } from "./dimensions";
 import { absoluteYToLateralPanelY } from "./shelfDrilling";
 import type { DivisorItem, DivSepBoxLike, SeparadorItem } from "./types";
-import { resolvePosicaoRelativaAoSep } from "./types";
+import { resolveAncoraHorizontal, resolvePosicaoRelativaAoSep } from "./types";
 import {
   isPartialSepCavilhaOnly,
   WARDROBE_PARTIAL_SEP_ID_LEFT,
 } from "../wardrobe/partialSepToDiv";
+
+/** Lado(s) LAT / aresta SEP que tocam a caixa — segue a âncora horizontal. */
+function resolveSeparadorLateralSides(
+  item: SeparadorItem
+): "both" | "left" | "right" {
+  if (isPartialSepCavilhaOnly(item)) {
+    return String(item.id) === WARDROBE_PARTIAL_SEP_ID_LEFT ? "left" : "right";
+  }
+  const ancora = resolveAncoraHorizontal(item);
+  if (ancora === "esquerda") return "left";
+  if (ancora === "direita") return "right";
+  return "both";
+}
+
+/** SEP parcial (esquerda/direita ou wardrobe): só cavilha, sem parafuso Ø5. */
+function isSeparadorCavilhaOnly(item: SeparadorItem): boolean {
+  if (isPartialSepCavilhaOnly(item)) return true;
+  return resolveAncoraHorizontal(item) !== "completo";
+}
 
 type HoleBucket = {
   separador: Map<string, PanelDrillHole[]>;
@@ -111,23 +130,30 @@ function drillSeparadorEdgeHoles(
   panelLarguraMm: number,
   profundidadeMm: number,
   rules: DivSepRules,
-  sepId: string
+  sepId: string,
+  sides: "both" | "left" | "right" = "both"
 ): void {
   const cavilhaD = getCavilhaDiameterMm(rules);
   const depthPos = calcDepthHolePositions(profundidadeMm, rules);
+  const doLeft = sides === "both" || sides === "left";
+  const doRight = sides === "both" || sides === "right";
   depthPos.cavilha.forEach((yPos, i) => {
     const keyL = `divsep-sep-${sepId}-L-${i}`;
     const keyR = `divsep-sep-${sepId}-R-${i}`;
-    pushHole(sepHoles, 0, yPos, cavilhaD, CORNER_FF_EDGE_DOWEL_DEPTH_MM, "cavilha", "B", false, {
-      pairedHoleKey: keyL,
-      holeCatalogId: CAVILHA_EDGE_HOLE_TYPE_ID,
-      ferragemId: CAVILHA_10x40_FERRAGEM_ID,
-    });
-    pushHole(sepHoles, panelLarguraMm, yPos, cavilhaD, CORNER_FF_EDGE_DOWEL_DEPTH_MM, "cavilha", "B", false, {
-      pairedHoleKey: keyR,
-      holeCatalogId: CAVILHA_EDGE_HOLE_TYPE_ID,
-      ferragemId: CAVILHA_10x40_FERRAGEM_ID,
-    });
+    if (doLeft) {
+      pushHole(sepHoles, 0, yPos, cavilhaD, CORNER_FF_EDGE_DOWEL_DEPTH_MM, "cavilha", "B", false, {
+        pairedHoleKey: keyL,
+        holeCatalogId: CAVILHA_EDGE_HOLE_TYPE_ID,
+        ferragemId: CAVILHA_10x40_FERRAGEM_ID,
+      });
+    }
+    if (doRight) {
+      pushHole(sepHoles, panelLarguraMm, yPos, cavilhaD, CORNER_FF_EDGE_DOWEL_DEPTH_MM, "cavilha", "B", false, {
+        pairedHoleKey: keyR,
+        holeCatalogId: CAVILHA_EDGE_HOLE_TYPE_ID,
+        ferragemId: CAVILHA_10x40_FERRAGEM_ID,
+      });
+    }
   });
 }
 
@@ -224,17 +250,22 @@ function drillSeparador(
   const sepHoles: PanelDrillHole[] = [];
   const panelLarguraMm = dims.larguraMm;
 
+  // Âncora esquerda/direita (ex. SEP 2) e wardrobe parcial: furos só no lado que toca a LAT.
   const cavilhaOnly =
-    cavilhaOnlyOnDivForPartialSep && isPartialSepCavilhaOnly(item);
-  const lateralSides: "both" | "left" | "right" = cavilhaOnly
-    ? String(item.id) === WARDROBE_PARTIAL_SEP_ID_LEFT
-      ? "left"
-      : "right"
-    : "both";
+    (cavilhaOnlyOnDivForPartialSep && isPartialSepCavilhaOnly(item)) ||
+    isSeparadorCavilhaOnly(item);
+  const lateralSides = resolveSeparadorLateralSides(item);
 
-  drillSeparadorEdgeHoles(sepHoles, panelLarguraMm, dims.profundidadeMm, rules, panelId);
+  drillSeparadorEdgeHoles(
+    sepHoles,
+    panelLarguraMm,
+    dims.profundidadeMm,
+    rules,
+    panelId,
+    lateralSides
+  );
   // Receptores LAT: comprimento = Pint (largura real do painel). Peça SEP continua Pint−5.
-  // Wardrobe SEP parcial: sem parafusos; só lateral do lado da caixa.
+  // SEP parcial / wardrobe: sem parafusos Ø5; só cavilha no lado seleccionado.
   drillLateralAtSepHeight(
     bucket,
     box,
@@ -278,7 +309,9 @@ function drillTopBottomForDiv(
   box: DivSepBoxLike,
   item: DivisorItem,
   rules: DivSepRules,
-  panels: TopBottomPanels
+  panels: TopBottomPanels,
+  /** SEP parcial (esquerda/direita): só cavilha — sem parafuso Ø5 nos receptores CIMA/FUNDO. */
+  includeParafuso = true
 ): void {
   const internal = getDivSepInternalDims(box);
   const centerX = resolveDivisorCenterX(box, item);
@@ -300,6 +333,7 @@ function drillTopBottomForDiv(
         ferragemId: CAVILHA_10x40_FERRAGEM_ID,
       });
     });
+    if (!includeParafuso) continue;
     for (const yPos of depthPos.parafuso) {
       pushHole(holes, centerX, yPos, 5, internal.espessura, "parafuso", "B", false);
     }
@@ -385,7 +419,9 @@ function drillDivisor(
   rules: DivSepRules
 ): void {
   const panels = resolveDivTopBottomPanels(item, box, rules);
-  drillTopBottomForDiv(bucket, box, item, rules, panels);
+  const linkedSep = resolveLinkedSeparadorForDrill(box, item, rules);
+  const includeParafuso = !(linkedSep != null && isSeparadorCavilhaOnly(linkedSep));
+  drillTopBottomForDiv(bucket, box, item, rules, panels, includeParafuso);
   const divHoles: PanelDrillHole[] = [];
   drillDivisorEdgeCavilhas(divHoles, box, item, rules, panels);
   bucket.divisorio.set(panelId, divHoles);

@@ -459,3 +459,82 @@ describe("SEP LAT Y — caso industrial H=720 T=19 pos=600", () => {
     expect(roundMm(sepBottom - (19 + divH))).toBe(0);
   });
 });
+
+describe("SEP âncora esquerda — furos dinâmicos (SEP 2)", () => {
+  it("Referência=Esquerda: cavilhas só na LAT esq + aresta L; sem parafuso Ø5 em LAT/CIMA/FUNDO", () => {
+    const rules = DIV_SEP_TEST_RULES;
+    const sep = defaultSeparadorItem({
+      id: "sep-2",
+      positionMm: 400,
+      ancoraHorizontal: "esquerda",
+    });
+    const div = defaultDivisorItem({
+      id: "div-sep2",
+      linkedSeparadorId: "sep-2",
+      positionMm: 200,
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 800, altura: 1600, profundidade: 560 },
+      separadores: [sep],
+      divisores: [div],
+    });
+    const panelIds = box.panelIds!;
+    const { getExtraHoles } = buildDivSepDrilling(box, panelIds, rules);
+    const sepDims = resolveSeparadorDimensions(box, sep);
+    const sepHoles = getExtraHoles("separador", panelIds.separadores![0]!);
+    const latLeft = getExtraHoles("lateral_esquerda");
+    const latRight = getExtraHoles("lateral_direita");
+    const fundo = getExtraHoles("fundo");
+    const cima = getExtraHoles("cima");
+
+    expect(latLeft.filter((h) => h.holeType === "cavilha").length).toBeGreaterThan(0);
+    expect(latRight.filter((h) => h.holeType === "cavilha" || h.holeType === "parafuso").length).toBe(0);
+    expect(latLeft.some((h) => h.holeType === "parafuso")).toBe(false);
+    expect(fundo.some((h) => h.holeType === "parafuso")).toBe(false);
+    expect(cima.some((h) => h.holeType === "parafuso")).toBe(false);
+
+    const edgeL = sepHoles.filter((h) => isSeparadorEdgeCavilha(h, sepDims.larguraMm) && h.x <= PANEL_EDGE_EPS_MM);
+    const edgeR = sepHoles.filter(
+      (h) => isSeparadorEdgeCavilha(h, sepDims.larguraMm) && h.x >= sepDims.larguraMm - PANEL_EDGE_EPS_MM
+    );
+    expect(edgeL.length).toBeGreaterThan(0);
+    expect(edgeR.length).toBe(0);
+    expect(sepHoles.some((h) => h.holeType === "parafuso")).toBe(false);
+  });
+
+  it("Referência=Direita: cavilhas só na LAT dir + aresta R; sem parafuso Ø5", () => {
+    const rules = DIV_SEP_TEST_RULES;
+    const sep = defaultSeparadorItem({
+      id: "sep-dir",
+      positionMm: 400,
+      ancoraHorizontal: "direita",
+    });
+    const div = defaultDivisorItem({
+      id: "div-dir",
+      linkedSeparadorId: "sep-dir",
+      positionMm: 500,
+    });
+    const box = makeDivSepTestBox({
+      dimensoes: { largura: 800, altura: 1600, profundidade: 560 },
+      separadores: [sep],
+      divisores: [div],
+    });
+    const panelIds = box.panelIds!;
+    const { getExtraHoles } = buildDivSepDrilling(box, panelIds, rules);
+    const sepDims = resolveSeparadorDimensions(box, sep);
+    const sepHoles = getExtraHoles("separador", panelIds.separadores![0]!);
+    const latLeft = getExtraHoles("lateral_esquerda");
+    const latRight = getExtraHoles("lateral_direita");
+
+    expect(latRight.filter((h) => h.holeType === "cavilha").length).toBeGreaterThan(0);
+    expect(latLeft.filter((h) => h.holeType === "cavilha" || h.holeType === "parafuso").length).toBe(0);
+    expect(latRight.some((h) => h.holeType === "parafuso")).toBe(false);
+
+    const edgeL = sepHoles.filter((h) => isSeparadorEdgeCavilha(h, sepDims.larguraMm) && h.x <= PANEL_EDGE_EPS_MM);
+    const edgeR = sepHoles.filter(
+      (h) => isSeparadorEdgeCavilha(h, sepDims.larguraMm) && h.x >= sepDims.larguraMm - PANEL_EDGE_EPS_MM
+    );
+    expect(edgeR.length).toBeGreaterThan(0);
+    expect(edgeL.length).toBe(0);
+  });
+});
