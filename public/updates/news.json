@@ -1,11 +1,21 @@
 {
-  "updatedAt": "2026-08-09T18:47:08.738Z",
+  "updatedAt": "2026-08-10T14:03:15.932Z",
   "news": [
+    {
+      "version": "v6.0810.1503",
+      "title": "feat(gavetas): percentuais Admin para altura de laterais e costa",
+      "description": "feat(gavetas): percentuais Admin para altura de laterais e costa",
+      "publishedAt": "2026-08-10T14:03:15.835Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "3f44052e"
+    },
     {
       "version": "v6.0809.1947",
       "title": "PIMO — Relatório/Financeiro: remover Chapas reais da UI e título Gavetas limpo",
       "description": "PIMO — Relatório/Financeiro: remover Chapas reais da UI e título Gavetas limpo",
-      "publishedAt": "2026-08-09T18:47:08.643Z",
+      "publishedAt": "2026-08-09T19:48:45+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",

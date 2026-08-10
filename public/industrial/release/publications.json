@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-10T14:03:15.208Z",
+      "author": "pimo-pro",
+      "commitMessage": "feat(gavetas): percentuais Admin para altura de laterais e costa",
+      "version": "v6.0810.1503"
+    },
+    {
       "publishedAt": "2026-08-09T18:47:07.945Z",
       "author": "pimo-pro",
       "commitMessage": "PIMO — Relatório/Financeiro: remover Chapas reais da UI e título Gavetas limpo",
