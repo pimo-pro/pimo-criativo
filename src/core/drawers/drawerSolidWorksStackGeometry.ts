@@ -2,11 +2,12 @@
  * Stack vertical dinâmico das gavetas (anti-sobreposição).
  * SolidWorks = referência de proporções (descontos laterais), não de alturas/bottoms fixos.
  *
- * h_i = (H ? B0 ? G×(n?1)) / n
+ * h_i = (H − B0 − G×(n−1)) / n
  * bottom[i+1] = bottom[i] + h[i] + G
  * slide[i] = bottom[i] + 41
  */
 
+import { settingsDefaults } from "../settings/settingsSchema";
 import type { DrawerStackRole } from "./drawerStackPosition";
 import { DRAWER_VERTICAL_GAP_MM } from "./drawerGeometryConstants";
 
@@ -14,22 +15,31 @@ import { DRAWER_VERTICAL_GAP_MM } from "./drawerGeometryConstants";
 export const DRAWER_TOP_FRONT_CIMA_OVERHANG_BELOW_MM = 2;
 
 /**
- * Desconto frente?lateral (mm) — unificado para todas as gavetas.
- * sideH = h ? 64,5 (mesmo tamanho industrial em lowest/mid/highest/single).
- * @deprecated Alias — usar DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM.
+ * @deprecated Preferir settings.gavetas.gavetaPercentualReducaoLaterais.
+ * Valor legado (mm) — não usar em geometria nova.
  */
-export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_LOWEST_MM = 64.5;
-export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_OTHER_MM = 64.5;
 export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM = 64.5;
+/** @deprecated Alias legado. */
+export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_LOWEST_MM = DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM;
+/** @deprecated Alias legado. */
+export const DRAWER_LATERAL_HEIGHT_BELOW_FRONT_OTHER_MM = DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM;
 
-/** Altura madeira laterais (unificada): sideH = frontH ? 64,5. */
+/**
+ * Altura madeira das laterais: sideH = frontH × heightRatio.
+ * Ratio default = settings.gavetas.gavetaPercentualReducaoLaterais (Admin).
+ */
 export function resolveDrawerWoodBodyHeightForStackRoleMm(
   frontHeightMm: number,
-  _stackRole: DrawerStackRole = "middle"
+  _stackRole: DrawerStackRole = "middle",
+  heightRatio: number = settingsDefaults.gavetas.gavetaPercentualReducaoLaterais
 ): number {
   void _stackRole;
   const frontH = Math.max(0, Number(frontHeightMm) || 0);
-  return Math.max(1, frontH - DRAWER_LATERAL_HEIGHT_BELOW_FRONT_MM);
+  const ratio =
+    Number.isFinite(heightRatio) && heightRatio > 0
+      ? heightRatio
+      : settingsDefaults.gavetas.gavetaPercentualReducaoLaterais;
+  return Math.max(1, frontH * ratio);
 }
 
 export type DynamicDrawerStackLayout = {
@@ -109,7 +119,7 @@ export function assertNoDrawerFrontOverlap(params: {
   };
 }
 
-/** Confirma overlay CIMA: topo ? H e bottom ? (H?T)?2. */
+/** Confirma overlay CIMA: topo ≥ H e bottom ≤ (H−T)−2. */
 export function assertTopFrontCoversCimaWithClearance(params: {
   boxExternalHeightMm: number;
   topPanelThicknessMm: number;

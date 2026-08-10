@@ -42,7 +42,7 @@ describe("Certificação — regressão industrial (snapshots)", () => {
       layers.forEach((layer, i) => {
         expect(layer.posY).toBe(group.drawers[i].position.y);
         expect(layer.posY).toBeCloseTo(positions[i], 0);
-        expect(layer.width).toBe(598);
+        expect(layer.width).toBe(596);
         expect(layer.bodyDepth).toBe(500);
         expect(layer.pullDistanceMm).toBe(500);
         expect(snapshotDrawerLayer(layer, i)).toMatchSnapshot();

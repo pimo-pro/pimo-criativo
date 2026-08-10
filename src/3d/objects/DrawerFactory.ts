@@ -970,7 +970,7 @@ export function createDrawerObject(
         const backLayout = woodBottomBackLayout;
         const back = panelFactory.createPanel(
           backLayout.backWidthMm / 1000,
-          backLayout.backHeightMm / 1000,
+          spec.backHeightM ?? backLayout.backHeightMm / 1000,
           backLayout.backThicknessMm / 1000,
           `drawer-back-${spec.id}`,
           "back",

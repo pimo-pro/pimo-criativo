@@ -922,6 +922,28 @@ export default function SystemSettingsBase() {
             }
           />
           <NumberField
+            label="Altura laterais (% da frente, 0–1)"
+            value={draft.gavetas.gavetaPercentualReducaoLaterais}
+            step={0.01}
+            onChange={(value) =>
+              setDraft((prev) => ({
+                ...prev,
+                gavetas: { ...prev.gavetas, gavetaPercentualReducaoLaterais: value },
+              }))
+            }
+          />
+          <NumberField
+            label="Altura costa (% das laterais, 0–1)"
+            value={draft.gavetas.gavetaPercentualReducaoCosta}
+            step={0.01}
+            onChange={(value) =>
+              setDraft((prev) => ({
+                ...prev,
+                gavetas: { ...prev.gavetas, gavetaPercentualReducaoCosta: value },
+              }))
+            }
+          />
+          <NumberField
             label="Altura mínima (mm)"
             value={draft.gavetas.gavetaAlturaMinimaMm}
             step={1}

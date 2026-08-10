@@ -49,14 +49,16 @@ export function resolveDrawerSideBaseElevationMm(
   return DRAWER_SIDE_BASE_ELEVATION_MM;
 }
 
-/** Altura do corpo madeira (laterais). SSOT industrial unificado: sideH = h − 64,5. */
+/** Altura do corpo madeira (laterais). SSOT: frente × percentual Admin. */
 export function resolveDrawerWoodBodyHeightMm(
   frontHeightMm: number,
-  stackRole?: import("./drawerStackPosition").DrawerStackRole
+  stackRole?: import("./drawerStackPosition").DrawerStackRole,
+  heightRatio?: number
 ): number {
   return resolveDrawerWoodBodyHeightForStackRoleMm(
     frontHeightMm,
-    stackRole ?? "middle"
+    stackRole ?? "middle",
+    heightRatio
   );
 }
 
@@ -159,7 +161,7 @@ export type DrawerViewerWoodSideLayoutMm = {
   internalWidthMm: number;
 };
 
-/** Altura da lateral: 75% da frente (topo ~25% abaixo do topo da frente). */
+/** Altura da lateral: frente × percentual Admin (default 75%). */
 export function resolveDrawerViewerSideHeightMm(frontHeightMm: number): number {
   return resolveDrawerWoodBodyHeightMm(frontHeightMm);
 }
@@ -225,7 +227,7 @@ export function resolveDrawerViewerWoodSideLayoutMm(input: {
   slideLengthMm: number;
   /** Elevação da base das laterais vs frente (mm). Inferior 18,5; mid 17; superior 12,5. */
   baseElevationMm?: number;
-  /** Altura industrial das laterais (mm). Default = frontH − 64,5. */
+  /** Altura industrial das laterais (mm). Default = frontH × percentual Admin. */
   sideHeightMm?: number;
 }): DrawerViewerWoodSideLayoutMm {
   const sideHeightMm =

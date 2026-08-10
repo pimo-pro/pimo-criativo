@@ -167,9 +167,9 @@ export function createDrawer(
         positionZ: specs.positioning.bodyOffsetZ,
       },
       
-      // ===== TRASEIRA =====
-      // Costa mais baixa 23 mm; topo alinhado com laterais (assenta no fundo).
-      back: {
+  // ===== TRASEIRA =====
+  // Costa = laterais × percentual Admin; topo alinhado com laterais.
+  back: {
         width: specs.back.width,
         height: specs.back.height,
         depth: backThickness,

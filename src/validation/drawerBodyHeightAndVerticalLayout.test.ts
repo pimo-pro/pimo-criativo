@@ -44,7 +44,7 @@ describe("altura do corpo da gaveta (frente × 75%)", () => {
     );
     expect(specs.frontExt.height).toBe(200);
     expect(specs.body.height).toBe(150);
-    expect(specs.back.height).toBe(150 - 23);
+    expect(specs.back.height).toBeCloseTo(150 * settingsDefaults.gavetas.gavetaPercentualReducaoCosta, 5);
     expect(specs.leftSide.height).toBe(150);
   });
 

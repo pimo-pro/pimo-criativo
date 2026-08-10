@@ -12,7 +12,7 @@ import {
   computeDrawerLateralStructuralHoles,
   computeDrawerLowestFrenteExtFixedHoles,
 } from "../drawers/drilling/DrawerDrillingRules";
-import { DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM } from "../drawers/drawerGeometryConstants";
+import { settingsDefaults } from "../settings/settingsSchema";
 
 function xmlFor(
   tipo: CutListItemComPreco["tipo"],
@@ -120,10 +120,10 @@ describe("golden XML_COMPLITO — laterais", () => {
 });
 
 describe("golden XML_COMPLITO — costa", () => {
-  it("altura = lateral ? 23; Y=15/W-15; Depth 30; topo X=8", () => {
+  it("altura = lateral × percentualCosta; Y=15/W-15; Depth 30; topo X=8", () => {
     const sideH = 195.5;
-    const costaH = sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM;
-    expect(costaH).toBe(172.5);
+    const costaH = sideH * settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
+    expect(costaH).toBeCloseTo(166.175, 3);
     const holes = computeDrawerCostaStructuralHoles({
       largura: 716,
       altura: costaH,
@@ -146,7 +146,7 @@ describe("golden XML_COMPLITO — costa", () => {
       altura: costaH,
       espessura: 16,
     });
-    expect(xml).toContain("<PanelWidth>172.50</PanelWidth>");
+    expect(xml).toContain("<PanelWidth>166.17</PanelWidth>");
     expect(xml).toContain("<Depth>30.00</Depth>");
     expect(xml).toContain("<Y1>15.00</Y1>");
     expect(xml).toContain(`<Y1>${(costaH - 15).toFixed(2)}</Y1>`);

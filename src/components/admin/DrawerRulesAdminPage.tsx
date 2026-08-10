@@ -172,6 +172,22 @@ export default function DrawerRulesAdminPage() {
           <NumberField label="espessuraTraseiraMm" value={draft.gavetaEspessuraTraseiraMm} onChange={(v) => updateDrawerRules({ gavetaEspessuraTraseiraMm: v })} />
           <NumberField label="espessuraFundoMm" value={draft.gavetaEspessuraFundoMm} onChange={(v) => updateDrawerRules({ gavetaEspessuraFundoMm: v })} />
           <NumberField label="recuoCorpoMm" value={draft.gavetaRecuoCorpoMm} onChange={(v) => updateDrawerRules({ gavetaRecuoCorpoMm: v })} />
+          <NumberField
+            label="percentualReducaoLaterais (ex. 0,75 = 75% da frente)"
+            value={draft.gavetaPercentualReducaoLaterais}
+            min={0.4}
+            max={0.95}
+            step={0.01}
+            onChange={(v) => updateDrawerRules({ gavetaPercentualReducaoLaterais: v })}
+          />
+          <NumberField
+            label="percentualReducaoCosta (ex. 0,85 = 85% das laterais)"
+            value={draft.gavetaPercentualReducaoCosta}
+            min={0.5}
+            max={0.98}
+            step={0.01}
+            onChange={(v) => updateDrawerRules({ gavetaPercentualReducaoCosta: v })}
+          />
           <NumberField label="folgaLateralMm" value={draft.gavetaFolgaLateralMm} onChange={(v) => updateDrawerRules({ gavetaFolgaLateralMm: v })} />
           <NumberField label="alturaMinimaMm" value={draft.gavetaAlturaMinimaMm} onChange={(v) => updateDrawerRules({ gavetaAlturaMinimaMm: v })} />
           <NumberField label="alturaMaximaMm" value={draft.gavetaAlturaMaximaMm} onChange={(v) => updateDrawerRules({ gavetaAlturaMaximaMm: v })} />

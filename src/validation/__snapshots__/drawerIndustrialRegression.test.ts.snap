@@ -4,23 +4,23 @@ exports[`Certificação — regressão industrial (snapshots) > furação europe
 [
   {
     "face": "A",
-    "x": 490,
-    "y": 39,
+    "x": 8,
+    "y": 15,
+  },
+  {
+    "face": "A",
+    "x": 8,
+    "y": 412,
   },
   {
     "face": "A",
     "x": 490,
-    "y": 403.5,
+    "y": 15,
   },
   {
     "face": "A",
-    "x": 0,
-    "y": 30,
-  },
-  {
-    "face": "A",
-    "x": 0,
-    "y": 412.5,
+    "x": 490,
+    "y": 415,
   },
 ]
 `;
@@ -28,189 +28,189 @@ exports[`Certificação — regressão industrial (snapshots) > furação europe
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=1 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 532.5,
+  "bodyHeight": 540,
   "bodyWidth": 548,
-  "height": 710,
+  "height": 720,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 5,
+  "posY": 0,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=2 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 264.75,
+  "bodyHeight": 268.5,
   "bodyWidth": 548,
-  "height": 353,
+  "height": 358,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -173.5,
+  "posY": -181,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=2 > gera peças, dimensões e offsets consistentes 2`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 264.75,
+  "bodyHeight": 268.5,
   "bodyWidth": 548,
-  "height": 353,
+  "height": 358,
   "index": 1,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 183.5,
+  "posY": 181,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 175.5,
+  "bodyHeight": 178,
   "bodyWidth": 548,
-  "height": 234,
+  "height": 237.33333333333334,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -233,
+  "posY": -241.33333333333331,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 2`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 175.5,
+  "bodyHeight": 178,
   "bodyWidth": 548,
-  "height": 234,
+  "height": 237.33333333333334,
   "index": 1,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 5,
+  "posY": 1.4210854715202004e-14,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 3`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 175.5,
+  "bodyHeight": 178,
   "bodyWidth": 548,
-  "height": 234,
+  "height": 237.33333333333334,
   "index": 2,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 243,
+  "posY": 241.33333333333337,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 130.875,
+  "bodyHeight": 132.75,
   "bodyWidth": 548,
-  "height": 174.5,
+  "height": 177,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -262.75,
+  "posY": -271.5,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 2`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 130.875,
+  "bodyHeight": 132.75,
   "bodyWidth": 548,
-  "height": 174.5,
+  "height": 177,
   "index": 1,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -84.25,
+  "posY": -90.5,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 3`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 130.875,
+  "bodyHeight": 132.75,
   "bodyWidth": 548,
-  "height": 174.5,
+  "height": 177,
   "index": 2,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 94.25,
+  "posY": 90.5,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;
 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 4`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 130.875,
+  "bodyHeight": 132.75,
   "bodyWidth": 548,
-  "height": 174.5,
+  "height": 177,
   "index": 3,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 272.75,
+  "posY": 271.5,
   "posZ": 271.5,
   "pullDistanceMm": 500,
-  "slideType": "Hettich ArciTech",
+  "slideType": "Hettich Quadro V6 You M Silent System",
   "softClose": true,
-  "width": 598,
+  "width": 596,
 }
 `;

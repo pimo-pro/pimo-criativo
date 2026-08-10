@@ -131,6 +131,16 @@ export interface SettingsSchema {
     gavetaEspessuraTraseiraMm: number;
     gavetaEspessuraFundoMm: number;
     gavetaRecuoCorpoMm: number;
+    /**
+     * Factor de altura das laterais face à frente (0,75 = 75%).
+     * laterais = frente × este valor.
+     */
+    gavetaPercentualReducaoLaterais: number;
+    /**
+     * Factor de altura da costa face às laterais (0,85 = 85%).
+     * costa = laterais × este valor.
+     */
+    gavetaPercentualReducaoCosta: number;
     /** Recuo de profundidade para corrediça traseira (mm). Usado pelo domínio paramétrico quando ligado (FASE 2+). */
     gavetaRecuoProfundidadeCorredicaMm: number;
     gavetaProfundidadesDisponiveisMm: number[];
@@ -319,6 +329,8 @@ export const settingsDefaults: SettingsSchema = {
     gavetaEspessuraTraseiraMm: 16,
     gavetaEspessuraFundoMm: 10,
     gavetaRecuoCorpoMm: 70,
+    gavetaPercentualReducaoLaterais: 0.75,
+    gavetaPercentualReducaoCosta: 0.85,
     gavetaRecuoProfundidadeCorredicaMm: 20,
     gavetaProfundidadesDisponiveisMm: [350, 400, 450, 500, 550, 600],
     gavetaAlturaMinimaMm: 80,

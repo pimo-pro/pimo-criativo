@@ -61,16 +61,16 @@ describe("stack din?mico anti-sobreposi??o", () => {
     expect(cover.ok).toBe(true);
   });
 
-  it("laterais unificadas h?64,5 + corpo 18,5 / 17 / 12,5 + folga frente 2 mm", () => {
+  it("laterais unificadas frente×0,75 + corpo 18,5 / 17 + folga frente 2 mm", () => {
     expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(18.5);
     expect(DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM).toBe(12.5);
     expect(DRAWER_FRONT_LATERAL_GAP_MM).toBe(2);
     expect(settingsDefaults.gavetas.gavetaFolgaFrenteMm).toBe(2);
 
     const h = 251.33333333333334;
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "lowest")).toBeCloseTo(h - 64.5, 3);
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "middle")).toBeCloseTo(h - 64.5, 3);
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "highest")).toBeCloseTo(h - 64.5, 3);
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "lowest")).toBeCloseTo(h * 0.75, 3);
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "middle")).toBeCloseTo(h * 0.75, 3);
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "highest")).toBeCloseTo(h * 0.75, 3);
   });
 
   it("generateDrawerGroup 3 gavetas ? sem overlap, bodyBottom=18,5, CIMA?33", () => {
@@ -117,8 +117,11 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const offsetY2 = layers[2]!.bodyCenterOffsetY!;
     const bodyTop2 = layers[2]!.posY! + offsetY2 + bodyH2 / 2;
     const cimaUnderside = moduleBase + H - T;
-    // folga CIMA = 64,5 − T − elevação = 64,5 − 19 − 17 = 28,5 mm (era 33 mm antes da unificação)
-    expect(cimaUnderside - bodyTop2).toBeCloseTo(28.5, 1);
+    // folga CIMA = frontH×(1−ratio) − elevação − T (ratio Admin 0,75; elev highest 17)
+    const frontHTop = heights[2]!;
+    const expectedCimaClearance =
+      frontHTop * (1 - settingsDefaults.gavetas.gavetaPercentualReducaoLaterais) - 17 - T;
+    expect(cimaUnderside - bodyTop2).toBeCloseTo(expectedCimaClearance, 1);
 
     const geo2 = resolveDrawerFrontStackGeometry({
       drawerIndex0Based: 2,

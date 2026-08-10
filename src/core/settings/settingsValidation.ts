@@ -237,6 +237,22 @@ export function validateSettings(input: Partial<SettingsSchema> | SettingsSchema
         0,
         200
       ),
+      gavetaPercentualReducaoLaterais: clamp(
+        toNumber(
+          merged.gavetas.gavetaPercentualReducaoLaterais,
+          settingsDefaults.gavetas.gavetaPercentualReducaoLaterais
+        ),
+        0.4,
+        0.95
+      ),
+      gavetaPercentualReducaoCosta: clamp(
+        toNumber(
+          merged.gavetas.gavetaPercentualReducaoCosta,
+          settingsDefaults.gavetas.gavetaPercentualReducaoCosta
+        ),
+        0.5,
+        0.98
+      ),
       gavetaRecuoProfundidadeCorredicaMm: clamp(
         toNumber(
           merged.gavetas.gavetaRecuoProfundidadeCorredicaMm,

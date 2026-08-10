@@ -13,6 +13,7 @@ import {
   DRAWER_BOTTOM_DEFAULT_THICKNESS_MM,
   DRAWER_SIDE_THICKNESS_MM,
 } from "../materials/materials.api";
+import { settingsDefaults } from "../settings/settingsSchema";
 import {
   boxUsesInnerCabinetA1,
   computeA1Layout,
@@ -91,7 +92,10 @@ function buildA1DrawerPieces(
     const frontH = Math.max(1, layout.drawerZoneHeightMm - 2 * gap);
     const bodyW = Math.max(1, frontW - 2 * sideT);
     const bodyD = Math.max(150, layout.depthMm - 50);
-    const sideH = Math.max(1, Math.round(frontH * 0.75));
+    const latRatio = settingsDefaults.gavetas.gavetaPercentualReducaoLaterais;
+    const costaRatio = settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
+    const sideH = Math.max(1, Math.round(frontH * latRatio));
+    const costaH = Math.max(1, Math.round(sideH * costaRatio));
 
     const specs: Array<{
       tipo: string;
@@ -114,7 +118,7 @@ function buildA1DrawerPieces(
         tipo: "gaveta_traseira",
         token: "costa",
         w: bodyW,
-        h: sideH,
+        h: costaH,
         t: DRAWER_BACK_THICKNESS_MM,
       },
     ];

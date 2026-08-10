@@ -29,7 +29,6 @@ import {
 import {
   DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_BOTTOM_SIDE_ENTRY_MM,
-  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "./drawerGeometryConstants";
 import { resolveDrawerBodyElevationForStackRoleMm } from "./drawerStackPosition";
@@ -210,6 +209,14 @@ function resolveDrawerSettings(
     gavetaEspessuraTraseiraMm: normalizePositiveNumber(settings?.gavetaEspessuraTraseiraMm, defaults.gavetaEspessuraTraseiraMm),
     gavetaEspessuraFundoMm: normalizePositiveNumber(settings?.gavetaEspessuraFundoMm, defaults.gavetaEspessuraFundoMm),
     gavetaRecuoCorpoMm: normalizePositiveNumber(settings?.gavetaRecuoCorpoMm, defaults.gavetaRecuoCorpoMm),
+    gavetaPercentualReducaoLaterais: normalizePositiveNumber(
+      settings?.gavetaPercentualReducaoLaterais,
+      defaults.gavetaPercentualReducaoLaterais
+    ),
+    gavetaPercentualReducaoCosta: normalizePositiveNumber(
+      settings?.gavetaPercentualReducaoCosta,
+      defaults.gavetaPercentualReducaoCosta
+    ),
     gavetaRecuoProfundidadeCorredicaMm: normalizePositiveNumber(
       settings?.gavetaRecuoProfundidadeCorredicaMm,
       defaults.gavetaRecuoProfundidadeCorredicaMm
@@ -359,10 +366,11 @@ export function calculateDrawerSpecs(
   const frontHeight = clampMm(frontHeightOverride ?? drawerHeight);
 
   // ===== CORPO =====
-  // Laterais + costa mais baixas que a frente externa (desconto SW por role).
+  // Laterais = frente × percentual Admin; costa = laterais × percentual Admin.
   const woodBodyHeight = resolveDrawerWoodBodyHeightMm(
     frontHeight,
-    dimensions.stackRole
+    dimensions.stackRole,
+    settings.gavetaPercentualReducaoLaterais
   );
   const bodyHeight =
     metalBoxEnabled && resolvedMetalHeight > 0 ? resolvedMetalHeight : woodBodyHeight;
@@ -404,10 +412,10 @@ export function calculateDrawerSpecs(
   const rightSideDepth = woodSideDepth;
 
   // ===== TRASEIRA =====
-  // Largura = vão entre laterais; altura = laterais − 23 mm (assenta no fundo).
+  // Largura = vão entre laterais; altura = laterais × percentualCosta.
   const backWidth = clampMm(bodyWidth - 2 * sideThickness);
   const backHeight = clampMm(
-    Math.max(1, woodBodyHeight - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM)
+    Math.max(1, woodBodyHeight * settings.gavetaPercentualReducaoCosta)
   );
 
   // ===== FUNDO =====

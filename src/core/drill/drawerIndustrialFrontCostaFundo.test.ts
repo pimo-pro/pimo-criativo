@@ -1,5 +1,5 @@
 /**
- * Correcoes industriais gaveta: frente DRILL, costa -23, fundo entradas.
+ * Correcoes industriais gaveta: frente DRILL, costa × percentual Admin, fundo entradas.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -10,7 +10,6 @@ import {
 import {
   DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_BOTTOM_SIDE_ENTRY_MM,
-  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "../drawers/drawerGeometryConstants";
 import { calculateDrawerSpecs } from "../drawers/DrawerParametrics";
@@ -25,7 +24,7 @@ import {
   minimalBoxWithDrawers,
 } from "../../validation/drawerCertificationTestHelpers";
 
-describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () => {
+describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas", () => {
   it("routing: gav_frente* ? DRILL (nunca CNC)", () => {
     expect(resolveXmlMachineTarget("gaveta_frente")).toBe("drill");
     expect(resolveXmlMachineTarget("gaveta_frente_int")).toBe("drill");
@@ -34,7 +33,7 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
     expect(resolveXmlMachineTarget("gaveta_lat_esq")).toBe("drill");
   });
 
-  it("SSOT: costa = laterais - 23; fundo = vão+laterais / sideDepth+frente+costa", () => {
+  it("SSOT: costa = laterais × percentualCosta; fundo = vão+laterais / sideDepth+frente+costa", () => {
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 1046,
@@ -45,6 +44,7 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
       },
       settingsDefaults.gavetas.gavetaProfundidadesDisponiveisMm,
       {
+        ...settingsDefaults.gavetas,
         gavetaEspessuraLateralMm: 16,
         gavetaEspessuraTraseiraMm: 16,
         gavetaEspessuraFundoMm: 10,
@@ -52,7 +52,10 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
       }
     );
     const sideH = specs.leftSide.height;
-    expect(specs.back.height).toBe(sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM);
+    expect(specs.back.height).toBeCloseTo(
+      sideH * settingsDefaults.gavetas.gavetaPercentualReducaoCosta,
+      5
+    );
     const internalW = specs.back.width;
     const sideDepth = resolveDrawerSideDepthMm(specs.body.depth);
     expect(specs.bottom.width).toBe(
@@ -92,7 +95,10 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
     expect(specs.back.width).toBe(1000);
     expect(specs.bottom.width).toBe(1020);
     expect(specs.bottom.height).toBe(516);
-    expect(specs.back.height).toBe(specs.leftSide.height - 23);
+    expect(specs.back.height).toBeCloseTo(
+      specs.leftSide.height * settingsDefaults.gavetas.gavetaPercentualReducaoCosta,
+      5
+    );
   });
 
   it("caso 550×500 (T=19, laterais/costa 16): gav_fundo = 486×466", () => {
@@ -167,10 +173,10 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
     expect(groove?.y).toBe(DRAWER_SIDE_BASE_ELEVATION_MM + sideH - 13);
   });
 
-  it("costa: altura lat?23; Y golden 15 / H?15 (não latY?23)", () => {
+  it("costa: altura lat×percentualCosta; Y golden 15 / H−15", () => {
     const sideH = 150;
-    const costaH = sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM;
-    expect(costaH).toBe(127);
+    const costaH = sideH * settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
+    expect(costaH).toBeCloseTo(127.5, 5);
     const costa = computeDrawerCostaStructuralHoles({
       largura: 489,
       altura: costaH,
@@ -180,7 +186,8 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
     const costaYs = [...new Set(costa.filter((h) => h.tipo === "cavilha").map((h) => h.y))].sort(
       (a, b) => a - b
     );
-    expect(costaYs).toEqual([15, costaH - 15]);
+    expect(costaYs[0]).toBe(15);
+    expect(costaYs[1]).toBeCloseTo(costaH - 15, 5);
     expect(costa.filter((h) => h.tipo === "cavilha").every((h) => h.profundidade === 30)).toBe(true);
     const bottoms = costa.filter((h) => h.face === "cima");
     expect(bottoms).toHaveLength(2);
@@ -210,8 +217,9 @@ describe("gaveta industrial — frente DRILL / costa -23 / fundo entradas", () =
     const groove = front!.drillHoles!.find((h) => h.holeSubtype === "groove")!;
     expect(groove.depth).toBe((fundo?.espessura ?? 10) + 1);
 
-    expect(costa!.dimensoes.altura).toBe(
-      (lat?.dimensoes.altura ?? 0) - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM
+    expect(costa!.dimensoes.altura).toBeCloseTo(
+      (lat?.dimensoes.altura ?? 0) * settingsDefaults.gavetas.gavetaPercentualReducaoCosta,
+      5
     );
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {

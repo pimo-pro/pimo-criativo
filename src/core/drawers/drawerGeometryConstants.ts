@@ -11,13 +11,16 @@ export const DRAWER_FRONT_LATERAL_GAP_MM = 2;
 
 
 /**
- * Fração da altura da frente deixada livre no topo (quarto superior vazio).
- * Laterais/costa = frente × (1 − ratio); base das laterais elevada 15–22 mm acima da frente.
+ * Fração da altura da frente deixada livre no topo (documentação legado).
+ * Altura real das laterais: settings.gavetas.gavetaPercentualReducaoLaterais.
  */
 export const DRAWER_SIDE_TOP_CLEARANCE_RATIO = 0.25;
 
-/** Altura útil das laterais em relação à frente (75%). */
-export const DRAWER_SIDE_HEIGHT_RATIO = 1 - DRAWER_SIDE_TOP_CLEARANCE_RATIO;
+/**
+ * @deprecated Usar settings.gavetas.gavetaPercentualReducaoLaterais.
+ * Mantido como alias do default Admin (0,75) para imports legado.
+ */
+export const DRAWER_SIDE_HEIGHT_RATIO = 0.75;
 
 /**
  * Elevação da base das laterais/costa em relação à base da frente (mm).
@@ -100,8 +103,8 @@ export const DRAWER_LAT_GROOVE_CORRECTION = 2;
 export const DRAWER_LAT_GROOVE_TOOL_NAME = "FRESA_DESBASTE_10MM";
 
 /**
- * Costa da gaveta mais baixa que as laterais (assenta sobre o fundo).
- * `altura_gav_costa = altura_gav_lateral − 23`.
+ * @deprecated Usar settings.gavetas.gavetaPercentualReducaoCosta.
+ * Valor legado (mm) — não usar em geometria nova.
  */
 export const DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM = 23;
 

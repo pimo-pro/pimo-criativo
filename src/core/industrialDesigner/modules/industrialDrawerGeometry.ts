@@ -2,6 +2,7 @@
  * Geometria partilhada — módulos de gaveta industrial (caixa base + corpo de gaveta).
  */
 
+import { settingsDefaults } from "../../settings/settingsSchema";
 import {
   DRAWER_BOTTOM_DEFAULT_THICKNESS_MM,
   DRAWER_SIDE_THICKNESS_MM,
@@ -9,7 +10,6 @@ import {
 import {
   DRAWER_FRONT_LATERAL_GAP_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
-  DRAWER_SIDE_HEIGHT_RATIO,
 } from "../../drawers/drawerGeometryConstants";
 import { createIndustrialDesignBox } from "../designModel";
 import type { DesignPanel, IndustrialDesignBox } from "../types";
@@ -66,7 +66,9 @@ export function computeIndustrialDrawerSingleLayout(
   const frontExtT = espMm;
   const sideThicknessMm = DRAWER_SIDE_THICKNESS_MM;
   const frontIntW = frontExtW - 2 * sideThicknessMm;
-  const frontIntH = Math.round(frontExtH * DRAWER_SIDE_HEIGHT_RATIO);
+  const latRatio = settingsDefaults.gavetas.gavetaPercentualReducaoLaterais;
+  const costaRatio = settingsDefaults.gavetas.gavetaPercentualReducaoCosta;
+  const frontIntH = Math.round(frontExtH * latRatio);
   const frontIntT = sideThicknessMm;
   const sideHeightMm = frontIntH;
   const sideDepthMm = Math.max(200, innerD - INDUSTRIAL_DRAWER_BODY_FRONT_CLEARANCE_MM);
@@ -75,7 +77,7 @@ export function computeIndustrialDrawerSingleLayout(
   const bottomW = frontIntW;
   const bottomD = Math.max(150, sideDepthMm - backT);
   const backW = frontIntW;
-  const backH = sideHeightMm;
+  const backH = Math.max(1, Math.round(sideHeightMm * costaRatio));
 
   const drawerFrontY = espMm + 2;
   const drawerBodyY = drawerFrontY + DRAWER_SIDE_BASE_ELEVATION_MM;
