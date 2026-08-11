@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-11T18:22:49.574Z",
+  "updatedAt": "2026-08-11T18:41:19.791Z",
   "news": [
     {
-      "version": "v6.0811.1922",
-      "title": "Release — P3.17 + P3.18 · Preços alinhados + UI do Relatório Final",
-      "description": "Publicação completa:\n• P3.17 — Relatório Final espelha o Financeiro Unificado (ADMIN) em modo live: mesmos totais/IVA, sem reprecificação por chapas, sem sticky de preços\n• P3.18 — Melhorias de interface: Financeiro no final com Total destacado, Subtotal/IVA/Total sem duplicação, detalhe de custos colapsado, painel com contagens úteis (sem tempo)\nSem alteração de pipelines industriais nem fórmulas de preço do Unificado.",
-      "publishedAt": "2026-08-11T18:22:49.420Z",
-      "type": "feature",
+      "version": "v6.0811.1941",
+      "title": "Release — P3.19 · Correções de UI (Financeiro + Painéis) — khaled-pro",
+      "description": "Release — P3.19 · Correções de UI (Financeiro + Painéis) — khaled-pro",
+      "publishedAt": "2026-08-11T18:41:19.592Z",
+      "type": "update",
       "author": "pimo-pro",
-      "icon": "feature",
-      "commit": "e028508a"
+      "icon": "update",
+      "commit": "53a647b1"
+    },
+    {
+      "version": "v6.0811.1922",
+      "title": "Release — P3.18 · Melhorias de UI no Relatório Final (khaled-pro)",
+      "description": "Release — P3.18 · Melhorias de UI no Relatório Final (khaled-pro)",
+      "publishedAt": "2026-08-11T19:24:29+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "5208d79"
     },
     {
       "version": "v6.0811.1827",
