@@ -127,7 +127,7 @@ export const R = {
 
   financeiro: "4. Financeiro (custos din\u00e2micos)",
   financeiroHint:
-    "Isolado do m\u00f3dulo Custos ADMIN. Totais recalculam a partir de quantidade e pre\u00e7o.",
+    "Mesmo pipeline do Financeiro ADMIN (computeFinanceiroUnificado). Sem recalculo local.",
   custoChapasReais: "Custo total das chapas",
   mostrarDetalheCustos: "Mostrar detalhe de custos",
   ocultarDetalheCustos: "Ocultar detalhe de custos",

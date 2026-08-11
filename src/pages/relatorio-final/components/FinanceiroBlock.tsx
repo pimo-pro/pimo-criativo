@@ -1,24 +1,11 @@
 /**
- * Bloco financeiro do RelatÃ³rio Final â layout completo (custos dinÃ¢micos).
- * P3.23: encoding UTF-8, accordions fechados, sem fallback de detalhe inventado.
+ * Bloco financeiro do Relatório Final — custos dinâmicos (P3.25).
+ * Preços = computeFinanceiroUnificado (SSOT ADMIN). Sem recalculo local.
  */
-import { Fragment, useMemo, useState, type CSSProperties } from "react";
-import Button from "@/components/ui/Button";
+import { Fragment, useState, type CSSProperties } from "react";
 import {
-  addChapaToPaineisFinanceiro,
-  applyPrecoPorMetroEdit,
   FINANCEIRO_REPORT_LABELS,
-  listCatalogoChapas,
-  makeReportId,
-  recalcChapaDetalhe,
-  recalcFinanceiro,
-  recalcOrlaDetalhe,
-  resolveDimensoesMm,
-  sanitizeFinanceiroDetalhe,
-  setPaineisChapasDetalhe,
-  updateFinanceiroLinha,
   type ProjectReportFinanceiro,
-  type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
   type ReportStyle,
 } from "@/core/projectReport";
@@ -34,12 +21,12 @@ import {
   reportTh,
 } from "../reportStyles";
 import { R } from "../uiLabels";
-import EditableModal from "./EditableModal";
 
 type Props = {
   style: ReportStyle;
   value: ProjectReportFinanceiro;
-  onChange: (next: ProjectReportFinanceiro) => void;
+  /** P3.25: ignorado — preços são SSOT; mantido por compatibilidade de API. */
+  onChange?: (next: ProjectReportFinanceiro) => void;
 };
 
 function formatEur(n: number): string {
@@ -68,24 +55,9 @@ const accordionPanelStyle: CSSProperties = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
 };
 
-function emptyDetalheRow(label = ""): ReportFinanceiroDetalhe {
-  return {
-    id: makeReportId("fd"),
-    tipo: label,
-    dimensoes: "",
-    quantidade: 1,
-    precoUnitario: 0,
-    total: 0,
-  };
-}
-
-export default function FinanceiroBlock({ style, value, onChange }: Props) {
-  /** P3.23: blocos fechados por defeito (abrir sÃ³ com clique). */
+export default function FinanceiroBlock({ style, value }: Props) {
+  /** Accordions fechados por defeito. */
   const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(() => new Set());
-  const [addChapaOpen, setAddChapaOpen] = useState(false);
-  const catalogo = useMemo(() => listCatalogoChapas(), []);
-
-  const paineisLinha = value.linhas.find((l) => l.key === "paineis");
 
   const toggleKey = (key: FinanceiroCustoKey) => {
     setOpenKeys((prev) => {
@@ -96,32 +68,8 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
     });
   };
 
-  const setDetalhe = (key: FinanceiroCustoKey, detalhe: ReportFinanceiroDetalhe[]) => {
-    const mapped =
-      key === "paineis"
-        ? detalhe.map((d) => recalcChapaDetalhe(d))
-        : key === "orla"
-          ? detalhe.map((d) => recalcOrlaDetalhe(d))
-          : detalhe.map((d) => ({
-              ...d,
-              total:
-                Math.round(
-                  (Math.max(0, Number(d.quantidade) || 0) *
-                    (Math.max(0, Number(d.precoUnitario) || 0))) *
-                    100
-                ) / 100,
-            }));
-    onChange(updateFinanceiroLinha(value, key, { detalhe: sanitizeFinanceiroDetalhe(mapped) }));
-  };
-
-  const setPaineisDetalhe = (detalhe: ReportFinanceiroDetalhe[]) => {
-    onChange(
-      setPaineisChapasDetalhe(value, sanitizeFinanceiroDetalhe(detalhe))
-    );
-  };
-
   return (
-    <section style={reportSection(style)}>
+    <section style={reportSection(style)} data-testid="financeiro-block-ssot">
       <h2 style={reportSectionTitle}>{R.financeiro}</h2>
       <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-muted)" }}>
         {R.financeiroHint}
@@ -133,16 +81,9 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
           type="number"
           min={0}
           step={0.1}
+          readOnly
           style={{ ...reportInput, width: 100 }}
           value={value.ivaPct}
-          onChange={(e) =>
-            onChange(
-              recalcFinanceiro({
-                ...value,
-                ivaPct: Math.max(0, Number(e.target.value) || 0),
-              })
-            )
-          }
         />
       </label>
 
@@ -160,502 +101,89 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
             {value.linhas
               .filter((linha) => linha.key !== "chapasReais")
               .map((linha) => {
-              const locked = linha.key === "iva" || linha.key === "total";
-              const bold = linha.key === "total";
-              const key = isCustoKey(linha.key) ? linha.key : null;
-              const isOpen = key ? openKeys.has(key) : false;
-              const isPaineis = key === "paineis";
-              const isOrla = key === "orla";
-              const detalhe = key ? sanitizeFinanceiroDetalhe(linha.detalhe) : [];
-              const displayLabel =
-                key && key in FINANCEIRO_REPORT_LABELS
-                  ? FINANCEIRO_REPORT_LABELS[key]
-                  : linha.label;
+                const locked = linha.key === "iva" || linha.key === "total";
+                const bold = linha.key === "total";
+                const key = isCustoKey(linha.key) ? linha.key : null;
+                const isOpen = key ? openKeys.has(key) : false;
+                const displayLabel =
+                  key && key in FINANCEIRO_REPORT_LABELS
+                    ? FINANCEIRO_REPORT_LABELS[key]
+                    : linha.label;
 
-              return (
-                <Fragment key={linha.key}>
-                  <tr
-                    style={bold ? { fontWeight: 700, background: "rgba(59,130,246,0.08)" } : undefined}
-                  >
-                    <td style={reportTd}>
-                      {key ? (
-                        <button
-                          type="button"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--blue-light, #3b82f6)",
-                            cursor: "pointer",
-                            padding: 0,
-                            font: "inherit",
-                            textDecoration: "underline",
-                          }}
-                          onClick={() => {
-                            toggleKey(key);
-                          }}
-                        >
-                          {displayLabel}
-                          {isOpen ? " ▾" : " ▸"}
-                        </button>
-                      ) : (
-                        displayLabel
-                      )}
-                    </td>
-                    <td style={reportTd}>
-                      {locked ? (
-                        "-"
-                      ) : (
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          style={{ ...reportInput, minHeight: 32, width: 100 }}
-                          value={displayQtyPrice(linha.quantidade)}
-                          placeholder="-"
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const quantidade = raw === "" ? null : Math.max(0, Number(raw) || 0);
-                            onChange(
-                              updateFinanceiroLinha(value, linha.key as FinanceiroCustoKey, {
-                                quantidade,
-                              })
-                            );
-                          }}
-                        />
-                      )}
-                    </td>
-                    <td style={reportTd}>
-                      {locked ? (
-                        "-"
-                      ) : (
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          style={{ ...reportInput, minHeight: 32, width: 110 }}
-                          value={displayQtyPrice(linha.precoUnitario)}
-                          placeholder="-"
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const precoUnitario = raw === "" ? null : Math.max(0, Number(raw) || 0);
-                            onChange(
-                              updateFinanceiroLinha(value, linha.key as FinanceiroCustoKey, {
-                                precoUnitario,
-                              })
-                            );
-                          }}
-                        />
-                      )}
-                    </td>
-                    <td style={reportTd}>{formatEur(linha.total)}</td>
-                  </tr>
-
-                  {key && isOpen ? (
-                    <tr>
-                      <td style={reportTd} colSpan={4}>
-                        <div style={accordionPanelStyle}>
-                          {isPaineis ? (
-                            <>
-                              <div style={reportTableWrap}>
-                                <table style={reportTable}>
-                                  <thead>
-                                    <tr>
-                                      <th style={reportTh}>{R.tipo}</th>
-                                      <th style={reportTh}>{R.comprimentoMm}</th>
-                                      <th style={reportTh}>{R.larguraMm}</th>
-                                      <th style={reportTh}>{R.espessura}</th>
-                                      <th style={reportTh}>{R.quantidade}</th>
-                                      <th style={reportTh}>{R.precoPorMetroEur}</th>
-                                      <th style={reportTh}>{R.precoTotal}</th>
-                                      <th style={reportTh} />
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {(paineisLinha?.detalhe ?? detalhe).map((d, idx) => {
-                                      const dims = resolveDimensoesMm(d);
-                                      const rows = paineisLinha?.detalhe ?? detalhe;
-                                      return (
-                                        <tr key={d.id}>
-                                          <td style={reportTd}>
-                                            <input
-                                              style={{ ...reportInput, minHeight: 32 }}
-                                              value={d.tipo}
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = { ...d, tipo: e.target.value };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              style={{ ...reportInput, minHeight: 32, width: 90 }}
-                                              value={dims.L || ""}
-                                              placeholder="-"
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = {
-                                                  ...d,
-                                                  comprimentoMm: Math.max(
-                                                    0,
-                                                    Number(e.target.value) || 0
-                                                  ),
-                                                  larguraMm: dims.A,
-                                                };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              style={{ ...reportInput, minHeight: 32, width: 90 }}
-                                              value={dims.A || ""}
-                                              placeholder="-"
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = {
-                                                  ...d,
-                                                  comprimentoMm: dims.L,
-                                                  larguraMm: Math.max(
-                                                    0,
-                                                    Number(e.target.value) || 0
-                                                  ),
-                                                };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              style={{ ...reportInput, minHeight: 32, width: 70 }}
-                                              value={d.espessuraMm || ""}
-                                              placeholder="-"
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = {
-                                                  ...d,
-                                                  espessuraMm: Math.max(0, Number(e.target.value) || 0),
-                                                };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              style={{ ...reportInput, minHeight: 32, width: 70 }}
-                                              value={displayQtyPrice(d.quantidade)}
-                                              placeholder="-"
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = {
-                                                  ...d,
-                                                  quantidade: Math.max(0, Number(e.target.value) || 0),
-                                                };
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              step={0.01}
-                                              style={{ ...reportInput, minHeight: 32, width: 100 }}
-                                              value={displayQtyPrice(
-                                                d.precoPorMetro ?? d.precoUnitario
-                                              )}
-                                              placeholder="-"
-                                              onChange={(e) => {
-                                                const next = [...rows];
-                                                next[idx] = applyPrecoPorMetroEdit(
-                                                  d,
-                                                  Math.max(0, Number(e.target.value) || 0)
-                                                );
-                                                setPaineisDetalhe(next);
-                                              }}
-                                            />
-                                          </td>
-                                          <td style={reportTd}>
-                                            {formatEur(
-                                              (Number(d.quantidade) || 0) *
-                                                (Number(d.precoUnitario) || 0)
-                                            )}
-                                          </td>
-                                          <td style={reportTd}>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              onClick={() =>
-                                                setPaineisDetalhe(rows.filter((_, i) => i !== idx))
-                                              }
-                                            >
-                                              {R.remover}
-                                            </Button>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => setAddChapaOpen(true)}
-                              >
-                                {R.adicionarChapa}
-                              </Button>
-                            </>
-                          ) : isOrla ? (
-                            <>
-                              <div style={reportTableWrap}>
-                                <table style={reportTable}>
-                                  <thead>
-                                    <tr>
-                                      <th style={reportTh}>{R.tipoOrla}</th>
-                                      <th style={reportTh}>{R.quantidadeM}</th>
-                                      <th style={reportTh}>{R.precoPorMetro}</th>
-                                      <th style={reportTh}>{R.precoTotal}</th>
-                                      <th style={reportTh} />
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {detalhe.map((d, idx) => (
-                                      <tr key={d.id}>
-                                        <td style={reportTd}>
-                                          <input
-                                            style={{ ...reportInput, minHeight: 32 }}
-                                            value={d.tipo}
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = { ...d, tipo: e.target.value };
-                                              setDetalhe("orla", next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          <input
-                                            type="number"
-                                            min={0}
-                                            step={0.01}
-                                            style={{ ...reportInput, minHeight: 32, width: 110 }}
-                                            value={displayQtyPrice(d.quantidade)}
-                                            placeholder="-"
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = {
-                                                ...d,
-                                                quantidade: Math.max(0, Number(e.target.value) || 0),
-                                              };
-                                              setDetalhe("orla", next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          <input
-                                            type="number"
-                                            min={0}
-                                            step={0.01}
-                                            style={{ ...reportInput, minHeight: 32, width: 110 }}
-                                            value={displayQtyPrice(d.precoUnitario)}
-                                            placeholder="-"
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = {
-                                                ...d,
-                                                precoUnitario: Math.max(
-                                                  0,
-                                                  Number(e.target.value) || 0
-                                                ),
-                                              };
-                                              setDetalhe("orla", next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          {formatEur(
-                                            (Number(d.quantidade) || 0) *
-                                              (Number(d.precoUnitario) || 0)
-                                          )}
-                                        </td>
-                                        <td style={reportTd}>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            onClick={() =>
-                                              setDetalhe(
-                                                "orla",
-                                                detalhe.filter((_, i) => i !== idx)
-                                              )
-                                            }
-                                          >
-                                            {R.remover}
-                                          </Button>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {detalhe.length === 0 ? (
-                                      <tr>
-                                        <td style={reportTd} colSpan={5}>
-                                          {R.semItens}
-                                        </td>
-                                      </tr>
-                                    ) : null}
-                                  </tbody>
-                                </table>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() =>
-                                  setDetalhe("orla", [
-                                    ...detalhe,
-                                    {
-                                      ...emptyDetalheRow("Orla"),
-                                      dimensoes: "m",
-                                    },
-                                  ])
-                                }
-                              >
-                                {R.adicionarTipo}
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <div style={reportTableWrap}>
-                                <table style={reportTable}>
-                                  <thead>
-                                    <tr>
-                                      <th style={reportTh}>{R.tipo}</th>
-                                      <th style={reportTh}>{R.dimensoes}</th>
-                                      <th style={reportTh}>{R.quantidade}</th>
-                                      <th style={reportTh}>{R.precoUnit}</th>
-                                      <th style={reportTh}>{R.precoTotal}</th>
-                                      <th style={reportTh} />
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {detalhe.map((d, idx) => (
-                                      <tr key={d.id}>
-                                        <td style={reportTd}>
-                                          <input
-                                            style={{ ...reportInput, minHeight: 32 }}
-                                            value={d.tipo}
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = { ...d, tipo: e.target.value };
-                                              setDetalhe(key, next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          <input
-                                            style={{ ...reportInput, minHeight: 32 }}
-                                            value={d.dimensoes}
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = { ...d, dimensoes: e.target.value };
-                                              setDetalhe(key, next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          <input
-                                            type="number"
-                                            min={0}
-                                            step={0.01}
-                                            style={{ ...reportInput, minHeight: 32, width: 100 }}
-                                            value={displayQtyPrice(d.quantidade)}
-                                            placeholder="-"
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = {
-                                                ...d,
-                                                quantidade: Math.max(0, Number(e.target.value) || 0),
-                                              };
-                                              setDetalhe(key, next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          <input
-                                            type="number"
-                                            min={0}
-                                            step={0.01}
-                                            style={{ ...reportInput, minHeight: 32, width: 110 }}
-                                            value={displayQtyPrice(d.precoUnitario)}
-                                            placeholder="-"
-                                            onChange={(e) => {
-                                              const next = [...detalhe];
-                                              next[idx] = {
-                                                ...d,
-                                                precoUnitario: Math.max(
-                                                  0,
-                                                  Number(e.target.value) || 0
-                                                ),
-                                              };
-                                              setDetalhe(key, next);
-                                            }}
-                                          />
-                                        </td>
-                                        <td style={reportTd}>
-                                          {formatEur(
-                                            (Number(d.quantidade) || 0) *
-                                              (Number(d.precoUnitario) || 0)
-                                          )}
-                                        </td>
-                                        <td style={reportTd}>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            onClick={() =>
-                                              setDetalhe(
-                                                key,
-                                                detalhe.filter((_, i) => i !== idx)
-                                              )
-                                            }
-                                          >
-                                            {R.remover}
-                                          </Button>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {detalhe.length === 0 ? (
-                                      <tr>
-                                        <td style={reportTd} colSpan={6}>
-                                          {R.semItens}
-                                        </td>
-                                      </tr>
-                                    ) : null}
-                                  </tbody>
-                                </table>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() =>
-                                  setDetalhe(key, [...detalhe, emptyDetalheRow(linha.label)])
-                                }
-                              >
-                                {R.adicionarTipo}
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                return (
+                  <Fragment key={linha.key}>
+                    <tr
+                      style={
+                        bold
+                          ? { fontWeight: 700, background: "rgba(59,130,246,0.08)" }
+                          : undefined
+                      }
+                    >
+                      <td style={reportTd}>
+                        {key ? (
+                          <button
+                            type="button"
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "var(--blue-light, #3b82f6)",
+                              cursor: "pointer",
+                              padding: 0,
+                              font: "inherit",
+                              textDecoration: "underline",
+                            }}
+                            onClick={() => toggleKey(key)}
+                          >
+                            {displayLabel}
+                            {isOpen ? " \u25BE" : " \u25B8"}
+                          </button>
+                        ) : (
+                          displayLabel
+                        )}
                       </td>
+                      <td style={reportTd}>
+                        {locked ? (
+                          "-"
+                        ) : (
+                          <input
+                            type="number"
+                            readOnly
+                            style={{ ...reportInput, minHeight: 32, width: 100 }}
+                            value={displayQtyPrice(linha.quantidade)}
+                            placeholder="-"
+                          />
+                        )}
+                      </td>
+                      <td style={reportTd}>
+                        {locked ? (
+                          "-"
+                        ) : (
+                          <input
+                            type="number"
+                            readOnly
+                            style={{ ...reportInput, minHeight: 32, width: 110 }}
+                            value={displayQtyPrice(linha.precoUnitario)}
+                            placeholder="-"
+                          />
+                        )}
+                      </td>
+                      <td style={reportTd}>{formatEur(linha.total)}</td>
                     </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
+
+                    {key && isOpen ? (
+                      <tr>
+                        <td style={reportTd} colSpan={4}>
+                          <div style={accordionPanelStyle}>
+                            <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
+                              {R.semItens} — total SSOT: {formatEur(linha.total)}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
           </tbody>
         </table>
       </div>
@@ -666,48 +194,6 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
         {" \u00b7 "}
         {R.total}: <strong>{formatEur(value.totalProjeto)}</strong>
       </div>
-
-      <EditableModal
-        open={addChapaOpen}
-        title={R.escolherChapa}
-        onClose={() => setAddChapaOpen(false)}
-      >
-        <div style={{ display: "grid", gap: 8, maxHeight: 360, overflowY: "auto" }}>
-          {catalogo.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 8,
-                padding: "10px 12px",
-                border: "1px solid var(--border, rgba(127,127,127,0.25))",
-                borderRadius: 8,
-                background: "var(--input-bg, var(--ui-color-input-bg))",
-                color: "inherit",
-                cursor: "pointer",
-                textAlign: "left",
-                font: "inherit",
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange(addChapaToPaineisFinanceiro(value, opt));
-                setAddChapaOpen(false);
-                setOpenKeys((prev) => new Set(prev).add("paineis"));
-              }}
-            >
-              <span>
-                {opt.label} ({opt.espessuraMm} mm)
-              </span>
-              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                {opt.precoPorMetro.toFixed(2)} EUR/m
-              </span>
-            </button>
-          ))}
-        </div>
-      </EditableModal>
     </section>
   );
 }

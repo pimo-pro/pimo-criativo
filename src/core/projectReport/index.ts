@@ -57,6 +57,7 @@ export {
   snapshotToReportFinanceiro,
   buildLiveReportFinanceiro,
   loadMaterialsForFinanceiro,
+  withLiveFinanceiro,
 } from "./financeiroFromUnificado";
 /** P3.22 — fluxo original da página Financeiro (custos dinâmicos). */
 export { financeiroAdapter, adapterModelToFinanceiroShape } from "./financeiroAdapter";

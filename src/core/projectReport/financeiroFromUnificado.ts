@@ -1,12 +1,13 @@
 /**
- * P3.17 — Mapper SSOT Unificado → shape do Relatório Final.
- * Totais/IVA copiados do snapshot (sem reprecificação nem detalhe que altere totais).
+ * P3.17 / P3.25 — Mapper SSOT Unificado → shape do Relatório Final.
+ * Totais/IVA copiados do snapshot (sem reprecificação, sem detalhe, sem fallback).
  */
 
 import type { ProjectState } from "@/context/projectTypes";
 import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificado";
 import {
   FINANCEIRO_CUSTO_KEYS,
+  type FinanceiroCustoKey,
   type FinanceiroUnificadoSnapshot,
 } from "@/core/financeiro/financeiroUnificadoTypes";
 import type { MaterialIndustrial } from "@/core/manufacturing/materials";
@@ -17,6 +18,7 @@ import { ensureFinanceiroShape } from "./financeReportCalc";
 import {
   FINANCEIRO_REPORT_LABELS,
   PROJECT_REPORT_IVA_DEFAULT,
+  type ProjectReport,
   type ProjectReportFinanceiro,
   type ReportFinanceiroLinha,
 } from "./types";
@@ -49,9 +51,25 @@ export function loadMaterialsForFinanceiro(): MaterialIndustrial[] {
   }
 }
 
+/** Valor de linha no Relatório = ADMIN (Painéis = paineis + chapasReais). */
+function officialLineTotal(
+  snap: FinanceiroUnificadoSnapshot,
+  key: FinanceiroCustoKey
+): number {
+  if (key === "chapasReais") return 0;
+  if (key === "paineis") {
+    return round2(
+      (Number(snap.custosEffective.paineis) || 0) +
+        (Number(snap.custosEffective.chapasReais) || 0)
+    );
+  }
+  return round2(Number(snap.custosEffective[key]) || 0);
+}
+
 /**
  * Converte o snapshot do Financeiro Unificado (ADMIN) no formato do Relatório Final.
- * Fonte única: `custosEffective` + `subtotal` / `ivaValor` / `totalProjeto` do snap.
+ * Fonte única: `custosEffective` + `subtotal` / `ivaValor` / `totalProjeto`.
+ * Sem detalhe, sem fallback, sem recalculo interno.
  */
 export function snapshotToReportFinanceiro(
   snap: FinanceiroUnificadoSnapshot
@@ -61,7 +79,7 @@ export function snapshotToReportFinanceiro(
     label: FINANCEIRO_REPORT_LABELS[key],
     quantidade: null,
     precoUnitario: null,
-    total: round2(snap.custosEffective[key] ?? 0),
+    total: officialLineTotal(snap, key),
     detalhe: [],
   }));
 
@@ -99,7 +117,7 @@ export function snapshotToReportFinanceiro(
   };
 }
 
-/** Financeiro do Relatório sempre live a partir do Unificado (P3.17). */
+/** Financeiro do Relatório sempre live a partir do Unificado (P3.25). */
 export function buildLiveReportFinanceiro(
   state: ProjectState | null | undefined,
   materials: MaterialIndustrial[] = loadMaterialsForFinanceiro()
@@ -110,4 +128,16 @@ export function buildLiveReportFinanceiro(
   } catch {
     return ensureFinanceiroShape(null);
   }
+}
+
+/** Substitui o bloco financeiro do relatório pelo SSOT ADMIN (live). */
+export function withLiveFinanceiro(
+  report: ProjectReport,
+  state: ProjectState | null | undefined,
+  materials: MaterialIndustrial[] = loadMaterialsForFinanceiro()
+): ProjectReport {
+  return {
+    ...report,
+    financeiro: buildLiveReportFinanceiro(state, materials),
+  };
 }

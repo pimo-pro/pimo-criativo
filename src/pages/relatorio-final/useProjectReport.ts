@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { applyResultados } from "@/context/projectState";
+import { reviveState } from "@/context/projectPersistence";
+import type { ProjectState } from "@/context/projectTypes";
 import {
+  buildLiveReportFinanceiro,
+  loadMaterialsForFinanceiro,
   loadProjectReport,
   markManualPath,
   saveProjectReport,
@@ -7,10 +12,15 @@ import {
   setReportStyle,
   withDerivedMetricas,
   withHistoryForPath,
+  withLiveFinanceiro,
   type ProjectReport,
   type ReportStyle,
 } from "@/core/projectReport";
-import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
+import {
+  findOfflineProjectByAnyKey,
+  resolveProjectIdentity,
+} from "@/core/projects/projectIdentity";
+import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 
 function loadReportFlexible(urlKey: string): ProjectReport | null {
   const identity = resolveProjectIdentity(urlKey);
@@ -39,8 +49,17 @@ function resolveSeedKey(urlKey: string): string {
   return urlKey.trim();
 }
 
+function loadProjectState(projectId: string): ProjectState | null {
+  const offline = findOfflineProjectByAnyKey(projectId);
+  if (!offline) return null;
+  const record = toSavedRecordFromOffline(offline);
+  const revived = reviveState(record.snapshot?.projectState);
+  return revived ? applyResultados(revived) : null;
+}
+
 export function useProjectReport(projectKey: string | undefined) {
   const [report, setReport] = useState<ProjectReport | null>(null);
+  const [projectState, setProjectState] = useState<ProjectState | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,10 +78,15 @@ export function useProjectReport(projectKey: string | undefined) {
       setError(null);
       try {
         const seedKey = resolveSeedKey(projectKey);
+        const state = loadProjectState(seedKey);
+        const materials = loadMaterialsForFinanceiro();
         const stored = loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
+        /** P3.25: preços sempre live do Unificado (ADMIN). */
+        const withLive = withLiveFinanceiro(merged, state, materials);
         if (!cancelled) {
-          setReport(merged);
+          setProjectState(state);
+          setReport(withLive);
           setDirty(!stored);
           setLoading(false);
         }
@@ -88,12 +112,14 @@ export function useProjectReport(projectKey: string | undefined) {
           next = markManualPath(next, manualPath);
           next = withHistoryForPath(prev, next, manualPath);
         }
+        // Preços SSOT: qualquer update reaplica o Unificado live.
+        next = withLiveFinanceiro(next, projectState, loadMaterialsForFinanceiro());
         return withDerivedMetricas(next);
       });
       setDirty(true);
       setSaveMsg(null);
     },
-    []
+    [projectState]
   );
 
   const changeStyle = useCallback((style: ReportStyle) => {
@@ -110,7 +136,13 @@ export function useProjectReport(projectKey: string | undefined) {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const saved = saveProjectReport(report);
+      // Persistir com financeiro live (SSOT) para não congelar preços errados.
+      const toSave = withLiveFinanceiro(
+        report,
+        projectState,
+        loadMaterialsForFinanceiro()
+      );
+      const saved = saveProjectReport(toSave);
       setReport(saved);
       setDirty(false);
       setSaveMsg("Altera\u00e7\u00f5es guardadas no relat\u00f3rio.");
@@ -119,10 +151,15 @@ export function useProjectReport(projectKey: string | undefined) {
     } finally {
       setSaving(false);
     }
-  }, [report]);
+  }, [report, projectState]);
+
+  /** Financeiro live (para UI) — sempre SSOT. */
+  const liveFinanceiro = report
+    ? buildLiveReportFinanceiro(projectState, loadMaterialsForFinanceiro())
+    : null;
 
   return {
-    report,
+    report: report && liveFinanceiro ? { ...report, financeiro: liveFinanceiro } : report,
     loading,
     saving,
     error,

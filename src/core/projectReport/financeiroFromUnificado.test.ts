@@ -1,5 +1,5 @@
 /**
- * P3.17 — Alinhamento Relatório Final ↔ Financeiro Unificado (ADMIN).
+ * P3.25 — Relatório Final = SSOT Unificado (ADMIN), sem recalculo interno.
  */
 import { describe, expect, it } from "vitest";
 import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificado";
@@ -39,32 +39,36 @@ function minimalSnap(
   };
 }
 
-describe("snapshotToReportFinanceiro", () => {
-  it("copia totalProjeto e ivaValor do snap", () => {
+describe("P3.25 snapshotToReportFinanceiro SSOT", () => {
+  it("copia subtotal / IVA / total do ADMIN", () => {
     const custos = Object.fromEntries(FINANCEIRO_CUSTO_KEYS.map((k) => [k, 0])) as Record<
       (typeof FINANCEIRO_CUSTO_KEYS)[number],
       number
     >;
     custos.paineis = 100;
+    custos.ferragens = 20;
+    custos.orla = 10;
     custos.adm = 40;
     const snap = minimalSnap({
       custosEffective: custos,
-      subtotal: 100,
+      subtotal: 130,
       ivaPct: 23,
-      ivaValor: 23,
-      totalProjeto: 163,
+      ivaValor: round2(130 * 0.23),
+      totalProjeto: round2(130 + 40 + 130 * 0.23),
+      subtotalComAdmin: 170,
     });
     const report = snapshotToReportFinanceiro(snap);
-    expect(report.subtotal).toBe(100);
-    expect(report.ivaValor).toBe(23);
-    expect(report.totalProjeto).toBe(163);
+    expect(report.subtotal).toBe(snap.subtotal);
+    expect(report.ivaValor).toBe(snap.ivaValor);
+    expect(report.totalProjeto).toBe(snap.totalProjeto);
     expect(report.linhas.find((l) => l.key === "paineis")?.total).toBe(100);
+    expect(report.linhas.find((l) => l.key === "ferragens")?.total).toBe(20);
+    expect(report.linhas.find((l) => l.key === "orla")?.total).toBe(10);
     expect(report.linhas.find((l) => l.key === "adm")?.total).toBe(40);
-    expect(report.linhas.find((l) => l.key === "iva")?.total).toBe(23);
-    expect(report.linhas.find((l) => l.key === "total")?.total).toBe(163);
+    expect(report.linhas.every((l) => (l.detalhe?.length ?? 0) === 0)).toBe(true);
   });
 
-  it("sem double-count: paineis 0 + chapasReais no total do snap", () => {
+  it("Painéis = paineis + chapasReais; chapasReais linha = 0 (sem duplicação)", () => {
     const custos = Object.fromEntries(FINANCEIRO_CUSTO_KEYS.map((k) => [k, 0])) as Record<
       (typeof FINANCEIRO_CUSTO_KEYS)[number],
       number
@@ -79,20 +83,17 @@ describe("snapshotToReportFinanceiro", () => {
       totalProjeto: round2(250 + 250 * 0.23),
     });
     const report = snapshotToReportFinanceiro(snap);
-    expect(report.linhas.find((l) => l.key === "paineis")?.total).toBe(0);
-    expect(report.linhas.find((l) => l.key === "chapasReais")?.total).toBe(250);
+    expect(report.linhas.find((l) => l.key === "paineis")?.total).toBe(250);
+    expect(report.linhas.find((l) => l.key === "chapasReais")?.total).toBe(0);
     expect(report.totalProjeto).toBe(snap.totalProjeto);
-    expect(report.ivaValor).toBe(snap.ivaValor);
-    // Detalhe vazio — nao reprecifica
-    expect(report.linhas.every((l) => (l.detalhe?.length ?? 0) === 0)).toBe(true);
   });
 });
 
-describe("buildLiveReportFinanceiro vs Unificado", () => {
-  it("financeiro live == Unificado (IVA nao inclui ADM)", () => {
+describe("P3.25 buildLiveReportFinanceiro == ADMIN", () => {
+  it("Total / IVA / Subtotal / Painéis iguais ao Unificado", () => {
     const box = {
       id: "b1",
-      nome: "Caixa teste",
+      nome: "Caixa",
       dimensoes: { largura: 600, altura: 720, profundidade: 560 },
       espessura: 19,
       portaTipo: "sem_porta",
@@ -108,7 +109,7 @@ describe("buildLiveReportFinanceiro vs Unificado", () => {
       boxes: [box],
       rules: defaultRulesConfig,
       materialId: "mdf_branco",
-      projectName: "Teste P3.17",
+      projectName: "P3.25",
       remates: [],
       rodapes: [],
       financeiroOverrides: {
@@ -125,16 +126,32 @@ describe("buildLiveReportFinanceiro vs Unificado", () => {
     expect(report.totalProjeto).toBe(round2(snap.totalProjeto));
     expect(report.ivaPct).toBe(snap.ivaPct);
 
-    // IVA so sobre materiais; ADM no effective e fora da base de IVA
-    const adm = Number(snap.custosEffective.adm) || 0;
-    expect(adm).toBe(50);
-    expect(report.ivaValor).toBe(round2(snap.subtotal * (snap.ivaPct / 100)));
-    expect(report.totalProjeto).toBe(round2(snap.subtotalComAdmin + snap.ivaValor));
-    expect(report.totalProjeto).toBeGreaterThan(round2(snap.subtotal + report.ivaValor));
+    const paineisAdmin = round2(
+      (Number(snap.custosEffective.paineis) || 0) +
+        (Number(snap.custosEffective.chapasReais) || 0)
+    );
+    expect(report.linhas.find((l) => l.key === "paineis")?.total).toBe(paineisAdmin);
+    expect(report.linhas.find((l) => l.key === "chapasReais")?.total).toBe(0);
+    expect(report.linhas.find((l) => l.key === "ferragens")?.total).toBe(
+      round2(snap.custosEffective.ferragens)
+    );
+    expect(report.linhas.find((l) => l.key === "orla")?.total).toBe(
+      round2(snap.custosEffective.orla)
+    );
+    expect(report.linhas.find((l) => l.key === "desperdicio")?.total).toBe(
+      round2(snap.custosEffective.desperdicio)
+    );
+    expect(report.linhas.find((l) => l.key === "serragem")?.total).toBe(
+      round2(snap.custosEffective.serragem)
+    );
+    expect(report.linhas.find((l) => l.key === "adm")?.total).toBe(
+      round2(snap.custosEffective.adm)
+    );
+    expect(report.linhas.find((l) => l.key === "montagem")?.total).toBe(
+      round2(snap.custosEffective.montagem)
+    );
 
-    for (const key of FINANCEIRO_CUSTO_KEYS) {
-      const line = report.linhas.find((l) => l.key === key);
-      expect(line?.total).toBe(round2(snap.custosEffective[key] ?? 0));
-    }
+    // Sem detalhe / sem itens extra
+    expect(report.linhas.every((l) => (l.detalhe?.length ?? 0) === 0)).toBe(true);
   });
 });

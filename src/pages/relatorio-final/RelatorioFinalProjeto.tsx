@@ -7,8 +7,6 @@ import {
   deriveMetricas,
   emptyQualidade,
   exportProjectReportPdf,
-  getFerragensDetalhe,
-  materiaisFromFerragensDetalhe,
   type ReportStyle,
 } from "@/core/projectReport";
 import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
@@ -45,7 +43,6 @@ export default function RelatorioFinalProjeto() {
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
 
   const metricas = useMemo(() => (report ? deriveMetricas(report) : null), [report]);
-  const ferragensCount = report ? getFerragensDetalhe(report.financeiro).length : 0;
 
   if (loading) {
     return (
@@ -168,17 +165,7 @@ export default function RelatorioFinalProjeto() {
           }
         />
 
-        <FinanceiroBlock
-          style={style}
-          value={report.financeiro}
-          onChange={(financeiro) =>
-            updateReport((r) => ({
-              ...r,
-              financeiro,
-              materiais: materiaisFromFerragensDetalhe(getFerragensDetalhe(financeiro)),
-            }), "financeiro")
-          }
-        />
+        <FinanceiroBlock style={style} value={report.financeiro} />
 
         <NotasBlock
           style={style}
@@ -211,7 +198,7 @@ export default function RelatorioFinalProjeto() {
             </div>
             <div>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{R.materiaisFerragens}</div>
-              <div style={{ fontSize: 22, fontWeight: 700 }}>{ferragensCount}</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{report.materiais.length}</div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{R.qualidadeLabel}</div>

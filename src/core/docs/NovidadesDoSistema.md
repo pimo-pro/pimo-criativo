@@ -1,5 +1,10 @@
 # Novidades do Sistema
 
+### Release — P3.25 · Correção de preço no Relatório Final
+- Relatório Final sincronizado com o Financeiro ADMIN (`computeFinanceiroUnificado`)
+- Sem recalculo interno (qty×preço, IVA/total locais, fallbacks de chapas/Painéis/ferragens)
+- Painéis = paineis + chapasReais (sem duplicação); Subtotal/IVA/Total = ADMIN
+
 ### Release — P3.24 · Correção do módulo Adicionar Chapa + preço dinâmico
 - Modal «Adicionar chapa» com z-index e backdrop opaco correctos; selecção liga ao state
 - Chapa adicionada aparece de imediato em Painéis (espelho em chapasReais, sem double-count)
