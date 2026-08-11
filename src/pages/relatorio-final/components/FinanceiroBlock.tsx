@@ -1,6 +1,6 @@
 /**
  * Bloco financeiro do Relatório Final — layout completo (custos dinâmicos).
- * P3.20: restaurado o UI pré-P3.18 (accordions + detalhes + adicionar chapa).
+ * P3.22: fluxo original (adapter → industrialRules → totals); UI pré-P3.17.
  */
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
@@ -56,7 +56,7 @@ function displayQtyPrice(n: number | null | undefined): string | number {
   return n;
 }
 
-/** Painel accordion sÃ³lido (nÃ£o transparente). */
+/** Painel accordion sólido (não transparente). */
 const accordionPanelStyle: CSSProperties = {
   display: "grid",
   gap: 10,
@@ -80,9 +80,9 @@ function emptyDetalheRow(label = ""): ReportFinanceiroDetalhe {
   };
 }
 
-/** Se nÃ£o houver detalhe, cria linha a partir do total da linha-mÃ£e. */
+/** Se nÃÂ£o houver detalhe, cria linha a partir do total da linha-mÃÂ£e. */
 function detailOrSeed(linha: ReportFinanceiroLinha): ReportFinanceiroDetalhe[] {
-  // Portas / Remates: sem madeira no modo industrial â nunca inventar detalhe.
+  // Portas / Remates: sem madeira no modo industrial Ã¢ÂÂ nunca inventar detalhe.
   if (linha.key === "portas" || linha.key === "remates") return [];
   if ((linha.detalhe?.length ?? 0) > 0) return linha.detalhe;
   const total = Number(linha.total) || 0;
@@ -232,7 +232,7 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                           }}
                         >
                           {displayLabel}
-                          {isOpen ? " â¾" : " â¸"}
+                          {isOpen ? " Ã¢ÂÂ¾" : " Ã¢ÂÂ¸"}
                         </button>
                       ) : (
                         displayLabel

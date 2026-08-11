@@ -58,6 +58,19 @@ export {
   buildLiveReportFinanceiro,
   loadMaterialsForFinanceiro,
 } from "./financeiroFromUnificado";
+/** P3.22 — fluxo original da página Financeiro (custos dinâmicos). */
+export { financeiroAdapter, adapterModelToFinanceiroShape } from "./financeiroAdapter";
+export type { FinanceiroAdapterModel } from "./financeiroAdapter";
+export {
+  financeiroIndustrialRules,
+  seedChapasDetalhe,
+  seedOrlaDetalhe,
+  applyIndustrialReportLinhas,
+} from "./financeiroIndustrialRules";
+export type { FinanceiroIndustrialRulesInput } from "./financeiroIndustrialRules";
+export { financeiroTotals, alignOfficialTotalsToUnificado } from "./financeiroTotals";
+export { buildFinanceiroPageFromState } from "./buildFinanceiroPage";
+export type { BuildFinanceiroPageOptions } from "./buildFinanceiroPage";
 export {
   financeiroCustoLinhasDisplay,
   financeiroTotaisDisplay,

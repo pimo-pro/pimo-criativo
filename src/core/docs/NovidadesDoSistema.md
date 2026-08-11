@@ -1,5 +1,11 @@
 # Novidades do Sistema
 
+### Release — P3.22 · Restauração completa da lógica original do Financeiro
+- Relatório Final: fluxo original restaurado — state → financeiroAdapter → financeiroIndustrialRules → financeiroTotals → UI
+- Página «Financeiro (custos dinâmicos)» com blocos, detalhes e painéis originais (accordions abertos, chapas editáveis)
+- Unificado permanece SSOT dos totais oficiais; não constrói a UI detalhada
+- Sem merge com Relatório simplificado P3.17–P3.20; sem esconder nem colapsar blocos
+
 ### Release — P3.21 · Restauração completa da página Financeiro
 - Relatório Final: página «Financeiro (custos dinâmicos)» restaurada ao fluxo pré-P3.17
 - Seed/merge antigo com chapas e orla; UI completa com todos os blocos e detalhes editáveis

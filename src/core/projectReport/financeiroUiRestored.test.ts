@@ -1,5 +1,5 @@
 /**
- * P3.20 — Asserts: UI Financeiro restaurada (linhas visíveis) + Total alinhado ao Unificado.
+ * P3.22 — UI Financeiro: todos os blocos visíveis; totais alinhados ao Unificado.
  */
 import { describe, expect, it } from "vitest";
 import { FINANCEIRO_CUSTO_KEYS } from "@/core/financeiro/financeiroUnificadoTypes";
@@ -7,10 +7,9 @@ import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificad
 import { defaultRulesConfig } from "@/core/rules/rulesConfig";
 import type { BoxModule } from "@/core/types";
 import { FINANCEIRO_REPORT_LABELS } from "./types";
-import { buildLiveReportFinanceiro } from "./financeiroFromUnificado";
+import { buildFinanceiroPageFromState } from "./buildFinanceiroPage";
 import { financeiroCustoLinhasDisplay } from "./financeiroDisplay";
 
-/** Labels que o bloco Financeiro (custos dinâmicos) deve expor na UI. */
 const BLOCOS_ESPERADOS = [
   "paineis",
   "portas",
@@ -29,13 +28,13 @@ const BLOCOS_ESPERADOS = [
   "portes",
 ] as const;
 
-describe("P3.20 Financeiro UI restaurado", () => {
+describe("P3.22 Financeiro UI original", () => {
   it("expõe todos os blocos de custo (sem chapasReais duplicado)", () => {
     for (const key of BLOCOS_ESPERADOS) {
       expect(FINANCEIRO_CUSTO_KEYS).toContain(key);
       expect(FINANCEIRO_REPORT_LABELS[key]).toBeTruthy();
     }
-    const fin = buildLiveReportFinanceiro(null, []);
+    const fin = buildFinanceiroPageFromState(null, "empty");
     const display = financeiroCustoLinhasDisplay(fin.linhas);
     for (const key of BLOCOS_ESPERADOS) {
       expect(display.some((l) => l.key === key)).toBe(true);
@@ -45,7 +44,7 @@ describe("P3.20 Financeiro UI restaurado", () => {
     expect(display.some((l) => l.key === "total")).toBe(false);
   });
 
-  it("Total do relatório permanece alinhado ao Unificado", () => {
+  it("Total da página permanece alinhado ao Unificado", () => {
     const box = {
       id: "b1",
       nome: "Caixa",
@@ -64,12 +63,12 @@ describe("P3.20 Financeiro UI restaurado", () => {
       boxes: [box],
       rules: defaultRulesConfig,
       materialId: "mdf_branco",
-      projectName: "P3.20",
+      projectName: "P3.22-ui",
       remates: [],
       rodapes: [],
     };
     const snap = computeFinanceiroUnificado(project);
-    const report = buildLiveReportFinanceiro(project as never, []);
+    const report = buildFinanceiroPageFromState(project as never, "p3-22-ui");
     expect(report.totalProjeto).toBe(Math.round(snap.totalProjeto * 100) / 100);
     expect(report.ivaValor).toBe(Math.round(snap.ivaValor * 100) / 100);
     expect(report.linhas.some((l) => l.key === "iva")).toBe(true);
