@@ -3,12 +3,12 @@
   "news": [
     {
       "version": "v6.0811.2151",
-      "title": "Release — P3.21 · Restauração completa da página Financeiro — khaled-pro",
-      "description": "Release — P3.21 · Restauração completa da página Financeiro — khaled-pro",
+      "title": "Release — P3.21 · Restauração completa da página Financeiro",
+      "description": "Relatório Final: página «Financeiro (custos dinâmicos)» restaurada ao fluxo pré-P3.17.\nSeed/merge antigo com chapas e orla; UI completa com todos os blocos e detalhes editáveis.\nSem live-overwrite P3.17; sem simplificação P3.18; sem bloco Painéis separado P3.19.\nSSOT de cálculo permanece o Financeiro Unificado.",
       "publishedAt": "2026-08-11T20:51:28.954Z",
-      "type": "update",
+      "type": "feature",
       "author": "pimo-pro",
-      "icon": "update",
+      "icon": "feature",
       "commit": "b9a009e0"
     },
     {
