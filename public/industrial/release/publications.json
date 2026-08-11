@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-11T21:05:05.399Z",
+      "author": "pimo-pro",
+      "commitMessage": "Release — P3.22 · Restauração completa da lógica original do Financeiro — khaled-pro",
+      "version": "v6.0811.2205"
+    },
+    {
       "publishedAt": "2026-08-11T20:51:28.216Z",
       "author": "pimo-pro",
       "commitMessage": "Release — P3.21 · Restauração completa da página Financeiro — khaled-pro",
