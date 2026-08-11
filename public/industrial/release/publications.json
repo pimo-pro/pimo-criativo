@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-11T14:27:13.714Z",
+      "author": "pimo-pro",
+      "commitMessage": "Release — P3.11 + P3.12 + P3.13 · Independência das prateleiras · Correções industriais do gaveteiro · SSOT gav_fundo (khaled-pro)",
+      "version": "v6.0811.1527"
+    },
+    {
       "publishedAt": "2026-08-10T22:08:27.474Z",
       "author": "pimo-pro",
       "commitMessage": "P3.10 — Expansão Prateleiras DIV/SEP · direção dinâmica · grelha 32/64 · grelha segmentada · margens · migração completa (khaled-pro)",
