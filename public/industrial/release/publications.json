@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-11T19:55:04.613Z",
+      "author": "pimo-pro",
+      "commitMessage": "Release — P3.20 · Restauração completa da UI do Financeiro (custos dinâmicos) — khaled-pro",
+      "version": "v6.0811.2055"
+    },
+    {
       "publishedAt": "2026-08-11T18:53:21.512Z",
       "author": "pimo-pro",
       "commitMessage": "Release — P3.19 · Correções de UI (Financeiro + Painéis) — khaled-pro",
