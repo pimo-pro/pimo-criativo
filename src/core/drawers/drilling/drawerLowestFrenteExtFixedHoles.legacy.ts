@@ -76,7 +76,7 @@ export function computeDrawerLowestFrenteExtFixedHoles(params: {
       y: yGroove,
       diametro: 0,
       profundidade: DRAWER_FRONT_BOTTOM_GROOVE_DEPTH_MM,
-      tipo: "furacao_estrutural",
+      tipo: "fixacao_estrutural",
       face: "tras",
       holeSubtype: "groove",
       grooveWidth: DRAWER_BOTTOM_GROOVE_WIDTH_MM,

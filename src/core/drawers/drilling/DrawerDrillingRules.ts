@@ -947,7 +947,7 @@ function buildDrawerFrenteBottomGroove(params: {
     diametro: 0,
     // Industrial: Depth 11 e Width 11 (T_fundo+1). Y = elev+sideH-13 intacto.
     profundidade: DRAWER_FRONT_BOTTOM_GROOVE_DEPTH_MM,
-    tipo: "furacao_estrutural",
+    tipo: "fixacao_estrutural",
     face: "tras",
     holeSubtype: "groove",
     grooveWidth: DRAWER_BOTTOM_GROOVE_WIDTH_MM,
