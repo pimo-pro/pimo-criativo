@@ -10,22 +10,7 @@ import {
   type ProjectReport,
   type ReportStyle,
 } from "@/core/projectReport";
-import { applyResultados } from "@/context/projectState";
-import { reviveState } from "@/context/projectPersistence";
-import {
-  buildLiveReportFinanceiro,
-  loadMaterialsForFinanceiro,
-} from "@/core/projectReport/financeiroFromUnificado";
-import {
-  buildPaineisChapasDetalhe,
-  getPaineisDetalhe,
-  withPaineisChapasDetalhe,
-} from "@/core/projectReport/paineisChapasDetalhe";
-import {
-  findOfflineProjectByAnyKey,
-  resolveProjectIdentity,
-} from "@/core/projects/projectIdentity";
-import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
+import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
 
 function loadReportFlexible(urlKey: string): ProjectReport | null {
   const identity = resolveProjectIdentity(urlKey);
@@ -54,31 +39,6 @@ function resolveSeedKey(urlKey: string): string {
   return urlKey.trim();
 }
 
-/**
- * P3.17/P3.19: totais live do Unificado; preserva/seed detalhe Painéis sem reprecificar.
- */
-function withLiveFinanceiro(report: ProjectReport, seedKey: string): ProjectReport {
-  const offline = findOfflineProjectByAnyKey(seedKey);
-  const preserved = getPaineisDetalhe(report.financeiro);
-  if (!offline) {
-    const live = buildLiveReportFinanceiro(null, loadMaterialsForFinanceiro());
-    return {
-      ...report,
-      financeiro: withPaineisChapasDetalhe(live, preserved),
-    };
-  }
-  const record = toSavedRecordFromOffline(offline);
-  const revived = reviveState(record.snapshot?.projectState);
-  const state = revived ? applyResultados(revived) : null;
-  const live = buildLiveReportFinanceiro(state, loadMaterialsForFinanceiro());
-  const detalhe =
-    preserved.length > 0 ? preserved : buildPaineisChapasDetalhe(seedKey, state);
-  return {
-    ...report,
-    financeiro: withPaineisChapasDetalhe(live, detalhe),
-  };
-}
-
 export function useProjectReport(projectKey: string | undefined) {
   const [report, setReport] = useState<ProjectReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,9 +61,8 @@ export function useProjectReport(projectKey: string | undefined) {
         const seedKey = resolveSeedKey(projectKey);
         const stored = loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
-        const withLive = withLiveFinanceiro(merged, seedKey);
         if (!cancelled) {
-          setReport(withLive);
+          setReport(merged);
           setDirty(!stored);
           setLoading(false);
         }

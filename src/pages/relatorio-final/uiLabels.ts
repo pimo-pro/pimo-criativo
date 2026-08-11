@@ -125,9 +125,9 @@ export const R = {
   adicionarLinha: "Adicionar linha",
   semMateriais: "Sem materiais. Adicione linhas manualmente ou abra um projeto com ferragens.",
 
-  financeiro: "Financeiro (custos din\u00e2micos)",
+  financeiro: "4. Financeiro (custos din\u00e2micos)",
   financeiroHint:
-    "Custos din\u00e2micos do relat\u00f3rio. Totais alinhados ao Financeiro Unificado no carregamento.",
+    "Isolado do m\u00f3dulo Custos ADMIN. Totais recalculam a partir de quantidade e pre\u00e7o.",
   custoChapasReais: "Custo total das chapas",
   mostrarDetalheCustos: "Mostrar detalhe de custos",
   ocultarDetalheCustos: "Ocultar detalhe de custos",
@@ -158,7 +158,7 @@ export const R = {
   semObservacoes: "Sem observa\u00e7\u00f5es de qualidade.",
   star: "\u2605",
 
-  resumo: "4. Resumo do projeto",
+  resumo: "7. Resumo final (Total do projeto)",
   caixas: "Caixas",
   pecas: "Pe\u00e7as",
   modulos: "M\u00f3dulos",

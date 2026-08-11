@@ -1,5 +1,11 @@
 # Novidades do Sistema
 
+### Release — P3.21 · Restauração completa da página Financeiro
+- Relatório Final: página «Financeiro (custos dinâmicos)» restaurada ao fluxo pré-P3.17
+- Seed/merge antigo com chapas e orla; UI completa com todos os blocos e detalhes editáveis
+- Sem live-overwrite P3.17; sem simplificação P3.18; sem bloco Painéis separado P3.19
+- SSOT de cálculo permanece o Financeiro Unificado (não existem financeiroAdapter / financeiroIndustrialRules / financeiroTotals)
+
 ### Release — P3.20 · Restauração completa da UI do Financeiro (custos dinâmicos)
 - Relatório Final: bloco «Financeiro (custos dinâmicos)» restaurado ao layout pré-P3.18
 - Todos os blocos visíveis com accordions e detalhes (Painéis/Adicionar chapa, Portas, Gavetas, Ferragens, Orla, Remates, Ops, Desperdício, Serragem, MO, Logística, Ops avançadas, ADM, Montagem, Portes, IVA, Total)

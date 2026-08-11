@@ -8,10 +8,7 @@ import {
   emptyQualidade,
   exportProjectReportPdf,
   getFerragensDetalhe,
-  getPaineisDetalhe,
-  madeiraTotalFromFinanceiro,
   materiaisFromFerragensDetalhe,
-  withPaineisChapasDetalhe,
   type ReportStyle,
 } from "@/core/projectReport";
 import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
@@ -22,7 +19,6 @@ import InfoGeraisBlock from "./components/InfoGeraisBlock";
 import PainelGraficoBlock from "./components/PainelGraficoBlock";
 import EstadoProjetoBlock from "./components/EstadoProjetoBlock";
 import FinanceiroBlock from "./components/FinanceiroBlock";
-import PaineisBlock from "./components/PaineisBlock";
 import NotasBlock from "./components/NotasBlock";
 import QualidadeBlock from "./components/QualidadeBlock";
 import HistoricoModal from "./components/HistoricoModal";
@@ -49,7 +45,7 @@ export default function RelatorioFinalProjeto() {
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
 
   const metricas = useMemo(() => (report ? deriveMetricas(report) : null), [report]);
-  const ferragensCount = report ? report.materiais.length : 0;
+  const ferragensCount = report ? getFerragensDetalhe(report.financeiro).length : 0;
 
   if (loading) {
     return (
@@ -90,7 +86,7 @@ export default function RelatorioFinalProjeto() {
         }
       `}</style>
 
-      <div style={reportPageShell(style)} data-testid="relatorio-final-page">
+      <div style={reportPageShell(style)}>
         <header
           style={{
             display: "flex",
@@ -150,7 +146,6 @@ export default function RelatorioFinalProjeto() {
           </p>
         ) : null}
 
-        {/* Ordem P3.18: resumo primeiro, preço (Financeiro) no final */}
         <InfoGeraisBlock
           style={style}
           value={report.gerais}
@@ -173,7 +168,31 @@ export default function RelatorioFinalProjeto() {
           }
         />
 
-        <section style={reportSection(style)} data-testid="resumo-sem-precos">
+        <FinanceiroBlock
+          style={style}
+          value={report.financeiro}
+          onChange={(financeiro) =>
+            updateReport((r) => ({
+              ...r,
+              financeiro,
+              materiais: materiaisFromFerragensDetalhe(getFerragensDetalhe(financeiro)),
+            }), "financeiro")
+          }
+        />
+
+        <NotasBlock
+          style={style}
+          value={report.notas ?? []}
+          onChange={(notas) => updateReport((r) => ({ ...r, notas }), "notas")}
+        />
+
+        <QualidadeBlock
+          style={style}
+          value={report.qualidade ?? emptyQualidade()}
+          onChange={(qualidade) => updateReport((r) => ({ ...r, qualidade }), "qualidade")}
+        />
+
+        <section style={reportSection(style)}>
           <h2 style={reportSectionTitle}>{R.resumo}</h2>
           <div
             style={{
@@ -200,50 +219,28 @@ export default function RelatorioFinalProjeto() {
                 {(report.qualidade ?? emptyQualidade()).rating} / 5
               </div>
             </div>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{R.subtotal}</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>
+                {report.financeiro.subtotal.toFixed(2)} EUR
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                IVA ({report.financeiro.ivaPct}%)
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>
+                {report.financeiro.ivaValor.toFixed(2)} EUR
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{R.totalProjeto}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: "var(--blue-light, #2563eb)" }}>
+                {report.financeiro.totalProjeto.toFixed(2)} EUR
+              </div>
+            </div>
           </div>
         </section>
-
-        <NotasBlock
-          style={style}
-          value={report.notas ?? []}
-          onChange={(notas) => updateReport((r) => ({ ...r, notas }), "notas")}
-        />
-
-        <QualidadeBlock
-          style={style}
-          value={report.qualidade ?? emptyQualidade()}
-          onChange={(qualidade) => updateReport((r) => ({ ...r, qualidade }), "qualidade")}
-        />
-
-        <PaineisBlock
-          style={style}
-          detalhe={getPaineisDetalhe(report.financeiro)}
-          totalUnificadoMadeira={madeiraTotalFromFinanceiro(report.financeiro)}
-          onChange={(detalhe) =>
-            updateReport(
-              (r) => ({
-                ...r,
-                financeiro: withPaineisChapasDetalhe(r.financeiro, detalhe),
-              }),
-              "financeiro.paineis.detalhe"
-            )
-          }
-        />
-
-        <FinanceiroBlock
-          style={style}
-          value={report.financeiro}
-          onChange={(financeiro) =>
-            updateReport(
-              (r) => ({
-                ...r,
-                financeiro,
-                materiais: materiaisFromFerragensDetalhe(getFerragensDetalhe(financeiro)),
-              }),
-              "financeiro"
-            )
-          }
-        />
       </div>
 
       <HistoricoModal
