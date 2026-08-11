@@ -1,5 +1,10 @@
 # Novidades do Sistema
 
+### Release — P3.20 · Restauração completa da UI do Financeiro (custos dinâmicos)
+- Relatório Final: bloco «Financeiro (custos dinâmicos)» restaurado ao layout pré-P3.18
+- Todos os blocos visíveis com accordions e detalhes (Painéis/Adicionar chapa, Portas, Gavetas, Ferragens, Orla, Remates, Ops, Desperdício, Serragem, MO, Logística, Ops avançadas, ADM, Montagem, Portes, IVA, Total)
+- Sem alteração de pipelines industriais nem do Financeiro Unificado; Painéis dedicado mantém-se
+
 ### Release — P3.17 a P3.19 · Financeiro Unificado + Painéis Restaurados
 Publicação completa das fases:
 - P3.17 — Relatório Final live e alinhado ao Financeiro

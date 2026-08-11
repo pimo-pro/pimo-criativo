@@ -125,9 +125,9 @@ export const R = {
   adicionarLinha: "Adicionar linha",
   semMateriais: "Sem materiais. Adicione linhas manualmente ou abra um projeto com ferragens.",
 
-  financeiro: "7. Financeiro (total do projeto)",
+  financeiro: "Financeiro (custos din\u00e2micos)",
   financeiroHint:
-    "Mesmo pipeline do Financeiro ADMIN (live). Edi\u00e7\u00e3o de custos no hub Financeiro.",
+    "Custos din\u00e2micos do relat\u00f3rio. Totais alinhados ao Financeiro Unificado no carregamento.",
   custoChapasReais: "Custo total das chapas",
   mostrarDetalheCustos: "Mostrar detalhe de custos",
   ocultarDetalheCustos: "Ocultar detalhe de custos",

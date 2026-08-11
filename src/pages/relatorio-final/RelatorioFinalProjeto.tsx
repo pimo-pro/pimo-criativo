@@ -7,8 +7,10 @@ import {
   deriveMetricas,
   emptyQualidade,
   exportProjectReportPdf,
+  getFerragensDetalhe,
   getPaineisDetalhe,
   madeiraTotalFromFinanceiro,
+  materiaisFromFerragensDetalhe,
   withPaineisChapasDetalhe,
   type ReportStyle,
 } from "@/core/projectReport";
@@ -228,7 +230,20 @@ export default function RelatorioFinalProjeto() {
           }
         />
 
-        <FinanceiroBlock style={style} value={report.financeiro} />
+        <FinanceiroBlock
+          style={style}
+          value={report.financeiro}
+          onChange={(financeiro) =>
+            updateReport(
+              (r) => ({
+                ...r,
+                financeiro,
+                materiais: materiaisFromFerragensDetalhe(getFerragensDetalhe(financeiro)),
+              }),
+              "financeiro"
+            )
+          }
+        />
       </div>
 
       <HistoricoModal
