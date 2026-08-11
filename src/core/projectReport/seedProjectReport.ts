@@ -8,9 +8,6 @@ import { reviveState } from "@/context/projectPersistence";
 import type { ProjectState } from "@/context/projectTypes";
 import { COMPONENT_TYPES_DEFAULT, type ComponentType } from "@/core/components/componentTypes";
 import { FERRAGENS_DEFAULT, type Ferragem } from "@/core/ferragens/ferragens";
-import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificado";
-import { FINANCEIRO_CUSTO_KEYS } from "@/core/financeiro/financeiroUnificadoTypes";
-import { computeChapasReal } from "@/core/industrial/computeChapasReal";
 import { buildFerragensTotaisPdfData } from "@/core/industrial/industrialBottomSectionData";
 import {
   resolveEmpresaExecutora,
@@ -27,12 +24,12 @@ import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 import { safeGetItem } from "@/utils/storage";
 import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolveProjectCutlistFromRecord";
 
-import { aggregateChapasByEspessura } from "./chapasReport";
 import { withDerivedMetricas } from "./deriveMetricas";
-import { ensureFinanceiroShape, updateFinanceiroLinha } from "./financeReportCalc";
-import { ensureFerragensFromMateriais } from "./materiaisSync";
+import {
+  buildLiveReportFinanceiro,
+  loadMaterialsForFinanceiro,
+} from "./financeiroFromUnificado";
 import { migrateProjectReport } from "./migrateReport";
-import { buildOrlaDetalheFromState } from "./orlaReport";
 import { isManualPath } from "./projectReportStore";
 import {
   applyTrakToReportParts,
@@ -43,12 +40,10 @@ import {
 import {
   emptyDesign,
   emptyGerais,
-  FINANCEIRO_REPORT_LABELS,
   emptyQualidade,
   makeReportId,
   PROJECT_REPORT_VERSION,
   type ProjectReport,
-  type ProjectReportFinanceiro,
   type ReportCaixa,
   type ReportMaterialLinha,
   type ReportPeca,
@@ -202,115 +197,6 @@ function buildMateriais(state: ProjectState | null): ReportMaterialLinha[] {
   }
 }
 
-function buildFinanceiroFromState(state: ProjectState | null) {
-  if (!state) return ensureFinanceiroShape(null);
-  try {
-    const snap = computeFinanceiroUnificado(state);
-    const seed: Partial<Record<(typeof FINANCEIRO_CUSTO_KEYS)[number], number>> = {};
-    for (const key of FINANCEIRO_CUSTO_KEYS) {
-      seed[key] = snap.custosEffective[key] ?? 0;
-    }
-    return ensureFinanceiroShape({ ivaPct: snap.ivaPct }, seed);
-  } catch {
-    return ensureFinanceiroShape(null);
-  }
-}
-
-function seedChapasDetalhe(
-  fin: ProjectReportFinanceiro,
-  projectId: string,
-  state: ProjectState | null
-): ProjectReportFinanceiro {
-  const paineis = fin.linhas.find((l) => l.key === "paineis");
-  // Migrar detalhe legado de chapasReais → Painéis ▸
-  const chapasLegado = fin.linhas.find((l) => l.key === "chapasReais");
-  if ((paineis?.detalhe?.length ?? 0) === 0 && (chapasLegado?.detalhe?.length ?? 0) > 0) {
-    return updateFinanceiroLinha(fin, "paineis", { detalhe: chapasLegado!.detalhe });
-  }
-  if ((paineis?.detalhe?.length ?? 0) > 0) return fin;
-
-  const offline = findOfflineProject(projectId);
-  if (!offline && !state) return fin;
-  try {
-    const ctx = offline
-      ? resolveProjectCutlistFromRecord(toSavedRecordFromOffline(offline))
-      : null;
-    const cutlist = (ctx?.cutListItems ?? []).map((item) => ({
-      ...item,
-      precoUnitario: Number((item as { precoUnitario?: number }).precoUnitario) || 0,
-      precoTotal: Number((item as { precoTotal?: number }).precoTotal) || 0,
-    }));
-    const boxes = (state?.boxes ?? []).map((b) => ({ id: b.id }));
-    const chapas = computeChapasReal(cutlist, state?.projectName || projectId, boxes);
-    if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;
-    const detalhe = aggregateChapasByEspessura(chapas.sheets);
-    if (detalhe.length === 0) return fin;
-    return updateFinanceiroLinha(fin, "paineis", { detalhe });
-  } catch {
-    return fin;
-  }
-}
-
-/** Portas/Remates = 0 €; limpa detalhe de madeira fantasma; labels UI actualizados. */
-function applyIndustrialReportLinhas(fin: ProjectReportFinanceiro): ProjectReportFinanceiro {
-  return ensureFinanceiroShape({
-    ivaPct: fin.ivaPct,
-    linhas: fin.linhas.map((l) => {
-      const label =
-        l.key in FINANCEIRO_REPORT_LABELS
-          ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
-          : l.label;
-      if (l.key === "portas" || l.key === "remates") {
-        return {
-          ...l,
-          label,
-          quantidade: null,
-          precoUnitario: null,
-          total: 0,
-          detalhe: [],
-        };
-      }
-      return { ...l, label };
-    }),
-  });
-}
-
-function seedOrlaDetalhe(
-  fin: ProjectReportFinanceiro,
-  state: ProjectState | null
-): ProjectReportFinanceiro {
-  const orla = fin.linhas.find((l) => l.key === "orla");
-  if ((orla?.detalhe?.length ?? 0) > 0) return fin;
-  const detalhe = buildOrlaDetalheFromState(state);
-  if (detalhe.length === 0) {
-    // Fallback: uma linha a partir do total seed se existir
-    const total = Number(orla?.total) || 0;
-    if (!(total > 0)) return fin;
-    return updateFinanceiroLinha(fin, "orla", {
-      detalhe: [
-        {
-          id: makeReportId("or"),
-          tipo: "Orla",
-          dimensoes: "m",
-          quantidade: Number(orla?.quantidade) || 1,
-          precoUnitario:
-            orla?.precoUnitario != null
-              ? Number(orla.precoUnitario)
-              : Number(orla?.quantidade)
-                ? round2Safe(total / Number(orla.quantidade))
-                : total,
-          total,
-        },
-      ],
-    });
-  }
-  return updateFinanceiroLinha(fin, "orla", { detalhe });
-}
-
-function round2Safe(n: number): number {
-  return Math.round((Number(n) || 0) * 100) / 100;
-}
-
 function mergeBySourceId<T extends { id: string; sourceId?: string }>(
   existing: T[],
   incoming: T[],
@@ -329,14 +215,13 @@ export async function seedOrMergeProjectReport(
   const id = projectId.trim();
   const now = new Date().toISOString();
   const { state, name, ownerName, createdAt, updatedAt } = reviveProjectState(id);
-  const ferrCatalog = loadFerragens();
+  const materials = loadMaterialsForFinanceiro();
+  /** P3.17: financeiro sempre live do Unificado (ignora sticky / manualPaths de preços). */
+  const liveFinanceiro = buildLiveReportFinanceiro(state, materials);
 
   const seededCaixas = buildCaixas(state);
   const seededPecas = buildPecas(id);
   const seededMateriais = buildMateriais(state);
-  let seededFinanceiro = buildFinanceiroFromState(state);
-  seededFinanceiro = seedChapasDetalhe(seededFinanceiro, id, state);
-  seededFinanceiro = seedOrlaDetalhe(seededFinanceiro, state);
   const trak = await importTrakSnapshot(id);
 
   if (!existing) {
@@ -345,7 +230,6 @@ export async function seedOrMergeProjectReport(
       caixas: seededCaixas,
       pecas: seededPecas,
     };
-    const ferr = ensureFerragensFromMateriais(seededFinanceiro, seededMateriais, ferrCatalog);
     const report: ProjectReport = {
       projectId: id,
       version: PROJECT_REPORT_VERSION,
@@ -365,8 +249,8 @@ export async function seedOrMergeProjectReport(
       design: emptyDesign(),
       producao,
       montagem: trakIntoEmptyMontagem(trak),
-      materiais: ferr.materiais,
-      financeiro: ferr.financeiro,
+      materiais: seededMateriais,
+      financeiro: liveFinanceiro,
       manualPaths: [],
       history: [],
       notas: [],
@@ -425,47 +309,6 @@ export async function seedOrMergeProjectReport(
     isManualPath(migrated, "materiais")
   );
 
-  let financeiro = migrated.financeiro;
-  if (!isManualPath(migrated, "financeiro")) {
-    const seedMap = new Map(seededFinanceiro.linhas.map((l) => [l.key, l]));
-    /** Keys industriais: sempre re-seed do Unificado (anti sticky madeira antiga). */
-    const FORCE_RESEED = new Set([
-      "paineis",
-      "portas",
-      "gavetas",
-      "remates",
-      "chapasReais",
-    ]);
-    financeiro = ensureFinanceiroShape({
-      ivaPct: migrated.financeiro.ivaPct,
-      linhas: migrated.financeiro.linhas.map((l) => {
-        if (l.key === "iva" || l.key === "total") return l;
-        const seeded = seedMap.get(l.key);
-        if (FORCE_RESEED.has(l.key) && seeded) {
-          // Preservar detalhe de chapas em Painéis ▸
-          if (l.key === "paineis" && (l.detalhe?.length ?? 0) > 0) {
-            return { ...seeded, detalhe: l.detalhe };
-          }
-          if (l.key === "portas" || l.key === "remates") {
-            return { ...seeded, total: 0, detalhe: [], quantidade: null, precoUnitario: null };
-          }
-          return seeded;
-        }
-        if ((l.total ?? 0) > 0 || (l.detalhe?.length ?? 0) > 0) return l;
-        return seeded ?? l;
-      }),
-    });
-    financeiro = seedChapasDetalhe(financeiro, id, state);
-    financeiro = seedOrlaDetalhe(financeiro, state);
-  } else {
-    // Mesmo com financeiro manual, popular Orla / chapas se vazio
-    financeiro = seedChapasDetalhe(financeiro, id, state);
-    financeiro = seedOrlaDetalhe(financeiro, state);
-  }
-  financeiro = applyIndustrialReportLinhas(financeiro);
-
-  const ferr = ensureFerragensFromMateriais(financeiro, materiaisSeed, ferrCatalog);
-
   const report: ProjectReport = {
     ...migrated,
     version: PROJECT_REPORT_VERSION,
@@ -478,8 +321,8 @@ export async function seedOrMergeProjectReport(
       pecas,
     },
     montagem: applied.montagem,
-    materiais: ferr.materiais,
-    financeiro: ferr.financeiro,
+    materiais: materiaisSeed,
+    financeiro: liveFinanceiro,
     history: migrated.history ?? [],
     notas: migrated.notas ?? [],
     qualidade: migrated.qualidade ?? emptyQualidade(),

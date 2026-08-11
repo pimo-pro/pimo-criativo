@@ -53,6 +53,20 @@ export {
 } from "./financeReportCalc";
 
 export { seedOrMergeProjectReport } from "./seedProjectReport";
+export {
+  snapshotToReportFinanceiro,
+  buildLiveReportFinanceiro,
+  loadMaterialsForFinanceiro,
+} from "./financeiroFromUnificado";
+export {
+  financeiroCustoLinhasDisplay,
+  financeiroTotaisDisplay,
+  formatEurDisplay,
+} from "./financeiroDisplay";
+export {
+  buildRelatorioPainelContagens,
+} from "./relatorioPainelContagens";
+export type { RelatorioPainelContagens } from "./relatorioPainelContagens";
 export { buildChartMetrics, buildCircleChartMetrics } from "./chartMetrics";
 export type { ChartMetricItem } from "./chartMetrics";
 

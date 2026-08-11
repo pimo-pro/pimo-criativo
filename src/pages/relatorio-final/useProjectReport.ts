@@ -10,7 +10,17 @@ import {
   type ProjectReport,
   type ReportStyle,
 } from "@/core/projectReport";
-import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
+import { applyResultados } from "@/context/projectState";
+import { reviveState } from "@/context/projectPersistence";
+import {
+  buildLiveReportFinanceiro,
+  loadMaterialsForFinanceiro,
+} from "@/core/projectReport/financeiroFromUnificado";
+import {
+  findOfflineProjectByAnyKey,
+  resolveProjectIdentity,
+} from "@/core/projects/projectIdentity";
+import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 
 function loadReportFlexible(urlKey: string): ProjectReport | null {
   const identity = resolveProjectIdentity(urlKey);
@@ -39,6 +49,24 @@ function resolveSeedKey(urlKey: string): string {
   return urlKey.trim();
 }
 
+/** P3.17: sobrescreve financeiro com Unificado live (preços nunca oficiais no store). */
+function withLiveFinanceiro(report: ProjectReport, seedKey: string): ProjectReport {
+  const offline = findOfflineProjectByAnyKey(seedKey);
+  if (!offline) {
+    return {
+      ...report,
+      financeiro: buildLiveReportFinanceiro(null, loadMaterialsForFinanceiro()),
+    };
+  }
+  const record = toSavedRecordFromOffline(offline);
+  const revived = reviveState(record.snapshot?.projectState);
+  const state = revived ? applyResultados(revived) : null;
+  return {
+    ...report,
+    financeiro: buildLiveReportFinanceiro(state, loadMaterialsForFinanceiro()),
+  };
+}
+
 export function useProjectReport(projectKey: string | undefined) {
   const [report, setReport] = useState<ProjectReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,8 +89,9 @@ export function useProjectReport(projectKey: string | undefined) {
         const seedKey = resolveSeedKey(projectKey);
         const stored = loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
+        const withLive = withLiveFinanceiro(merged, seedKey);
         if (!cancelled) {
-          setReport(merged);
+          setReport(withLive);
           setDirty(!stored);
           setLoading(false);
         }

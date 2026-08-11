@@ -1,5 +1,10 @@
 # Novidades do Sistema
 
+### Release — P3.17 + P3.18 · Preços alinhados + UI do Relatório Final
+- P3.17 — Relatório Final espelha o Financeiro Unificado (ADMIN) em modo live: mesmos totais/IVA, sem reprecificação por chapas, sem sticky de preços
+- P3.18 — Melhorias de interface: Financeiro no final com Total destacado, Subtotal/IVA/Total sem duplicação, detalhe de custos colapsado, painel com contagens úteis (sem tempo)
+- Sem alteração de pipelines industriais nem fórmulas de preço do Unificado
+
 ### Release — P3.11 a P3.15 · Sistema de gaveteiro totalmente certificado
 Publicação completa das fases:
 - P3.11 — Independência total das prateleiras

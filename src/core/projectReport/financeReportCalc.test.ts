@@ -1,5 +1,6 @@
 /**
  * Testes unitarios dos calculos do Relatorio Final (isolados do industrial).
+ * P3.17: IVA só sobre materiais (estilo ADMIN).
  */
 import { describe, expect, it } from "vitest";
 import { ensureFinanceiroShape, recalcFinanceiro, updateFinanceiroLinha } from "./financeReportCalc";
@@ -15,7 +16,22 @@ describe("financeReportCalc", () => {
     expect(paineis?.total).toBe(30);
   });
 
-  it("mantem Total = subtotal + IVA 23%", () => {
+  it("IVA Admin-style: so materiais; ADM fora da base", () => {
+    const fin = ensureFinanceiroShape(null, { paineis: 100, adm: 50 });
+    const next = recalcFinanceiro({
+      ...fin,
+      ivaPct: 23,
+    });
+    expect(next.subtotal).toBe(100);
+    expect(next.ivaValor).toBe(23);
+    expect(next.totalProjeto).toBe(173);
+    const totalRow = next.linhas.find((l) => l.key === "total");
+    expect(totalRow?.total).toBe(173);
+    const ivaRow = next.linhas.find((l) => l.key === "iva");
+    expect(ivaRow?.total).toBe(23);
+  });
+
+  it("mantem Total = subtotal materiais + IVA 23% (sem extras)", () => {
     const fin = ensureFinanceiroShape(null, { paineis: 100, portas: 0 });
     const next = recalcFinanceiro({
       ...fin,
@@ -29,6 +45,18 @@ describe("financeReportCalc", () => {
     expect(next.totalProjeto).toBe(123);
     const totalRow = next.linhas.find((l) => l.key === "total");
     expect(totalRow?.total).toBe(123);
+  });
+
+  it("montagem e portes entram no total sem IVA", () => {
+    const fin = ensureFinanceiroShape(null, {
+      paineis: 100,
+      montagem: 20,
+      portes: 10,
+    });
+    const next = recalcFinanceiro({ ...fin, ivaPct: 23 });
+    expect(next.subtotal).toBe(100);
+    expect(next.ivaValor).toBe(23);
+    expect(next.totalProjeto).toBe(153);
   });
 
   it("agrega detalhe na linha", () => {
@@ -73,6 +101,7 @@ describe("financeReportCalc", () => {
       ],
     });
     expect(next.subtotal).toBe(15);
-    expect(next.totalProjeto).toBeGreaterThan(15);
+    expect(next.ivaValor).toBe(3.45);
+    expect(next.totalProjeto).toBe(18.45);
   });
 });

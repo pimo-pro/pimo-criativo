@@ -1,8 +1,12 @@
 /**
- * Calculos financeiros do relatorio - coerentes e isolados do modulo Custos.
+ * Calculos financeiros do relatorio — alinhados ao Financeiro Unificado (ADMIN).
+ * P3.17: IVA só sobre materiais; ADM/montagem/portes fora da base de IVA.
  */
 
-import { FINANCEIRO_CUSTO_KEYS } from "../financeiro/financeiroUnificadoTypes";
+import {
+  FINANCEIRO_CUSTO_KEYS,
+  FINANCEIRO_CUSTO_MATERIAL_KEYS,
+} from "../financeiro/financeiroUnificadoTypes";
 import type { FinanceiroCustoKey } from "../financeiro/financeiroUnificadoTypes";
 import { recalcChapaDetalhe } from "./chapasReport";
 import {
@@ -16,6 +20,8 @@ import {
 function round2(n: number): number {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
+
+const ADMIN_EXTRA_KEYS: FinanceiroCustoKey[] = ["adm", "montagem", "portes"];
 
 export function lineTotalFromQtyPrice(
   quantidade: number | null,
@@ -34,7 +40,6 @@ export function lineTotalFromQtyPrice(
 }
 
 export function recalcDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiroDetalhe {
-  // Chapas / painéis: preço por metro linear
   const hasChapaMeta =
     (typeof d.precoPorMetro === "number" && d.precoPorMetro > 0) ||
     (typeof d.comprimentoMm === "number" && d.comprimentoMm > 0) ||
@@ -75,7 +80,7 @@ export function recalcLinha(linha: ReportFinanceiroLinha): ReportFinanceiroLinha
   };
 }
 
-/** Recalcula subtotal, IVA e total. Linhas iva/total sao sempre derivadas. */
+/** Recalcula subtotal, IVA e total — fórmula ADMIN (P3.17). */
 export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFinanceiro {
   const ivaPct =
     typeof fin.ivaPct === "number" && Number.isFinite(fin.ivaPct) && fin.ivaPct >= 0
@@ -86,11 +91,17 @@ export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFin
     .filter((l) => l.key !== "iva" && l.key !== "total")
     .map(recalcLinha);
 
-  const subtotal = round2(custoLinhas.reduce((s, l) => s + (Number(l.total) || 0), 0));
-  const ivaValor = round2(subtotal * (ivaPct / 100));
-  const totalProjeto = round2(subtotal + ivaValor);
-
   const byKey = new Map(custoLinhas.map((l) => [l.key, l]));
+
+  const subtotalMateriais = round2(
+    FINANCEIRO_CUSTO_MATERIAL_KEYS.reduce((s, k) => s + (Number(byKey.get(k)?.total) || 0), 0)
+  );
+  const extraAdmin = round2(
+    ADMIN_EXTRA_KEYS.reduce((s, k) => s + (Number(byKey.get(k)?.total) || 0), 0)
+  );
+  const ivaValor = round2(subtotalMateriais * (ivaPct / 100));
+  const totalProjeto = round2(subtotalMateriais + extraAdmin + ivaValor);
+
   const ordered: ReportFinanceiroLinha[] = [];
 
   for (const key of FINANCEIRO_CUSTO_KEYS) {
@@ -127,7 +138,7 @@ export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFin
   return {
     ivaPct,
     linhas: ordered,
-    subtotal,
+    subtotal: subtotalMateriais,
     ivaValor,
     totalProjeto,
   };
@@ -141,7 +152,6 @@ export function updateFinanceiroLinha(
   const linhas = fin.linhas.map((l) => {
     if (l.key !== key) return l;
     const next: ReportFinanceiroLinha = { ...l, ...patch };
-    // Edicao top-level de qty/preco sem detalhe: limpar detalhe para o total reflectir a linha
     if (
       patch.detalhe === undefined &&
       (patch.quantidade !== undefined || patch.precoUnitario !== undefined)
