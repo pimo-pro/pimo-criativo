@@ -1,14 +1,14 @@
 {
-  "updatedAt": "2026-08-11T23:19:36.718Z",
+  "updatedAt": "2026-08-11T23:21:53.574Z",
   "news": [
     {
       "version": "v6.0812.0019",
-      "title": "Release — P3.25 · Correção de preço no Relatório Final — khaled-pro",
-      "description": "Release — P3.25 · Correção de preço no Relatório Final — khaled-pro",
+      "title": "Release — P3.25 · Correção de preço no Relatório Final",
+      "description": "Relatório Final sincronizado com o Financeiro ADMIN:\n• SSOT = computeFinanceiroUnificado (Subtotal / IVA / Total)\n• Painéis = paineis + chapasReais (sem duplicação)\n• Sem recalculo interno nem fallbacks de chapas/ferragens\n• Totais do Relatório = totais do ADMIN",
       "publishedAt": "2026-08-11T23:19:36.550Z",
-      "type": "update",
+      "type": "feature",
       "author": "pimo-pro",
-      "icon": "update",
+      "icon": "feature",
       "commit": "d7777c43"
     },
     {
