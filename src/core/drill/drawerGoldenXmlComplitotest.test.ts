@@ -193,11 +193,10 @@ describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
     expect(Math.abs(upperY - lowerY)).toBeGreaterThan(50);
   });
 
-  it("produção GAV_FRENTE_EXT_01 (lowest): cavilha inferior desce a elev+0; rasgo fixo 53mm", () => {
-    // Inferior: cavilha desce de elev+15 para elev+0 (liberta espaço ao rasgo fixo).
-    const lowerY = elev;
+  it("produção GAV_FRENTE_EXT_01 (lowest): mesmo padrão 02/03 — elev+15 / elev+sideH−35; rasgo elev+sideH−13", () => {
+    const lowerY = elev + 15;
     const upperY = elev + (sideH - 35);
-    const grooveY = 53; // DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM — fixo, não elev+sideH−13
+    const grooveY = elev + sideH - 13;
 
     const xml = xmlFor(
       "gaveta_frente_ext",
@@ -227,6 +226,7 @@ describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
     expect(xml).toContain("<Depth>11.00</Depth>");
     expect(xml).not.toMatch(/<TypeNo>3<\/TypeNo>[\s\S]*?<Depth>13\.00<\/Depth>/);
     expect(xml).not.toContain(`<BeginY>${(W - 56.5).toFixed(2)}</BeginY>`);
+    expect(xml).not.toContain("<BeginY>53.00</BeginY>");
     expect(xml).not.toContain("<TypeNo>2</TypeNo>");
   });
 });

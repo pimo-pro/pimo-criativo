@@ -611,7 +611,8 @@ export function computeDrawerLateralStructuralHoles(params: {
   const edgeFace: DrillFace = side === "dir" ? "frente" : "tras";
   let edgeIdx = 0;
   for (const y of getDrawerLateralEdgeDowelYPositionsMm(altura, isLowestDrawer)) {
-    if (y <= 0 || y >= altura) continue;
+    // Aceitar Y=0 (legado); rejeitar apenas fora do painel.
+    if (y < 0 || y >= altura) continue;
     const sideKey = side === "dir" ? "dir" : "esq";
     holes.push({
       x: edgeX,
@@ -785,9 +786,8 @@ export function computeDrawerFrenteIntStructuralHoles(params: {
 /**
  * Frente externa madeira — regra global CAVILHA_10×40 (todas as frentes, incl. GAV_FRENTE_EXT_01):
  * cada 10×30 na aresta dos laterais → 10×13 na face da frente (Y = elev + Y_lateral).
- * Rasgo (middle/highest): Y = elev + sideH − 13 (distância fixa 22 mm à cavilha superior).
- * Rasgo (lowest): Y = 53 mm fixo desde a base da frente (DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM)
- * — cavilha inferior desce para elev+0 (ver DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM) para não colidir.
+ * Rasgo (todas as gavetas): Y = elev + sideH − 13 (distância fixa 22 mm à cavilha superior).
+ * Padrão idêntico em 01/02/03 — orientação e furação coerentes para CNC/DRILL.
  * Furação exclusiva DRILL — o pipeline CNC remove estes furos do TCN.
  */
 export function computeDrawerFrenteExtStructuralHoles(params: {
@@ -802,11 +802,6 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
   bottomThicknessMm: number;
   sideBaseElevationMm?: number;
 }): TechnicalDrillHole[] {
-  const isLowest =
-    params.isLowestDrawer === true ||
-    params.stackRole === "lowest" ||
-    params.stackRole === "single";
-
   const {
     largura,
     altura,
@@ -829,7 +824,8 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
     sideBaseElevationMm: elev,
     bodyWidthMm,
     sideThicknessMm,
-    isLowestDrawer: isLowest,
+    // Uniforme: não especializar lowest (mesma tabela 15 / H−35).
+    isLowestDrawer: false,
   });
 
   // Rasgo do fundo: deve acompanhar bottomWidthMm (peça gav_fundo), não bodyWidthMm
@@ -850,7 +846,8 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
     sideBaseElevationMm: elev,
     grooveLengthMm: grooveW > 0 ? grooveW : largura,
     grooveStartXMm: overhang,
-    fixedYFromBaseMm: isLowest ? DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM : undefined,
+    // Uniforme 01/02/03: sem rasgo fixo 53 mm na lowest.
+    fixedYFromBaseMm: undefined,
   });
   if (groove) holes.push(groove);
 
@@ -903,7 +900,7 @@ export function projectDrawerLateralEdgeCavilhasOntoFront(params: {
   let pairIdx = 0;
   for (const yLat of edgeYs) {
     const y = elev + yLat;
-    if (y <= 0 || y >= altura) continue;
+    if (y < 0 || y >= altura) continue;
     const pairBase = `gav-frent-lat-${pairIdx++}`;
     for (const [x, side] of [
       [leftX, "esq"],
@@ -994,6 +991,10 @@ export function computeDrawerLowestFrenteExtFixedHoles(params: {
  * Rasgo do fundo na frente da gaveta 1 (lowest) — distância fixa desde a base da
  * frente, independente de T/altura. Corrige posição anterior (elev+sideH−13, sempre
  * perto do topo) que não correspondia à posição real do fundo na montagem.
+ */
+/**
+ * @deprecated P3.12 — rasgo fixo 53 mm na lowest removido da produção.
+ * Mantido para `computeDrawerLowestFrenteExtFixedHoles` (legado/golden).
  */
 export const DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM = 53;
 

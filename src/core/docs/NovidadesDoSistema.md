@@ -1,5 +1,12 @@
 # Novidades do Sistema
 
+### Correções industriais do gaveteiro — orientação, furação e coerência
+- Orientação correcta de GAV_FRENTE_EXT_01 no XML (padrão alinhado a 02/03)
+- Furos de cavilha de aresta restaurados em GAV_LAT_DIR_01 e GAV_LAT_ESQ_01
+- Coerência estrutural: corpo idêntico em todas as gavetas (furação lateral 15 / H−35)
+- Rasgo do fundo uniforme: elev + sideH − 13 (22 mm à cavilha superior)
+- Validação de ligação corpo↔frente e produção CNC/DRILL
+
 ### Independência total das prateleiras — full/short dinâmico + furação autónoma
 - Separação completa do comportamento das prateleiras face à geometria DIV/SEP
 - Planos full/short dinâmicos conforme a área disponível

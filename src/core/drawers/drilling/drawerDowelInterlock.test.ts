@@ -65,6 +65,30 @@ describe("drawerDowelInterlock — profundidade e centro (golden)", () => {
     expect(DRAWER_LAT_EDGE_DOWEL_Y_FROM_TOP_MM).toBe(35);
   });
 
+  it("P3.12 — laterais lowest: cavilhas de aresta 15 e H−35 (iguais a middle/highest)", () => {
+    expect(getDrawerLateralEdgeDowelYPositionsMm(178, true)).toEqual([15, 143]);
+    const latEsq = computeDrawerLateralStructuralHoles({
+      largura: 500,
+      altura: 178,
+      espessura: 16,
+      side: "esq",
+      isLowestDrawer: true,
+    });
+    const latDir = computeDrawerLateralStructuralHoles({
+      largura: 500,
+      altura: 178,
+      espessura: 16,
+      side: "dir",
+      isLowestDrawer: true,
+    });
+    const edgeEsq = latEsq.filter((h) => h.tipo === "cavilha" && !h.topDrillable);
+    const edgeDir = latDir.filter((h) => h.tipo === "cavilha" && !h.topDrillable);
+    expect(edgeEsq.map((h) => h.y).sort((a, b) => a - b)).toEqual([15, 143]);
+    expect(edgeDir.map((h) => h.y).sort((a, b) => a - b)).toEqual([15, 143]);
+    expect(edgeEsq).toHaveLength(2);
+    expect(edgeDir).toHaveLength(2);
+  });
+
   it("Y costa = 15 e H?15", () => {
     expect(getDrawerCostaDowelYPositionsMm(172.5)).toEqual([15, 157.5]);
   });
