@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-11T17:27:51.262Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(drawers): corrigir DrillType fixacao_estrutural no rasgo da frente (P3.15)",
+      "version": "v6.0811.1827"
+    },
+    {
       "publishedAt": "2026-08-11T14:27:13.714Z",
       "author": "pimo-pro",
       "commitMessage": "Release — P3.11 + P3.12 + P3.13 · Independência das prateleiras · Correções industriais do gaveteiro · SSOT gav_fundo (khaled-pro)",
