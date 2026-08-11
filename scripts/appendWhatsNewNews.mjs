@@ -225,13 +225,27 @@ function mergeNews(localList, remoteList) {
     const nextT = Date.parse(entry.publishedAt) || 0;
     const prevScore =
       (prev.commit ? 1 : 0) +
-      (prev.description && !isIgnoredCommitMessage(prev.description) ? 2 : 0);
+      (prev.description && !isIgnoredCommitMessage(prev.description) ? 2 : 0) +
+      Math.min(3, Math.floor(String(prev.description || "").length / 80));
     const nextScore =
       (entry.commit ? 1 : 0) +
-      (entry.description && !isIgnoredCommitMessage(entry.description) ? 2 : 0);
-    if (nextT > prevT || (nextT === prevT && nextScore >= prevScore)) {
-      // Preferir mensagem real sobre texto de publicação
+      (entry.description && !isIgnoredCommitMessage(entry.description) ? 2 : 0) +
+      Math.min(3, Math.floor(String(entry.description || "").length / 80));
+    if (
+      nextT > prevT ||
+      (nextT === prevT && nextScore > prevScore) ||
+      (nextScore > prevScore &&
+        String(entry.description || "").length > String(prev.description || "").length + 20)
+    ) {
+      // Preferir mensagem real / descrição longa sobre título curto de publicação.
       const merged = { ...prev, ...entry, icon: entry.icon || prev.icon };
+      if (
+        String(prev.description || "").length > String(merged.description || "").length + 20 &&
+        !isIgnoredCommitMessage(prev.description)
+      ) {
+        merged.description = prev.description;
+        if (prev.title && !isIgnoredCommitMessage(prev.title)) merged.title = prev.title;
+      }
       if (
         isIgnoredCommitMessage(merged.description) &&
         prev.description &&
@@ -244,6 +258,18 @@ function mergeNews(localList, remoteList) {
       }
       delete merged.actionUrl;
       byVersion.set(entry.version, merged);
+    } else if (
+      String(prev.description || "").length + 20 < String(entry.description || "").length &&
+      !isIgnoredCommitMessage(entry.description)
+    ) {
+      // Mesmo publishedAt antigo: adoptar descrição mais completa.
+      byVersion.set(entry.version, {
+        ...prev,
+        ...entry,
+        description: entry.description,
+        title: entry.title || prev.title,
+        icon: entry.icon || prev.icon,
+      });
     }
   }
   return sortByPublishedAtDesc([...byVersion.values()]);
@@ -311,21 +337,31 @@ async function main() {
   }
 
   // Preservar título/descrição já preparados no repo (ex.: release notes manuais).
+  // Preferir sempre a descrição local mais longa (evita truncar para o título em re-deploys).
   const preset = local.news.find((n) => n.version === entry.version);
   if (
     preset &&
     preset.title &&
     !isIgnoredCommitMessage(preset.title) &&
     preset.description &&
-    !isIgnoredCommitMessage(preset.description) &&
-    (preset.title !== entry.title || preset.description !== entry.description)
+    !isIgnoredCommitMessage(preset.description)
   ) {
-    entry.title = preset.title;
-    entry.description = preset.description;
-    if (preset.type) entry.type = preset.type;
-    if (preset.icon) entry.icon = preset.icon;
-    if (preset.commit) entry.commit = preset.commit;
+    const presetLonger =
+      String(preset.description).length > String(entry.description || "").length + 20;
+    if (
+      presetLonger ||
+      preset.title !== entry.title ||
+      preset.description !== entry.description
+    ) {
+      entry.title = preset.title;
+      entry.description = preset.description;
+      if (preset.type) entry.type = preset.type;
+      if (preset.icon) entry.icon = preset.icon;
+    }
   }
+  // Commit do deploy actual (não reutilizar hash antigo em falta no shallow clone).
+  const deployCommit = resolveCommitHash();
+  if (deployCommit) entry.commit = deployCommit;
 
   news = news.filter((n) => n.version !== entry.version);
   news.push(entry);
