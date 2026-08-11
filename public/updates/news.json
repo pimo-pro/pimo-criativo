@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-08-11T14:00:00.000Z",
+  "updatedAt": "2026-08-11T14:22:00.000Z",
   "news": [
+    {
+      "version": "v6.0813.release",
+      "title": "Release — Independência das prateleiras + Correções industriais do gaveteiro",
+      "description": "Publicação completa das melhorias industriais:\n• P3.11 — Independência total das prateleiras (planos full/short, migração dinâmica, furação autónoma).\n• P3.12 — Correções industriais do gaveteiro (orientação XML, cavilhas, coerência estrutural).\n• P3.13 — SSOT gav_fundo (dimensões dinâmicas, offsets industriais, compatibilidade trilho).\nValidação total: prateleiras, gavetas, trilhos, XML, cutlist, técnico, 3D.",
+      "publishedAt": "2026-08-11T14:22:00.000Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature"
+    },
     {
       "version": "v6.0813.1500",
       "title": "Correções industriais completas do gaveteiro — orientação, furação e dimensões dinâmicas",

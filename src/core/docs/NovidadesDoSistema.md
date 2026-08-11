@@ -1,5 +1,11 @@
 # Novidades do Sistema
 
+### Release — Independência das prateleiras + Correções industriais do gaveteiro
+- P3.11 — Independência total das prateleiras (planos full/short, migração dinâmica, furação autónoma)
+- P3.12 — Correções industriais do gaveteiro (orientação XML, cavilhas, coerência estrutural)
+- P3.13 — SSOT gav_fundo (dimensões dinâmicas, offsets industriais, compatibilidade trilho)
+- Validação total: prateleiras, gavetas, trilhos, XML, cutlist, técnico, 3D
+
 ### Correções industriais completas do gaveteiro — orientação, furação e dimensões dinâmicas
 - Orientação XML da GAV_FRENTE_EXT_01 com datum base-esquerda (BL) e face tras
 - Cavilhas de aresta restauradas em GAV_LAT_DIR_01 / GAV_LAT_ESQ_01 (Y=15)
