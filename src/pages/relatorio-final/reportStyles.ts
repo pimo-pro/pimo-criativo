@@ -108,25 +108,29 @@ export const reportClickable: CSSProperties = {
 export const reportModalBackdrop: CSSProperties = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.45)",
-  zIndex: 9999,
+  background: "rgba(0, 0, 0, 0.55)",
+  zIndex: 50000,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   padding: 16,
+  pointerEvents: "auto",
 };
 
 export const reportModalPanel: CSSProperties = {
-  background: "var(--card-bg, #fff)",
-  color: "var(--text-main)",
+  background: "var(--card-bg, #ffffff)",
+  color: "var(--text-main, #111111)",
   borderRadius: 12,
-  border: "1px solid var(--card-border, rgba(0,0,0,0.1))",
+  border: "1px solid var(--card-border, rgba(0,0,0,0.12))",
   maxWidth: 920,
   width: "100%",
   maxHeight: "85vh",
   overflow: "auto",
   padding: 18,
-  boxShadow: "0 18px 48px rgba(0,0,0,0.25)",
+  boxShadow: "0 18px 48px rgba(0,0,0,0.35)",
+  position: "relative",
+  zIndex: 50001,
+  pointerEvents: "auto",
 };
 
 export const printHideClass = "report-no-print";

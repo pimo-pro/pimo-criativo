@@ -1,5 +1,10 @@
 # Novidades do Sistema
 
+### Release — P3.24 · Correção do módulo Adicionar Chapa + preço dinâmico
+- Modal «Adicionar chapa» com z-index e backdrop opaco correctos; selecção liga ao state
+- Chapa adicionada aparece de imediato em Painéis (espelho em chapasReais, sem double-count)
+- Preço dinâmico €/m e parcial recalculados ao alterar comprimento, largura ou €/m²
+
 ### Release — P3.23 · Correções finais da UI do Financeiro
 - Correção de caracteres corrompidos (Painéis ▸, Portas ▸, Gavetas ▸)
 - Remoção de «Prego para Costa» e de nomes de peças do caixa (CIMA/LADO/FRENTE/COSTA)

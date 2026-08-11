@@ -136,6 +136,8 @@ export {
   getPaineisDetalhe,
   madeiraTotalFromFinanceiro,
   totalChapasDetalhe,
+  addChapaToPaineisFinanceiro,
+  setPaineisChapasDetalhe,
 } from "./paineisChapasDetalhe";
 
 export {

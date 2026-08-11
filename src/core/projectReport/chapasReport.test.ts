@@ -3,7 +3,6 @@ import {
   aggregateChapasByEspessura,
   applyPrecoPorMetroEdit,
   areaM2FromMedida,
-  precoChapaFromArea,
   precoM2FromChapa,
   precoPorMetroFromM2,
   recalcChapaDetalhe,
@@ -101,19 +100,49 @@ describe("chapasReport", () => {
     expect(next.total).toBe(80);
   });
 
-  it("migra legado €/m2 para €/m", () => {
-    const next = recalcChapaDetalhe({
+  it("preço dinâmico: alterar largura actualiza €/m a partir de €/m²", () => {
+    const base = recalcChapaDetalhe({
       id: "1",
       tipo: "MDF",
       dimensoes: "2800 x 2070 mm",
+      comprimentoMm: 2800,
+      larguraMm: 2070,
       quantidade: 1,
       precoUnitario: 0,
       total: 0,
       espessuraMm: 19,
       precoPorM2: 31,
     });
-    expect(next.precoPorMetro).toBeCloseTo(precoPorMetroFromM2(31, 2070), 1);
-    expect(next.precoUnitario).toBeCloseTo(next.precoPorMetro! * 2.8, 1);
-    expect(precoChapaFromArea(31, "2800 x 2070 mm")).toBeGreaterThan(0);
+    const metroFull = base.precoPorMetro!;
+    expect(metroFull).toBeCloseTo(precoPorMetroFromM2(31, 2070), 1);
+
+    const halfWidth = recalcChapaDetalhe({
+      ...base,
+      larguraMm: 1035,
+    });
+    expect(halfWidth.precoPorMetro).toBeCloseTo(precoPorMetroFromM2(31, 1035), 1);
+    expect(halfWidth.precoPorMetro).toBeLessThan(metroFull);
+    expect(halfWidth.precoUnitario).toBeCloseTo(31 * areaM2FromMedida("2800 x 1035 mm"), 1);
+  });
+
+  it("preço parcial = €/m² × área parcial ao alterar comprimento", () => {
+    const full = recalcChapaDetalhe({
+      id: "1",
+      tipo: "MDF",
+      dimensoes: "2800 x 2070 mm",
+      comprimentoMm: 2800,
+      larguraMm: 2070,
+      quantidade: 1,
+      precoUnitario: 0,
+      total: 0,
+      espessuraMm: 19,
+      precoPorM2: 31,
+    });
+    const half = recalcChapaDetalhe({
+      ...full,
+      comprimentoMm: 1400,
+    });
+    expect(half.precoUnitario).toBeCloseTo(full.precoUnitario! / 2, 1);
+    expect(half.precoPorMetro).toBeCloseTo(full.precoPorMetro!, 1);
   });
 });

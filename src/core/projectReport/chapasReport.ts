@@ -150,24 +150,31 @@ export function aggregateChapasByEspessura(
 }
 
 /**
- * Recalcula: preco_unitario = preco_por_metro × comprimento_m.
- * Migra legado €/m² → €/m via largura.
+ * Recalcula preços dinâmicos da chapa:
+ * - preco_m2 = preco_chapa / area_chapa (quando só há unitário legado)
+ * - preco_metro (€/m) = preco_m2 × largura_m
+ * - preco_parcial = preco_m2 × area_parcial (= preco_metro × comprimento_m)
+ * Recalcula automaticamente ao alterar comprimento, largura ou €/m².
  */
 export function recalcChapaDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiroDetalhe {
   const { L, A } = resolveDimensoesMm(d);
   const comprimentoMm = Math.max(0, L);
   const larguraMm = Math.max(0, A);
   const comprimentoM = comprimentoMm / 1000;
+  const larguraM = larguraMm / 1000;
+  const areaParcialM2 = round4((comprimentoMm * larguraMm) / 1_000_000);
 
+  let precoPorM2 = Number(d.precoPorM2) || 0;
   let precoPorMetro = Number(d.precoPorMetro) || 0;
-  if (!(precoPorMetro > 0) && Number(d.precoPorM2) > 0) {
-    precoPorMetro = precoPorMetroFromM2(Number(d.precoPorM2), larguraMm);
-  }
-  // Legado: precoUnitario era preço da peça/chapa — se só isso existir, trata como €/m × 1m
-  if (!(precoPorMetro > 0) && Number(d.precoUnitario) > 0 && comprimentoM > 0) {
-    // Se dimensoes eram chapa completa, unitario antigo ≈ preço proporcional área;
-    // preferir derivar €/m = unitario / comprimento_m
-    precoPorMetro = round2(Number(d.precoUnitario) / comprimentoM);
+
+  if (precoPorM2 > 0) {
+    precoPorMetro = precoPorMetroFromM2(precoPorM2, larguraMm);
+  } else if (precoPorMetro > 0 && larguraM > 0) {
+    // Manter €/m exacto (edição manual); derivar só €/m².
+    precoPorM2 = round2(precoPorMetro / larguraM);
+  } else if (Number(d.precoUnitario) > 0 && areaParcialM2 > 0) {
+    precoPorM2 = round2(Number(d.precoUnitario) / areaParcialM2);
+    precoPorMetro = precoPorMetroFromM2(precoPorM2, larguraMm);
   }
 
   const precoUnitario = round2(precoPorMetro * comprimentoM);
@@ -178,20 +185,24 @@ export function recalcChapaDetalhe(d: ReportFinanceiroDetalhe): ReportFinanceiro
     comprimentoMm,
     larguraMm,
     dimensoes: formatMedidaMm(comprimentoMm, larguraMm),
+    areaChapaM2: areaParcialM2 > 0 ? areaParcialM2 : d.areaChapaM2,
+    precoPorM2: precoPorM2 > 0 ? precoPorM2 : d.precoPorM2,
     precoPorMetro,
     precoUnitario,
     total: round2(quantidade * precoUnitario),
   };
 }
 
-/** Editar preço por metro (€/m). */
+/** Editar preço por metro (€/m) — deriva €/m² e parcial. */
 export function applyPrecoPorMetroEdit(
   d: ReportFinanceiroDetalhe,
   precoPorMetro: number
 ): ReportFinanceiroDetalhe {
+  const metro = Math.max(0, Number(precoPorMetro) || 0);
   return recalcChapaDetalhe({
     ...d,
-    precoPorMetro: Math.max(0, Number(precoPorMetro) || 0),
+    precoPorMetro: metro,
+    precoPorM2: 0,
   });
 }
 

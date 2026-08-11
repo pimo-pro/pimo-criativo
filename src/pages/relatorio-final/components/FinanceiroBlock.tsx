@@ -5,8 +5,8 @@
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
 import {
+  addChapaToPaineisFinanceiro,
   applyPrecoPorMetroEdit,
-  detalheFromCatalogoChapa,
   FINANCEIRO_REPORT_LABELS,
   listCatalogoChapas,
   makeReportId,
@@ -15,6 +15,7 @@ import {
   recalcOrlaDetalhe,
   resolveDimensoesMm,
   sanitizeFinanceiroDetalhe,
+  setPaineisChapasDetalhe,
   updateFinanceiroLinha,
   type ProjectReportFinanceiro,
   type ReportFinanceiroDetalhe,
@@ -114,7 +115,9 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
   };
 
   const setPaineisDetalhe = (detalhe: ReportFinanceiroDetalhe[]) => {
-    setDetalhe("paineis", detalhe);
+    onChange(
+      setPaineisChapasDetalhe(value, sanitizeFinanceiroDetalhe(detalhe))
+    );
   };
 
   return (
@@ -687,28 +690,10 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                 textAlign: "left",
                 font: "inherit",
               }}
-              onClick={() => {
-                const next = [
-                  ...(paineisLinha?.detalhe ?? []),
-                  detalheFromCatalogoChapa(opt),
-                ];
-                const byEsp = new Map<number, ReportFinanceiroDetalhe>();
-                for (const d of next) {
-                  const esp = Math.round(Number(d.espessuraMm) || 0);
-                  const prev = byEsp.get(esp);
-                  if (prev && esp > 0) {
-                    byEsp.set(
-                      esp,
-                      recalcChapaDetalhe({
-                        ...prev,
-                        quantidade: (Number(prev.quantidade) || 0) + (Number(d.quantidade) || 0),
-                      })
-                    );
-                  } else {
-                    byEsp.set(esp || Date.now(), recalcChapaDetalhe(d));
-                  }
-                }
-                setPaineisDetalhe([...byEsp.values()]);
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onChange(addChapaToPaineisFinanceiro(value, opt));
                 setAddChapaOpen(false);
                 setOpenKeys((prev) => new Set(prev).add("paineis"));
               }}

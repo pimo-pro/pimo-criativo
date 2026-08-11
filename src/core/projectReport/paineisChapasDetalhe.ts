@@ -8,7 +8,9 @@ import { findOfflineProjectByAnyKey } from "@/core/projects/projectIdentity";
 import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolveProjectCutlistFromRecord";
 
-import { aggregateChapasByEspessura, recalcChapaDetalhe } from "./chapasReport";
+import { aggregateChapasByEspessura, detalheFromCatalogoChapa, recalcChapaDetalhe } from "./chapasReport";
+import type { CatalogoChapaOption } from "./chapasReport";
+import { updateFinanceiroLinha } from "./financeReportCalc";
 import type { ProjectReportFinanceiro, ReportFinanceiroDetalhe } from "./types";
 
 function round2(n: number): number {
@@ -80,4 +82,55 @@ export function getPaineisDetalhe(
   fin: ProjectReportFinanceiro
 ): ReportFinanceiroDetalhe[] {
   return fin.linhas.find((l) => l.key === "paineis")?.detalhe ?? [];
+}
+
+/**
+ * P3.24 — Adiciona chapa do catálogo a Painéis (+ espelho chapasReais).
+ * O total monetário fica em Painéis; chapasReais.total permanece 0 (anti double-count).
+ */
+export function addChapaToPaineisFinanceiro(
+  fin: ProjectReportFinanceiro,
+  opt: CatalogoChapaOption
+): ProjectReportFinanceiro {
+  const mapped = [...getPaineisDetalhe(fin), detalheFromCatalogoChapa(opt)].map(
+    recalcChapaDetalhe
+  );
+  const mirrored: ProjectReportFinanceiro = {
+    ...fin,
+    linhas: fin.linhas.map((l) =>
+      l.key === "chapasReais"
+        ? {
+            ...l,
+            detalhe: mapped,
+            total: 0,
+            quantidade: null,
+            precoUnitario: null,
+          }
+        : l
+    ),
+  };
+  return updateFinanceiroLinha(mirrored, "paineis", { detalhe: mapped });
+}
+
+/** Actualiza detalhe de chapas em Painéis e espelha em chapasReais. */
+export function setPaineisChapasDetalhe(
+  fin: ProjectReportFinanceiro,
+  detalhe: ReportFinanceiroDetalhe[]
+): ProjectReportFinanceiro {
+  const mapped = detalhe.map(recalcChapaDetalhe);
+  const mirrored: ProjectReportFinanceiro = {
+    ...fin,
+    linhas: fin.linhas.map((l) =>
+      l.key === "chapasReais"
+        ? {
+            ...l,
+            detalhe: mapped,
+            total: 0,
+            quantidade: null,
+            precoUnitario: null,
+          }
+        : l
+    ),
+  };
+  return updateFinanceiroLinha(mirrored, "paineis", { detalhe: mapped });
 }

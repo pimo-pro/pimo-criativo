@@ -61,6 +61,18 @@ export function recalcLinha(linha: ReportFinanceiroLinha): ReportFinanceiroLinha
   if (linha.key === "iva" || linha.key === "total") return linha;
 
   const detalhe = (linha.detalhe ?? []).map(recalcDetalhe);
+
+  /** Espelho de chapas: detalhe em chapasReais; valor monetário só em Painéis. */
+  if (linha.key === "chapasReais") {
+    return {
+      ...linha,
+      detalhe,
+      quantidade: null,
+      precoUnitario: null,
+      total: 0,
+    };
+  }
+
   if (detalhe.length > 0) {
     const total = round2(detalhe.reduce((s, d) => s + (Number(d.total) || 0), 0));
     const quantidade = round2(detalhe.reduce((s, d) => s + (Number(d.quantidade) || 0), 0));
