@@ -4,6 +4,7 @@
 
 import type { Ferragem } from "@/core/ferragens/ferragens";
 
+import { sanitizeFinanceiroDetalhe, isInvalidFinanceiroDetalheTipo } from "./financeiroDetalheSanitize";
 import { recalcFinanceiro, updateFinanceiroLinha } from "./financeReportCalc";
 import {
   makeReportId,
@@ -38,23 +39,25 @@ export function ferragensDetalheFromMateriais(
   materiais: ReportMaterialLinha[],
   catalog: Ferragem[] = []
 ): ReportFinanceiroDetalhe[] {
-  return materiais.map((m) => {
-    const match = catalog.find(
-      (f) =>
-        f.nome.toLowerCase() === m.tipo.toLowerCase() ||
-        f.id.toLowerCase() === String(m.sourceId ?? "").toLowerCase()
-    );
-    const precoUnitario = Number(match?.precoUnitario) || 0;
-    const quantidade = Math.max(0, Number(m.quantidade) || 0);
-    return {
-      id: m.id || makeReportId("fd"),
-      tipo: m.tipo,
-      dimensoes: match?.medidas ?? m.observacoes ?? "",
-      quantidade,
-      precoUnitario,
-      total: round2(quantidade * precoUnitario),
-    };
-  });
+  return materiais
+    .filter((m) => !isInvalidFinanceiroDetalheTipo(m.tipo))
+    .map((m) => {
+      const match = catalog.find(
+        (f) =>
+          f.nome.toLowerCase() === m.tipo.toLowerCase() ||
+          f.id.toLowerCase() === String(m.sourceId ?? "").toLowerCase()
+      );
+      const precoUnitario = Number(match?.precoUnitario) || 0;
+      const quantidade = Math.max(0, Number(m.quantidade) || 0);
+      return {
+        id: m.id || makeReportId("fd"),
+        tipo: m.tipo,
+        dimensoes: match?.medidas ?? m.observacoes ?? "",
+        quantidade,
+        precoUnitario,
+        total: round2(quantidade * precoUnitario),
+      };
+    });
 }
 
 /** Atualiza linha ferragens a partir do detalhe e devolve financeiro + espelho materiais. */
@@ -75,11 +78,12 @@ export function ensureFerragensFromMateriais(
   materiais: ReportMaterialLinha[],
   catalog: Ferragem[] = []
 ): { financeiro: ProjectReportFinanceiro; materiais: ReportMaterialLinha[] } {
-  const existing = getFerragensDetalhe(fin);
+  const existing = sanitizeFinanceiroDetalhe(getFerragensDetalhe(fin));
   if (existing.length > 0) {
+    const cleaned = applyFerragensDetalhe(fin, existing);
     return {
-      financeiro: recalcFinanceiro(fin),
-      materiais: materiaisFromFerragensDetalhe(existing),
+      financeiro: recalcFinanceiro(cleaned.financeiro),
+      materiais: cleaned.materiais,
     };
   }
   if (materiais.length === 0) {

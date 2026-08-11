@@ -1,6 +1,6 @@
 /**
- * Bloco financeiro do Relatório Final — layout completo (custos dinâmicos).
- * P3.22: fluxo original (adapter → industrialRules → totals); UI pré-P3.17.
+ * Bloco financeiro do RelatÃ³rio Final â layout completo (custos dinÃ¢micos).
+ * P3.23: encoding UTF-8, accordions fechados, sem fallback de detalhe inventado.
  */
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
@@ -14,16 +14,14 @@ import {
   recalcFinanceiro,
   recalcOrlaDetalhe,
   resolveDimensoesMm,
+  sanitizeFinanceiroDetalhe,
   updateFinanceiroLinha,
   type ProjectReportFinanceiro,
   type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
   type ReportStyle,
 } from "@/core/projectReport";
-import {
-  FINANCEIRO_CUSTO_KEYS,
-  type FinanceiroCustoKey,
-} from "@/core/financeiro/financeiroUnificadoTypes";
+import { type FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import {
   reportInput,
   reportLabel,
@@ -80,38 +78,9 @@ function emptyDetalheRow(label = ""): ReportFinanceiroDetalhe {
   };
 }
 
-/** Se nÃÂ£o houver detalhe, cria linha a partir do total da linha-mÃÂ£e. */
-function detailOrSeed(linha: ReportFinanceiroLinha): ReportFinanceiroDetalhe[] {
-  // Portas / Remates: sem madeira no modo industrial Ã¢ÂÂ nunca inventar detalhe.
-  if (linha.key === "portas" || linha.key === "remates") return [];
-  if ((linha.detalhe?.length ?? 0) > 0) return linha.detalhe;
-  const total = Number(linha.total) || 0;
-  if (!(total > 0) && linha.quantidade == null && linha.precoUnitario == null) return [];
-  const quantidade =
-    linha.quantidade != null && linha.quantidade > 0
-      ? linha.quantidade
-      : 1;
-  const precoUnitario =
-    linha.precoUnitario != null && linha.precoUnitario > 0
-      ? linha.precoUnitario
-      : Math.round((total / quantidade) * 100) / 100;
-  return [
-    {
-      id: makeReportId("fd"),
-      tipo: linha.label,
-      dimensoes: linha.key === "orla" ? "m" : "",
-      quantidade,
-      precoUnitario,
-      total: Math.round(quantidade * precoUnitario * 100) / 100,
-    },
-  ];
-}
-
 export default function FinanceiroBlock({ style, value, onChange }: Props) {
-  /** P3.20: blocos abertos por defeito (sem colapsar automaticamente). */
-  const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(
-    () => new Set(FINANCEIRO_CUSTO_KEYS.filter((k) => k !== "chapasReais"))
-  );
+  /** P3.23: blocos fechados por defeito (abrir sÃ³ com clique). */
+  const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(() => new Set());
   const [addChapaOpen, setAddChapaOpen] = useState(false);
   const catalogo = useMemo(() => listCatalogoChapas(), []);
 
@@ -141,7 +110,7 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                     100
                 ) / 100,
             }));
-    onChange(updateFinanceiroLinha(value, key, { detalhe: mapped }));
+    onChange(updateFinanceiroLinha(value, key, { detalhe: sanitizeFinanceiroDetalhe(mapped) }));
   };
 
   const setPaineisDetalhe = (detalhe: ReportFinanceiroDetalhe[]) => {
@@ -194,7 +163,7 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
               const isOpen = key ? openKeys.has(key) : false;
               const isPaineis = key === "paineis";
               const isOrla = key === "orla";
-              const detalhe = key ? detailOrSeed(linha) : [];
+              const detalhe = key ? sanitizeFinanceiroDetalhe(linha.detalhe) : [];
               const displayLabel =
                 key && key in FINANCEIRO_REPORT_LABELS
                   ? FINANCEIRO_REPORT_LABELS[key]
@@ -219,20 +188,11 @@ export default function FinanceiroBlock({ style, value, onChange }: Props) {
                             textDecoration: "underline",
                           }}
                           onClick={() => {
-                            if (
-                              key !== "portas" &&
-                              key !== "remates" &&
-                              !isOpen &&
-                              (linha.detalhe?.length ?? 0) === 0 &&
-                              detalhe.length > 0
-                            ) {
-                              setDetalhe(key, detalhe);
-                            }
                             toggleKey(key);
                           }}
                         >
                           {displayLabel}
-                          {isOpen ? " Ã¢ÂÂ¾" : " Ã¢ÂÂ¸"}
+                          {isOpen ? " ▾" : " ▸"}
                         </button>
                       ) : (
                         displayLabel

@@ -72,6 +72,12 @@ export { financeiroTotals, alignOfficialTotalsToUnificado } from "./financeiroTo
 export { buildFinanceiroPageFromState } from "./buildFinanceiroPage";
 export type { BuildFinanceiroPageOptions } from "./buildFinanceiroPage";
 export {
+  sanitizeFinanceiroDetalhe,
+  isInvalidFinanceiroDetalheTipo,
+  isPregoParaCostaTipo,
+  isPecaCaixaTipo,
+} from "./financeiroDetalheSanitize";
+export {
   financeiroCustoLinhasDisplay,
   financeiroTotaisDisplay,
   formatEurDisplay,

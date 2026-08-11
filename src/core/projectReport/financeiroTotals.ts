@@ -1,13 +1,18 @@
 /**
- * P3.22 — financeiroTotals (fluxo original do Relatório Final).
+ * P3.22/P3.23 — financeiroTotals (fluxo original do Relatório Final).
  * Calcula subtotal / IVA / total da página Financeiro.
- * Unificado continua SSOT dos totais oficiais (alinhamento opcional).
+ * Unificado continua SSOT dos totais oficiais (alinhamento).
  */
 
 import type { ProjectState } from "@/context/projectTypes";
 import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificado";
+import {
+  FINANCEIRO_CUSTO_KEYS,
+  type FinanceiroCustoKey,
+} from "@/core/financeiro/financeiroUnificadoTypes";
 import type { MaterialIndustrial } from "@/core/manufacturing/materials";
 
+import { sanitizeFinanceiroDetalhe } from "./financeiroDetalheSanitize";
 import { ensureFinanceiroShape, recalcFinanceiro } from "./financeReportCalc";
 import type { ProjectReportFinanceiro } from "./types";
 
@@ -24,9 +29,9 @@ export function financeiroTotals(fin: ProjectReportFinanceiro): ProjectReportFin
 }
 
 /**
- * Alinha apenas subtotal / IVA / Total oficiais ao Unificado (SSOT),
- * preservando o detalhe UI construído pelo adapter + industrial rules.
- * Categorias sem detalhe recebem o total oficial (não reconstrói a UI).
+ * Alinha totais oficiais ao Unificado (SSOT ADMIN).
+ * Preserva detalhe UI sanitizado; não deixa detalhe/fallback sobrescrever o total oficial.
+ * Painéis = paineis + chapasReais (igual à UI ADMIN).
  */
 export function alignOfficialTotalsToUnificado(
   fin: ProjectReportFinanceiro,
@@ -44,6 +49,18 @@ export function alignOfficialTotalsToUnificado(
     const subtotal = round2(snap.subtotal);
     const ivaValor = round2(snap.ivaValor);
     const totalProjeto = round2(snap.totalProjeto);
+
+    const officialForKey = (key: FinanceiroCustoKey): number => {
+      if (key === "chapasReais") return 0;
+      if (key === "paineis") {
+        return round2(
+          (Number(snap.custosEffective.paineis) || 0) +
+            (Number(snap.custosEffective.chapasReais) || 0)
+        );
+      }
+      return round2(Number(snap.custosEffective[key]) || 0);
+    };
+
     return {
       ...totaled,
       ivaPct,
@@ -52,17 +69,21 @@ export function alignOfficialTotalsToUnificado(
       totalProjeto,
       linhas: totaled.linhas.map((l) => {
         if (l.key === "iva") {
-          return { ...l, label: `IVA (${ivaPct}%)`, total: ivaValor };
+          return { ...l, label: `IVA (${ivaPct}%)`, total: ivaValor, detalhe: [] };
         }
         if (l.key === "total") {
-          return { ...l, total: totalProjeto };
+          return { ...l, total: totalProjeto, detalhe: [] };
         }
-        // Portas/Remates industriais = 0 (regra UI); detalhe próprio manda.
-        if (l.key === "portas" || l.key === "remates") return l;
-        if ((l.detalhe?.length ?? 0) > 0) return l;
-        const official = snap.custosEffective[l.key as keyof typeof snap.custosEffective];
-        if (typeof official === "number" && Number.isFinite(official)) {
-          return { ...l, total: round2(official) };
+        if (l.key === "chapasReais") {
+          return { ...l, total: 0, detalhe: [], quantidade: null, precoUnitario: null };
+        }
+        if ((FINANCEIRO_CUSTO_KEYS as readonly string[]).includes(l.key)) {
+          const key = l.key as FinanceiroCustoKey;
+          return {
+            ...l,
+            total: officialForKey(key),
+            detalhe: sanitizeFinanceiroDetalhe(l.detalhe),
+          };
         }
         return l;
       }),

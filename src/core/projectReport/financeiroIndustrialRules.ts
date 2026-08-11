@@ -14,6 +14,7 @@ import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolv
 import { aggregateChapasByEspessura } from "./chapasReport";
 import type { FinanceiroAdapterModel } from "./financeiroAdapter";
 import { adapterModelToFinanceiroShape } from "./financeiroAdapter";
+import { sanitizeFinanceiroDetalhe } from "./financeiroDetalheSanitize";
 import { updateFinanceiroLinha } from "./financeReportCalc";
 import { ensureFerragensFromMateriais } from "./materiaisSync";
 import { buildOrlaDetalheFromState } from "./orlaReport";
@@ -138,6 +139,20 @@ export function financeiroIndustrialRules(
   fin = seedChapasDetalhe(fin, model.projectId, model.state);
   fin = seedOrlaDetalhe(fin, model.state);
   fin = applyIndustrialReportLinhas(fin);
+  // Sanitizar detalhe (sem Prego Costa / peças do caixa) antes e depois das ferragens.
+  fin = {
+    ...fin,
+    linhas: fin.linhas.map((l) => ({
+      ...l,
+      detalhe: sanitizeFinanceiroDetalhe(l.detalhe),
+    })),
+  };
   const ferr = ensureFerragensFromMateriais(fin, materiais, ferragensCatalog);
-  return ferr.financeiro;
+  return {
+    ...ferr.financeiro,
+    linhas: ferr.financeiro.linhas.map((l) => ({
+      ...l,
+      detalhe: sanitizeFinanceiroDetalhe(l.detalhe),
+    })),
+  };
 }

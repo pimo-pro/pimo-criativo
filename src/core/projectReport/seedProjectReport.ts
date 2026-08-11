@@ -27,6 +27,7 @@ import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolv
 import { buildFinanceiroPageFromState } from "./buildFinanceiroPage";
 import { withDerivedMetricas } from "./deriveMetricas";
 import { ensureFinanceiroShape } from "./financeReportCalc";
+import { isInvalidFinanceiroDetalheTipo } from "./financeiroDetalheSanitize";
 import {
   applyIndustrialReportLinhas,
   seedChapasDetalhe,
@@ -187,15 +188,17 @@ function buildMateriais(state: ProjectState | null): ReportMaterialLinha[] {
   if (!state) return [];
   try {
     const { porTipo } = buildFerragensTotaisPdfData(state, loadComponentTypes(), loadFerragens());
-    return porTipo.map((row, i) => ({
-      id: makeReportId("mat"),
-      sourceId: `ferr-${i}-${row[0] ?? ""}`,
-      tipo: String(row[0] ?? "Ferragem"),
-      quantidade: Number(row[1]) || 0,
-      observacoes: "",
-      temErro: false,
-      substituicao: "",
-    }));
+    return porTipo
+      .filter((row) => !isInvalidFinanceiroDetalheTipo(String(row[0] ?? "")))
+      .map((row, i) => ({
+        id: makeReportId("mat"),
+        sourceId: `ferr-${i}-${row[0] ?? ""}`,
+        tipo: String(row[0] ?? "Ferragem"),
+        quantidade: Number(row[1]) || 0,
+        observacoes: "",
+        temErro: false,
+        substituicao: "",
+      }));
   } catch {
     return [];
   }

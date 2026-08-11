@@ -1,5 +1,10 @@
 # Novidades do Sistema
 
+### Release — P3.23 · Correções finais da UI do Financeiro
+- Correção de caracteres corrompidos (Painéis ▸, Portas ▸, Gavetas ▸)
+- Remoção de «Prego para Costa» e de nomes de peças do caixa (CIMA/LADO/FRENTE/COSTA)
+- Accordions fechados por defeito; sem duplicações; totais alinhados ao Financeiro Unificado (ADMIN)
+
 ### Release — P3.22 · Restauração completa da lógica original do Financeiro
 - Relatório Final: fluxo original restaurado — state → financeiroAdapter → financeiroIndustrialRules → financeiroTotals → UI
 - Página «Financeiro (custos dinâmicos)» com blocos, detalhes e painéis originais (accordions abertos, chapas editáveis)
