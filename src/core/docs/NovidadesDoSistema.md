@@ -1,5 +1,10 @@
 # Novidades do Sistema
 
+### Release — P3.19 · Correções de UI (Financeiro + Painéis)
+- Financeiro ADMIN: removido «€/chapa derivado»; Painéis mostra o custo total das chapas (sem duplicar Chapas reais)
+- Relatório Final: bloco Painéis restaurado (chapas reais editáveis — nomes, medidas, €/m², totais)
+- Totais oficiais continuam live do Financeiro Unificado (sem reprecificar pipelines industriais)
+
 ### Release — P3.17 + P3.18 · Preços alinhados + UI do Relatório Final
 - P3.17 — Relatório Final espelha o Financeiro Unificado (ADMIN) em modo live: mesmos totais/IVA, sem reprecificação por chapas, sem sticky de preços
 - P3.18 — Melhorias de interface: Financeiro no final com Total destacado, Subtotal/IVA/Total sem duplicação, detalhe de custos colapsado, painel com contagens úteis (sem tempo)

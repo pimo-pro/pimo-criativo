@@ -29,6 +29,11 @@ import {
   buildLiveReportFinanceiro,
   loadMaterialsForFinanceiro,
 } from "./financeiroFromUnificado";
+import {
+  buildPaineisChapasDetalhe,
+  getPaineisDetalhe,
+  withPaineisChapasDetalhe,
+} from "./paineisChapasDetalhe";
 import { migrateProjectReport } from "./migrateReport";
 import { isManualPath } from "./projectReportStore";
 import {
@@ -217,7 +222,14 @@ export async function seedOrMergeProjectReport(
   const { state, name, ownerName, createdAt, updatedAt } = reviveProjectState(id);
   const materials = loadMaterialsForFinanceiro();
   /** P3.17: financeiro sempre live do Unificado (ignora sticky / manualPaths de preços). */
-  const liveFinanceiro = buildLiveReportFinanceiro(state, materials);
+  let liveFinanceiro = buildLiveReportFinanceiro(state, materials);
+  /** P3.19: detalhe de chapas em Painéis sem reprecificar totais. */
+  const existingDetalhe = existing ? getPaineisDetalhe(existing.financeiro) : [];
+  const chapasDetalhe =
+    existingDetalhe.length > 0
+      ? existingDetalhe
+      : buildPaineisChapasDetalhe(id, state);
+  liveFinanceiro = withPaineisChapasDetalhe(liveFinanceiro, chapasDetalhe);
 
   const seededCaixas = buildCaixas(state);
   const seededPecas = buildPecas(id);

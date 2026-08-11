@@ -587,8 +587,13 @@ function labelPaineis(_snap: FinanceiroUnificadoSnapshot): string {
 export function financeiroCustoRows(
   snap: FinanceiroUnificadoSnapshot
 ): Array<{ label: string; valor: number | null; emBreve?: boolean; total?: boolean }> {
+  /** Painéis na UI = madeira (peça ou chapas reais) — sem duplicar chapasReais. */
+  const paineisDisplay =
+    (Number(snap.custosEffective.paineis) || 0) +
+    (Number(snap.custosEffective.chapasReais) || 0);
+
   const rows: Array<{ label: string; valor: number | null; emBreve?: boolean; total?: boolean }> = [
-    { label: labelPaineis(snap), valor: snap.custosEffective.paineis },
+    { label: labelPaineis(snap), valor: paineisDisplay },
     { label: "Portas", valor: snap.custosEffective.portas },
     {
       label: "Gavetas",

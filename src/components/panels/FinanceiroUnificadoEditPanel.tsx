@@ -238,19 +238,6 @@ export default function FinanceiroUnificadoEditPanel({ snap, onCancel, onSaved }
         Incluir portes (transporte) — sem isto, Portes = 0€
       </label>
 
-      {snap.materialCostMode === "por_chapas_reais" ? (
-        <p
-          style={{
-            fontSize: 12,
-            marginBottom: 12,
-            color: "#0369a1",
-            fontWeight: 600,
-          }}
-        >
-          Modo material: por chapas reais (Painéis a 0 € — anti double-count)
-        </p>
-      ) : null}
-
       <div style={{ marginBottom: 12 }}>
         <div style={{ ...fieldStyle, fontWeight: 700, color: "var(--text-muted)" }}>
           <span>Custo</span>

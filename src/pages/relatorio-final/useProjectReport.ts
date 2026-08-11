@@ -17,6 +17,11 @@ import {
   loadMaterialsForFinanceiro,
 } from "@/core/projectReport/financeiroFromUnificado";
 import {
+  buildPaineisChapasDetalhe,
+  getPaineisDetalhe,
+  withPaineisChapasDetalhe,
+} from "@/core/projectReport/paineisChapasDetalhe";
+import {
   findOfflineProjectByAnyKey,
   resolveProjectIdentity,
 } from "@/core/projects/projectIdentity";
@@ -49,21 +54,28 @@ function resolveSeedKey(urlKey: string): string {
   return urlKey.trim();
 }
 
-/** P3.17: sobrescreve financeiro com Unificado live (preços nunca oficiais no store). */
+/**
+ * P3.17/P3.19: totais live do Unificado; preserva/seed detalhe Painéis sem reprecificar.
+ */
 function withLiveFinanceiro(report: ProjectReport, seedKey: string): ProjectReport {
   const offline = findOfflineProjectByAnyKey(seedKey);
+  const preserved = getPaineisDetalhe(report.financeiro);
   if (!offline) {
+    const live = buildLiveReportFinanceiro(null, loadMaterialsForFinanceiro());
     return {
       ...report,
-      financeiro: buildLiveReportFinanceiro(null, loadMaterialsForFinanceiro()),
+      financeiro: withPaineisChapasDetalhe(live, preserved),
     };
   }
   const record = toSavedRecordFromOffline(offline);
   const revived = reviveState(record.snapshot?.projectState);
   const state = revived ? applyResultados(revived) : null;
+  const live = buildLiveReportFinanceiro(state, loadMaterialsForFinanceiro());
+  const detalhe =
+    preserved.length > 0 ? preserved : buildPaineisChapasDetalhe(seedKey, state);
   return {
     ...report,
-    financeiro: buildLiveReportFinanceiro(state, loadMaterialsForFinanceiro()),
+    financeiro: withPaineisChapasDetalhe(live, detalhe),
   };
 }
 

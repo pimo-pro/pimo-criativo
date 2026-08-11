@@ -1,6 +1,6 @@
 /**
  * Bloco financeiro do Relatório Final — só leitura (espelho live do Unificado ADMIN).
- * P3.18: totais uma vez; linhas técnicas colapsadas; Total em cartão grande.
+ * P3.19: chapas/Painéis no bloco dedicado; aqui só totais (sem €/chapa derivado).
  */
 
 import { useState, type CSSProperties } from "react";
@@ -9,6 +9,7 @@ import {
   financeiroCustoLinhasDisplay,
   financeiroTotaisDisplay,
   formatEurDisplay,
+  madeiraTotalFromFinanceiro,
   type ProjectReportFinanceiro,
   type ReportStyle,
 } from "@/core/projectReport";
@@ -53,7 +54,11 @@ const totRowStyle: CSSProperties = {
 export default function FinanceiroBlock({ style, value }: Props) {
   const [detalheAberto, setDetalheAberto] = useState(false);
   const totais = financeiroTotaisDisplay(value);
-  const custoLinhas = financeiroCustoLinhasDisplay(value.linhas);
+  const madeira = madeiraTotalFromFinanceiro(value);
+  /** Sem Painéis/chapasReais — detalhe de chapas vive no bloco Painéis. */
+  const custoLinhas = financeiroCustoLinhasDisplay(value.linhas).filter(
+    (l) => l.key !== "paineis"
+  );
 
   return (
     <section style={reportSection(style)} data-testid="financeiro-block">
@@ -62,11 +67,18 @@ export default function FinanceiroBlock({ style, value }: Props) {
         {R.financeiroHint}
       </p>
 
-      {/* Totais uma única vez — sem linhas IVA/Total na tabela */}
       <div
         style={{ display: "grid", gap: 10, maxWidth: 480, marginBottom: 8 }}
         data-testid="financeiro-totais-unicos"
       >
+        <div style={totRowStyle} data-testid="financeiro-chapas-total">
+          <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 600 }}>
+            {R.custoChapasReais}
+          </span>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>
+            {formatEurDisplay(madeira)}
+          </span>
+        </div>
         <div style={totRowStyle} data-testid="financeiro-subtotal">
           <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 600 }}>
             {R.subtotal}

@@ -195,6 +195,20 @@ export function applyPrecoPorMetroEdit(
   });
 }
 
+/** Editar preço por m² — recalcula €/m e total da chapa. */
+export function applyPrecoPorM2Edit(
+  d: ReportFinanceiroDetalhe,
+  precoPorM2: number
+): ReportFinanceiroDetalhe {
+  const { A } = resolveDimensoesMm(d);
+  const eurM2 = Math.max(0, Number(precoPorM2) || 0);
+  return recalcChapaDetalhe({
+    ...d,
+    precoPorM2: eurM2,
+    precoPorMetro: precoPorMetroFromM2(eurM2, A),
+  });
+}
+
 /** @deprecated alias — trata o valor como €/m. */
 export function applyPrecoChapaEdit(
   d: ReportFinanceiroDetalhe,

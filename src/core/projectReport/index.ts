@@ -99,6 +99,7 @@ export {
   recalcChapaDetalhe,
   applyPrecoChapaEdit,
   applyPrecoPorMetroEdit,
+  applyPrecoPorM2Edit,
   formatMedidaMm,
   parseMedidaMm,
   resolveDimensoesMm,
@@ -109,6 +110,14 @@ export {
   precoPorMetroFromM2,
 } from "./chapasReport";
 export type { CatalogoChapaOption } from "./chapasReport";
+
+export {
+  buildPaineisChapasDetalhe,
+  withPaineisChapasDetalhe,
+  getPaineisDetalhe,
+  madeiraTotalFromFinanceiro,
+  totalChapasDetalhe,
+} from "./paineisChapasDetalhe";
 
 export {
   appendHistoryEntry,

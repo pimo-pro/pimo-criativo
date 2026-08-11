@@ -7,6 +7,9 @@ import {
   deriveMetricas,
   emptyQualidade,
   exportProjectReportPdf,
+  getPaineisDetalhe,
+  madeiraTotalFromFinanceiro,
+  withPaineisChapasDetalhe,
   type ReportStyle,
 } from "@/core/projectReport";
 import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
@@ -17,6 +20,7 @@ import InfoGeraisBlock from "./components/InfoGeraisBlock";
 import PainelGraficoBlock from "./components/PainelGraficoBlock";
 import EstadoProjetoBlock from "./components/EstadoProjetoBlock";
 import FinanceiroBlock from "./components/FinanceiroBlock";
+import PaineisBlock from "./components/PaineisBlock";
 import NotasBlock from "./components/NotasBlock";
 import QualidadeBlock from "./components/QualidadeBlock";
 import HistoricoModal from "./components/HistoricoModal";
@@ -207,6 +211,21 @@ export default function RelatorioFinalProjeto() {
           style={style}
           value={report.qualidade ?? emptyQualidade()}
           onChange={(qualidade) => updateReport((r) => ({ ...r, qualidade }), "qualidade")}
+        />
+
+        <PaineisBlock
+          style={style}
+          detalhe={getPaineisDetalhe(report.financeiro)}
+          totalUnificadoMadeira={madeiraTotalFromFinanceiro(report.financeiro)}
+          onChange={(detalhe) =>
+            updateReport(
+              (r) => ({
+                ...r,
+                financeiro: withPaineisChapasDetalhe(r.financeiro, detalhe),
+              }),
+              "financeiro.paineis.detalhe"
+            )
+          }
         />
 
         <FinanceiroBlock style={style} value={report.financeiro} />

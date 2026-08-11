@@ -147,14 +147,6 @@ export default function FinanceiroUnificadoPanel({ embedded }: { embedded?: bool
             <h3 className="bottom-info-hub__card-title" style={{ marginTop: 0 }}>
               Custos {isAdmin ? "(ADMIN)" : ""}
             </h3>
-            {snap.materialCostMode === "por_chapas_reais" ? (
-              <p style={{ ...microMuted, marginBottom: 8, color: "#0369a1", fontWeight: 600 }}>
-                Modo material: por chapas reais
-                {snap.chapasReaisMeta && snap.chapasReaisMeta.custoChapaDerived > 0
-                  ? ` — €/chapa derivado ${snap.chapasReaisMeta.custoChapaDerived.toFixed(2)} €`
-                  : ""}
-              </p>
-            ) : null}
             {showPrices ? (
               <div className="data-list">
                 {custoRows.map((row) => (
