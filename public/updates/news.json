@@ -1,14 +1,14 @@
 {
-  "updatedAt": "2026-08-11T21:31:36.776Z",
+  "updatedAt": "2026-08-11T21:33:51.379Z",
   "news": [
     {
       "version": "v6.0811.2231",
-      "title": "Release — P3.23 · Correções finais da UI do Financeiro — khaled-pro",
-      "description": "Release — P3.23 · Correções finais da UI do Financeiro — khaled-pro",
+      "title": "Release — P3.23 · Correções finais da UI do Financeiro",
+      "description": "Correções finais da página Financeiro (custos dinâmicos):\n• Caracteres UTF-8 correctos (Painéis ▸, Portas ▸, Gavetas ▸)\n• Remoção de «Prego para Costa» e nomes de peças do caixa\n• Accordions fechados por defeito; sem duplicações\n• Totais alinhados ao Financeiro Unificado (ADMIN)",
       "publishedAt": "2026-08-11T21:31:36.612Z",
-      "type": "update",
+      "type": "feature",
       "author": "pimo-pro",
-      "icon": "update",
+      "icon": "feature",
       "commit": "6f8c83a8"
     },
     {
