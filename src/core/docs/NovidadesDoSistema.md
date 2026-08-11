@@ -1,5 +1,12 @@
 # Novidades do Sistema
 
+### Release — P3.17 a P3.19 · Financeiro Unificado + Painéis Restaurados
+Publicação completa das fases:
+- P3.17 — Relatório Final live e alinhado ao Financeiro
+- P3.18 — UI do Relatório Final reorganizada e sem duplicações
+- P3.19 — Correções de UI no Financeiro ADMIN + Painéis editáveis
+Sistema de preços totalmente alinhado, sem reprecificação, sem duplicações, com Painéis restaurado e Financeiro limpo.
+
 ### Release — P3.19 · Correções de UI (Financeiro + Painéis)
 - Financeiro ADMIN: removido «€/chapa derivado»; Painéis mostra o custo total das chapas (sem duplicar Chapas reais)
 - Relatório Final: bloco Painéis restaurado (chapas reais editáveis — nomes, medidas, €/m², totais)
