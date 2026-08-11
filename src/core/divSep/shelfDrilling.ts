@@ -1,7 +1,11 @@
 import type { RulesConfig } from "../rules/rulesConfig";
 import type { PanelDrillHole } from "../types";
 import { getDivSepRules } from "./cavilhaRules";
-import { resolveSeparadorBottomY, resolveDivisorBottomYAbs } from "./coupling";
+import {
+  resolveSeparadorBottomY,
+  resolveDivisorBottomYAbs,
+  resolveEffectiveLinkedSeparador,
+} from "./coupling";
 import {
   getDivSepInternalDims,
   resolveDivisorCenterX,
@@ -11,11 +15,11 @@ import {
 import {
   boxHasDivisores,
   boxHasSeparadores,
-  direcaoToPrateleiraLado,
   resolveShelfDirecao,
   resolveShelfGridMode,
   resolveShelfGridStepMm,
   resolveShelfMargemMm,
+  shelfDirecaoIsInferior,
   shelfDirecaoIsSuperior,
 } from "./shelfOptions";
 import type { DivisorItem, DivisorPrateleiraLado, DivSepBoxLike, SeparadorItem } from "./types";
@@ -34,6 +38,19 @@ export type VerticalCompartment = {
   yMax: number;
   /** Zona utilizável para prateleiras curtas (LAT+DIV). */
   shelfEnabled: boolean;
+};
+
+/**
+ * Plano de colocação de prateleiras — independente da geometria estrutural DIV/SEP.
+ * `full` = vão interno completo (DIV não ocupa a zona).
+ * `short` = vão LAT↔DIV no lado indicado.
+ */
+export type ShelfPlacementPlan = {
+  mode: "full" | "short";
+  zone: VerticalCompartment;
+  lado?: DivisorPrateleiraLado;
+  div?: DivisorItem;
+  divIndex?: number;
 };
 
 /** Opções de runtime da grelha (passo / modo / margem de centragem). */
@@ -366,6 +383,163 @@ export function resolveSepOnlyShelfPlacementZone(box: DivSepBoxLike): VerticalCo
   return zones.reduce((best, zone) => (zone.yMin < best.yMin ? zone : best));
 }
 
+function divOverlapsZoneGeometric(
+  box: DivSepBoxLike,
+  div: DivisorItem,
+  zone: VerticalCompartment
+): boolean {
+  const divBottomY = resolveDivisorBottomYAbs(box, div);
+  const divTopY = divBottomY + resolveDivisorDimensions(box, div).alturaMm;
+  const yMin = Math.max(zone.yMin, divBottomY);
+  const yMax = Math.min(zone.yMax, divTopY);
+  return yMax - yMin > MIN_SHELF_COMPARTMENT_HEIGHT_MM;
+}
+
+/**
+ * Ocupação lógica do DIV na zona de prateleiras.
+ * Com SEP parcial o DIV pode ter altura completa (regra industrial), mas
+ * `posicaoRelativaAoSep` define o vão lógico (abaixo/acima) — sem isso as
+ * prateleiras superiores ficariam sempre «curtas».
+ */
+function divOccupiesShelfZone(
+  box: DivSepBoxLike,
+  div: DivisorItem,
+  zone: VerticalCompartment
+): boolean {
+  const linkedSep = resolveEffectiveLinkedSeparador(box, div);
+  if (linkedSep) {
+    const sepBottom = resolveSeparadorBottomY(box, linkedSep);
+    const pos = resolvePosicaoRelativaAoSep(div);
+    if (pos === "baixo") {
+      // Zona acima (ou a partir) do SEP: DIV ligado abaixo não a ocupa para prateleiras.
+      if (zone.yMin >= sepBottom - 0.5) return false;
+      return true;
+    }
+    if (pos === "cima") {
+      // Zona abaixo do SEP: DIV ligado acima não a ocupa.
+      if (zone.yMax <= sepBottom + 0.5) return false;
+      return true;
+    }
+  }
+  return divOverlapsZoneGeometric(box, div, zone);
+}
+
+function resolveEffectiveLado(
+  box: DivSepBoxLike,
+  div?: DivisorItem
+): DivisorPrateleiraLado {
+  const direcao = resolveShelfDirecao(box);
+  if (direcao === "esquerda" || direcao === "direita") return direcao;
+  return div?.prateleiraLado ?? "direita";
+}
+
+/**
+ * Planos de colocação independentes da estrutura.
+ * Direcção superior/inferior sem DIV na zona → prateleiras completas (vão interno).
+ * Direcção esquerda/direita → prateleiras curtas LAT↔DIV (DIV permanece fixo).
+ */
+export function resolveShelfPlacementPlans(box: DivSepBoxLike): ShelfPlacementPlan[] {
+  const n = Math.max(0, Math.floor(box.prateleiras ?? 0));
+  if (n <= 0) return [];
+
+  const direcao = resolveShelfDirecao(box);
+  const divisores = box.divisores ?? [];
+
+  if (shelfDirecaoIsSuperior(direcao) || shelfDirecaoIsInferior(direcao)) {
+    const zones = resolveVerticalCompartments(box).filter((z) => z.shelfEnabled);
+    if (zones.length === 0) return [];
+    const zone = shelfDirecaoIsSuperior(direcao)
+      ? zones.reduce((best, z) => (z.yMin > best.yMin ? z : best))
+      : zones.reduce((best, z) => (z.yMin < best.yMin ? z : best));
+
+    const overlapping: { div: DivisorItem; index: number }[] = [];
+    divisores.forEach((div, index) => {
+      if (divOccupiesShelfZone(box, div, zone)) overlapping.push({ div, index });
+    });
+
+    if (overlapping.length === 0) {
+      return [{ mode: "full", zone }];
+    }
+
+    return overlapping.map(({ div, index }) => ({
+      mode: "short" as const,
+      zone,
+      lado: resolveEffectiveLado(box, div),
+      div,
+      divIndex: index,
+    }));
+  }
+
+  // Direita / Esquerda — DIV fixo; prateleiras migram de lado sozinhas.
+  const lado: DivisorPrateleiraLado = direcao === "esquerda" ? "esquerda" : "direita";
+  const plans: ShelfPlacementPlan[] = [];
+  divisores.forEach((div, index) => {
+    const compartments = resolveVerticalCompartments(box, lado).filter((z) => z.shelfEnabled);
+    const candidates = compartments.filter((zone) => divOccupiesShelfZone(box, div, zone));
+    if (candidates.length === 0) return;
+    const zone = candidates.reduce((best, z) => (z.yMin < best.yMin ? z : best));
+    plans.push({ mode: "short", zone, lado, div, divIndex: index });
+  });
+  return plans;
+}
+
+function resolvePlanBounds(box: DivSepBoxLike, plan: ShelfPlacementPlan): { yMin: number; yMax: number } {
+  if (plan.mode === "full" || !plan.div) {
+    return { yMin: plan.zone.yMin, yMax: plan.zone.yMax };
+  }
+  const divBottomY = resolveDivisorBottomYAbs(box, plan.div);
+  const divTopY = divBottomY + resolveDivisorDimensions(box, plan.div).alturaMm;
+  return {
+    yMin: Math.max(plan.zone.yMin, divBottomY),
+    yMax: Math.min(plan.zone.yMax, divTopY),
+  };
+}
+
+/** Largura da prateleira conforme o plano (completa ou LAT↔DIV). */
+export function resolveShelfWidthForPlan(box: DivSepBoxLike, plan: ShelfPlacementPlan): number {
+  if (plan.mode === "full" || !plan.div) {
+    return resolveFullInternalShelfWidthMm(box);
+  }
+  return resolveShelfWidthForDivSide(box, plan.div, plan.lado);
+}
+
+/** Centros Y absolutos das N prateleiras para um plano. */
+export function resolveShelfAbsoluteCenterYsForPlan(
+  box: DivSepBoxLike,
+  plan: ShelfPlacementPlan,
+  count: number,
+  rules?: Pick<RulesConfig, "furos"> | RulesConfig | null
+): number[] {
+  const n = Math.max(0, Math.floor(count));
+  if (n < 1) return [];
+  const bounds = resolvePlanBounds(box, plan);
+  if (bounds.yMax - bounds.yMin <= MIN_SHELF_COMPARTMENT_HEIGHT_MM) return [];
+
+  const grid = resolveShelfGridYs(bounds.yMin, bounds.yMax, rules, resolveGridRuntimeFromBox(box));
+  const selected = (plan.div?.prateleiraYsMm ?? [])
+    .map((y) => roundHoleMm(y))
+    .filter((y) => grid.some((g) => Math.abs(g - y) <= 0.6))
+    .sort((a, b) => a - b);
+
+  if (selected.length > 0) return selected.slice(0, n);
+
+  if (grid.length >= n) {
+    const ys: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const idx = Math.round(((i + 1) / (n + 1)) * (grid.length - 1));
+      ys.push(grid[Math.min(grid.length - 1, Math.max(0, idx))]!);
+    }
+    return ys;
+  }
+
+  const spacing = (bounds.yMax - bounds.yMin) / (n + 1);
+  const ys: number[] = [];
+  for (let i = 0; i < n; i++) {
+    ys.push(roundHoleMm(bounds.yMin + spacing * (i + 1)));
+  }
+  return ys;
+}
+
 function buildSepOnlyShelfDrilling(
   box: DivSepBoxLike,
   rules: RulesConfig
@@ -417,6 +591,47 @@ function buildSepOnlyShelfDrilling(
   };
 }
 
+function buildFullZoneShelfDrilling(
+  box: DivSepBoxLike,
+  plan: ShelfPlacementPlan,
+  rules: RulesConfig,
+  lateral_esquerda: PanelDrillHole[],
+  lateral_direita: PanelDrillHole[]
+): void {
+  const cfg = rules?.furos?.tecnicos?.prateleira;
+  const diametro = cfg?.diametro ?? 5;
+  const profundidade = cfg?.profundidade ?? 13;
+  const margemFrente = cfg?.margemFrente ?? cfg?.distanciaDaBorda ?? 60;
+  const margemFundo = cfg?.margemFundo ?? cfg?.distanciaDaBorda ?? 60;
+  const profundidadeLateral = getDivSepInternalDims(box).profundidadeInterna;
+  const bounds = resolvePlanBounds(box, plan);
+  const absoluteYs = calcShelfGridYs(bounds.yMin, bounds.yMax, rules, box);
+
+  for (const absoluteY of absoluteYs) {
+    const lateralY = absoluteYToLateralPanelY(box, absoluteY);
+    pushLateralPair(
+      lateral_esquerda,
+      "lateral_esquerda",
+      profundidadeLateral,
+      margemFrente,
+      margemFundo,
+      lateralY,
+      diametro,
+      profundidade
+    );
+    pushLateralPair(
+      lateral_direita,
+      "lateral_direita",
+      profundidadeLateral,
+      margemFrente,
+      margemFundo,
+      lateralY,
+      diametro,
+      profundidade
+    );
+  }
+}
+
 export function buildDivShelfDrilling(
   box: DivSepBoxLike,
   panelIds: { divisores?: string[] } | undefined,
@@ -435,75 +650,72 @@ export function buildDivShelfDrilling(
     return buildSepOnlyShelfDrilling(box, rules);
   }
 
-  const internal = getDivSepInternalDims(box);
+  const plans = resolveShelfPlacementPlans(box);
+  if (plans.length === 0) return null;
+
   const diametro = cfg.diametro ?? 5;
   const profundidade = cfg.profundidade ?? 13;
   const margemFrente = cfg.margemFrente ?? cfg.distanciaDaBorda ?? 60;
   const margemFundo = cfg.margemFundo ?? cfg.distanciaDaBorda ?? 60;
-  const profundidadeLateral = internal.profundidadeInterna;
+  const profundidadeLateral = getDivSepInternalDims(box).profundidadeInterna;
 
   const lateral_esquerda: PanelDrillHole[] = [];
   const lateral_direita: PanelDrillHole[] = [];
   const divisorio = new Map<string, PanelDrillHole[]>();
 
-  const boxDirecao = resolveShelfDirecao(box);
+  for (const plan of plans) {
+    if (plan.mode === "full") {
+      buildFullZoneShelfDrilling(box, plan, rules, lateral_esquerda, lateral_direita);
+      continue;
+    }
+    if (!plan.div || plan.divIndex == null || !plan.lado) continue;
 
-  divisores.forEach((div, index) => {
-    const lado =
-      div.prateleiraLado ??
-      (boxDirecao === "esquerda" || boxDirecao === "direita"
-        ? boxDirecao
-        : direcaoToPrateleiraLado(boxDirecao));
-    const compartments = resolveVerticalCompartments(box, lado);
-    const panelId = resolveDivisorShelfPanelId(panelIds, index);
+    const div = plan.div;
+    const lado = plan.lado;
+    const panelId = resolveDivisorShelfPanelId(panelIds, plan.divIndex);
     const divFace = resolveDivisorShelfFace(lado);
     const divHoles: PanelDrillHole[] = [];
     const divDims = resolveDivisorDimensions(box, div);
     const divBottomY = resolveDivisorBottomYAbs(box, div);
-    const divTopY = divBottomY + divDims.alturaMm;
+    const bounds = resolvePlanBounds(box, plan);
 
     const lateralTipo = lado === "esquerda" ? "lateral_esquerda" : "lateral_direita";
     const lateralOut = lateralTipo === "lateral_esquerda" ? lateral_esquerda : lateral_direita;
-
     const divXFrente = margemFrente;
     const divXFundo = divDims.profundidadeMm - margemFundo;
 
-    for (const zone of compartments) {
-      const shelfBounds = resolveEffectiveShelfBounds(zone, divBottomY, divTopY);
-      if (!shelfBounds) continue;
-      const absoluteYs = calcShelfGridYs(shelfBounds.yMin, shelfBounds.yMax, rules, box);
-      for (const absoluteY of absoluteYs) {
-        const lateralY = absoluteYToLateralPanelY(box, absoluteY);
-        const divisorY = absoluteYToDivisorPanelY(divBottomY, divDims.alturaMm, absoluteY);
-        pushLateralPair(
-          lateralOut,
-          lateralTipo,
-          profundidadeLateral,
-          margemFrente,
-          margemFundo,
-          lateralY,
-          diametro,
-          profundidade
-        );
-        divHoles.push({
-          x: divXFrente,
-          y: divisorY,
-          diameter: diametro,
-          depth: profundidade,
-          holeType: "prateleira",
-          face: divFace,
-          topDrillable: true,
-        });
-        divHoles.push({
-          x: divXFundo,
-          y: divisorY,
-          diameter: diametro,
-          depth: profundidade,
-          holeType: "prateleira",
-          face: divFace,
-          topDrillable: true,
-        });
-      }
+    const absoluteYs = calcShelfGridYs(bounds.yMin, bounds.yMax, rules, box);
+    for (const absoluteY of absoluteYs) {
+      const lateralY = absoluteYToLateralPanelY(box, absoluteY);
+      const divisorY = absoluteYToDivisorPanelY(divBottomY, divDims.alturaMm, absoluteY);
+      pushLateralPair(
+        lateralOut,
+        lateralTipo,
+        profundidadeLateral,
+        margemFrente,
+        margemFundo,
+        lateralY,
+        diametro,
+        profundidade
+      );
+      divHoles.push({
+        x: divXFrente,
+        y: divisorY,
+        diameter: diametro,
+        depth: profundidade,
+        holeType: "prateleira",
+        face: divFace,
+        topDrillable: true,
+      });
+      divHoles.push({
+        x: divXFundo,
+        y: divisorY,
+        diameter: diametro,
+        depth: profundidade,
+        holeType: "prateleira",
+        face: divFace,
+        topDrillable: true,
+      });
     }
 
     if (divHoles.length) {
@@ -511,7 +723,7 @@ export function buildDivShelfDrilling(
       divisorio.set(panelId, deduped);
       if (div.id && div.id !== panelId) divisorio.set(div.id, deduped);
     }
-  });
+  }
 
   if (!lateral_esquerda.length && !lateral_direita.length && divisorio.size === 0) return null;
   return {
@@ -522,13 +734,15 @@ export function buildDivShelfDrilling(
 }
 
 /** Largura da prateleira no compartimento entre lateral e DIV (mm). */
-export function resolveShelfWidthForDivSide(box: DivSepBoxLike, div: DivisorItem): number {
+export function resolveShelfWidthForDivSide(
+  box: DivSepBoxLike,
+  div: DivisorItem,
+  ladoOverride?: DivisorPrateleiraLado
+): number {
   const internal = getDivSepInternalDims(box);
   const divCenterX = resolveDivisorCenterX(box, div);
   const divDims = resolveDivisorDimensions(box, div);
-  const lado =
-    div.prateleiraLado ??
-    (resolveShelfDirecao(box) === "esquerda" ? "esquerda" : "direita");
+  const lado = ladoOverride ?? resolveEffectiveLado(box, div);
   const lateralInner = internal.espessura;
   const lateralOuter = internal.espessura + internal.larguraInterna;
 
@@ -550,61 +764,34 @@ export function boxUsesDivShelfMode(box: DivSepBoxLike): boolean {
 }
 
 /**
- * Zonas industriais onde cada DIV pode receber prateleiras.
- * Zona acima do SEP só para DIV ligado acima (ou direcção superior).
- * SEP parcial do lado oposto a `prateleiraLado` não bloqueia nem parte a zona.
+ * Zonas industriais onde cada DIV pode receber prateleiras (modo curto).
+ * Mantida para compatibilidade UI de posição exacta.
  */
 export function resolveDivShelfPlacementZones(
   box: DivSepBoxLike,
   div: DivisorItem
 ): VerticalCompartment[] {
-  const lado =
-    div.prateleiraLado ??
-    (resolveShelfDirecao(box) === "esquerda" ? "esquerda" : "direita");
-  const divDims = resolveDivisorDimensions(box, div);
-  const divBottomY = resolveDivisorBottomYAbs(box, div);
-  const divTopY = divBottomY + divDims.alturaMm;
-  const allowAbove = isDivisorAboveSep(div) || shelfDirecaoIsSuperior(resolveShelfDirecao(box));
-
-  const cuttingSeps = separadoresCuttingShelfSide(box, lado);
-  const sepBottoms = cuttingSeps
-    .map((s) => resolveSeparadorBottomY(box, s))
-    .filter((y) => Number.isFinite(y) && y > 0);
-  const highestSepBottom = sepBottoms.length > 0 ? Math.max(...sepBottoms) : null;
-
-  return resolveVerticalCompartments(box, lado).filter((zone) => {
-    if (!zone.shelfEnabled) return false;
-    if (!allowAbove) {
-      if (highestSepBottom != null && zone.yMin >= highestSepBottom - 0.5) return false;
-      if (
-        highestSepBottom != null &&
-        zone.yMax > highestSepBottom + 0.5 &&
-        zone.yMin >= highestSepBottom - 0.5
-      ) {
-        return false;
-      }
-    }
-    return resolveEffectiveShelfBounds(zone, divBottomY, divTopY) != null;
-  });
+  const plans = resolveShelfPlacementPlans(box).filter(
+    (p) => p.mode === "short" && p.div?.id === div.id
+  );
+  return plans.map((p) => p.zone);
 }
 
-/** Compartimento principal: mais baixo (DIV abaixo) ou mais alto (DIV acima / superior). */
+/** Compartimento principal para um DIV (compatibilidade). */
 export function resolvePrimaryDivShelfPlacementZone(
   box: DivSepBoxLike,
   div: DivisorItem
 ): VerticalCompartment | null {
-  const zones = resolveDivShelfPlacementZones(box, div);
-  if (zones.length === 0) return null;
-  if (isDivisorAboveSep(div) || shelfDirecaoIsSuperior(resolveShelfDirecao(box))) {
-    return zones.reduce((best, zone) => (zone.yMin > best.yMin ? zone : best));
-  }
-  return zones.reduce((best, zone) => (zone.yMin < best.yMin ? zone : best));
+  const plans = resolveShelfPlacementPlans(box);
+  const short = plans.find((p) => p.mode === "short" && p.div?.id === div.id);
+  if (short) return short.zone;
+  const full = plans.find((p) => p.mode === "full");
+  return full?.zone ?? null;
 }
 
 /**
- * Centros Y absolutos das N prateleiras.
- * Com `prateleiraYsMm`: posições exactas na grelha.
- * Sem: distribuição automática (comportamento anterior).
+ * Centros Y absolutos das N prateleiras (por DIV — compatibilidade).
+ * Usa o `div` passado (inclui prateleiraYsMm exactos).
  */
 export function resolveDivShelfAbsoluteCenterYs(
   box: DivSepBoxLike,
@@ -612,31 +799,11 @@ export function resolveDivShelfAbsoluteCenterYs(
   count: number,
   rules?: Pick<RulesConfig, "furos"> | RulesConfig | null
 ): number[] {
-  const n = Math.max(0, Math.floor(count));
-  const zone = resolvePrimaryDivShelfPlacementZone(box, div);
-  if (!zone || n < 1) return [];
-
-  const divBottomY = resolveDivisorBottomYAbs(box, div);
-  const divTopY = divBottomY + resolveDivisorDimensions(box, div).alturaMm;
-  const bounds = resolveEffectiveShelfBounds(zone, divBottomY, divTopY);
-  if (!bounds) return [];
-
-  const grid = resolveShelfGridYs(bounds.yMin, bounds.yMax, rules, resolveGridRuntimeFromBox(box));
-  const selected = (div.prateleiraYsMm ?? [])
-    .map((y) => roundHoleMm(y))
-    .filter((y) => grid.some((g) => Math.abs(g - y) <= 0.6))
-    .sort((a, b) => a - b);
-
-  if (selected.length > 0) {
-    return selected.slice(0, n);
-  }
-
-  const spacing = (zone.yMax - zone.yMin) / (n + 1);
-  const ys: number[] = [];
-  for (let i = 0; i < n; i++) {
-    ys.push(roundHoleMm(zone.yMin + spacing * (i + 1)));
-  }
-  return ys;
+  const plan =
+    resolveShelfPlacementPlans(box).find((p) => p.mode === "short" && p.div?.id === div.id) ??
+    resolveShelfPlacementPlans(box).find((p) => p.mode === "full");
+  if (!plan) return [];
+  return resolveShelfAbsoluteCenterYsForPlan(box, { ...plan, div }, count, rules);
 }
 
 /** Centros Y das N prateleiras em modo só-SEP. */
@@ -645,37 +812,15 @@ export function resolveSepOnlyShelfAbsoluteCenterYs(
   count: number,
   rules?: Pick<RulesConfig, "furos"> | RulesConfig | null
 ): number[] {
-  const n = Math.max(0, Math.floor(count));
   const zone = resolveSepOnlyShelfPlacementZone(box);
-  if (!zone || n < 1) return [];
-  const grid = resolveShelfGridYs(zone.yMin, zone.yMax, rules, resolveGridRuntimeFromBox(box));
-  if (grid.length >= n) {
-    // Distribui N posições ao longo da grelha.
-    const ys: number[] = [];
-    for (let i = 0; i < n; i++) {
-      const idx = Math.round(((i + 1) / (n + 1)) * (grid.length - 1));
-      ys.push(grid[Math.min(grid.length - 1, Math.max(0, idx))]!);
-    }
-    return ys;
-  }
-  const spacing = (zone.yMax - zone.yMin) / (n + 1);
-  const ys: number[] = [];
-  for (let i = 0; i < n; i++) {
-    ys.push(roundHoleMm(zone.yMin + spacing * (i + 1)));
-  }
-  return ys;
+  if (!zone) return [];
+  return resolveShelfAbsoluteCenterYsForPlan(box, { mode: "full", zone }, count, rules);
 }
 
 export function countDivShelfPanels(box: DivSepBoxLike): number {
   const n = Math.max(0, Math.floor(box.prateleiras ?? 0));
   if (n <= 0) return 0;
-  const divisores = box.divisores ?? [];
-  if (divisores.length === 0) {
-    return resolveSepOnlyShelfPlacementZone(box) != null ? n : 0;
-  }
-  let total = 0;
-  for (const div of divisores) {
-    if (resolvePrimaryDivShelfPlacementZone(box, div) != null) total += n;
-  }
-  return total;
+  const plans = resolveShelfPlacementPlans(box);
+  if (plans.length === 0) return 0;
+  return plans.length * n;
 }

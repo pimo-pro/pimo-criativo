@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Independência total das prateleiras — full/short dinâmico + furação autónoma
+- Separação completa do comportamento das prateleiras face à geometria DIV/SEP
+- Planos full/short dinâmicos conforme a área disponível
+- Furação autónoma baseada apenas na direcção e na grelha
+- Margens superiores/inferiores, grelha contínua ou segmentada, passo 32/64 mm
+- Migração dinâmica sem mover SEP ou DIV
+- Validação completa (74/74 testes)
+- Comportamento final: prateleiras independentes, DIV/SEP fixos, furação correcta em todas as direcções
+
 ### Expansão Prateleiras DIV/SEP — Direção dinâmica + grelha segmentada + margens
 - Direção configurável: Direita, Esquerda, Superior, Inferior (visível conforme DIV/SEP)
 - Passo de grelha 32 mm (padrão) ou 64 mm (dobro)

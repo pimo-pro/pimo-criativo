@@ -1,5 +1,8 @@
 /**
  * Opções avançadas de prateleiras DIV/SEP — resolução e migração dinâmica.
+ *
+ * REGRA INDUSTRIAL: a direcção das prateleiras NÃO move DIV nem SEP.
+ * Apenas actualiza shelfOptions e limpa posições exactas inválidas.
  */
 import type {
   BoxShelfOptions,
@@ -10,9 +13,7 @@ import type {
   PrateleiraGridMode,
   PrateleiraGridStepMm,
   SeparadorAncoraHorizontal,
-  SeparadorItem,
 } from "./types";
-import { resolveAncoraHorizontal } from "./types";
 
 export function boxHasDivisores(box: DivSepBoxLike): boolean {
   return (box.divisores?.length ?? 0) > 0;
@@ -46,13 +47,8 @@ export function resolveShelfMargemMm(box: DivSepBoxLike): number {
   return Math.round(raw);
 }
 
-function ladoFromDirecao(direcao: PrateleiraDirecao): DivisorPrateleiraLado | null {
-  if (direcao === "esquerda" || direcao === "direita") return direcao;
-  return null;
-}
-
 /**
- * Direcção efectiva: shelfOptions → primeiro DIV.prateleiraLado → direita.
+ * Direcção efectiva: shelfOptions → primeiro DIV.prateleiraLado (legado) → direita.
  * Se a direcção guardada não estiver disponível, escolhe a primeira válida.
  */
 export function resolveShelfDirecao(box: DivSepBoxLike): PrateleiraDirecao {
@@ -90,7 +86,11 @@ function clearExactShelfYs(div: DivisorItem): DivisorItem {
 }
 
 /**
- * Aplica direcção às peças DIV (lado + posição face ao SEP) e normaliza shelfOptions.
+ * Aplica direcção das prateleiras SEM alterar geometria estrutural (DIV/SEP).
+ * Campos preservados: positionMm, referenceEdge, alturaMm, profundidadeMm,
+ * linkedSeparadorId, posicaoRelativaAoSep, ancoraHorizontal, larguraMm.
+ * — actualiza apenas shelfOptions.direcao
+ * — limpa prateleiraYsMm (posições exactas deixam de ser válidas na nova zona)
  */
 export function applyShelfDirecaoToBox(
   box: DivSepBoxLike,
@@ -98,7 +98,7 @@ export function applyShelfDirecaoToBox(
 ): {
   shelfOptions: BoxShelfOptions;
   divisores: DivisorItem[];
-  separadores: SeparadorItem[];
+  separadores: NonNullable<DivSepBoxLike["separadores"]>;
 } {
   const available = resolveAvailableShelfDirecoes(box);
   const effective = available.includes(direcao) ? direcao : available[0] ?? "direita";
@@ -107,80 +107,46 @@ export function applyShelfDirecaoToBox(
     direcao: effective,
   };
 
-  const preferSepId = box.separadores?.[box.separadores.length - 1]?.id;
-  const lado = ladoFromDirecao(effective);
-
   const divisores = (box.divisores ?? []).map((div) => {
-    let next: DivisorItem = clearExactShelfYs(div);
-    if (lado) {
-      next = { ...next, prateleiraLado: lado };
-    }
-    if (effective === "superior" && preferSepId) {
-      next = {
-        ...next,
-        linkedSeparadorId: next.linkedSeparadorId ?? preferSepId,
-        posicaoRelativaAoSep: "cima",
-        alturaMm: undefined,
-      };
-    } else if (effective === "inferior" && preferSepId) {
-      next = {
-        ...next,
-        linkedSeparadorId: next.linkedSeparadorId ?? preferSepId,
-        posicaoRelativaAoSep: "baixo",
-        alturaMm: undefined,
-      };
-    }
-    return next;
+    const cleared = clearExactShelfYs(div);
+    // Garantia: nenhum campo estrutural é reescrito.
+    return {
+      ...cleared,
+      positionMm: div.positionMm,
+      referenceEdge: div.referenceEdge,
+      alturaMm: div.alturaMm,
+      profundidadeMm: div.profundidadeMm,
+      linkedSeparadorId: div.linkedSeparadorId,
+      posicaoRelativaAoSep: div.posicaoRelativaAoSep,
+      prateleiraLado: div.prateleiraLado,
+    };
   });
 
-  let separadores = box.separadores ?? [];
-  if (lado) {
-    separadores = migrateSeparadoresAncoraToLado(separadores, lado);
-  }
+  // SEP intacto (mesma referência / mesmos campos).
+  const separadores = (box.separadores ?? []).map((sep) => ({ ...sep }));
 
   return { shelfOptions, divisores, separadores };
 }
 
-/** SEP parcial segue o lado das prateleiras (migração Direita ↔ Esquerda). */
-function migrateSeparadoresAncoraToLado(
-  separadores: SeparadorItem[],
-  lado: DivisorPrateleiraLado
-): SeparadorItem[] {
-  return separadores.map((sep) => {
-    const ancora = resolveAncoraHorizontal(sep);
-    if (ancora === "completo") return sep;
-    if (ancora === lado) return sep;
-    return { ...sep, ancoraHorizontal: lado, larguraMm: undefined };
-  });
-}
-
 /**
- * Ao mudar âncora do SEP Esquerda ↔ Direita: prateleiras e furos migram com o lado.
+ * Ao mudar âncora do SEP: NÃO migra prateleiras nem reescreve direcção.
+ * Apenas limpa posições exactas (grelha pode ter mudado de compartimento).
+ * Prateleiras permanecem independentes da estrutura.
  */
 export function migrateShelfOnSeparadorAncoraChange(
   box: DivSepBoxLike,
   _sepId: string,
-  newAncora: SeparadorAncoraHorizontal
+  _newAncora: SeparadorAncoraHorizontal
 ): {
   shelfOptions: BoxShelfOptions;
   divisores: DivisorItem[];
 } {
   void _sepId;
-  if (newAncora !== "esquerda" && newAncora !== "direita") {
-    return {
-      shelfOptions: { ...(box.shelfOptions ?? {}) },
-      divisores: box.divisores ?? [],
-    };
-  }
-  const shelfOptions: BoxShelfOptions = {
-    ...(box.shelfOptions ?? {}),
-    direcao: newAncora,
+  void _newAncora;
+  return {
+    shelfOptions: { ...(box.shelfOptions ?? {}) },
+    divisores: (box.divisores ?? []).map((div) => clearExactShelfYs(div)),
   };
-  const divisores = (box.divisores ?? []).map((div) => ({
-    ...clearExactShelfYs(div),
-    prateleiraLado: newAncora,
-  }));
-  return { shelfOptions, divisores };
 }
 
 export function mergeShelfOptions(

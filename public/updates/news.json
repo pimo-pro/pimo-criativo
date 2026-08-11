@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-08-10T22:08:28.320Z",
+  "updatedAt": "2026-08-11T13:23:00.000Z",
   "news": [
+    {
+      "version": "v6.0811.1423",
+      "title": "Independência total das prateleiras — full/short dinâmico + furação autónoma",
+      "description": "Implementação industrial que separa completamente o comportamento das prateleiras da geometria DIV/SEP.\nInclui planos full/short dinâmicos conforme a área disponível, furação autónoma baseada apenas na direcção e grelha, margens superiores/inferiores, grelha contínua ou segmentada, passo 32/64 mm, migração dinâmica sem mover SEP ou DIV, e validação completa (74/74 testes).\nComportamento final: prateleiras independentes, DIV/SEP fixos, furação correcta em todas as direcções.",
+      "publishedAt": "2026-08-11T13:23:00.000Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature"
+    },
     {
       "version": "v6.0810.2308",
       "title": "Expansão Prateleiras DIV/SEP — Direção dinâmica + grelha segmentada + margens",

@@ -35,12 +35,9 @@ import { getWardrobeGroupFromBaseCabinetId, isWardrobeVerticalDividerEnabled } f
 import { getCornerCabinetConfig } from "../../core/cornerCabinet";
 import {
   boxUsesDivShelfMode,
-  resolveDivShelfAbsoluteCenterYs,
-  resolvePrimaryDivShelfPlacementZone,
-  resolveSepOnlyShelfAbsoluteCenterYs,
-  resolveSepOnlyShelfPlacementZone,
-  resolveShelfWidthForDivSide,
-  resolveShelfWidthForSepOnly,
+  resolveShelfAbsoluteCenterYsForPlan,
+  resolveShelfPlacementPlans,
+  resolveShelfWidthForPlan,
 } from "../../core/divSep/shelfDrilling";
 import type { DivSepBoxLike } from "../../core/divSep/types";
 import { resolveDivisorCenterX } from "../../core/divSep/dimensions";
@@ -322,45 +319,28 @@ function getShelfSpecs(width: number, height: number, depth: number, count: numb
       : null;
 
   if (divShelfBox && boxUsesDivShelfMode(divShelfBox)) {
-    const divisores = opts?.divisores ?? [];
-    if (divisores.length === 0) {
-      const zone = resolveSepOnlyShelfPlacementZone(divShelfBox);
-      if (zone) {
-        const shelfWidthM = Math.max(0.001, resolveShelfWidthForSepOnly(divShelfBox) / 1000);
-        const absYs = resolveSepOnlyShelfAbsoluteCenterYs(divShelfBox, count);
-        for (const absY of absYs) {
-          const y = absY / 1000 - height / 2;
-          specs.push({
-            size: [shelfWidthM, THICKNESS_M, shelfDepth],
-            pos: [0, y, centerZ],
-          });
-        }
-        return specs;
-      }
-    } else {
-      for (const div of divisores) {
-        const shelfWidthM = Math.max(0.001, resolveShelfWidthForDivSide(divShelfBox, div) / 1000);
-        const divCenterXAbs = resolveDivisorCenterX(divShelfBox, div);
+    const plans = resolveShelfPlacementPlans(divShelfBox);
+    for (const plan of plans) {
+      const shelfWidthM = Math.max(0.001, resolveShelfWidthForPlan(divShelfBox, plan) / 1000);
+      const absYs = resolveShelfAbsoluteCenterYsForPlan(divShelfBox, plan, count);
+      let shelfCenterX = 0;
+      if (plan.mode === "short" && plan.div && plan.lado) {
+        const divCenterXAbs = resolveDivisorCenterX(divShelfBox, plan.div);
         const divCenterXM = divCenterXAbs / 1000 - width / 2;
-        const lado = div.prateleiraLado ?? "direita";
-        const shelfCenterX =
-          lado === "esquerda"
+        shelfCenterX =
+          plan.lado === "esquerda"
             ? -width / 2 + THICKNESS_M + shelfWidthM / 2 + 0.001
             : divCenterXM + THICKNESS_M / 2 + shelfWidthM / 2 + 0.001;
-
-        const zone = resolvePrimaryDivShelfPlacementZone(divShelfBox, div);
-        if (!zone) continue;
-        const absYs = resolveDivShelfAbsoluteCenterYs(divShelfBox, div, count);
-        for (const absY of absYs) {
-          const y = absY / 1000 - height / 2;
-          specs.push({
-            size: [shelfWidthM, THICKNESS_M, shelfDepth],
-            pos: [shelfCenterX, y, centerZ],
-          });
-        }
       }
-      return specs;
+      for (const absY of absYs) {
+        const y = absY / 1000 - height / 2;
+        specs.push({
+          size: [shelfWidthM, THICKNESS_M, shelfDepth],
+          pos: [shelfCenterX, y, centerZ],
+        });
+      }
     }
+    if (plans.length > 0) return specs;
   }
 
   for (let i = 0; i < count; i++) {

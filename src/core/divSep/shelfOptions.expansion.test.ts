@@ -13,6 +13,8 @@ import {
   buildSegmentedShelfGridYs,
   resolveSepOnlyShelfPlacementZone,
   resolveShelfGridYs,
+  resolveShelfPlacementPlans,
+  resolveShelfWidthForPlan,
   resolveShelfWidthForSepOnly,
 } from "./shelfDrilling";
 import { defaultDivisorItem, defaultSeparadorItem, makeDivSepTestBox, roundMm } from "./divSepTestHelpers";
@@ -186,16 +188,24 @@ describe("expansão prateleiras DIV/SEP — opções avançadas", () => {
   });
 
   describe("migração Direita ↔ Esquerda", () => {
-    it("ao mudar direcção, furação migra de LAT", () => {
+    it("ao mudar direcção, furação migra de LAT sem mover DIV/SEP", () => {
       const base = makeDivSepTestBox({
         dimensoes: { largura: 600, altura: 900, profundidade: 560 },
         prateleiras: 2,
-        separadores: [defaultSeparadorItem({ id: "sep-m", positionMm: 400 })],
+        separadores: [
+          defaultSeparadorItem({
+            id: "sep-m",
+            positionMm: 400,
+            ancoraHorizontal: "direita",
+          }),
+        ],
         divisores: [
           defaultDivisorItem({
             id: "div-m",
             positionMm: 281,
             prateleiraLado: "direita",
+            linkedSeparadorId: "sep-m",
+            posicaoRelativaAoSep: "baixo",
           }),
         ],
         panelIds: { divisores: ["pid-div-m"] },
@@ -206,6 +216,10 @@ describe("expansão prateleiras DIV/SEP — opções avançadas", () => {
       expect(right.lateral_esquerda.length).toBe(0);
 
       const applied = applyShelfDirecaoToBox(base, "esquerda");
+      expect(applied.divisores[0]?.posicaoRelativaAoSep).toBe("baixo");
+      expect(applied.divisores[0]?.linkedSeparadorId).toBe("sep-m");
+      expect(applied.separadores[0]?.ancoraHorizontal).toBe("direita");
+
       const leftBox = {
         ...base,
         shelfOptions: applied.shelfOptions,
@@ -218,7 +232,7 @@ describe("expansão prateleiras DIV/SEP — opções avançadas", () => {
       expect(resolveShelfDirecao(leftBox)).toBe("esquerda");
     });
 
-    it("ao mudar âncora SEP Direita → Esquerda, prateleiras migram", () => {
+    it("ao mudar âncora SEP, prateleiras não herdam a direcção estrutural", () => {
       const box = makeDivSepTestBox({
         prateleiras: 2,
         shelfOptions: { direcao: "direita" },
@@ -239,34 +253,97 @@ describe("expansão prateleiras DIV/SEP — opções avançadas", () => {
         ],
       });
       const migrated = migrateShelfOnSeparadorAncoraChange(box, "sep-a", "esquerda");
-      expect(migrated.shelfOptions.direcao).toBe("esquerda");
-      expect(migrated.divisores[0]?.prateleiraLado).toBe("esquerda");
+      expect(migrated.shelfOptions.direcao).toBe("direita");
+      expect(migrated.divisores[0]?.prateleiraLado).toBe("direita");
       expect(migrated.divisores[0]?.prateleiraYsMm).toBeUndefined();
     });
   });
 
-  describe("migração Superior ↔ Inferior", () => {
-    it("direcção superior liga DIV acima do SEP", () => {
+  describe("migração Superior ↔ Inferior (sem mover DIV)", () => {
+    it("direcção superior NÃO move o DIV para cima do SEP", () => {
       const box = makeDivSepTestBox({
         dimensoes: { largura: 600, altura: 1200, profundidade: 560 },
         prateleiras: 2,
         separadores: [defaultSeparadorItem({ id: "sep-v", positionMm: 500 })],
-        divisores: [defaultDivisorItem({ id: "div-v", positionMm: 281 })],
+        divisores: [
+          defaultDivisorItem({
+            id: "div-v",
+            positionMm: 281,
+            linkedSeparadorId: "sep-v",
+            posicaoRelativaAoSep: "baixo",
+          }),
+        ],
       });
+      const beforePos = box.divisores![0]!.posicaoRelativaAoSep;
       const applied = applyShelfDirecaoToBox(box, "superior");
-      expect(applied.divisores[0]?.posicaoRelativaAoSep).toBe("cima");
+      expect(applied.divisores[0]?.posicaoRelativaAoSep).toBe(beforePos);
       expect(applied.divisores[0]?.linkedSeparadorId).toBe("sep-v");
       expect(applied.shelfOptions.direcao).toBe("superior");
     });
 
-    it("direcção inferior liga DIV abaixo do SEP", () => {
+    it("superior com DIV abaixo do SEP → prateleiras completas (vão interno)", () => {
       const box = makeDivSepTestBox({
+        dimensoes: { largura: 600, altura: 1200, profundidade: 560 },
+        prateleiras: 2,
+        shelfOptions: { direcao: "superior" },
+        separadores: [
+          defaultSeparadorItem({
+            id: "sep-full",
+            positionMm: 500,
+            linkedSeparadorId: undefined,
+          }),
+        ],
+        divisores: [
+          defaultDivisorItem({
+            id: "div-below",
+            positionMm: 281,
+            linkedSeparadorId: "sep-full",
+            posicaoRelativaAoSep: "baixo",
+          }),
+        ],
+        panelIds: { divisores: ["pid-div-below"] },
+      });
+      // Force linked correctly
+      box.divisores![0]!.linkedSeparadorId = "sep-full";
+
+      const plans = resolveShelfPlacementPlans(box);
+      expect(plans.length).toBe(1);
+      expect(plans[0]!.mode).toBe("full");
+      const width = resolveShelfWidthForPlan(box, plans[0]!);
+      expect(width).toBeGreaterThan(500);
+
+      const result = buildDivShelfDrilling(box, box.panelIds, SHELF_RULES)!;
+      expect(result.lateral_esquerda.length).toBeGreaterThan(0);
+      expect(result.lateral_direita.length).toBeGreaterThan(0);
+      expect(result.divisorio.size).toBe(0);
+    });
+
+    it("direcção inferior mantém DIV abaixo e prateleiras curtas", () => {
+      const box = makeDivSepTestBox({
+        dimensoes: { largura: 600, altura: 1200, profundidade: 560 },
+        prateleiras: 2,
+        shelfOptions: { direcao: "inferior" },
         separadores: [defaultSeparadorItem({ id: "sep-i", positionMm: 500 })],
-        divisores: [defaultDivisorItem({ id: "div-i", positionMm: 281 })],
+        divisores: [
+          defaultDivisorItem({
+            id: "div-i",
+            positionMm: 281,
+            linkedSeparadorId: "sep-i",
+            posicaoRelativaAoSep: "baixo",
+            prateleiraLado: "direita",
+          }),
+        ],
+        panelIds: { divisores: ["pid-div-i"] },
       });
       const applied = applyShelfDirecaoToBox(box, "inferior");
       expect(applied.divisores[0]?.posicaoRelativaAoSep).toBe("baixo");
       expect(applied.shelfOptions.direcao).toBe("inferior");
+
+      const plans = resolveShelfPlacementPlans({
+        ...box,
+        shelfOptions: applied.shelfOptions,
+      });
+      expect(plans.some((p) => p.mode === "short")).toBe(true);
     });
   });
 
