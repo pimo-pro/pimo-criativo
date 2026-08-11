@@ -1,5 +1,13 @@
 # Novidades do Sistema
 
+### Correções industriais completas do gaveteiro — orientação, furação e dimensões dinâmicas
+- Orientação XML da GAV_FRENTE_EXT_01 com datum base-esquerda (BL) e face tras
+- Cavilhas de aresta restauradas em GAV_LAT_DIR_01 / GAV_LAT_ESQ_01 (Y=15)
+- Corpos idênticos no stack equal; frente com folga ±2 mm; lowest/highest com cobertura base/topo
+- Dimensões dinâmicas conforme caixa e trilho
+- Furação de corrediças no LAT do módulo alinhada à posição da gaveta (setback 38, espelho L/R)
+- Validação industrial P3.13 completa
+
 ### Correções industriais do gaveteiro — orientação, furação e coerência
 - Orientação correcta de GAV_FRENTE_EXT_01 no XML (padrão alinhado a 02/03)
 - Furos de cavilha de aresta restaurados em GAV_LAT_DIR_01 e GAV_LAT_ESQ_01

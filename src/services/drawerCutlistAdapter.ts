@@ -335,6 +335,10 @@ export function drawerLayerItemToCutList(
     stackRole,
     drawerCount: stackCount,
     frontHeightMm: resolvedFrontHeightMm,
+    sideBaseElevationMm:
+      typeof item.metadata?.sideBaseElevationMm === "number"
+        ? item.metadata.sideBaseElevationMm
+        : undefined,
   };
 
   const decorativeDrawerRules = {

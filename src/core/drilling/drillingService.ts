@@ -66,7 +66,7 @@ type PieceInput = {
   isLowestDrawer?: boolean;
   /** Gaveta mais alta do módulo (flush à CIMA). */
   isHighestDrawer?: boolean;
-  /** Papel no stack vertical (`lowest` → furação fixa na frente). */
+  /** Papel no stack vertical (`lowest` | `middle` | `highest` | `single`). */
   drawerStackRole?: string;
   /** Altura das laterais da gaveta (mm) — sync Y frente/costa. */
   drawerSideHeightMm?: number;

@@ -618,6 +618,7 @@ export function cutlistComPrecoFromBox(
             sideThicknessMm?: number;
             bottomThicknessMm?: number;
             stackRole?: string;
+            sideBaseElevationMm?: number;
           }
         | undefined;
       const drawerIndex1Based = Number(item.metadata?.drawerIndex) || 1;
@@ -632,6 +633,14 @@ export function cutlistComPrecoFromBox(
             : isHighestDrawer
               ? "highest"
               : "middle");
+      const sideElevResolved =
+        drawerRules?.sideBaseElevationMm != null &&
+        Number.isFinite(drawerRules.sideBaseElevationMm)
+          ? Number(drawerRules.sideBaseElevationMm)
+          : resolveDrawerBodyElevationForStackRoleMm(
+              (stackRole as DrawerStackRole) || "middle",
+              Number(box.espessura) || 19
+            );
       const drillingResult = buildPanelDrillingResult(
         {
           tipo: item.tipo,
@@ -657,10 +666,7 @@ export function cutlistComPrecoFromBox(
           drawerBodyWidthMm: drawerRules?.bodyWidthMm,
           drawerSideThicknessMm: drawerRules?.sideThicknessMm,
           drawerBottomThicknessMm: drawerRules?.bottomThicknessMm,
-          drawerSideBaseElevationMm: resolveDrawerBodyElevationForStackRoleMm(
-            (stackRole as DrawerStackRole) || "middle",
-            Number(box.espessura) || 19
-          ),
+          drawerSideBaseElevationMm: sideElevResolved,
           drawerStackRole: stackRole,
           isLowestDrawer:
             isLowestDrawer &&

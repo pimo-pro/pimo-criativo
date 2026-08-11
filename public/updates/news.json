@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-08-11T13:45:00.000Z",
+  "updatedAt": "2026-08-11T14:00:00.000Z",
   "news": [
+    {
+      "version": "v6.0813.1500",
+      "title": "Correções industriais completas do gaveteiro — orientação, furação e dimensões dinâmicas",
+      "description": "Correcção industrial completa das gavetas, incluindo orientação correta da frente GAV_FRENTE_EXT_01 no XML, restauração dos furos de cavilha ausentes em GAV_LAT_DIR_01 e GAV_LAT_ESQ_01, validação das dimensões dinâmicas conforme caixa e trilho, compatibilidade total com furação lateral do trilho, e garantia de produção CNC correta para todas as gavetas.",
+      "publishedAt": "2026-08-11T14:00:00.000Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix"
+    },
     {
       "version": "v6.0812.1445",
       "title": "Correções industriais do gaveteiro — orientação, furação e coerência",

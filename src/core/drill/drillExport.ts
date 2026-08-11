@@ -443,16 +443,48 @@ function appendDrillSuffix(filenameBase: string): string {
   return `${filenameBase}_DRILL`;
 }
 
-/** Metadata PIMO no XML (comentário — ignorado pela KDT). Inclui stackRole da gaveta. */
+/** Metadata PIMO no XML (comentário — ignorado pela KDT). */
 function appendDrawerStackRoleMeta(xml: string, item: CutListItemComPreco): string {
-  const rules = item.metadata?.drawerRules as { stackRole?: string } | undefined;
+  const rules = item.metadata?.drawerRules as
+    | {
+        stackRole?: string;
+        sideHeightMm?: number;
+        sideBaseElevationMm?: number;
+      }
+    | undefined;
   const stackRole = rules?.stackRole;
   if (!stackRole) return xml;
-  const meta = ` <!-- pimo:stackRole=${stackRole} -->`;
+  const parts = [
+    `stackRole=${stackRole}`,
+    // Datum CNC: origem canto inferior-esquerdo; Y sobe; face furação = tras (corpo).
+    "orient=BL",
+    "face=tras",
+  ];
+  if (rules?.sideBaseElevationMm != null && Number.isFinite(rules.sideBaseElevationMm)) {
+    parts.push(`elev=${Number(rules.sideBaseElevationMm).toFixed(1)}`);
+  }
+  if (rules?.sideHeightMm != null && Number.isFinite(rules.sideHeightMm)) {
+    parts.push(`sideH=${Number(rules.sideHeightMm).toFixed(1)}`);
+  }
+  const meta = ` <!-- pimo:${parts.join(";")} -->`;
   if (xml.includes("</PANEL>")) {
     return xml.replace("</PANEL>", `</PANEL>\n${meta}`);
   }
   return `${xml}\n${meta}`;
+}
+
+/**
+ * P3.13 — ordenação estável dos furos da frente (cavilhas Y↑ X↑, rasgo no fim).
+ * Garante XML reproduzível e orientação base→topo idêntica em 01/02/03.
+ */
+function sortDrawerFrontHolesForXml(holes: PanelDrillHole[]): PanelDrillHole[] {
+  return [...holes].sort((a, b) => {
+    const ag = a.holeSubtype === "groove" ? 1 : 0;
+    const bg = b.holeSubtype === "groove" ? 1 : 0;
+    if (ag !== bg) return ag - bg;
+    if (a.y !== b.y) return a.y - b.y;
+    return a.x - b.x;
+  });
 }
 
 /**
@@ -513,10 +545,14 @@ function buildXmlForItem(
   ) {
     const dims = resolveDrawerPanelDimensions(item);
     if (!dims) return null;
+    const holes =
+      item.tipo === "gaveta_frente_ext" || item.tipo === "gaveta_frente"
+        ? sortDrawerFrontHolesForXml(item.drillHoles!)
+        : item.drillHoles!;
     return {
       ...dims,
       xml: appendDrawerStackRoleMeta(
-        buildXmlFromDrillHoles(dims.panelLength, dims.panelWidth, panelThickness, item.drillHoles!),
+        buildXmlFromDrillHoles(dims.panelLength, dims.panelWidth, panelThickness, holes),
         item
       ),
     };
