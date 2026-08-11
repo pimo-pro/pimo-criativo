@@ -10,8 +10,8 @@ import { withIndustrialOutputAuthorization } from "../industrial/industrialOutpu
 import {
   computeDrawerCostaStructuralHoles,
   computeDrawerLateralStructuralHoles,
-  computeDrawerLowestFrenteExtFixedHoles,
 } from "../drawers/drilling/DrawerDrillingRules";
+import { computeDrawerLowestFrenteExtFixedHoles } from "../drawers/drilling/drawerLowestFrenteExtFixedHoles.legacy";
 import { settingsDefaults } from "../settings/settingsSchema";
 
 function xmlFor(

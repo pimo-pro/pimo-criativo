@@ -45,10 +45,7 @@ import {
   DRAWER_LAT_GROOVE_TOP_DEPTH_MM,
   DRAWER_LAT_GROOVE_TOP_FROM_TOP_MM,
   DRAWER_LAT_GROOVE_TOP_WIDTH_MM,
-  DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
   DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
-  DRAWER_LOWEST_FRONT_GROOVE_FROM_TOP_MM,
-  DRAWER_LOWEST_FRONT_GROOVE_X_INSET_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "../drawerGeometryConstants";
 import {
@@ -846,8 +843,6 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
     sideBaseElevationMm: elev,
     grooveLengthMm: grooveW > 0 ? grooveW : largura,
     grooveStartXMm: overhang,
-    // Uniforme 01/02/03: sem rasgo fixo 53 mm na lowest.
-    fixedYFromBaseMm: undefined,
   });
   if (groove) holes.push(groove);
 
@@ -923,80 +918,11 @@ export function projectDrawerLateralEdgeCavilhasOntoFront(params: {
   return holes;
 }
 
-/**
- * Frente inferior — legado XML_COMPLITO (rasgo W−56.5 / X=12).
- * Produção usa `computeDrawerFrenteExtStructuralHoles` (padrão uniforme frentes 1–3).
- * Mantido para regressão / referência golden.
- */
-export function computeDrawerLowestFrenteExtFixedHoles(params: {
-  largura: number;
-  altura: number;
-  espessura: number;
-  bottomThicknessMm: number;
-  sideHeightMm?: number;
-  sideBaseElevationMm?: number;
-  bodyWidthMm?: number;
-  sideThicknessMm?: number;
-}): TechnicalDrillHole[] {
-  const { largura, altura, espessura, bottomThicknessMm } = params;
-  const sideH = params.sideHeightMm ?? 0;
-  const elev =
-    params.sideBaseElevationMm != null && Number.isFinite(params.sideBaseElevationMm)
-      ? params.sideBaseElevationMm
-      : DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
-
-  const holes =
-    sideH > 0
-      ? projectDrawerLateralEdgeCavilhasOntoFront({
-          frontWidthMm: largura,
-          frontHeightMm: altura,
-          espessuraMm: espessura,
-          sideHeightMm: sideH,
-          sideBaseElevationMm: elev,
-          bodyWidthMm: params.bodyWidthMm,
-          sideThicknessMm: params.sideThicknessMm,
-          xInsetMm: DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
-        })
-      : [];
-
-  const xGroove = DRAWER_LOWEST_FRONT_GROOVE_X_INSET_MM;
-  const yGroove = altura - DRAWER_LOWEST_FRONT_GROOVE_FROM_TOP_MM;
-  const bottomT = Number(bottomThicknessMm);
-  if (
-    Number.isFinite(bottomT) &&
-    bottomT > 0 &&
-    yGroove > 0 &&
-    yGroove < altura &&
-    xGroove >= 0 &&
-    largura > 2 * xGroove
-  ) {
-    holes.push({
-      x: xGroove,
-      y: yGroove,
-      diametro: 0,
-      // SSOT: Depth 11 mm e Width 11 mm (fundo 10 + 1). Y/pairing intactos.
-      profundidade: DRAWER_FRONT_BOTTOM_GROOVE_DEPTH_MM,
-      tipo: "fixacao_estrutural",
-      face: "tras",
-      holeSubtype: "groove",
-      grooveWidth: DRAWER_BOTTOM_GROOVE_WIDTH_MM,
-      grooveLength: largura - 2 * xGroove,
-    });
-  }
-
-  return holes;
-}
-
-/**
- * Rasgo do fundo na frente da gaveta 1 (lowest) — distância fixa desde a base da
- * frente, independente de T/altura. Corrige posição anterior (elev+sideH−13, sempre
- * perto do topo) que não correspondia à posição real do fundo na montagem.
- */
-/**
- * @deprecated P3.12 — rasgo fixo 53 mm na lowest removido da produção.
- * Mantido para `computeDrawerLowestFrenteExtFixedHoles` (legado/golden).
- */
-export const DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM = 53;
+/** @deprecated P3.15 — só testes golden; ver drawerLowestFrenteExtFixedHoles.legacy. */
+export {
+  computeDrawerLowestFrenteExtFixedHoles,
+  DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM,
+} from "./drawerLowestFrenteExtFixedHoles.legacy";
 
 function buildDrawerFrenteBottomGroove(params: {
   largura: number;
@@ -1006,25 +932,22 @@ function buildDrawerFrenteBottomGroove(params: {
   sideBaseElevationMm: number;
   grooveLengthMm?: number;
   grooveStartXMm?: number;
-  /** Gaveta 1: sobrepõe o Y calculado por um valor fixo (ver DRAWER_LOWEST_FRONT_BOTTOM_GROOVE_FROM_BASE_MM). */
-  fixedYFromBaseMm?: number;
 }): TechnicalDrillHole | null {
   const bottomT = Number(params.bottomThicknessMm);
   if (!Number.isFinite(bottomT) || bottomT <= 0) return null;
+  // SSOT P3.12+: Y = elev + sideH - 13 (sem rasgo fixo 53 mm).
   const y =
-    params.fixedYFromBaseMm != null && Number.isFinite(params.fixedYFromBaseMm)
-      ? params.fixedYFromBaseMm
-      : params.sideBaseElevationMm +
-        params.sideHeightMm -
-        DRAWER_BOTTOM_GROOVE_Y_FROM_TOP_MM;
+    params.sideBaseElevationMm +
+    params.sideHeightMm -
+    DRAWER_BOTTOM_GROOVE_Y_FROM_TOP_MM;
   if (y <= 0 || y >= params.altura) return null;
   return {
     x: params.grooveStartXMm ?? 0,
     y,
     diametro: 0,
-    // Industrial: Depth 11 e Width 11 (T_fundo+1). Y = elev+sideH−13 intacto.
+    // Industrial: Depth 11 e Width 11 (T_fundo+1). Y = elev+sideH-13 intacto.
     profundidade: DRAWER_FRONT_BOTTOM_GROOVE_DEPTH_MM,
-    tipo: "fixacao_estrutural",
+    tipo: "furacao_estrutural",
     face: "tras",
     holeSubtype: "groove",
     grooveWidth: DRAWER_BOTTOM_GROOVE_WIDTH_MM,

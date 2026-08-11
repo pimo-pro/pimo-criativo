@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Release — P3.11 a P3.15 · Sistema de gaveteiro totalmente certificado
+Publicação completa das fases:
+- P3.11 — Independência total das prateleiras
+- P3.12 — Correções industriais do gaveteiro
+- P3.13 — SSOT gav_fundo
+- P3.14 — Certificação industrial completa (42/42 testes)
+- P3.15 — Meta XML completa, documentação alinhada, legado isolado
+Sistema industrial do gaveteiro certificado e pronto para produção.
+
 ### Release — Independência das prateleiras + Correções industriais do gaveteiro
 - P3.11 — Independência total das prateleiras (planos full/short, migração dinâmica, furação autónoma)
 - P3.12 — Correções industriais do gaveteiro (orientação XML, cavilhas, coerência estrutural)

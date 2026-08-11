@@ -16,6 +16,10 @@ import {
   type XmlMachineTarget,
 } from "./xmlMachineRouting";
 import { DRAWER_LAT_GROOVE_OVERCUT_MM } from "../drawers/drawerGeometryConstants";
+import {
+  resolveDrawerBodyElevationForStackRoleMm,
+  type DrawerStackRole,
+} from "../drawers/drawerStackPosition";
 import { isIndustrialEdgeCavilhaHole } from "./cavilha10x40Rule";
 import { resolveTcnDrillDiameterMm } from "../cnc/tcnDrillParams";
 
@@ -460,9 +464,15 @@ function appendDrawerStackRoleMeta(xml: string, item: CutListItemComPreco): stri
     "orient=BL",
     "face=tras",
   ];
-  if (rules?.sideBaseElevationMm != null && Number.isFinite(rules.sideBaseElevationMm)) {
-    parts.push(`elev=${Number(rules.sideBaseElevationMm).toFixed(1)}`);
-  }
+  // P3.15 — elev= sempre presente (metadata ou fallback por stackRole; T=19 default industrial).
+  const elevResolved =
+    rules?.sideBaseElevationMm != null && Number.isFinite(rules.sideBaseElevationMm)
+      ? Number(rules.sideBaseElevationMm)
+      : resolveDrawerBodyElevationForStackRoleMm(
+          (stackRole as DrawerStackRole) || "middle",
+          19
+        );
+  parts.push(`elev=${elevResolved.toFixed(1)}`);
   if (rules?.sideHeightMm != null && Number.isFinite(rules.sideHeightMm)) {
     parts.push(`sideH=${Number(rules.sideHeightMm).toFixed(1)}`);
   }

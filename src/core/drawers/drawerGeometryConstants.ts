@@ -66,7 +66,8 @@ export const DRAWER_LOWEST_CLEARANCE_ABOVE_FLOOR_PANEL_MM =
  * Legado / referência XML_COMPLITO: Y = W−56.5, X inset = 12.
  * Produção actual: mesmo padrão das frentes 2/3 via `computeDrawerFrenteExtStructuralHoles`
  * (rasgo elev+sideH−13; cavilhas elev+15 / elev+sideH−35).
- * `computeDrawerLowestFrenteExtFixedHoles` mantém o golden legado para regressão.
+ * `computeDrawerLowestFrenteExtFixedHoles` (legado golden) vive em
+ * `drilling/drawerLowestFrenteExtFixedHoles.legacy.ts` — não usar em produção.
  * `DRAWER_LOWEST_FRONT_DOWEL_FROM_TOP_MM` (73.5) é legado — não usar para gerar furos.
  */
 export const DRAWER_LOWEST_FRONT_GROOVE_FROM_TOP_MM = 56.5;

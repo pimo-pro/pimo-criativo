@@ -71,8 +71,8 @@ UI (DrawerConfigPanel)
 | 1, 2 gavetas metálicas | ✅ só `gaveta_frente` + hardware caixa metálica |
 | slideType: Tandem, Movento, Genérica | ✅ metadata.drawerRules.slideType |
 | softClose ON/OFF | ✅ layer + metadata |
-| profundidades nominais distintas por gaveta | ✅ bodyDepth = nominal − recuo |
-| recuo corrediça 20, 25, 30 mm | ✅ bodyDepth ajustado |
+| profundidades nominais distintas por gaveta | ✅ bodyDepth = nominalDepth |
+| laterais | ✅ sideDepth = bodyDepth − 10 |
 | módulo estreito (280 mm) | ✅ geração sem erro |
 | módulo profundo (650 mm + nominal 600) | ✅ bodyDepth 580 mm |
 | roupeiro H cfg7 (compartimento inferior direito) | ✅ 3 gavetas, posX > 0 |
@@ -158,14 +158,15 @@ Classificação testada via espelho QA de `inferPieceKind` (`classifyDrawerPiece
 
 ```
 nominalDepth = metadata.nominalDepth ?? chooseNominalDepth(boxInternalDepth, rules)
-bodyDepth    = nominalDepth − gavetaRecuoProfundidadeCorredicaMm
+bodyDepth    = nominalDepth
+sideDepth    = bodyDepth − 10   (SSOT industrial)
 ```
 
 ✅ Validado em regressão, stress e consistência UI.
 
-### Recuo corrediça
+### Profundidade laterais (SSOT P3.15)
 
-✅ Default 20 mm; custom 25/30 mm altera `bodyDepth` corretamente.
+✅ `sideDepth = bodyDepth − 10`. O setting `gavetaRecuoProfundidadeCorredicaMm` (20) é legado UI e não reduz o corpo.
 
 ### Overrides UI
 

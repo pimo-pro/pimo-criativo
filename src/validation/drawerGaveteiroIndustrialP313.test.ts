@@ -103,6 +103,9 @@ describe("P3.13 — gaveteiro industrial completo", () => {
     );
     expect(xml01?.xml).toBeDefined();
     expect(xml01!.xml).toMatch(/pimo:stackRole=lowest;orient=BL;face=tras/);
+    // P3.15 — meta completo: elev= e sideH= sempre presentes.
+    expect(xml01!.xml).toMatch(/elev=\d+\.\d/);
+    expect(xml01!.xml).toMatch(/sideH=\d+\.\d/);
     // Sem rasgo legado 53 mm nem cavilha em elev+0.
     expect(xml01!.xml).not.toContain("<BeginY>53.00</BeginY>");
   });

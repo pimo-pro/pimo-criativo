@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-11",
+    versao: "P3.15",
+    descricao:
+      "Release P3.11–P3.15 — prateleiras independentes; gaveteiro certificado (orientação XML, SSOT gav_fundo, meta elev=, docs sideDepth=bodyDepth−10, legado 53 mm isolado).",
+  },
+  {
     data: "2026-08-05",
     versao: "v6.0805.1648",
     descricao:

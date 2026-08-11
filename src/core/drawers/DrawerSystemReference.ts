@@ -196,10 +196,11 @@ const GAVETA_SETTINGS_RULES: DrawerRuleEntry[] = [
     id: "runner-clearance",
     label: "Recuo profundidade corrediça (mm)",
     value: String(settingsDefaults.gavetas.gavetaRecuoProfundidadeCorredicaMm),
-    formula: "bodyDepth = nominalDepth - gavetaRecuoProfundidadeCorredicaMm",
+    formula: "legado UI — NÃO entra no bodyDepth; SSOT: sideDepth = bodyDepth − 10",
     sourceFile: "src/core/drawers/DrawerParametrics.ts",
-    status: "official",
-    notes: "FASE 6: ligado a settings.gavetas; overrides UI em drawerParametricOverrides.ts",
+    status: "legacy",
+    notes:
+      "P3.15: setting preservado no schema; profundidade industrial = sideDepth = bodyDepth − 10 (DRAWER_SIDE_DEPTH_SLIDE_CLEARANCE_MM).",
   },
   {
     id: "tipo-corredica",
@@ -686,10 +687,10 @@ export const DRAWER_SYSTEM_INCONSISTENCIES: DrawerInconsistency[] = [
   {
     id: "runner-clearance-hardcoded",
     severity: "low",
-    title: "DRAWER_RUNNER_CLEARANCE_MM ainda hardcoded em DrawerParametrics",
+    title: "gavetaRecuoProfundidadeCorredicaMm é legado UI (não reduz bodyDepth)",
     description:
-      "settings.gavetas.gavetaRecuoProfundidadeCorredicaMm (default 20) adicionado em FASE 2; ligação ao domínio paramétrico pendente (sem alterar geometria nesta fase).",
-    modernSource: "settingsSchema.ts",
+      "P3.15: setting gavetaRecuoProfundidadeCorredicaMm (default 20) é legado UI. SSOT industrial: bodyDepth = nominalDepth; sideDepth = bodyDepth − 10. Não subtrair 20 do corpo.",
+    modernSource: "drawerSlideDepth.ts resolveDrawerSideDepthMm",
     resolveInPhase: 6,
   },
   {
@@ -905,7 +906,7 @@ export const DRAWER_GEOMETRY_PHASE6 = {
   },
   runnerClearance: {
     setting: "settings.gavetas.gavetaRecuoProfundidadeCorredicaMm",
-    formula: "bodyDepth = nominalDepth - gavetaRecuoProfundidadeCorredicaMm",
+    formula: "legado — não altera bodyDepth; SSOT: sideDepth = bodyDepth − 10",
     defaultMm: settingsDefaults.gavetas.gavetaRecuoProfundidadeCorredicaMm,
   },
   uiOverrides: {

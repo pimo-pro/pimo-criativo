@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 import {
   computeDrawerFrenteExtStructuralHoles,
   computeDrawerLateralStructuralHoles,
-  computeDrawerLowestFrenteExtFixedHoles,
   projectDrawerLateralEdgeCavilhasOntoFront,
 } from "../core/drawers/drilling/DrawerDrillingRules";
+import { computeDrawerLowestFrenteExtFixedHoles } from "../core/drawers/drilling/drawerLowestFrenteExtFixedHoles.legacy";
 import {
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
   DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
