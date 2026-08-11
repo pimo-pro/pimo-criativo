@@ -1,14 +1,14 @@
 {
-  "updatedAt": "2026-08-11T22:44:22.678Z",
+  "updatedAt": "2026-08-11T22:46:49.457Z",
   "news": [
     {
       "version": "v6.0811.2344",
-      "title": "Release — P3.24 · Correção do módulo Adicionar Chapa + preço dinâmico — khaled-pro",
-      "description": "Release — P3.24 · Correção do módulo Adicionar Chapa + preço dinâmico — khaled-pro",
+      "title": "Release — P3.24 · Correção do módulo Adicionar Chapa + preço dinâmico",
+      "description": "Correção do módulo Adicionar chapa e preço dinâmico no Painéis:\n• Modal com z-index e backdrop opaco correctos\n• Selecção adiciona chapa ao state (Painéis + espelho chapasReais)\n• Preço €/m e parcial recalculados ao alterar medidas ou €/m²\n• UI intacta (layout/accordions/estilo sem alterações)",
       "publishedAt": "2026-08-11T22:44:22.511Z",
-      "type": "update",
+      "type": "feature",
       "author": "pimo-pro",
-      "icon": "update",
+      "icon": "feature",
       "commit": "8434b626"
     },
     {
