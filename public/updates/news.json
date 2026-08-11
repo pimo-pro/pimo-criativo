@@ -3,12 +3,12 @@
   "news": [
     {
       "version": "v6.0811.2055",
-      "title": "Release — P3.20 · Restauração completa da UI do Financeiro (custos dinâmicos) — khaled-pro",
-      "description": "Release — P3.20 · Restauração completa da UI do Financeiro (custos dinâmicos) — khaled-pro",
+      "title": "Release — P3.20 · Restauração completa da UI do Financeiro (custos dinâmicos)",
+      "description": "Relatório Final: bloco «Financeiro (custos dinâmicos)» restaurado ao layout pré-P3.18.\nTodos os blocos visíveis com accordions e detalhes (Adicionar chapa, Portas, Gavetas, Ferragens, Orla, Remates, Ops, Desperdício, Serragem, MO, Logística, Ops avançadas, ADM, Montagem, Portes, IVA, Total).\nSem alteração de pipelines industriais nem do Financeiro Unificado; Painéis dedicado mantém-se.",
       "publishedAt": "2026-08-11T19:55:05.504Z",
-      "type": "update",
+      "type": "feature",
       "author": "pimo-pro",
-      "icon": "update",
+      "icon": "feature",
       "commit": "f209de43"
     },
     {
