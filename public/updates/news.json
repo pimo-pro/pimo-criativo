@@ -1,14 +1,14 @@
 {
-  "updatedAt": "2026-08-11T21:05:06.318Z",
+  "updatedAt": "2026-08-11T21:08:04.137Z",
   "news": [
     {
       "version": "v6.0811.2205",
-      "title": "Release — P3.22 · Restauração completa da lógica original do Financeiro — khaled-pro",
-      "description": "Release — P3.22 · Restauração completa da lógica original do Financeiro — khaled-pro",
+      "title": "Release — P3.22 · Restauração completa da lógica original do Financeiro",
+      "description": "Restauração completa do fluxo original da página Financeiro (custos dinâmicos):\n• state → financeiroAdapter → financeiroIndustrialRules → financeiroTotals → UI\n• Blocos, detalhes e painéis originais (accordions abertos, chapas editáveis)\n• Unificado = SSOT dos totais oficiais; não constrói a UI detalhada\n• Sem simplificações P3.17–P3.20; sem esconder nem colapsar blocos",
       "publishedAt": "2026-08-11T21:05:06.154Z",
-      "type": "update",
+      "type": "feature",
       "author": "pimo-pro",
-      "icon": "update",
+      "icon": "feature",
       "commit": "edd5ccf9"
     },
     {
