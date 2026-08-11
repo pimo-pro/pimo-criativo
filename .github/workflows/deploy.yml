@@ -77,8 +77,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Mensagem real: o append ignora "Publicação…" / chore(release) e percorre o histórico.
-          MSG="$(git log -1 --format=%s 2>/dev/null || true)"
+          # Mensagem real (assunto + corpo): o append ignora "Publicação…" / chore(release).
+          MSG="$(git log -1 --format=%B 2>/dev/null || true)"
           AUTHOR="$(git log -1 --format=%an 2>/dev/null || true)"
           export DEPLOY_COMMIT_MESSAGE="${MSG:-}"
           export DEPLOY_AUTHOR="${AUTHOR:-pimo-pro}"
