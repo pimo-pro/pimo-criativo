@@ -61,19 +61,19 @@ describe("stack din?mico anti-sobreposi??o", () => {
     expect(cover.ok).toBe(true);
   });
 
-  it("laterais unificadas frente×0,75 + corpo 18,5 / 17 + folga frente 2 mm", () => {
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(18.5);
+  it("laterais GAV_1 frente×0,685; mid/high ×0,75; elev 16,5 / 17", () => {
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(16.5);
     expect(DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM).toBe(12.5);
     expect(DRAWER_FRONT_LATERAL_GAP_MM).toBe(2);
     expect(settingsDefaults.gavetas.gavetaFolgaFrenteMm).toBe(2);
 
     const h = 251.33333333333334;
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "lowest")).toBeCloseTo(h * 0.75, 3);
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "lowest")).toBeCloseTo(h * 0.685, 3);
     expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "middle")).toBeCloseTo(h * 0.75, 3);
     expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "highest")).toBeCloseTo(h * 0.75, 3);
   });
 
-  it("generateDrawerGroup 3 gavetas ? sem overlap, bodyBottom=18,5, CIMA?33", () => {
+  it("generateDrawerGroup 3 gavetas — GAV_1 elev 16,5 / R 0,685; mid/high 17 / 0,75", () => {
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: H,
@@ -97,13 +97,12 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const anti = assertNoDrawerFrontOverlap({ bottoms, tops });
     expect(anti.ok).toBe(true);
 
-    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(19 + 18.5);
-    // middle/highest unificados (intercambiabilidade 2ª/3ª gaveta) — ver drawerStackPosition.ts
+    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(16.5);
     expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(17);
     expect(layers[2]!.metadata?.sideBaseElevationMm).toBe(17);
-    // Mesmas dimens?es industriais
-    expect(layers[0]!.bodyHeight).toBeCloseTo(layers[1]!.bodyHeight!, 5);
-    expect(layers[1]!.bodyHeight).toBeCloseTo(layers[2]!.bodyHeight!, 5);
+    expect(layers[0]!.bodyHeight).toBeCloseTo(heights[0]! * 0.685, 5);
+    expect(layers[1]!.bodyHeight).toBeCloseTo(heights[1]! * 0.75, 5);
+    expect(layers[2]!.bodyHeight).toBeCloseTo(heights[2]! * 0.75, 5);
     expect(heights[0]).toBeCloseTo(heights[1]!, 5);
     expect(heights[1]).toBeCloseTo(heights[2]!, 5);
 
@@ -111,7 +110,7 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
-    expect(bodyBottom - moduleBase).toBeCloseTo(19 + 18.5, 5);
+    expect(bodyBottom - moduleBase).toBeCloseTo(16.5, 5);
 
     const bodyH2 = layers[2]!.bodyHeight!;
     const offsetY2 = layers[2]!.bodyCenterOffsetY!;

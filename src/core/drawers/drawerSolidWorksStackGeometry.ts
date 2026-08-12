@@ -9,7 +9,10 @@
 
 import { settingsDefaults } from "../settings/settingsSchema";
 import type { DrawerStackRole } from "./drawerStackPosition";
-import { DRAWER_VERTICAL_GAP_MM } from "./drawerGeometryConstants";
+import {
+  DRAWER_LOWEST_SIDE_HEIGHT_RATIO,
+  DRAWER_VERTICAL_GAP_MM,
+} from "./drawerGeometryConstants";
 
 /** Folga: frente superior cobre CIMA e desce 2 mm abaixo da face inferior. */
 export const DRAWER_TOP_FRONT_CIMA_OVERHANG_BELOW_MM = 2;
@@ -43,19 +46,20 @@ export function resolveDefaultDrawerHeightReductionFactor(): number {
 
 /**
  * Altura madeira das laterais: sideH = frontH × heightRatio.
- * Ratio default = factor de gavetaReducaoPercentual (Admin).
+ * GAV_1 (lowest): R_real = 0,685. Restantes: factor Admin (default 0,75).
  */
 export function resolveDrawerWoodBodyHeightForStackRoleMm(
   frontHeightMm: number,
-  _stackRole: DrawerStackRole = "middle",
-  heightRatio: number = resolveDefaultDrawerHeightReductionFactor()
+  stackRole: DrawerStackRole = "middle",
+  heightRatio?: number
 ): number {
-  void _stackRole;
   const frontH = Math.max(0, Number(frontHeightMm) || 0);
   const ratio =
-    Number.isFinite(heightRatio) && heightRatio > 0
+    heightRatio != null && Number.isFinite(heightRatio) && heightRatio > 0
       ? heightRatio
-      : resolveDefaultDrawerHeightReductionFactor();
+      : stackRole === "lowest"
+        ? DRAWER_LOWEST_SIDE_HEIGHT_RATIO
+        : resolveDefaultDrawerHeightReductionFactor();
   return Math.max(1, frontH * ratio);
 }
 

@@ -10,6 +10,7 @@
 import {
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
+  DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM,
 } from "./drawerGeometryConstants";
 
 export type DrawerStackRole = "lowest" | "highest" | "middle" | "single";
@@ -27,25 +28,34 @@ export function resolveDrawerStackRole(
 }
 
 /**
- * Elevação do corpo vs base da frente (mm) para a gaveta inferior / úúnica.
- * Folga 18,5 mm acima da face superior do FUNDO → elev = T_fundo + 18,5.
- * Com `frontBottom=0` e T=19 → bodyBottom = 37,5 mm (18,5 acima do topo do FUNDO).
+ * Elevação do corpo vs base da frente (mm) — gaveta inferior (GAV_1 / role=lowest).
+ * E_inf_real = 16,5 mm absoluto (independente de T_fundo).
+ * `boxFloorThicknessMm` mantido na assinatura por compatibilidade de callers.
  */
 export function resolveLowestDrawerBodyElevationFromFrontMm(
   boxFloorThicknessMm: number = 19
 ): number {
+  void boxFloorThicknessMm;
+  return DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
+}
+
+/**
+ * Elevação legado — gaveta única (role=single): T_fundo + 18,5.
+ * Mantida até aprovação industrial da regra GAV_1 para single.
+ */
+export function resolveSingleDrawerBodyElevationFromFrontMm(
+  boxFloorThicknessMm: number = 19
+): number {
   const T = Math.max(0, Number(boxFloorThicknessMm) || 0);
-  return T + DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
+  return T + DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM;
 }
 
 /**
  * Elevação industrial do corpo vs frente por papel no stack.
- * lowest/single: T+18,5 · middle/highest: 17 (unificado — folga CIMA ≥28,5 mm com T=19).
+ * lowest (GAV_1): 16,5 absoluto · single: T+18,5 (legado) · middle/highest: 17.
  *
- * middle e highest usam agora o mesmo valor (antes: 17 / 12,5) para que a 2ª e a 3ª
- * gaveta fiquem com a mesma relação frente↔corpo↔corrediça e sejam totalmente
- * intercambiáveis entre si. DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM mantém-se
- * exportada (valor antigo, 12,5) apenas como referência legada — deixou de ser usada aqui.
+ * middle e highest usam o mesmo valor (antes: 17 / 12,5) para intercambiabilidade.
+ * DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM (12,5) é só referência legada.
  */
 export function resolveDrawerBodyElevationForStackRoleMm(
   stackRole: DrawerStackRole,
@@ -53,8 +63,9 @@ export function resolveDrawerBodyElevationForStackRoleMm(
 ): number {
   switch (stackRole) {
     case "lowest":
-    case "single":
       return resolveLowestDrawerBodyElevationFromFrontMm(boxFloorThicknessMm);
+    case "single":
+      return resolveSingleDrawerBodyElevationFromFrontMm(boxFloorThicknessMm);
     case "highest":
     case "middle":
     default:

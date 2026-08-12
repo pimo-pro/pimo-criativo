@@ -144,8 +144,8 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
     expect(groove0!.y - upperCav0).toBeCloseTo(22, 5);
     expect(groove1!.y - upperCav1).toBeCloseTo(22, 5);
     const lowerCav0 = Math.min(...cav0.map((h) => h.y));
-    // Inferior (T=19): elev = T+18,5 = 37,5; cavilha inferior em elev+15.
-    expect(lowerCav0).toBeCloseTo(19 + 18.5 + 15, 5);
+    // Inferior (GAV_1): elev = 16,5; cavilha inferior em elev+15.
+    expect(lowerCav0).toBeCloseTo(16.5 + 15, 5);
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {
       projectName: "STACK2",

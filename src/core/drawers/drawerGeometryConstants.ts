@@ -12,19 +12,31 @@ export const DRAWER_FRONT_LATERAL_GAP_MM = 2;
 
 /**
  * Fração da altura da frente deixada livre no topo (documentação legado).
- * Altura real das laterais: factor de settings.gavetas.gavetaReducaoPercentual.
+ * Altura real das laterais: factor de settings.gavetas.gavetaReducaoPercentual
+ * (middle/highest). GAV_1 (lowest) usa DRAWER_LOWEST_SIDE_HEIGHT_RATIO.
  */
 export const DRAWER_SIDE_TOP_CLEARANCE_RATIO = 0.25;
 
 /**
  * @deprecated Usar settings.gavetas.gavetaReducaoPercentual (factor = 1 − %/100).
  * Mantido como alias do default Admin (25% → 0,75) para imports legado.
+ * Middle/highest mantêm 0,75 até aprovação industrial.
  */
 export const DRAWER_SIDE_HEIGHT_RATIO = 0.75;
 
 /**
+ * Ratio industrial laterais/corpo — apenas gaveta inferior (GAV_1 / role=lowest).
+ * R_real = bodyH / frontH = 0,685 (medições industriais).
+ * Middle/highest/single continuam com DRAWER_SIDE_HEIGHT_RATIO / settings Admin.
+ */
+export const DRAWER_LOWEST_SIDE_HEIGHT_RATIO = 0.685;
+/** Folga relativa no topo da frente para GAV_1: 1 − R_real. */
+export const DRAWER_LOWEST_SIDE_TOP_CLEARANCE_RATIO =
+  1 - DRAWER_LOWEST_SIDE_HEIGHT_RATIO;
+
+/**
  * Elevação da base das laterais/costa em relação à base da frente (mm).
- * Intervalo: 12,5 (superior) … até T_fundo+18,5 (inferior, folga real sobre FUNDO).
+ * Intervalo: 12,5 … 60. Inferior (GAV_1) usa elevação absoluta 16,5 (não T+folga).
  */
 export const DRAWER_SIDE_BASE_ELEVATION_MIN_MM = 12.5;
 export const DRAWER_SIDE_BASE_ELEVATION_MAX_MM = 60;
@@ -50,14 +62,18 @@ export const DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM = 12.5;
 export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 0;
 
 /**
- * Folga industrial do corpo da gaveta inferior acima da face superior do FUNDO (mm).
- * A elevação vs frente (flush na base exterior) é `espessura_FUNDO + 18,5`.
- * Ex.: T=19 → elev=37,5 → lateral 18,5 mm acima do topo do FUNDO (não encostada).
+ * Elevação industrial do corpo vs base da frente — gaveta inferior (GAV_1 / lowest).
+ * E_inf_real = 16,5 mm (absoluto; já não é T_fundo + folga).
+ * Com frontBottom=0 → bodyBottom=16,5. Eixo módulo 41 mm inalterado.
  * Furos da frente: pairing `elev+15` / `elev+sideH−35` / rasgo `elev+sideH−13`.
- * Piso da corrediça (41 mm) é independente.
  */
-export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM = 18.5;
-/** @deprecated Alias semântico — usar DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM (folga sobre FUNDO). */
+export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM = 16.5;
+/**
+ * Folga legado sobre FUNDO para role=single (ainda T + 18,5 até aprovação).
+ * Não usar em GAV_1 (lowest) — aí a elevação é absoluta 16,5.
+ */
+export const DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM = 18.5;
+/** @deprecated Alias — aponta para elevação GAV_1 (16,5). */
 export const DRAWER_LOWEST_CLEARANCE_ABOVE_FLOOR_PANEL_MM =
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
 

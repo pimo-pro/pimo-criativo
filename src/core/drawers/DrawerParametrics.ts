@@ -29,6 +29,7 @@ import {
 import {
   DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_BOTTOM_SIDE_ENTRY_MM,
+  DRAWER_LOWEST_SIDE_HEIGHT_RATIO,
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "./drawerGeometryConstants";
 import { resolveDrawerBodyElevationForStackRoleMm } from "./drawerStackPosition";
@@ -362,8 +363,11 @@ export function calculateDrawerSpecs(
   const frontHeight = clampMm(frontHeightOverride ?? drawerHeight);
 
   // ===== CORPO =====
-  // Factor único Admin: laterais = frente × f; costa = laterais × f; frente_int = frente × f.
-  const heightFactor = drawerReductionPercentToFactor(settings.gavetaReducaoPercentual);
+  // GAV_1 (lowest): R_real = 0,685. Middle/highest/single: factor Admin (0,75).
+  const heightFactor =
+    dimensions.stackRole === "lowest"
+      ? DRAWER_LOWEST_SIDE_HEIGHT_RATIO
+      : drawerReductionPercentToFactor(settings.gavetaReducaoPercentual);
   const woodBodyHeight = resolveDrawerWoodBodyHeightMm(
     frontHeight,
     dimensions.stackRole,

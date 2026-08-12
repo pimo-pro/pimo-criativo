@@ -92,7 +92,7 @@ describe("distribuições de referência (720 mm útil)", () => {
     );
     expect(h[0]).toBeLessThan(h[1]!);
     expect(h[1]).toBeLessThan(h[2]!);
-    expect(h).toEqual([120, 232, 350]);
+    expect(h).toEqual([125, 237, 350]);
   });
 
   it("4 gavetas — kitchen_zones", () => {
@@ -100,7 +100,7 @@ describe("distribuições de referência (720 mm útil)", () => {
       calculateErgonomicDrawerHeights({ drawerCount: 4, usableHeightMm: USABLE, mode: "kitchen_zones" })
     );
     expect(h[0]).toBeLessThan(h[3]!);
-    expect(h).toEqual([98, 154, 209, 237]);
+    expect(h).toEqual([99, 156, 212, 241]);
   });
 
   it("5 gavetas — auto", () => {
@@ -110,6 +110,6 @@ describe("distribuições de referência (720 mm útil)", () => {
     expect(h).toHaveLength(5);
     expect(h[4]).toBeGreaterThanOrEqual(ERGONOMIC_MIN_DRAWER_HEIGHT_MM);
     expect(h[4]!).toBeGreaterThan(h[0]!);
-    expect(h).toEqual([86, 134, 178, 149, 149]);
+    expect(h).toEqual([87, 136, 180, 151, 151]);
   });
 });

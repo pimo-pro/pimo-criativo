@@ -47,7 +47,7 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=2 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 268.5,
+  "bodyHeight": 245.23000000000002,
   "bodyWidth": 548,
   "height": 358,
   "index": 0,
@@ -85,7 +85,7 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 178,
+  "bodyHeight": 162.57333333333335,
   "bodyWidth": 548,
   "height": 237.33333333333334,
   "index": 0,
@@ -142,7 +142,7 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 132.75,
+  "bodyHeight": 121.245,
   "bodyWidth": 548,
   "height": 177,
   "index": 0,

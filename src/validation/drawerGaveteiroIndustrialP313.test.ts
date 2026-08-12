@@ -80,17 +80,20 @@ describe("P3.13 — gaveteiro industrial completo", () => {
       };
     });
 
-    // Corpo-relativo: 01 ≡ 02 ≡ 03 (orientação / furação sem especialização lowest).
-    expect(relativePatterns[0]!.cav.map((c) => c.yRel)).toEqual(
-      relativePatterns[1]!.cav.map((c) => c.yRel)
-    );
-    expect(relativePatterns[0]!.cav.map((c) => c.yRel)).toEqual(
-      relativePatterns[2]!.cav.map((c) => c.yRel)
-    );
-    expect(relativePatterns[0]!.grooveRel).toBe(relativePatterns[1]!.grooveRel);
-    expect(relativePatterns[0]!.grooveRel).toBe(relativePatterns[2]!.grooveRel);
+    // Cavilha inferior corpo-relativa = 15 em todas. Superior = sideH−35 (GAV_1 tem sideH menor).
     expect(Math.min(...relativePatterns[0]!.cav.map((c) => c.yRel))).toBe(
       DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM
+    );
+    expect(Math.min(...relativePatterns[1]!.cav.map((c) => c.yRel))).toBe(
+      DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM
+    );
+    // Middle ≡ highest (mesmo R Admin); lowest difere (R_real 0,685).
+    expect(relativePatterns[1]!.cav.map((c) => c.yRel)).toEqual(
+      relativePatterns[2]!.cav.map((c) => c.yRel)
+    );
+    expect(relativePatterns[1]!.grooveRel).toBe(relativePatterns[2]!.grooveRel);
+    expect(relativePatterns[0]!.cav.map((c) => c.yRel)).not.toEqual(
+      relativePatterns[1]!.cav.map((c) => c.yRel)
     );
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {
@@ -161,7 +164,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
     }
   });
 
-  it("4) Corpos idênticos (LAT/COSTA/FUNDO) em stack equal — só elevação lowest difere", () => {
+  it("4) Middle/highest corpos idênticos; GAV_1 (lowest) mais baixo (R=0,685); elevações 16,5/17/17", () => {
     const { cutlist } = buildEqualStack();
     const byTipo = (tipo: string) =>
       cutlist
@@ -174,11 +177,14 @@ describe("P3.13 — gaveteiro industrial completo", () => {
     for (const tipo of ["gaveta_lat_esq", "gaveta_lat_dir", "gaveta_traseira", "gaveta_fundo"]) {
       const pieces = byTipo(tipo);
       expect(pieces.length).toBe(3);
-      const ref = pieces[0]!;
-      for (const p of pieces.slice(1)) {
-        expect(p.dimensoes.largura).toBeCloseTo(ref.dimensoes.largura, 5);
-        expect(p.dimensoes.altura).toBeCloseTo(ref.dimensoes.altura, 5);
-        expect(p.espessura).toBeCloseTo(ref.espessura, 5);
+      // Middle ≡ highest
+      expect(pieces[1]!.dimensoes.largura).toBeCloseTo(pieces[2]!.dimensoes.largura, 5);
+      expect(pieces[1]!.dimensoes.altura).toBeCloseTo(pieces[2]!.dimensoes.altura, 5);
+      expect(pieces[1]!.espessura).toBeCloseTo(pieces[2]!.espessura, 5);
+      // Lowest: mesma largura; altura menor (ratio 0,685 vs 0,75) — excepto fundo (espessura horizontal)
+      expect(pieces[0]!.dimensoes.largura).toBeCloseTo(pieces[1]!.dimensoes.largura, 5);
+      if (tipo !== "gaveta_fundo") {
+        expect(pieces[0]!.dimensoes.altura).toBeLessThan(pieces[1]!.dimensoes.altura);
       }
     }
 
@@ -192,7 +198,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
         )
       );
     });
-    expect(elevs[0]).toBeCloseTo(resolveDrawerBodyElevationForStackRoleMm("lowest", T), 5);
+    expect(elevs[0]).toBeCloseTo(16.5, 5);
     expect(elevs[1]).toBeCloseTo(DRAWER_SIDE_BASE_ELEVATION_MM, 5);
     expect(elevs[2]).toBeCloseTo(DRAWER_SIDE_BASE_ELEVATION_MM, 5);
   });

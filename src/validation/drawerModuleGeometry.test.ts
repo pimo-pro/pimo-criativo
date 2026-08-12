@@ -6,7 +6,8 @@ import {
   drawerGroupToLayerItems,
   calculateDrawerSpecs,
 } from "../core/drawers";
-import { DRAWER_VERTICAL_GAP_MM, DRAWER_SIDE_TOP_CLEARANCE_RATIO } from "../core/drawers/drawerGeometryConstants";
+import { DRAWER_VERTICAL_GAP_MM, DRAWER_SIDE_TOP_CLEARANCE_RATIO, DRAWER_LOWEST_SIDE_TOP_CLEARANCE_RATIO } from "../core/drawers/drawerGeometryConstants";
+import { resolveDrawerStackRole } from "../core/drawers/drawerStackPosition";
 import {
   buildDrawerVerticalSlots,
   drawerVerticalSlotsOverlap,
@@ -62,11 +63,16 @@ describe("Geometria da gaveta no módulo", () => {
 
       layers.forEach((layer, i) => {
         const drawer = group.drawers[i]!;
+        const role = resolveDrawerStackRole(i, drawerCount);
+        const topClearanceRatio =
+          role === "lowest"
+            ? DRAWER_LOWEST_SIDE_TOP_CLEARANCE_RATIO
+            : DRAWER_SIDE_TOP_CLEARANCE_RATIO;
         expect(layer.height).toBeCloseTo(drawer.specs.frontExt.height, 1);
         expect(layer.bodyHeight).toBeCloseTo(drawer.specs.body.height, 1);
         expect(layer.height).toBeGreaterThan(layer.bodyHeight!);
         expect(layer.height! - layer.bodyHeight!).toBeCloseTo(
-          layer.height! * DRAWER_SIDE_TOP_CLEARANCE_RATIO,
+          layer.height! * topClearanceRatio,
           0
         );
         expect(layer.posZ).toBeCloseTo(boxD / 2 + 1 - layer.frontThickness / 2, 1);
@@ -133,8 +139,9 @@ describe("Geometria da gaveta no módulo", () => {
       drawerSettings
     );
     expect(specs.body.depth).toBe(500);
+    // Costa = laterais × factor → frente − costa = frente × (1 − 0,75²)
     expect(specs.frontExt.height - specs.back.height).toBeCloseTo(
-      specs.frontExt.height * DRAWER_SIDE_TOP_CLEARANCE_RATIO,
+      specs.frontExt.height * (1 - 0.75 * 0.75),
       0
     );
   });
