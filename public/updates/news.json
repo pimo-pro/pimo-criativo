@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-12T14:40:39.709Z",
+  "updatedAt": "2026-08-12T21:05:11.519Z",
   "news": [
+    {
+      "version": "v6.0812.2205",
+      "title": "fix(gavetas): alinhar GAV_1 com elevação 16,5 mm e ratio 0,685",
+      "description": "fix(gavetas): alinhar GAV_1 com elevação 16,5 mm e ratio 0,685",
+      "publishedAt": "2026-08-12T21:05:11.362Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "b119b688"
+    },
     {
       "version": "v6.0812.1540",
       "title": "feat: financeiro dinâmico no relatório final (P3.27)",
       "description": "feat: financeiro dinâmico no relatório final (P3.27)",
-      "publishedAt": "2026-08-12T14:40:39.494Z",
+      "publishedAt": "2026-08-12T15:42:47+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
-      "commit": "d465ed87"
+      "commit": "3242c9e"
     },
     {
       "version": "v6.0812.1533",
