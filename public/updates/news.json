@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-12T14:33:20.278Z",
+  "updatedAt": "2026-08-12T14:40:39.709Z",
   "news": [
+    {
+      "version": "v6.0812.1540",
+      "title": "feat: financeiro dinâmico no relatório final (P3.27)",
+      "description": "feat: financeiro dinâmico no relatório final (P3.27)",
+      "publishedAt": "2026-08-12T14:40:39.494Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "d465ed87"
+    },
     {
       "version": "v6.0812.1533",
       "title": "feat: financeiro dinâmico no relatório final (P3.27)",
@@ -10,6 +20,16 @@
       "author": "pimo-pro",
       "icon": "feature",
       "commit": "6becc71d"
+    },
+    {
+      "version": "v6.20260812.1533-p327-financeiro-dinamico",
+      "title": "feat: financeiro dinâmico no relatório final (P3.27)",
+      "description": "feat: financeiro dinâmico no relatório final (P3.27)\n\nAccordions editáveis em todas as linhas; motor visual sem alterar SSOT Unificado; overrides com badge e PDF anotado.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-12T15:32:58+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "6becc71"
     },
     {
       "version": "v6.0812.1501",

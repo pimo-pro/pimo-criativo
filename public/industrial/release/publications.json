@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-12T14:40:38.512Z",
+      "author": "pimo-pro",
+      "commitMessage": "Publicação PIMO — Sistema Industrial",
+      "version": "v6.0812.1540"
+    },
+    {
       "publishedAt": "2026-08-12T14:33:19.501Z",
       "author": "pimo-pro",
       "commitMessage": "feat: financeiro dinâmico no relatório final (P3.27)",
