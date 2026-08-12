@@ -127,7 +127,7 @@ export const R = {
 
   financeiro: "4. Financeiro (custos din\u00e2micos)",
   financeiroHint:
-    "Totais = Financeiro ADMIN (computeFinanceiroUnificado). Ajuste manual \u00e9 override (n\u00e3o recalcula a base). Accordion de chapas = s\u00f3 visualiza\u00e7\u00e3o.",
+    "Totais oficiais = Financeiro ADMIN (SSOT). Accordion edit\u00e1vel = camada visual; override manual n\u00e3o altera o motor Unificado.",
   custoChapasReais: "Custo total das chapas",
   mostrarDetalheCustos: "Mostrar detalhe de custos",
   ocultarDetalheCustos: "Ocultar detalhe de custos",
@@ -136,8 +136,21 @@ export const R = {
   origem: "Origem",
   ajusteManual: "Ajuste manual",
   ajusteManualHint:
-    "Override opcional. Deixe vazio para usar o valor SSOT do Financeiro ADMIN.",
+    "Override opcional. Deixe vazio para usar o valor oficial (SSOT).",
   overrideManual: "override manual",
+  badgeOverride: "override",
+  badgeValorOficial: "valor oficial",
+  tooltipOrigemPreco: "Origem do pre\u00e7o oficial (Unificado / chapas reais).",
+  tooltipValorOficial: "Total oficial do Financeiro ADMIN (SSOT).",
+  tooltipOverride: "Override manual activo na camada visual.",
+  tooltipTotalVisual: "Soma do detalhe edit\u00e1vel (n\u00e3o \u00e9 o SSOT).",
+  totalVisual: "Total visual",
+  totalVisualChapas: "\u20ac/total chapas",
+  substituirMaterial: "Substituir material",
+  adicionarItem: "Adicionar item",
+  aplicarVisualOverride: "Aplicar total visual como override",
+  aplicarVisualOverrideHint:
+    "Copia a soma do detalhe para o override da linha. O SSOT Unificado permanece intacto.",
   precoUnit: "Pre\u00e7o unit\u00e1rio",
   total: "Total",
   subtotal: "Subtotal",
@@ -146,8 +159,8 @@ export const R = {
   preco: "Pre\u00e7o",
   totalSsot: "Total oficial (SSOT)",
   paineisAccordionHint:
-    "Lista real de chapas do nesting. N\u00e3o altera o total de Pain\u00e9is.",
-  semChapasNesting: "Sem chapas de nesting real neste projecto.",
+    "Lista edit\u00e1vel de chapas (camada visual). O total oficial de Pain\u00e9is vem do Unificado.",
+  semChapasNesting: "Sem chapas. Adicione manualmente ou abra um projeto com nesting real.",
   areaM2: "\u00c1rea (m\u00b2)",
 
   notasProjeto: "5. Notas do Projeto",

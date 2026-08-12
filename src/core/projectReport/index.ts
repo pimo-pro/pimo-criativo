@@ -88,6 +88,27 @@ export type {
   ReportLineOverrides,
   PaineisOrigemBadge,
 } from "./financeiroOverrides";
+
+export {
+  calcArea,
+  calcChapa,
+  applyOverride,
+  syncWithUnificado,
+  rebuildChapaDetalhe,
+  rebuildItemDetalhe,
+  rebuildLinhaVisual,
+  emitTotalFinal,
+  setLinhaDetalheVisual,
+  sumDetalheVisual,
+  createEmptyChapaDetalhe,
+  createEmptyItemDetalhe,
+  DYNAMIC_DETALHE_KEYS,
+} from "./financeiroDynamicEngine";
+export type {
+  ChapaFieldPatch,
+  OfficialTotalsMap,
+  EmitTotalFinalResult,
+} from "./financeiroDynamicEngine";
 export {
   sanitizeFinanceiroDetalhe,
   isInvalidFinanceiroDetalheTipo,

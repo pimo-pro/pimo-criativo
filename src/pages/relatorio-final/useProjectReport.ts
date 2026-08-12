@@ -10,12 +10,14 @@ import {
   markManualPath,
   saveProjectReport,
   seedOrMergeProjectReport,
+  setLinhaDetalheVisual,
   setReportStyle,
   setReportLineOverride,
   withDerivedMetricas,
   withHistoryForPath,
   withLiveFinanceiro,
   type ProjectReport,
+  type ReportFinanceiroDetalhe,
   type ReportStyle,
 } from "@/core/projectReport";
 import {
@@ -44,7 +46,6 @@ function loadReportFlexible(urlKey: string): ProjectReport | null {
   return null;
 }
 
-/** Chave de URL (slug ou id legado) → id de persistência para seed/TRAK. */
 function resolveSeedKey(urlKey: string): string {
   const identity = resolveProjectIdentity(urlKey);
   if (identity?.persistenceId) return identity.persistenceId;
@@ -57,6 +58,17 @@ function loadProjectState(projectId: string): ProjectState | null {
   const record = toSavedRecordFromOffline(offline);
   const revived = reviveState(record.snapshot?.projectState);
   return revived ? applyResultados(revived) : null;
+}
+
+function preserveDetalheMap(report: ProjectReport) {
+  const out: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>> = {};
+  for (const l of report.financeiro?.linhas ?? []) {
+    if (l.key === "iva" || l.key === "total") continue;
+    if ((l.detalhe?.length ?? 0) > 0) {
+      out[l.key as FinanceiroCustoKey] = l.detalhe;
+    }
+  }
+  return out;
 }
 
 export function useProjectReport(projectKey: string | undefined) {
@@ -84,7 +96,6 @@ export function useProjectReport(projectKey: string | undefined) {
         const materials = loadMaterialsForFinanceiro();
         const stored = loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
-        /** P3.26: preços sempre live do Unificado (ADMIN) + detalhe visual. */
         const withLive = withLiveFinanceiro(merged, state, materials);
         if (!cancelled) {
           setProjectState(state);
@@ -114,7 +125,6 @@ export function useProjectReport(projectKey: string | undefined) {
           next = markManualPath(next, manualPath);
           next = withHistoryForPath(prev, next, manualPath);
         }
-        // Preços SSOT: reaplica Unificado live preservando lineOverrides.
         next = withLiveFinanceiro(next, projectState, loadMaterialsForFinanceiro());
         return withDerivedMetricas(next);
       });
@@ -124,38 +134,48 @@ export function useProjectReport(projectKey: string | undefined) {
     [projectState]
   );
 
-  /** Override manual de linha (não altera o motor Unificado). */
   const setLineOverride = useCallback(
     (key: FinanceiroCustoKey, value: number | null) => {
       setReport((prev) => {
         if (!prev) return prev;
         const materials = loadMaterialsForFinanceiro();
         const live = buildLiveReportFinanceiro(projectState, materials, {
-          lineOverrides: undefined,
+          lineOverrides: prev.financeiro.lineOverrides,
           attachChapasDetalhe: true,
           projectId: prev.projectId,
+          preserveDetalheByKey: preserveDetalheMap(prev),
         });
-        const withOverride = setReportLineOverride(
-          {
-            ...live,
-            lineOverrides: prev.financeiro.lineOverrides,
-            // preservar detalhe visual já anexado
-            linhas: live.linhas.map((l) => {
-              if (l.key !== "paineis") return l;
-              const prevDetalhe =
-                prev.financeiro.linhas.find((x) => x.key === "paineis")?.detalhe ?? [];
-              return {
-                ...l,
-                detalhe: l.detalhe?.length ? l.detalhe : prevDetalhe,
-              };
-            }),
-          },
-          key,
-          value
-        );
+        const withOverride = setReportLineOverride(live, key, value);
         return withDerivedMetricas({
           ...prev,
           financeiro: withOverride,
+        });
+      });
+      setDirty(true);
+      setSaveMsg(null);
+    },
+    [projectState]
+  );
+
+  /** Actualiza detalhe visual de uma linha (não altera SSOT). */
+  const setLinhaDetalhe = useCallback(
+    (key: FinanceiroCustoKey, detalhe: ReportFinanceiroDetalhe[]) => {
+      setReport((prev) => {
+        if (!prev) return prev;
+        const materials = loadMaterialsForFinanceiro();
+        const live = buildLiveReportFinanceiro(projectState, materials, {
+          lineOverrides: prev.financeiro.lineOverrides,
+          attachChapasDetalhe: true,
+          projectId: prev.projectId,
+          preserveDetalheByKey: {
+            ...preserveDetalheMap(prev),
+            [key]: detalhe,
+          },
+        });
+        const withDetalhe = setLinhaDetalheVisual(live, key, detalhe, key === "paineis");
+        return withDerivedMetricas({
+          ...prev,
+          financeiro: withDetalhe,
         });
       });
       setDirty(true);
@@ -178,7 +198,6 @@ export function useProjectReport(projectKey: string | undefined) {
     setSaving(true);
     setSaveMsg(null);
     try {
-      // Persistir com financeiro live (SSOT) + overrides manuais.
       const toSave = withLiveFinanceiro(
         report,
         projectState,
@@ -195,12 +214,12 @@ export function useProjectReport(projectKey: string | undefined) {
     }
   }, [report, projectState]);
 
-  /** Financeiro live (para UI) — sempre SSOT + overrides + detalhe visual. */
   const liveFinanceiro = report
     ? buildLiveReportFinanceiro(projectState, loadMaterialsForFinanceiro(), {
         lineOverrides: report.financeiro.lineOverrides,
         attachChapasDetalhe: true,
         projectId: report.projectId,
+        preserveDetalheByKey: preserveDetalheMap(report),
       })
     : null;
 
@@ -214,6 +233,7 @@ export function useProjectReport(projectKey: string | undefined) {
     saveMsg,
     updateReport,
     setLineOverride,
+    setLinhaDetalhe,
     changeStyle,
     save,
     setReport,

@@ -169,11 +169,16 @@ export type ProjectReportFinanceiro = {
   totalProjeto: number;
   /**
    * Overrides manuais do Relatório (não recalculam a base Unificado).
-   * Aplicados sobre totais SSOT; Portas/Remates ignorados.
+   * Aplicados sobre totais SSOT; Portas/Remates podem ter override visual (P3.27).
    */
   lineOverrides?: Partial<Record<FinanceiroCustoKey, number>>;
   /** Badge de origem Painéis (SSOT). */
   paineisOrigem?: ReportPaineisOrigem;
+  /**
+   * Snapshot dos totais oficiais Unificado (antes de overrides).
+   * Usado para badges «valor oficial» e para não perder o SSOT na camada visual.
+   */
+  officialSnapshot?: Partial<Record<FinanceiroCustoKey | "subtotal" | "ivaValor" | "totalProjeto" | "ivaPct", number>>;
 };
 
 export type ReportHistoryEntry = {

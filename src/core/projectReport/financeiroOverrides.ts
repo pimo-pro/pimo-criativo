@@ -53,14 +53,14 @@ export function resolvePaineisOrigem(
   return "fallback_por_peca";
 }
 
-/** Normaliza overrides: portas/remates/chapasReais nunca têm override monetário próprio. */
+/** Normaliza overrides: chapasReais nunca tem override próprio (vai em Painéis). */
 export function normalizeReportLineOverrides(
   overrides: ReportLineOverrides | null | undefined
 ): ReportLineOverrides {
   if (!overrides) return {};
   const out: ReportLineOverrides = {};
   for (const key of FINANCEIRO_CUSTO_KEYS) {
-    if (key === "portas" || key === "remates" || key === "chapasReais") continue;
+    if (key === "chapasReais") continue;
     const v = overrides[key];
     if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
       out[key] = round2(v);
@@ -72,7 +72,7 @@ export function normalizeReportLineOverrides(
 /**
  * Aplica overrides manuais sobre um financeiro já SSOT.
  * Recalcula subtotal / IVA / total com a fórmula ADMIN (IVA só materiais).
- * Não usa detalhe nem €/m² local.
+ * Não usa detalhe nem €/m² local. Preserva officialSnapshot.
  */
 export function applyReportLineOverrides(
   fin: ProjectReportFinanceiro,
@@ -84,9 +84,22 @@ export function applyReportLineOverrides(
       ? fin.ivaPct
       : 23;
 
+  // Snapshot oficial: preferir o já gravado; senão capturar totais actuais sem ov.
+  const officialSnapshot =
+    fin.officialSnapshot ??
+    Object.fromEntries([
+      ...fin.linhas
+        .filter((l) => l.key !== "iva" && l.key !== "total")
+        .map((l) => [l.key, round2(Number(l.total) || 0)]),
+      ["subtotal", round2(fin.subtotal)],
+      ["ivaValor", round2(fin.ivaValor)],
+      ["totalProjeto", round2(fin.totalProjeto)],
+      ["ivaPct", ivaPct],
+    ]);
+
   const linhas: ReportFinanceiroLinha[] = fin.linhas.map((l) => {
     if (l.key === "iva" || l.key === "total") return l;
-    if (l.key === "portas" || l.key === "remates" || l.key === "chapasReais") {
+    if (l.key === "chapasReais") {
       return {
         ...l,
         total: 0,
@@ -95,18 +108,22 @@ export function applyReportLineOverrides(
       };
     }
     const key = l.key as FinanceiroCustoKey;
+    const base =
+      typeof officialSnapshot[key] === "number"
+        ? Number(officialSnapshot[key])
+        : round2(Number(l.total) || 0);
     if (Object.prototype.hasOwnProperty.call(ov, key)) {
       return {
         ...l,
         total: round2(ov[key] ?? 0),
         quantidade: null,
         precoUnitario: null,
-        // Detalhe visual preservado; não alimenta o total.
-        detalhe: isOfficialTotalLockedKey(key) ? l.detalhe : l.detalhe,
+        detalhe: l.detalhe,
       };
     }
     return {
       ...l,
+      total: base,
       quantidade: isOfficialTotalLockedKey(key) ? null : l.quantidade,
       precoUnitario: isOfficialTotalLockedKey(key) ? null : l.precoUnitario,
     };
@@ -125,6 +142,7 @@ export function applyReportLineOverrides(
   return {
     ...fin,
     ivaPct,
+    officialSnapshot,
     linhas: linhas.map((l) => {
       if (l.key === "iva") {
         return { ...l, label: `IVA (${ivaPct}%)`, total: ivaValor, detalhe: [] };
@@ -150,7 +168,7 @@ export function setReportLineOverride(
   const prev = { ...(fin.lineOverrides ?? {}) };
   if (value == null || !Number.isFinite(value) || value < 0) {
     delete prev[key];
-  } else if (key === "portas" || key === "remates" || key === "chapasReais") {
+  } else if (key === "chapasReais") {
     delete prev[key];
   } else {
     prev[key] = round2(value);

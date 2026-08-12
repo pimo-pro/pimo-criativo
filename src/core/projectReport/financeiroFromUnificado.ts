@@ -1,6 +1,6 @@
 /**
- * P3.17 / P3.25 / P3.26 — Mapper SSOT Unificado → shape do Relatório Final.
- * Totais/IVA copiados do snapshot. Detalhe de chapas = só visualização.
+ * P3.17 / P3.25 / P3.26 / P3.27 — Mapper SSOT Unificado → shape do Relatório Final.
+ * Totais oficiais do Unificado; detalhe = camada visual preservável (P3.27).
  */
 
 import type { ProjectState } from "@/context/projectTypes";
@@ -15,6 +15,7 @@ import { listIndustrialWoodMaterials } from "@/core/materials/materials.api";
 import { safeGetItem } from "@/utils/storage";
 
 import { ensureFinanceiroShape } from "./financeReportCalc";
+import { syncWithUnificado } from "./financeiroDynamicEngine";
 import {
   applyReportLineOverrides,
   normalizeReportLineOverrides,
@@ -28,6 +29,7 @@ import {
   PROJECT_REPORT_IVA_DEFAULT,
   type ProjectReport,
   type ProjectReportFinanceiro,
+  type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
 } from "./types";
 
@@ -111,13 +113,17 @@ export function snapshotToReportFinanceiro(
     detalhe: [],
   });
 
-  return {
+  const fin: ProjectReportFinanceiro = {
     ivaPct,
     linhas,
     subtotal,
     ivaValor,
     totalProjeto,
     paineisOrigem: resolvePaineisOrigem(snap),
+  };
+  return {
+    ...fin,
+    officialSnapshot: syncWithUnificado(fin),
   };
 }
 
@@ -127,9 +133,14 @@ export type BuildLiveReportFinanceiroOptions = {
   /** Anexa detalhe visual de chapas (não altera totais). */
   attachChapasDetalhe?: boolean;
   projectId?: string;
+  /**
+   * Detalhe visual a preservar (P3.27) — por key.
+   * Se a key tiver detalhe, não é regenerado a partir do nesting.
+   */
+  preserveDetalheByKey?: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>>;
 };
 
-/** Financeiro do Relatório sempre live a partir do Unificado (P3.25/P3.26). */
+/** Financeiro do Relatório sempre live a partir do Unificado (P3.25–P3.27). */
 export function buildLiveReportFinanceiro(
   state: ProjectState | null | undefined,
   materials: MaterialIndustrial[] = loadMaterialsForFinanceiro(),
@@ -140,17 +151,34 @@ export function buildLiveReportFinanceiro(
     const snap = computeFinanceiroUnificado(state, materials);
     let fin = snapshotToReportFinanceiro(snap);
 
-    if (opts.attachChapasDetalhe !== false) {
+    const preservedPaineis = opts.preserveDetalheByKey?.paineis;
+    if (preservedPaineis && preservedPaineis.length > 0) {
+      fin = withPaineisChapasDetalhe(fin, preservedPaineis);
+    } else if (opts.attachChapasDetalhe !== false) {
       const projectId =
-        opts.projectId ||
-        String(state.projectName || "").trim() ||
-        "";
+        opts.projectId || String(state.projectName || "").trim() || "";
       if (projectId) {
         const detalhe = buildPaineisChapasDetalhe(projectId, state);
         if (detalhe.length > 0) {
           fin = withPaineisChapasDetalhe(fin, detalhe);
         }
       }
+    }
+
+    // Preservar detalhe visual das outras linhas
+    if (opts.preserveDetalheByKey) {
+      fin = {
+        ...fin,
+        linhas: fin.linhas.map((l) => {
+          if (l.key === "iva" || l.key === "total" || l.key === "paineis") return l;
+          const key = l.key as FinanceiroCustoKey;
+          const preserved = opts.preserveDetalheByKey?.[key];
+          if (preserved && preserved.length > 0) {
+            return { ...l, detalhe: preserved };
+          }
+          return l;
+        }),
+      };
     }
 
     const overrides = normalizeReportLineOverrides(
@@ -166,7 +194,20 @@ export function buildLiveReportFinanceiro(
   }
 }
 
-/** Substitui o bloco financeiro do relatório pelo SSOT ADMIN (live). */
+function collectPreservedDetalhe(
+  report: ProjectReport
+): Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>> {
+  const out: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>> = {};
+  for (const l of report.financeiro?.linhas ?? []) {
+    if (l.key === "iva" || l.key === "total") continue;
+    if ((l.detalhe?.length ?? 0) > 0) {
+      out[l.key as FinanceiroCustoKey] = l.detalhe;
+    }
+  }
+  return out;
+}
+
+/** Substitui o bloco financeiro do relatório pelo SSOT ADMIN (live) + detalhe preservado. */
 export function withLiveFinanceiro(
   report: ProjectReport,
   state: ProjectState | null | undefined,
@@ -176,6 +217,7 @@ export function withLiveFinanceiro(
     lineOverrides: report.financeiro?.lineOverrides,
     attachChapasDetalhe: true,
     projectId: report.projectId,
+    preserveDetalheByKey: collectPreservedDetalhe(report),
   });
   return {
     ...report,

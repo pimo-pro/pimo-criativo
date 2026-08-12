@@ -174,19 +174,50 @@ export function exportProjectReportPdf(reportInput: ProjectReport): void {
 
   y = ensureSpace(doc, y, 40);
   y = sectionTitle(doc, "4. Financeiro (custos dinâmicos)", y);
+  const hasOv = Boolean(
+    report.financeiro.lineOverrides &&
+      Object.keys(report.financeiro.lineOverrides).length > 0
+  );
+  if (hasOv && report.financeiro.officialSnapshot?.totalProjeto != null) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(
+      `Overrides activos — total oficial SSOT: ${Number(report.financeiro.officialSnapshot.totalProjeto).toFixed(2)} EUR`,
+      14,
+      y
+    );
+    y += 5;
+  }
   autoTable(doc, {
     startY: y,
-    head: [["Linha", "Qtd", "Preco unit.", "Total"]],
+    head: [["Linha", "Qtd", "Preco unit.", "Total", "Nota"]],
     body: report.financeiro.linhas
       .filter((l) => l.key !== "chapasReais")
-      .map((l) => [
-        l.key in FINANCEIRO_REPORT_LABELS
-          ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
-          : l.label,
-        l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
-        l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
-        l.total.toFixed(2),
-      ]),
+      .map((l) => {
+        const key = l.key;
+        const isOv =
+          key !== "iva" &&
+          key !== "total" &&
+          report.financeiro.lineOverrides != null &&
+          Object.prototype.hasOwnProperty.call(report.financeiro.lineOverrides, key);
+        const official =
+          key !== "iva" && key !== "total"
+            ? report.financeiro.officialSnapshot?.[key as keyof typeof report.financeiro.officialSnapshot]
+            : undefined;
+        return [
+          l.key in FINANCEIRO_REPORT_LABELS
+            ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
+            : l.label,
+          l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
+          l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
+          l.total.toFixed(2),
+          isOv
+            ? `override (oficial ${typeof official === "number" ? official.toFixed(2) : "-"})`
+            : key === "iva" || key === "total"
+              ? "-"
+              : "SSOT",
+        ];
+      }),
     styles: { fontSize: 7 },
     margin: { left: 14, right: 14 },
   });

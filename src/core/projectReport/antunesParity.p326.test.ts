@@ -159,17 +159,20 @@ describe("P3.26 Antunes — paridade ADMIN ↔ Relatório", () => {
     expect(row?.total).toBe(4057.24);
   });
 
-  it("override manual não usa detalhe; portas/remates ficam 0", () => {
+  it("override manual visual; chapasReais sem override próprio", () => {
     const snap = snapFromAntunes();
     const base = snapshotToReportFinanceiro(snap);
     const overridden = applyReportLineOverrides(base, {
       paineis: 3000,
-      portas: 999,
-      remates: 999,
+      portas: 50,
+      remates: 20,
     });
     expect(overridden.linhas.find((l) => l.key === "paineis")?.total).toBe(3000);
-    expect(overridden.linhas.find((l) => l.key === "portas")?.total).toBe(0);
-    expect(overridden.linhas.find((l) => l.key === "remates")?.total).toBe(0);
+    expect(overridden.linhas.find((l) => l.key === "portas")?.total).toBe(50);
+    expect(overridden.linhas.find((l) => l.key === "remates")?.total).toBe(20);
+    // Snapshot oficial preservado
+    expect(overridden.officialSnapshot?.paineis).toBe(ANTUNES.paineis);
+    expect(overridden.officialSnapshot?.portas).toBe(0);
   });
 });
 

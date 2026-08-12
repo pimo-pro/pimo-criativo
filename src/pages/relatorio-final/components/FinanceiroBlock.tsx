@@ -1,13 +1,13 @@
 /**
- * Bloco financeiro do Relatório Final — custos dinâmicos (P3.26).
- * Totais = computeFinanceiroUnificado (SSOT ADMIN). Detalhe = só visualização.
- * Overrides manuais não recalculam a base Unificado.
+ * Bloco financeiro do Relatório Final — P3.27 dinâmico.
+ * Totais oficiais = Unificado (SSOT). Detalhe + overrides = camada visual.
  */
-import { Fragment, useState, type CSSProperties } from "react";
+import { Fragment, useState } from "react";
 import {
   FINANCEIRO_REPORT_LABELS,
   PAINEIS_ORIGEM_LABEL,
   type ProjectReportFinanceiro,
+  type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
   type ReportStyle,
 } from "@/core/projectReport";
@@ -24,15 +24,13 @@ import {
 } from "../reportStyles";
 import { R } from "../uiLabels";
 import PaineisAccordion from "./PaineisAccordion";
+import LinhaDetalheAccordion from "./LinhaDetalheAccordion";
 
 type Props = {
   style: ReportStyle;
   value: ProjectReportFinanceiro;
-  /**
-   * Override manual de linha (não altera o motor Unificado).
-   * null = remover override.
-   */
   onLineOverride?: (key: FinanceiroCustoKey, value: number | null) => void;
+  onLinhaDetalhe?: (key: FinanceiroCustoKey, detalhe: ReportFinanceiroDetalhe[]) => void;
 };
 
 function formatEur(n: number): string {
@@ -43,12 +41,13 @@ function isCustoKey(key: ReportFinanceiroLinha["key"]): key is FinanceiroCustoKe
   return key !== "iva" && key !== "total";
 }
 
-/** Keys editáveis como override manual (não portas/remates/chapasReais/iva/total). */
 const OVERRIDEABLE_KEYS = new Set<FinanceiroCustoKey>([
   "paineis",
+  "portas",
   "gavetas",
   "ferragens",
   "orla",
+  "remates",
   "operacoes",
   "desperdicio",
   "serragem",
@@ -60,18 +59,12 @@ const OVERRIDEABLE_KEYS = new Set<FinanceiroCustoKey>([
   "portes",
 ]);
 
-const accordionPanelStyle: CSSProperties = {
-  display: "grid",
-  gap: 10,
-  padding: 12,
-  margin: "4px 0 8px",
-  background: "var(--card-bg, var(--ui-color-surface, #fff))",
-  border: "1px solid var(--card-border, var(--border, rgba(127,127,127,0.25)))",
-  borderRadius: 8,
-  color: "var(--text-main)",
-};
-
-export default function FinanceiroBlock({ style, value, onLineOverride }: Props) {
+export default function FinanceiroBlock({
+  style,
+  value,
+  onLineOverride,
+  onLinhaDetalhe,
+}: Props) {
   const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(() => new Set());
 
   const toggleKey = (key: FinanceiroCustoKey) => {
@@ -88,10 +81,11 @@ export default function FinanceiroBlock({ style, value, onLineOverride }: Props)
       ? PAINEIS_ORIGEM_LABEL[value.paineisOrigem]
       : PAINEIS_ORIGEM_LABEL.chapas_reais_m2_area;
 
-  const paineisLinha = value.linhas.find((l) => l.key === "paineis");
-  const firstChapa = paineisLinha?.detalhe?.[0];
-  const eurM2 = firstChapa?.precoPorM2 ?? null;
-  const eurChapa = firstChapa?.precoUnitario ?? null;
+  const officialOf = (key: FinanceiroCustoKey): number => {
+    const snap = value.officialSnapshot?.[key];
+    if (typeof snap === "number" && Number.isFinite(snap)) return snap;
+    return Number(value.linhas.find((l) => l.key === key)?.total) || 0;
+  };
 
   return (
     <section style={reportSection(style)} data-testid="financeiro-block-ssot">
@@ -140,6 +134,7 @@ export default function FinanceiroBlock({ style, value, onLineOverride }: Props)
                   Object.prototype.hasOwnProperty.call(value.lineOverrides, key);
                 const canOverride =
                   key != null && OVERRIDEABLE_KEYS.has(key) && Boolean(onLineOverride);
+                const official = key ? officialOf(key) : linha.total;
 
                 return (
                   <Fragment key={linha.key}>
@@ -174,18 +169,27 @@ export default function FinanceiroBlock({ style, value, onLineOverride }: Props)
                       </td>
                       <td style={reportTd}>
                         {key === "paineis" ? (
-                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                          <span
+                            style={{ fontSize: 11, color: "var(--text-muted)" }}
+                            title={R.tooltipOrigemPreco}
+                          >
                             {badge}
                           </span>
                         ) : locked ? (
                           "-"
                         ) : hasOverride ? (
-                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                            {R.overrideManual}
+                          <span
+                            style={{ fontSize: 11, color: "var(--warning, #ca8a04)" }}
+                            title={R.tooltipOverride}
+                          >
+                            {R.badgeOverride}
                           </span>
                         ) : (
-                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                            SSOT
+                          <span
+                            style={{ fontSize: 11, color: "var(--text-muted)" }}
+                            title={R.tooltipValorOficial}
+                          >
+                            {R.badgeValorOficial}
                           </span>
                         )}
                       </td>
@@ -198,12 +202,8 @@ export default function FinanceiroBlock({ style, value, onLineOverride }: Props)
                             min={0}
                             step={0.01}
                             style={{ ...reportInput, minHeight: 32, width: 110 }}
-                            value={
-                              hasOverride
-                                ? value.lineOverrides![key]!
-                                : ""
-                            }
-                            placeholder={linha.total.toFixed(2)}
+                            value={hasOverride ? value.lineOverrides![key]! : ""}
+                            placeholder={official.toFixed(2)}
                             title={R.ajusteManualHint}
                             onChange={(e) => {
                               const raw = e.target.value;
@@ -222,29 +222,34 @@ export default function FinanceiroBlock({ style, value, onLineOverride }: Props)
                       <td style={reportTd}>{formatEur(linha.total)}</td>
                     </tr>
 
-                    {key && isOpen ? (
+                    {key && isOpen && onLinhaDetalhe ? (
                       <tr>
                         <td style={reportTd} colSpan={4}>
                           {key === "paineis" ? (
                             <PaineisAccordion
-                              detalhe={paineisLinha?.detalhe ?? []}
-                              totalOficial={paineisLinha?.total ?? 0}
+                              detalhe={linha.detalhe ?? []}
+                              totalOficial={official}
                               badgeLabel={badge}
-                              eurM2Dominante={eurM2}
-                              eurChapaDerivado={eurChapa}
+                              onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
+                              onApplyVisualAsOverride={
+                                onLineOverride
+                                  ? (v) => onLineOverride(key, v)
+                                  : undefined
+                              }
                             />
                           ) : (
-                            <div style={accordionPanelStyle}>
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: 13,
-                                  color: "var(--text-muted)",
-                                }}
-                              >
-                                {R.semItens} — total SSOT: {formatEur(linha.total)}
-                              </p>
-                            </div>
+                            <LinhaDetalheAccordion
+                              label={displayLabel}
+                              detalhe={linha.detalhe ?? []}
+                              totalOficial={official}
+                              hasOverride={hasOverride}
+                              onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
+                              onApplyVisualAsOverride={
+                                onLineOverride
+                                  ? (v) => onLineOverride(key, v)
+                                  : undefined
+                              }
+                            />
                           )}
                         </td>
                       </tr>
@@ -261,6 +266,14 @@ export default function FinanceiroBlock({ style, value, onLineOverride }: Props)
         {" \u00b7 "}IVA: <strong>{formatEur(value.ivaValor)}</strong>
         {" \u00b7 "}
         {R.total}: <strong>{formatEur(value.totalProjeto)}</strong>
+        {value.officialSnapshot?.totalProjeto != null &&
+        Math.abs(
+          Number(value.officialSnapshot.totalProjeto) - value.totalProjeto
+        ) > 0.009 ? (
+          <span style={{ marginLeft: 8, fontSize: 11 }} title={R.tooltipValorOficial}>
+            ({R.badgeValorOficial}: {formatEur(Number(value.officialSnapshot.totalProjeto))})
+          </span>
+        ) : null}
       </div>
     </section>
   );
