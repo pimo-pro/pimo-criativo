@@ -1,7 +1,7 @@
 /**
- * Chapas reais para o detalhe Painéis do Relatório Final.
- * Agrupa por espessura. Preço por metro linear:
- * preco_unitario = preco_por_metro × (comprimento_mm / 1000).
+ * Chapas reais para o detalhe Painéis do Relatório Final (só visualização).
+ * Agrupa por espessura. Preços de detalhe NÃO alimentam totais oficiais —
+ * o SSOT é computeFinanceiroUnificado (deriveCustoChapaReal × N).
  */
 
 import { getPrecoPorMaterial } from "@/core/pricing/pricing";

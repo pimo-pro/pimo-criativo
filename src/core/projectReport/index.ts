@@ -50,6 +50,8 @@ export {
   updateFinanceiroLinha,
   ensureFinanceiroShape,
   lineTotalFromQtyPrice,
+  isOfficialTotalLockedKey,
+  OFFICIAL_TOTAL_LOCKED_KEYS,
 } from "./financeReportCalc";
 
 export { seedOrMergeProjectReport } from "./seedProjectReport";
@@ -58,7 +60,9 @@ export {
   buildLiveReportFinanceiro,
   loadMaterialsForFinanceiro,
   withLiveFinanceiro,
+  officialLineTotal,
 } from "./financeiroFromUnificado";
+export type { BuildLiveReportFinanceiroOptions } from "./financeiroFromUnificado";
 /** P3.22 — fluxo original da página Financeiro (custos dinâmicos). */
 export { financeiroAdapter, adapterModelToFinanceiroShape } from "./financeiroAdapter";
 export type { FinanceiroAdapterModel } from "./financeiroAdapter";
@@ -72,6 +76,18 @@ export type { FinanceiroIndustrialRulesInput } from "./financeiroIndustrialRules
 export { financeiroTotals, alignOfficialTotalsToUnificado } from "./financeiroTotals";
 export { buildFinanceiroPageFromState } from "./buildFinanceiroPage";
 export type { BuildFinanceiroPageOptions } from "./buildFinanceiroPage";
+export {
+  applyReportLineOverrides,
+  setReportLineOverride,
+  normalizeReportLineOverrides,
+  officialPaineisTotal,
+  resolvePaineisOrigem,
+  PAINEIS_ORIGEM_LABEL,
+} from "./financeiroOverrides";
+export type {
+  ReportLineOverrides,
+  PaineisOrigemBadge,
+} from "./financeiroOverrides";
 export {
   sanitizeFinanceiroDetalhe,
   isInvalidFinanceiroDetalheTipo,

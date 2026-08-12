@@ -1,20 +1,31 @@
 /**
- * P3.19 — Anexa detalhe de chapas a Painéis sem reprecificar totais do Unificado.
+ * P3.19 / P3.26 — Detalhe de chapas em Painéis (só visualização).
+ * Nunca chama updateFinanceiroLinha — totais Unificado intactos.
  */
 
 import type { ProjectState } from "@/context/projectTypes";
+import { deriveCustoChapaReal } from "@/core/financeiro/deriveCustoChapaReal";
 import { computeChapasReal } from "@/core/industrial/computeChapasReal";
 import { findOfflineProjectByAnyKey } from "@/core/projects/projectIdentity";
 import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolveProjectCutlistFromRecord";
 
-import { aggregateChapasByEspessura, detalheFromCatalogoChapa, recalcChapaDetalhe } from "./chapasReport";
+import {
+  aggregateChapasByEspessura,
+  detalheFromCatalogoChapa,
+  formatMedidaMm,
+  recalcChapaDetalhe,
+  resolveDimensoesMm,
+} from "./chapasReport";
 import type { CatalogoChapaOption } from "./chapasReport";
-import { updateFinanceiroLinha } from "./financeReportCalc";
 import type { ProjectReportFinanceiro, ReportFinanceiroDetalhe } from "./types";
 
 function round2(n: number): number {
   return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+function round4(n: number): number {
+  return Math.round((Number(n) || 0) * 10000) / 10000;
 }
 
 /** Total madeira no Unificado (Painéis + chapas reais, anti double-count). */
@@ -24,14 +35,14 @@ export function madeiraTotalFromFinanceiro(fin: ProjectReportFinanceiro): number
   return round2(paineis + chapas);
 }
 
-/** Soma dos totais do detalhe de chapas (UI Painéis). */
+/** Soma dos totais do detalhe de chapas (UI apenas — não é SSOT). */
 export function totalChapasDetalhe(detalhe: ReportFinanceiroDetalhe[]): number {
   return round2(detalhe.reduce((s, d) => s + (Number(d.total) || 0), 0));
 }
 
 /**
- * Constrói detalhe de chapas reais (mesmas sheets que alimentam TCN/nesting),
- * sem alterar subtotal/IVA/total do relatório.
+ * Constrói detalhe visual de chapas reais.
+ * Usa o mesmo €/m² dominante de deriveCustoChapaReal (SSOT ADMIN) para exibição.
  */
 export function buildPaineisChapasDetalhe(
   projectId: string,
@@ -55,7 +66,30 @@ export function buildPaineisChapasDetalhe(
       boxes
     );
     if (chapas.mode !== "real" || chapas.sheets.length === 0) return [];
-    return aggregateChapasByEspessura(chapas.sheets);
+
+    const derived = deriveCustoChapaReal({ cutlist });
+    const rows = aggregateChapasByEspessura(chapas.sheets);
+
+    // Alinhar €/m² e €/chapa ao derivado ADMIN (não ao resolveEurM2 local divergente).
+    if (derived.eurM2 > 0 && derived.custoChapaReal > 0) {
+      return rows.map((d) => {
+        const { L, A } = resolveDimensoesMm(d);
+        const area = round4((Math.max(0, L) * Math.max(0, A)) / 1_000_000);
+        const precoUnitario = round2(derived.eurM2 * area);
+        return recalcChapaDetalhe({
+          ...d,
+          dimensoes: formatMedidaMm(L, A),
+          comprimentoMm: L,
+          larguraMm: A,
+          precoPorM2: derived.eurM2,
+          precoPorMetro: 0,
+          precoUnitario,
+          total: round2((Number(d.quantidade) || 0) * precoUnitario),
+        });
+      });
+    }
+
+    return rows;
   } catch {
     return [];
   }
@@ -72,7 +106,22 @@ export function withPaineisChapasDetalhe(
   return {
     ...fin,
     linhas: fin.linhas.map((l) =>
-      l.key === "paineis" ? { ...l, detalhe: mapped } : l
+      l.key === "paineis"
+        ? {
+            ...l,
+            detalhe: mapped,
+            quantidade: null,
+            precoUnitario: null,
+          }
+        : l.key === "chapasReais"
+          ? {
+              ...l,
+              detalhe: mapped,
+              total: 0,
+              quantidade: null,
+              precoUnitario: null,
+            }
+          : l
     ),
   };
 }
@@ -85,52 +134,22 @@ export function getPaineisDetalhe(
 }
 
 /**
- * P3.24 — Adiciona chapa do catálogo a Painéis (+ espelho chapasReais).
- * O total monetário fica em Painéis; chapasReais.total permanece 0 (anti double-count).
+ * Adiciona chapa do catálogo ao detalhe visual (não altera totais oficiais).
  */
 export function addChapaToPaineisFinanceiro(
   fin: ProjectReportFinanceiro,
   opt: CatalogoChapaOption
 ): ProjectReportFinanceiro {
-  const mapped = [...getPaineisDetalhe(fin), detalheFromCatalogoChapa(opt)].map(
-    recalcChapaDetalhe
-  );
-  const mirrored: ProjectReportFinanceiro = {
-    ...fin,
-    linhas: fin.linhas.map((l) =>
-      l.key === "chapasReais"
-        ? {
-            ...l,
-            detalhe: mapped,
-            total: 0,
-            quantidade: null,
-            precoUnitario: null,
-          }
-        : l
-    ),
-  };
-  return updateFinanceiroLinha(mirrored, "paineis", { detalhe: mapped });
+  return withPaineisChapasDetalhe(fin, [
+    ...getPaineisDetalhe(fin),
+    detalheFromCatalogoChapa(opt),
+  ]);
 }
 
-/** Actualiza detalhe de chapas em Painéis e espelha em chapasReais. */
+/** Actualiza detalhe visual de chapas (não altera totais oficiais). */
 export function setPaineisChapasDetalhe(
   fin: ProjectReportFinanceiro,
   detalhe: ReportFinanceiroDetalhe[]
 ): ProjectReportFinanceiro {
-  const mapped = detalhe.map(recalcChapaDetalhe);
-  const mirrored: ProjectReportFinanceiro = {
-    ...fin,
-    linhas: fin.linhas.map((l) =>
-      l.key === "chapasReais"
-        ? {
-            ...l,
-            detalhe: mapped,
-            total: 0,
-            quantidade: null,
-            precoUnitario: null,
-          }
-        : l
-    ),
-  };
-  return updateFinanceiroLinha(mirrored, "paineis", { detalhe: mapped });
+  return withPaineisChapasDetalhe(fin, detalhe);
 }

@@ -1,19 +1,27 @@
 /**
  * Testes unitarios dos calculos do Relatorio Final (isolados do industrial).
  * P3.17: IVA só sobre materiais (estilo ADMIN).
+ * P3.26: totais oficiais (paineis/orla/portas/remates) não são reprecificados pelo detalhe.
  */
 import { describe, expect, it } from "vitest";
-import { ensureFinanceiroShape, recalcFinanceiro, updateFinanceiroLinha } from "./financeReportCalc";
+import {
+  ensureFinanceiroShape,
+  recalcFinanceiro,
+  recalcLinha,
+  updateFinanceiroLinha,
+} from "./financeReportCalc";
 
 describe("financeReportCalc", () => {
-  it("recalcula linha por quantidade x preco", () => {
-    const fin = ensureFinanceiroShape(null, { paineis: 100 });
+  it("P3.26: qty×preço em Painéis NÃO altera total oficial", () => {
+    const fin = ensureFinanceiroShape(null, { paineis: 2874.88 });
     const next = updateFinanceiroLinha(fin, "paineis", {
-      quantidade: 2,
-      precoUnitario: 15,
+      quantidade: 16,
+      precoUnitario: 253.58,
     });
     const paineis = next.linhas.find((l) => l.key === "paineis");
-    expect(paineis?.total).toBe(30);
+    expect(paineis?.total).toBe(2874.88);
+    expect(paineis?.quantidade).toBeNull();
+    expect(paineis?.precoUnitario).toBeNull();
   });
 
   it("IVA Admin-style: so materiais; ADM fora da base", () => {
@@ -59,7 +67,7 @@ describe("financeReportCalc", () => {
     expect(next.totalProjeto).toBe(153);
   });
 
-  it("agrega detalhe na linha", () => {
+  it("agrega detalhe na linha ferragens (não locked)", () => {
     const fin = ensureFinanceiroShape(null);
     const next = updateFinanceiroLinha(fin, "ferragens", {
       detalhe: [
@@ -103,5 +111,57 @@ describe("financeReportCalc", () => {
     expect(next.subtotal).toBe(15);
     expect(next.ivaValor).toBe(3.45);
     expect(next.totalProjeto).toBe(18.45);
+  });
+
+  it("P3.26: detalhe de chapas em Painéis não sobrescreve total SSOT", () => {
+    const fin = ensureFinanceiroShape(null, { paineis: 2874.88 });
+    const lined = recalcLinha({
+      key: "paineis",
+      label: "Painéis",
+      quantidade: null,
+      precoUnitario: null,
+      total: 2874.88,
+      detalhe: [
+        {
+          id: "ch1",
+          tipo: "MDF",
+          dimensoes: "2800 x 2070 mm",
+          comprimentoMm: 2800,
+          larguraMm: 2070,
+          espessuraMm: 19,
+          quantidade: 16,
+          precoPorM2: 43.75,
+          precoUnitario: 253.58,
+          total: 4057.28,
+        },
+      ],
+    });
+    expect(lined.total).toBe(2874.88);
+    expect(lined.quantidade).toBeNull();
+    expect(lined.precoUnitario).toBeNull();
+    expect(lined.detalhe.length).toBe(1);
+  });
+
+  it("P3.26: orla / portas / remates locked", () => {
+    for (const key of ["orla", "portas", "remates"] as const) {
+      const fin = ensureFinanceiroShape(null, { [key]: key === "orla" ? 134.13 : 0 });
+      const next = updateFinanceiroLinha(fin, key, {
+        quantidade: 10,
+        precoUnitario: 99,
+        detalhe: [
+          {
+            id: "x",
+            tipo: "x",
+            dimensoes: "",
+            quantidade: 10,
+            precoUnitario: 99,
+            total: 990,
+          },
+        ],
+      });
+      const row = next.linhas.find((l) => l.key === key);
+      expect(row?.total).toBe(key === "orla" ? 134.13 : 0);
+      expect(row?.quantidade).toBeNull();
+    }
   });
 });

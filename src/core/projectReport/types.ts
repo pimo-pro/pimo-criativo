@@ -155,12 +155,25 @@ export type ProjectReportMontagem = {
   melhoriasImplementadas: ReportTextoItem[];
 };
 
+/** Origem do preço de Painéis (badge UI) — só informativo. */
+export type ReportPaineisOrigem =
+  | "chapas_reais_m2_area"
+  | "fallback_por_peca"
+  | "estimado";
+
 export type ProjectReportFinanceiro = {
   ivaPct: number;
   linhas: ReportFinanceiroLinha[];
   subtotal: number;
   ivaValor: number;
   totalProjeto: number;
+  /**
+   * Overrides manuais do Relatório (não recalculam a base Unificado).
+   * Aplicados sobre totais SSOT; Portas/Remates ignorados.
+   */
+  lineOverrides?: Partial<Record<FinanceiroCustoKey, number>>;
+  /** Badge de origem Painéis (SSOT). */
+  paineisOrigem?: ReportPaineisOrigem;
 };
 
 export type ReportHistoryEntry = {

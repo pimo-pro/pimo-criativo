@@ -10,9 +10,29 @@ import { isInternalProjectId } from "@/core/projects/projectIdentity";
 
 import { buildChartMetrics } from "./chartMetrics";
 import { deriveMetricas } from "./deriveMetricas";
+import { isOfficialTotalLockedKey } from "./financeReportCalc";
 import { getFerragensDetalhe } from "./materiaisSync";
 import { joinTextoItems } from "./migrateReport";
 import { FINANCEIRO_REPORT_LABELS, type ProjectReport, type ReportTextoItem } from "./types";
+
+/** Garante PDF sem qtd/unit sticky em keys oficiais (anti-preço legado). */
+function sanitizeFinanceiroForPdf(report: ProjectReport): ProjectReport {
+  return {
+    ...report,
+    financeiro: {
+      ...report.financeiro,
+      linhas: report.financeiro.linhas.map((l) => {
+        if (l.key === "chapasReais") {
+          return { ...l, total: 0, quantidade: null, precoUnitario: null };
+        }
+        if (l.key !== "iva" && l.key !== "total" && isOfficialTotalLockedKey(l.key)) {
+          return { ...l, quantidade: null, precoUnitario: null };
+        }
+        return l;
+      }),
+    },
+  };
+}
 
 function safeName(name: string): string {
   return (name || "projeto")
@@ -49,7 +69,8 @@ function itemsText(items: ReportTextoItem[] | undefined): string {
   return joined || "-";
 }
 
-export function exportProjectReportPdf(report: ProjectReport): void {
+export function exportProjectReportPdf(reportInput: ProjectReport): void {
+  const report = sanitizeFinanceiroForPdf(reportInput);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   let y = 16;
   const metricas = deriveMetricas(report);

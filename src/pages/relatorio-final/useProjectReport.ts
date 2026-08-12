@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { applyResultados } from "@/context/projectState";
 import { reviveState } from "@/context/projectPersistence";
 import type { ProjectState } from "@/context/projectTypes";
+import type { FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import {
   buildLiveReportFinanceiro,
   loadMaterialsForFinanceiro,
@@ -10,6 +11,7 @@ import {
   saveProjectReport,
   seedOrMergeProjectReport,
   setReportStyle,
+  setReportLineOverride,
   withDerivedMetricas,
   withHistoryForPath,
   withLiveFinanceiro,
@@ -82,7 +84,7 @@ export function useProjectReport(projectKey: string | undefined) {
         const materials = loadMaterialsForFinanceiro();
         const stored = loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
-        /** P3.25: preços sempre live do Unificado (ADMIN). */
+        /** P3.26: preços sempre live do Unificado (ADMIN) + detalhe visual. */
         const withLive = withLiveFinanceiro(merged, state, materials);
         if (!cancelled) {
           setProjectState(state);
@@ -112,9 +114,49 @@ export function useProjectReport(projectKey: string | undefined) {
           next = markManualPath(next, manualPath);
           next = withHistoryForPath(prev, next, manualPath);
         }
-        // Preços SSOT: qualquer update reaplica o Unificado live.
+        // Preços SSOT: reaplica Unificado live preservando lineOverrides.
         next = withLiveFinanceiro(next, projectState, loadMaterialsForFinanceiro());
         return withDerivedMetricas(next);
+      });
+      setDirty(true);
+      setSaveMsg(null);
+    },
+    [projectState]
+  );
+
+  /** Override manual de linha (não altera o motor Unificado). */
+  const setLineOverride = useCallback(
+    (key: FinanceiroCustoKey, value: number | null) => {
+      setReport((prev) => {
+        if (!prev) return prev;
+        const materials = loadMaterialsForFinanceiro();
+        const live = buildLiveReportFinanceiro(projectState, materials, {
+          lineOverrides: undefined,
+          attachChapasDetalhe: true,
+          projectId: prev.projectId,
+        });
+        const withOverride = setReportLineOverride(
+          {
+            ...live,
+            lineOverrides: prev.financeiro.lineOverrides,
+            // preservar detalhe visual já anexado
+            linhas: live.linhas.map((l) => {
+              if (l.key !== "paineis") return l;
+              const prevDetalhe =
+                prev.financeiro.linhas.find((x) => x.key === "paineis")?.detalhe ?? [];
+              return {
+                ...l,
+                detalhe: l.detalhe?.length ? l.detalhe : prevDetalhe,
+              };
+            }),
+          },
+          key,
+          value
+        );
+        return withDerivedMetricas({
+          ...prev,
+          financeiro: withOverride,
+        });
       });
       setDirty(true);
       setSaveMsg(null);
@@ -136,7 +178,7 @@ export function useProjectReport(projectKey: string | undefined) {
     setSaving(true);
     setSaveMsg(null);
     try {
-      // Persistir com financeiro live (SSOT) para não congelar preços errados.
+      // Persistir com financeiro live (SSOT) + overrides manuais.
       const toSave = withLiveFinanceiro(
         report,
         projectState,
@@ -153,19 +195,25 @@ export function useProjectReport(projectKey: string | undefined) {
     }
   }, [report, projectState]);
 
-  /** Financeiro live (para UI) — sempre SSOT. */
+  /** Financeiro live (para UI) — sempre SSOT + overrides + detalhe visual. */
   const liveFinanceiro = report
-    ? buildLiveReportFinanceiro(projectState, loadMaterialsForFinanceiro())
+    ? buildLiveReportFinanceiro(projectState, loadMaterialsForFinanceiro(), {
+        lineOverrides: report.financeiro.lineOverrides,
+        attachChapasDetalhe: true,
+        projectId: report.projectId,
+      })
     : null;
 
   return {
     report: report && liveFinanceiro ? { ...report, financeiro: liveFinanceiro } : report,
+    projectState,
     loading,
     saving,
     error,
     dirty,
     saveMsg,
     updateReport,
+    setLineOverride,
     changeStyle,
     save,
     setReport,

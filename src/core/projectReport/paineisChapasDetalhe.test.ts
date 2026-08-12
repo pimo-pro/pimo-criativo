@@ -131,8 +131,9 @@ describe("P3.19 Painéis detalhe", () => {
       totalProjeto: 184.5,
     });
     const fin = snapshotToReportFinanceiro(snap);
+    // Relatório: valor em Painéis; chapasReais linha = 0 (anti double-count UI)
+    expect(fin.linhas.find((l) => l.key === "paineis")?.total).toBe(150);
+    expect(fin.linhas.find((l) => l.key === "chapasReais")?.total).toBe(0);
     expect(madeiraTotalFromFinanceiro(fin)).toBe(150);
-    expect(fin.linhas.find((l) => l.key === "chapasReais")?.total).toBe(150);
-    expect(fin.linhas.find((l) => l.key === "paineis")?.total).toBe(0);
   });
 });

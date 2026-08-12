@@ -33,6 +33,7 @@ export default function RelatorioFinalProjeto() {
     dirty,
     saveMsg,
     updateReport,
+    setLineOverride,
     changeStyle,
     save,
   } = useProjectReport(urlKey);
@@ -165,7 +166,11 @@ export default function RelatorioFinalProjeto() {
           }
         />
 
-        <FinanceiroBlock style={style} value={report.financeiro} />
+        <FinanceiroBlock
+          style={style}
+          value={report.financeiro}
+          onLineOverride={setLineOverride}
+        />
 
         <NotasBlock
           style={style}

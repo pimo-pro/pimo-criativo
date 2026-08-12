@@ -1,6 +1,7 @@
 /**
  * Calculos financeiros do relatorio — alinhados ao Financeiro Unificado (ADMIN).
  * P3.17: IVA só sobre materiais; ADM/montagem/portes fora da base de IVA.
+ * P3.26: totais oficiais (paineis/orla/portas/remates) NÃO são reprecificados pelo detalhe.
  */
 
 import {
@@ -22,6 +23,22 @@ function round2(n: number): number {
 }
 
 const ADMIN_EXTRA_KEYS: FinanceiroCustoKey[] = ["adm", "montagem", "portes"];
+
+/**
+ * Keys cujo total oficial vem do Unificado (ADMIN).
+ * Detalhe é só visualização — nunca sobrescreve total / qtd / unitário.
+ */
+export const OFFICIAL_TOTAL_LOCKED_KEYS: ReadonlySet<FinanceiroCustoKey> = new Set([
+  "paineis",
+  "orla",
+  "portas",
+  "remates",
+  "chapasReais",
+]);
+
+export function isOfficialTotalLockedKey(key: string): boolean {
+  return OFFICIAL_TOTAL_LOCKED_KEYS.has(key as FinanceiroCustoKey);
+}
 
 export function lineTotalFromQtyPrice(
   quantidade: number | null,
@@ -62,7 +79,7 @@ export function recalcLinha(linha: ReportFinanceiroLinha): ReportFinanceiroLinha
 
   const detalhe = (linha.detalhe ?? []).map(recalcDetalhe);
 
-  /** Espelho de chapas: detalhe em chapasReais; valor monetário só em Painéis. */
+  /** Espelho de chapas: detalhe opcional; valor monetário nunca nesta linha. */
   if (linha.key === "chapasReais") {
     return {
       ...linha,
@@ -70,6 +87,20 @@ export function recalcLinha(linha: ReportFinanceiroLinha): ReportFinanceiroLinha
       quantidade: null,
       precoUnitario: null,
       total: 0,
+    };
+  }
+
+  /**
+   * Totais oficiais (Painéis / Orla / Portas / Remates): detalhe só visual.
+   * Preserva total SSOT; limpa qtd/unit para não contradizer o total.
+   */
+  if (isOfficialTotalLockedKey(linha.key)) {
+    return {
+      ...linha,
+      detalhe,
+      quantidade: null,
+      precoUnitario: null,
+      total: round2(Number(linha.total) || 0),
     };
   }
 
@@ -153,6 +184,8 @@ export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFin
     subtotal: subtotalMateriais,
     ivaValor,
     totalProjeto,
+    lineOverrides: fin.lineOverrides,
+    paineisOrigem: fin.paineisOrigem,
   };
 }
 
@@ -163,6 +196,19 @@ export function updateFinanceiroLinha(
 ): ProjectReportFinanceiro {
   const linhas = fin.linhas.map((l) => {
     if (l.key !== key) return l;
+
+    /** Keys oficiais: só anexar detalhe visual; nunca alterar total via qty×preço. */
+    if (isOfficialTotalLockedKey(key)) {
+      const next: ReportFinanceiroLinha = {
+        ...l,
+        detalhe: patch.detalhe !== undefined ? patch.detalhe : l.detalhe,
+        quantidade: null,
+        precoUnitario: null,
+        total: round2(Number(l.total) || 0),
+      };
+      return next;
+    }
+
     const next: ReportFinanceiroLinha = { ...l, ...patch };
     if (
       patch.detalhe === undefined &&
@@ -209,5 +255,7 @@ export function ensureFinanceiroShape(
     subtotal: 0,
     ivaValor: 0,
     totalProjeto: 0,
+    lineOverrides: partial?.lineOverrides,
+    paineisOrigem: partial?.paineisOrigem,
   });
 }

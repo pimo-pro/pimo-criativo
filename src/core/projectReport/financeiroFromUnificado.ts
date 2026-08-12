@@ -1,6 +1,6 @@
 /**
- * P3.17 / P3.25 — Mapper SSOT Unificado → shape do Relatório Final.
- * Totais/IVA copiados do snapshot (sem reprecificação, sem detalhe, sem fallback).
+ * P3.17 / P3.25 / P3.26 — Mapper SSOT Unificado → shape do Relatório Final.
+ * Totais/IVA copiados do snapshot. Detalhe de chapas = só visualização.
  */
 
 import type { ProjectState } from "@/context/projectTypes";
@@ -15,6 +15,14 @@ import { listIndustrialWoodMaterials } from "@/core/materials/materials.api";
 import { safeGetItem } from "@/utils/storage";
 
 import { ensureFinanceiroShape } from "./financeReportCalc";
+import {
+  applyReportLineOverrides,
+  normalizeReportLineOverrides,
+  officialPaineisTotal,
+  resolvePaineisOrigem,
+  type ReportLineOverrides,
+} from "./financeiroOverrides";
+import { buildPaineisChapasDetalhe, withPaineisChapasDetalhe } from "./paineisChapasDetalhe";
 import {
   FINANCEIRO_REPORT_LABELS,
   PROJECT_REPORT_IVA_DEFAULT,
@@ -52,24 +60,19 @@ export function loadMaterialsForFinanceiro(): MaterialIndustrial[] {
 }
 
 /** Valor de linha no Relatório = ADMIN (Painéis = paineis + chapasReais). */
-function officialLineTotal(
+export function officialLineTotal(
   snap: FinanceiroUnificadoSnapshot,
   key: FinanceiroCustoKey
 ): number {
   if (key === "chapasReais") return 0;
-  if (key === "paineis") {
-    return round2(
-      (Number(snap.custosEffective.paineis) || 0) +
-        (Number(snap.custosEffective.chapasReais) || 0)
-    );
-  }
+  if (key === "paineis") return officialPaineisTotal(snap);
+  if (key === "portas" || key === "remates") return 0;
   return round2(Number(snap.custosEffective[key]) || 0);
 }
 
 /**
  * Converte o snapshot do Financeiro Unificado (ADMIN) no formato do Relatório Final.
  * Fonte única: `custosEffective` + `subtotal` / `ivaValor` / `totalProjeto`.
- * Sem detalhe, sem fallback, sem recalculo interno.
  */
 export function snapshotToReportFinanceiro(
   snap: FinanceiroUnificadoSnapshot
@@ -114,17 +117,50 @@ export function snapshotToReportFinanceiro(
     subtotal,
     ivaValor,
     totalProjeto,
+    paineisOrigem: resolvePaineisOrigem(snap),
   };
 }
 
-/** Financeiro do Relatório sempre live a partir do Unificado (P3.25). */
+export type BuildLiveReportFinanceiroOptions = {
+  /** Overrides manuais do Relatório (não alteram o motor Unificado). */
+  lineOverrides?: ReportLineOverrides | null;
+  /** Anexa detalhe visual de chapas (não altera totais). */
+  attachChapasDetalhe?: boolean;
+  projectId?: string;
+};
+
+/** Financeiro do Relatório sempre live a partir do Unificado (P3.25/P3.26). */
 export function buildLiveReportFinanceiro(
   state: ProjectState | null | undefined,
-  materials: MaterialIndustrial[] = loadMaterialsForFinanceiro()
+  materials: MaterialIndustrial[] = loadMaterialsForFinanceiro(),
+  opts: BuildLiveReportFinanceiroOptions = {}
 ): ProjectReportFinanceiro {
   if (!state) return ensureFinanceiroShape(null);
   try {
-    return snapshotToReportFinanceiro(computeFinanceiroUnificado(state, materials));
+    const snap = computeFinanceiroUnificado(state, materials);
+    let fin = snapshotToReportFinanceiro(snap);
+
+    if (opts.attachChapasDetalhe !== false) {
+      const projectId =
+        opts.projectId ||
+        String(state.projectName || "").trim() ||
+        "";
+      if (projectId) {
+        const detalhe = buildPaineisChapasDetalhe(projectId, state);
+        if (detalhe.length > 0) {
+          fin = withPaineisChapasDetalhe(fin, detalhe);
+        }
+      }
+    }
+
+    const overrides = normalizeReportLineOverrides(
+      opts.lineOverrides ?? fin.lineOverrides
+    );
+    if (Object.keys(overrides).length > 0) {
+      fin = applyReportLineOverrides(fin, overrides);
+    }
+
+    return fin;
   } catch {
     return ensureFinanceiroShape(null);
   }
@@ -136,8 +172,13 @@ export function withLiveFinanceiro(
   state: ProjectState | null | undefined,
   materials: MaterialIndustrial[] = loadMaterialsForFinanceiro()
 ): ProjectReport {
+  const live = buildLiveReportFinanceiro(state, materials, {
+    lineOverrides: report.financeiro?.lineOverrides,
+    attachChapasDetalhe: true,
+    projectId: report.projectId,
+  });
   return {
     ...report,
-    financeiro: buildLiveReportFinanceiro(state, materials),
+    financeiro: live,
   };
 }

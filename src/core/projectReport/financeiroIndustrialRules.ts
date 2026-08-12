@@ -1,7 +1,7 @@
 /**
- * P3.22 — financeiroIndustrialRules (fluxo original do Relatório Final).
- * Aplica regras industriais de UI: chapas em Painéis, orla, portas/remates=0.
- * NÃO chama computeFinanceiroUnificado.
+ * P3.22 / P3.26 — financeiroIndustrialRules (fluxo detalhe UI do Relatório Final).
+ * Detalhe de chapas/orla = só visualização. NÃO reprecifica totais oficiais.
+ * Totais oficiais vêm sempre de computeFinanceiroUnificado (via align / live).
  */
 
 import type { ProjectState } from "@/context/projectTypes";
@@ -15,7 +15,7 @@ import { aggregateChapasByEspessura } from "./chapasReport";
 import type { FinanceiroAdapterModel } from "./financeiroAdapter";
 import { adapterModelToFinanceiroShape } from "./financeiroAdapter";
 import { sanitizeFinanceiroDetalhe } from "./financeiroDetalheSanitize";
-import { updateFinanceiroLinha } from "./financeReportCalc";
+import { withPaineisChapasDetalhe } from "./paineisChapasDetalhe";
 import { ensureFerragensFromMateriais } from "./materiaisSync";
 import { buildOrlaDetalheFromState } from "./orlaReport";
 import {
@@ -35,6 +35,9 @@ export type FinanceiroIndustrialRulesInput = {
   ferragensCatalog?: Ferragem[];
 };
 
+/**
+ * Anexa detalhe de chapas a Painéis sem updateFinanceiroLinha / sem reprecificar.
+ */
 export function seedChapasDetalhe(
   fin: ProjectReportFinanceiro,
   projectId: string,
@@ -43,7 +46,7 @@ export function seedChapasDetalhe(
   const paineis = fin.linhas.find((l) => l.key === "paineis");
   const chapasLegado = fin.linhas.find((l) => l.key === "chapasReais");
   if ((paineis?.detalhe?.length ?? 0) === 0 && (chapasLegado?.detalhe?.length ?? 0) > 0) {
-    return updateFinanceiroLinha(fin, "paineis", { detalhe: chapasLegado!.detalhe });
+    return withPaineisChapasDetalhe(fin, chapasLegado!.detalhe ?? []);
   }
   if ((paineis?.detalhe?.length ?? 0) > 0) return fin;
 
@@ -67,12 +70,15 @@ export function seedChapasDetalhe(
     if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;
     const detalhe = aggregateChapasByEspessura(chapas.sheets);
     if (detalhe.length === 0) return fin;
-    return updateFinanceiroLinha(fin, "paineis", { detalhe });
+    return withPaineisChapasDetalhe(fin, detalhe);
   } catch {
     return fin;
   }
 }
 
+/**
+ * Anexa detalhe de orla sem alterar o total oficial da linha.
+ */
 export function seedOrlaDetalhe(
   fin: ProjectReportFinanceiro,
   state: ProjectState | null
@@ -80,28 +86,41 @@ export function seedOrlaDetalhe(
   const orla = fin.linhas.find((l) => l.key === "orla");
   if ((orla?.detalhe?.length ?? 0) > 0) return fin;
   const detalhe = buildOrlaDetalheFromState(state);
+  const attach = (rows: NonNullable<typeof orla>["detalhe"]) => ({
+    ...fin,
+    linhas: fin.linhas.map((l) =>
+      l.key === "orla"
+        ? {
+            ...l,
+            detalhe: rows,
+            quantidade: null,
+            precoUnitario: null,
+            total: round2(Number(l.total) || 0),
+          }
+        : l
+    ),
+  });
+
   if (detalhe.length === 0) {
     const total = Number(orla?.total) || 0;
     if (!(total > 0)) return fin;
-    return updateFinanceiroLinha(fin, "orla", {
-      detalhe: [
-        {
-          id: makeReportId("or"),
-          tipo: "Orla",
-          dimensoes: "m",
-          quantidade: Number(orla?.quantidade) || 1,
-          precoUnitario:
-            orla?.precoUnitario != null
-              ? Number(orla.precoUnitario)
-              : Number(orla?.quantidade)
-                ? round2(total / Number(orla.quantidade))
-                : total,
-          total,
-        },
-      ],
-    });
+    return attach([
+      {
+        id: makeReportId("or"),
+        tipo: "Orla",
+        dimensoes: "m",
+        quantidade: Number(orla?.quantidade) || 1,
+        precoUnitario:
+          orla?.precoUnitario != null
+            ? Number(orla.precoUnitario)
+            : Number(orla?.quantidade)
+              ? round2(total / Number(orla.quantidade))
+              : total,
+        total,
+      },
+    ]);
   }
-  return updateFinanceiroLinha(fin, "orla", { detalhe });
+  return attach(detalhe);
 }
 
 /** Portas/Remates = 0 €; labels industriais. */
@@ -130,6 +149,7 @@ export function applyIndustrialReportLinhas(fin: ProjectReportFinanceiro): Proje
 
 /**
  * Aplica regras industriais ao modelo adaptado → shape de relatório com detalhe UI.
+ * Totais finais devem ser alinhados com alignOfficialTotalsToUnificado / live SSOT.
  */
 export function financeiroIndustrialRules(
   input: FinanceiroIndustrialRulesInput
@@ -139,7 +159,6 @@ export function financeiroIndustrialRules(
   fin = seedChapasDetalhe(fin, model.projectId, model.state);
   fin = seedOrlaDetalhe(fin, model.state);
   fin = applyIndustrialReportLinhas(fin);
-  // Sanitizar detalhe (sem Prego Costa / peças do caixa) antes e depois das ferragens.
   fin = {
     ...fin,
     linhas: fin.linhas.map((l) => ({
