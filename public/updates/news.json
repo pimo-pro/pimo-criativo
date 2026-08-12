@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-12T14:01:59.801Z",
+  "updatedAt": "2026-08-12T14:33:20.278Z",
   "news": [
+    {
+      "version": "v6.0812.1533",
+      "title": "feat: financeiro dinâmico no relatório final (P3.27)",
+      "description": "feat: financeiro dinâmico no relatório final (P3.27)",
+      "publishedAt": "2026-08-12T14:33:20.114Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "6becc71d"
+    },
     {
       "version": "v6.0812.1501",
       "title": "fix: unificar preços Painéis (ADMIN ↔ Relatório)",
       "description": "fix: unificar preços Painéis (ADMIN ↔ Relatório)",
-      "publishedAt": "2026-08-12T14:01:59.619Z",
+      "publishedAt": "2026-08-12T15:03:49+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "a23bdc8d"
+      "commit": "40cd241"
+    },
+    {
+      "version": "v6.20260812.1459-p326-paineis-ssot",
+      "title": "fix: unificar preços Painéis (ADMIN ↔ Relatório)",
+      "description": "fix: unificar preços Painéis (ADMIN ↔ Relatório)\n\nP3.26 — totais oficiais só via Unificado; detalhe de chapas só visualização; overrides manuais sem reprecificar a base.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-12T14:59:27+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "a23bdc8"
     },
     {
       "version": "v6.0812.0019",
