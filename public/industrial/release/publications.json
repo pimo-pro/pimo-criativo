@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-12T14:01:58.863Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix: unificar preços Painéis (ADMIN ↔ Relatório)",
+      "version": "v6.0812.1501"
+    },
+    {
       "publishedAt": "2026-08-11T23:19:35.866Z",
       "author": "pimo-pro",
       "commitMessage": "Release — P3.25 · Correção de preço no Relatório Final — khaled-pro",
