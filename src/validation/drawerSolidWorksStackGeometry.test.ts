@@ -1,6 +1,6 @@
 /**
- * Stack din?mico anti-sobreposi??o ? alturas/bottoms/slides a partir de H real.
- * Laterais unificadas h?64,5; elev 18,5 / 17 / 12,5.
+ * Stack dinâmico anti-sobreposição — Diff 3 equal_quase.
+ * B0=0 · G=4 · ajuste 1.ª = −2 · corpo Diff 2 · runners Diff 1.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -24,24 +24,28 @@ import { DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM } from "../core/drawers/drilling/dra
 import { resolveEuropeanModuleRunnerLinesYMm } from "../core/drawers/drilling/DrawerDrillingRules";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 
-describe("stack din?mico anti-sobreposi??o", () => {
+describe("stack dinâmico anti-sobreposição", () => {
   const H = 762;
   const T = 19;
 
-  it("f?rmula equal: zero overlap, gaps 4, slides = bottom+41", () => {
+  it("fórmula equal_quase: zero overlap, gaps 4, slides = bottom+41", () => {
+    // distributable = 762 − 0 − 8 = 754; hEqual = (754−(−2))/3 = 252
+    // frente0 = 250; frente1/2 = 252
     const layout = resolveDynamicEqualDrawerStackLayout({
       count: 3,
       boxHeightMm: H,
       slideOffsetFromBottomMm: DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM,
     });
-    expect(layout.heights[0]).toBeCloseTo(251.333, 3);
+    expect(layout.heights[0]).toBeCloseTo(250, 5);
+    expect(layout.heights[1]).toBeCloseTo(252, 5);
+    expect(layout.heights[2]).toBeCloseTo(252, 5);
     expect(layout.bottoms[0]).toBeCloseTo(0, 5);
-    expect(layout.bottoms[1]).toBeCloseTo(255.333, 3);
-    expect(layout.bottoms[2]).toBeCloseTo(510.667, 3);
+    expect(layout.bottoms[1]).toBeCloseTo(254, 5);
+    expect(layout.bottoms[2]).toBeCloseTo(510, 5);
     expect(layout.tops[2]).toBeCloseTo(H, 3);
     expect(layout.slides[0]).toBeCloseTo(41, 3);
-    expect(layout.slides[1]).toBeCloseTo(296.333, 3);
-    expect(layout.slides[2]).toBeCloseTo(551.667, 3);
+    expect(layout.slides[1]).toBeCloseTo(295, 3);
+    expect(layout.slides[2]).toBeCloseTo(551, 3);
 
     const anti = assertNoDrawerFrontOverlap({
       bottoms: layout.bottoms,
@@ -61,19 +65,19 @@ describe("stack din?mico anti-sobreposi??o", () => {
     expect(cover.ok).toBe(true);
   });
 
-  it("laterais GAV_1 frente×0,685; mid/high ×0,75; elev 16,5 / 17", () => {
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(16.5);
-    expect(DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM).toBe(12.5);
+  it("laterais industriais frente−delta; elev 48", () => {
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
+    expect(DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM).toBe(12.5); // legado
     expect(DRAWER_FRONT_LATERAL_GAP_MM).toBe(2);
     expect(settingsDefaults.gavetas.gavetaFolgaFrenteMm).toBe(2);
 
-    const h = 251.33333333333334;
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "lowest")).toBeCloseTo(h * 0.685, 3);
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "middle")).toBeCloseTo(h * 0.75, 3);
-    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "highest")).toBeCloseTo(h * 0.75, 3);
+    const h = 252;
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "lowest")).toBeCloseTo(h - 85.5, 3);
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "middle")).toBeCloseTo(h - 68.5, 3);
+    expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "highest")).toBeCloseTo(h - 68.5, 3);
   });
 
-  it("generateDrawerGroup 3 gavetas — GAV_1 elev 16,5 / R 0,685; mid/high 17 / 0,75", () => {
+  it("generateDrawerGroup 3 gavetas — equal_quase; delta 85,5/68,5; elev 48", () => {
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: H,
@@ -97,29 +101,32 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const anti = assertNoDrawerFrontOverlap({ bottoms, tops });
     expect(anti.ok).toBe(true);
 
-    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(16.5);
-    expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(17);
-    expect(layers[2]!.metadata?.sideBaseElevationMm).toBe(17);
-    expect(layers[0]!.bodyHeight).toBeCloseTo(heights[0]! * 0.685, 5);
-    expect(layers[1]!.bodyHeight).toBeCloseTo(heights[1]! * 0.75, 5);
-    expect(layers[2]!.bodyHeight).toBeCloseTo(heights[2]! * 0.75, 5);
-    expect(heights[0]).toBeCloseTo(heights[1]!, 5);
+    expect(heights[0]).toBeCloseTo(250, 5);
+    expect(heights[1]).toBeCloseTo(252, 5);
+    expect(heights[2]).toBeCloseTo(252, 5);
+    expect(heights[0]).toBeLessThan(heights[1]!);
     expect(heights[1]).toBeCloseTo(heights[2]!, 5);
+
+    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(48);
+    expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(48);
+    expect(layers[2]!.metadata?.sideBaseElevationMm).toBe(48);
+    expect(layers[0]!.bodyHeight).toBeCloseTo(heights[0]! - 85.5, 5);
+    expect(layers[1]!.bodyHeight).toBeCloseTo(heights[1]! - 68.5, 5);
+    expect(layers[2]!.bodyHeight).toBeCloseTo(heights[2]! - 68.5, 5);
+    expect(layers[1]!.bodyHeight).toBeCloseTo(layers[2]!.bodyHeight!, 5);
 
     const moduleBase = -H / 2;
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
-    expect(bodyBottom - moduleBase).toBeCloseTo(2 + 16.5, 5);
+    expect(bodyBottom - moduleBase).toBeCloseTo(0 + 48, 5);
 
     const bodyH2 = layers[2]!.bodyHeight!;
     const offsetY2 = layers[2]!.bodyCenterOffsetY!;
     const bodyTop2 = layers[2]!.posY! + offsetY2 + bodyH2 / 2;
     const cimaUnderside = moduleBase + H - T;
-    // folga CIMA = frontH×(1−ratio) − elevação − T (ratio Admin 0,75; elev highest 17)
     const frontHTop = heights[2]!;
-    const expectedCimaClearance =
-      frontHTop * (settingsDefaults.gavetas.gavetaReducaoPercentual / 100) - 17 - T;
+    const expectedCimaClearance = frontHTop - 48 - bodyH2 - T;
     expect(cimaUnderside - bodyTop2).toBeCloseTo(expectedCimaClearance, 1);
 
     const geo2 = resolveDrawerFrontStackGeometry({
@@ -133,6 +140,8 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const runnerFromTop = resolveEuropeanModuleRunnerLinesYMm({
       panelHeightMm: H - 2 * T,
       boxInternalHeightMm: H,
+      boxExternalHeightMm: H,
+      floorThicknessMm: T,
       drawers: positions.map((posY, i) => ({
         posYMm: posY,
         frontHeightMm: heights[i]!,
@@ -140,23 +149,23 @@ describe("stack din?mico anti-sobreposi??o", () => {
     });
     const panelH = H - 2 * T;
     const fromBottom = runnerFromTop.map((yTop) => panelH - yTop);
+    // Diff 1 pitch H/n — independente do stack das frentes
     expect(fromBottom[0]).toBeCloseTo(41, 3);
-    // middle/highest: eixo 22,5 desde base da frente; B0=2 → fromBottom = (bottom−2)+22,5
-    expect(fromBottom[1]).toBeCloseTo(277.167, 3);
-    expect(fromBottom[2]).toBeCloseTo(531.833, 3);
+    expect(fromBottom[1]).toBeCloseTo(276, 3);
+    expect(fromBottom[2]).toBeCloseTo(530, 3);
   });
 
-  it("calculateDrawerHeights equal clássico com B0=2", () => {
+  it("calculateDrawerHeights equal_quase com B0=0", () => {
     const heights = calculateDrawerHeights(3, H, "equal", undefined, {
       topPanelThicknessMm: T,
     });
-    // h = (H − 2 − 4×2) / 3 = 752/3
-    expect(heights[0]).toBeCloseTo(250.667, 3);
-    expect(heights[0]).toBeCloseTo(heights[1]!, 5);
+    expect(heights[0]).toBeCloseTo(250, 5);
+    expect(heights[1]).toBeCloseTo(252, 5);
+    expect(heights[2]).toBeCloseTo(252, 5);
     const positions = calculateDrawerPositions(heights, H);
     const b0 = positions[0]! - (-H / 2) - heights[0]! / 2;
     const b1 = positions[1]! - (-H / 2) - heights[1]! / 2;
-    expect(b0).toBeCloseTo(2, 5);
+    expect(b0).toBeCloseTo(0, 5);
     expect(b1 - (b0 + heights[0]!)).toBeCloseTo(4, 5);
   });
 });

@@ -2,16 +2,17 @@
  * Posição da gaveta no stack vertical do módulo (SSOT industrial).
  *
  * Ordem física: índice 0 = inferior (perto da base); último = superior (perto da CIMA).
- * Com `DRAWER_VERTICAL_BASE_OFFSET_MM = 2` (GAV_1):
- * - frente inferior a 2 mm acima da base do vão
- * - frente superior chega — borda superior (CIMA)
+ * Com `DRAWER_VERTICAL_BASE_OFFSET_MM = 0` (Diff 3 / gavita 8):
+ * - frente inferior flush à base do vão (B0 = 0)
+ * - frente superior chega à borda superior (CIMA)
+ * - modo `"equal"` = equal_quase (1.ª frente −2 mm)
  */
 
 import {
-  DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
+  DRAWER_BODY_DELTA_LOWEST_MM,
+  DRAWER_BODY_DELTA_UPPER_MM,
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM,
-  DRAWER_SIDE_BASE_ELEVATION_MM,
-  DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM,
 } from "./drawerGeometryConstants";
 
 export type DrawerStackRole = "lowest" | "highest" | "middle" | "single";
@@ -29,48 +30,53 @@ export function resolveDrawerStackRole(
 }
 
 /**
- * Elevação do corpo vs base da frente (mm) — gaveta inferior (GAV_1 / role=lowest).
- * E_inf_real = 16,5 mm absoluto (independente de T_fundo).
+ * Elevação do corpo vs base da frente (mm) — constante industrial 48 (gavita 8).
  * `boxFloorThicknessMm` mantido na assinatura por compatibilidade de callers.
  */
 export function resolveLowestDrawerBodyElevationFromFrontMm(
   boxFloorThicknessMm: number = 19
 ): number {
   void boxFloorThicknessMm;
-  return DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
+  return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
 }
 
 /**
- * Elevação legado — gaveta única (role=single): T_fundo + 18,5.
- * Mantida até aprovação industrial da regra GAV_1 para single.
+ * Single alinhado ao modelo unificado (48 mm) — já não T+18,5.
  */
 export function resolveSingleDrawerBodyElevationFromFrontMm(
   boxFloorThicknessMm: number = 19
 ): number {
-  const T = Math.max(0, Number(boxFloorThicknessMm) || 0);
-  return T + DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM;
+  void boxFloorThicknessMm;
+  return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
 }
 
 /**
- * Elevação industrial do corpo vs frente por papel no stack.
- * lowest (GAV_1): 16,5 absoluto · single: T+18,5 (legado) · middle/highest: 17.
- *
- * middle e highest usam o mesmo valor (antes: 17 / 12,5) para intercambiabilidade.
- * DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM (12,5) é só referência legada.
+ * Elevação industrial do corpo vs frente — todas as gavetas = 48 mm.
  */
 export function resolveDrawerBodyElevationForStackRoleMm(
   stackRole: DrawerStackRole,
   boxFloorThicknessMm: number = 19
 ): number {
+  void stackRole;
+  void boxFloorThicknessMm;
+  return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+}
+
+/**
+ * Delta frente − lateral por papel no stack (mm).
+ * lowest/single: 85,5 · middle/highest: 68,5.
+ */
+export function resolveDrawerBodyDeltaForStackRoleMm(
+  stackRole: DrawerStackRole
+): number {
   switch (stackRole) {
     case "lowest":
-      return resolveLowestDrawerBodyElevationFromFrontMm(boxFloorThicknessMm);
     case "single":
-      return resolveSingleDrawerBodyElevationFromFrontMm(boxFloorThicknessMm);
+      return DRAWER_BODY_DELTA_LOWEST_MM;
     case "highest":
     case "middle":
     default:
-      return DRAWER_SIDE_BASE_ELEVATION_MM;
+      return DRAWER_BODY_DELTA_UPPER_MM;
   }
 }
 
@@ -92,9 +98,9 @@ export type DrawerFrontStackGeometry = {
   frontTopFromModuleBaseMm: number;
   /** Centro Y local (origem = centro do módulo). */
   posYMm: number;
-  /** Confirma flush — base (inferior / úúnica). */
+  /** Confirma flush — base (inferior / única). */
   flushToModuleBase: boolean;
-  /** Confirma flush — CIMA (superior / úúnica). */
+  /** Confirma flush — CIMA (superior / única). */
   flushToModuleTop: boolean;
 };
 
@@ -125,7 +131,7 @@ export function resolveDrawerFrontStackGeometry(params: {
     params.baseOffsetMm != null && Number.isFinite(params.baseOffsetMm)
       ? Number(params.baseOffsetMm)
       : DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
-  /** Flush industrial = base da frente no datum GAV_1 (B0=2), não no zero geométrico. */
+  /** Flush industrial = base da frente no datum GAV_1 (B0=0). */
   const flushToModuleBase =
     (role === "lowest" || role === "single") &&
     Math.abs(frontBottomFromModuleBaseMm - industrialBaseMm) <= eps;

@@ -33,15 +33,18 @@ import {
 } from "./drawerCertificationTestHelpers";
 
 describe("gav_frente — stack vertical por posição no módulo", () => {
-  it("offset de base = 2 mm (frente inferior GAV_1 acima do fundo da caixa)", () => {
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
+  it("offset de base = 0 mm (Diff 3 — B0 flush)", () => {
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
   });
 
-  it("módulo 2 gavetas iguais 720 mm — frentes (H−B0−gap)/2; datum base 2 mm e CIMA", () => {
+  it("módulo 2 gavetas equal_quase 720 mm — 1.ª −2; datum B0=0 e CIMA", () => {
     const boxH = 720;
     const heights = calculateDrawerHeights(2, boxH, "equal");
-    const expectedEach = (boxH - DRAWER_VERTICAL_BASE_OFFSET_MM - DRAWER_VERTICAL_GAP_MM) / 2;
-    expect(heights).toEqual([expectedEach, expectedEach]);
+    const distributable = boxH - DRAWER_VERTICAL_BASE_OFFSET_MM - DRAWER_VERTICAL_GAP_MM;
+    const ajuste = -2;
+    const hEqual = (distributable - ajuste) / 2;
+    expect(heights[0]).toBeCloseTo(hEqual + ajuste, 5);
+    expect(heights[1]).toBeCloseTo(hEqual, 5);
 
     const positions = calculateDrawerPositions(heights, boxH);
     const lower = resolveDrawerFrontStackGeometry({
@@ -144,8 +147,8 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
     expect(groove0!.y - upperCav0).toBeCloseTo(22, 5);
     expect(groove1!.y - upperCav1).toBeCloseTo(22, 5);
     const lowerCav0 = Math.min(...cav0.map((h) => h.y));
-    // Inferior (GAV_1): elev = 16,5; cavilha inferior em elev+15.
-    expect(lowerCav0).toBeCloseTo(16.5 + 15, 5);
+    // Inferior (GAV_1): elev = 48; cavilha inferior em elev+15.
+    expect(lowerCav0).toBeCloseTo(DRAWER_SIDE_BASE_ELEVATION_MM + 15, 5);
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {
       projectName: "STACK2",

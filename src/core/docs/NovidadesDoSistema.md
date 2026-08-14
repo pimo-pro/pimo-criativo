@@ -1,5 +1,28 @@
 # Novidades do Sistema
 
+### Release — Sistema de Gavetas Industrial (Diff 1 + Diff 2 + Diff 3) · modelo gavita 8
+Publicação completa das correções industriais das gavetas, validadas contra o módulo de referência gavita 8 (600×800×500, 3 gavetas).
+
+**Diff 1 — Corrediças Y (pitch dinâmico)**
+- `Y(0) = 41` · `Y(i) = 41 + i·(H/n) − T` (modo `pitch_H_sobre_n`)
+- Confirmação gavita 8: **41 / 288,67 / 555,33**
+- X das corrediças, NL e profundidade intocados
+
+**Diff 2 — Corpo industrial**
+- Laterais = frente − delta (85,5 lowest/single · 68,5 middle/highest)
+- Costa = lateral − 23
+- Elevação corpo unificada: **48 mm**
+- Confirmação: laterais **177,17 / 196,17 / 196,17** · costas **154,17 / 173,17 / 173,17**
+
+**Diff 3 — Stack das frentes (equal_quase)**
+- B0 = 0 · gap = 4 · ajuste 1.ª frente = −2 mm
+- `hEqual = (distributable − ajuste) / n` · modo `"equal"` usa equal_quase internamente
+- Confirmação frentes: **262,67 / 264,67 / 264,67**
+
+**Validação**
+- Suite industrial gavetas/corpo/frente/corrediças: **97/97 OK**
+- Sem impacto em NL, profundidade, X das corrediças, portas, DIV ou PI
+
 ### Release — P3.25 · Correção de preço no Relatório Final
 - Relatório Final sincronizado com o Financeiro ADMIN (`computeFinanceiroUnificado`)
 - Sem recalculo interno (qty×preço, IVA/total locais, fallbacks de chapas/Painéis/ferragens)

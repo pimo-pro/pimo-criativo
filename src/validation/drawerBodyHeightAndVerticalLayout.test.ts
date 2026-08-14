@@ -1,5 +1,13 @@
+/**
+ * Diff 2 — altura do corpo: frente − delta(role); costa = lateral − 23; elev = 48.
+ */
 import { describe, expect, it } from "vitest";
-import { DRAWER_SIDE_BASE_ELEVATION_MM, DRAWER_SIDE_TOP_CLEARANCE_RATIO } from "../core/drawers/drawerGeometryConstants";
+import {
+  DRAWER_BODY_DELTA_LOWEST_MM,
+  DRAWER_BODY_DELTA_UPPER_MM,
+  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
+  DRAWER_SIDE_BASE_ELEVATION_MM,
+} from "../core/drawers/drawerGeometryConstants";
 import { calculateDrawerSpecs } from "../core/drawers/DrawerParametrics";
 import {
   calculateDrawerHeights,
@@ -14,20 +22,20 @@ import {
   resolveDrawerViewerSidePosYMm,
   buildDrawerWoodViewerPieceBoxes,
 } from "../core/drawers/drawerViewerLayout";
-import {
-  resolveDrawerVerticalPositions,
-} from "../core/drawers/drawerVerticalPosition";
 import { resolveDrawerBodyHeightMm } from "../core/drawers/drawerLayerCustomization";
+import { resolveDrawerBodyDeltaForStackRoleMm } from "../core/drawers/drawerStackPosition";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 import type { DrawerLayerItem } from "../models/BoxLayers";
 
-describe("altura do corpo da gaveta (frente × 75%)", () => {
-  it("H_body = H_front × 0,75", () => {
-    expect(resolveDrawerWoodBodyHeightMm(200)).toBe(150);
-    expect(resolveDrawerWoodBodyHeightMm(180)).toBe(135);
+describe("altura do corpo da gaveta (delta industrial)", () => {
+  it("H_body = H_front − delta(role)", () => {
+    // default role = middle → delta 68.5
+    expect(resolveDrawerWoodBodyHeightMm(200)).toBeCloseTo(200 - 68.5, 5);
+    expect(resolveDrawerWoodBodyHeightMm(180, "lowest")).toBeCloseTo(180 - 85.5, 5);
+    expect(resolveDrawerWoodBodyHeightMm(180, "middle")).toBeCloseTo(180 - 68.5, 5);
   });
 
-  it("calculateDrawerSpecs aplica ratio nas laterais e costa", () => {
+  it("calculateDrawerSpecs aplica delta nas laterais e costa−23", () => {
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 562,
@@ -37,20 +45,22 @@ describe("altura do corpo da gaveta (frente × 75%)", () => {
         boxThickness: 19,
         drawerHeight: 200,
         totalDrawers: 1,
+        stackRole: "single",
         type: "normal",
       },
       settingsDefaults.gavetas.gavetaProfundidadesDisponiveisMm,
       settingsDefaults.gavetas
     );
+    const lat = 200 - DRAWER_BODY_DELTA_LOWEST_MM; // single = lowest delta
     expect(specs.frontExt.height).toBe(200);
-    expect(specs.body.height).toBe(150);
-    const f = 1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
-    expect(specs.back.height).toBeCloseTo(150 * f, 5);
-    expect(specs.leftSide.height).toBe(150);
+    expect(specs.body.height).toBeCloseTo(lat, 5);
+    expect(specs.back.height).toBeCloseTo(lat - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM, 5);
+    expect(specs.leftSide.height).toBeCloseTo(lat, 5);
+    expect(specs.sideBaseElevationMm).toBe(48);
   });
 
-  it("bounding boxes madeira — frente mais alta que laterais, bases alinhadas", () => {
-    const woodH = 150;
+  it("bounding boxes madeira — frente mais alta que laterais, base elevada 48", () => {
+    const woodH = 200 - DRAWER_BODY_DELTA_UPPER_MM;
     const boxes = buildDrawerWoodViewerPieceBoxes({
       frontWidthMm: 598,
       frontHeightMm: 200,
@@ -69,29 +79,25 @@ describe("altura do corpo da gaveta (frente × 75%)", () => {
     expect(lat.maxY - lat.minY).toBe(woodH);
     expect(front.maxY - front.minY).toBeGreaterThan(lat.maxY - lat.minY);
     expect(lat.minY - front.minY).toBeCloseTo(DRAWER_SIDE_BASE_ELEVATION_MM, 0);
-    expect(front.maxY - lat.maxY).toBeCloseTo(
-      200 * DRAWER_SIDE_TOP_CLEARANCE_RATIO - DRAWER_SIDE_BASE_ELEVATION_MM,
-      0
+  });
+
+  it("offset Y do corpo = −(H_front − H_body)/2 + elevação 48", () => {
+    const bodyH = 200 - DRAWER_BODY_DELTA_UPPER_MM;
+    expect(resolveDrawerBodyCenterOffsetYMm(200, bodyH)).toBeCloseTo(
+      -(200 - bodyH) / 2 + DRAWER_SIDE_BASE_ELEVATION_MM,
+      5
     );
   });
 
-  it("offset Y do corpo = −(H_front − H_body)/2 + elevação", () => {
-    expect(resolveDrawerBodyCenterOffsetYMm(200)).toBe(-25 + DRAWER_SIDE_BASE_ELEVATION_MM);
-  });
-
-  it("laterais — base elevada, altura 75%%, topo proporcional", () => {
+  it("laterais — base elevada 48, altura = frente − delta", () => {
     const frontH = 200;
     const sideH = resolveDrawerViewerSideHeightMm(frontH);
     const sideY = resolveDrawerViewerSidePosYMm(0, frontH, sideH);
     const sideTop = sideY + sideH / 2;
     const sideBottom = sideY - sideH / 2;
-    expect(sideH).toBe(150);
+    expect(sideH).toBeCloseTo(frontH - DRAWER_BODY_DELTA_UPPER_MM, 5);
     expect(sideBottom).toBeCloseTo(-100 + DRAWER_SIDE_BASE_ELEVATION_MM, 3);
     expect(sideTop).toBeCloseTo(sideBottom + sideH, 3);
-    expect(frontH / 2 - sideTop).toBeCloseTo(
-      frontH * DRAWER_SIDE_TOP_CLEARANCE_RATIO - DRAWER_SIDE_BASE_ELEVATION_MM,
-      3
-    );
   });
 });
 
@@ -105,7 +111,7 @@ describe("posição vertical — ordem do utilizador preservada", () => {
     expect(positions[0]).toBeLessThan(positions[2]!);
   });
 
-  it("generateDrawerGroup — posições Y para 3 gavetas iguais", () => {
+  it("generateDrawerGroup — posições Y e bodyH = frente − delta", () => {
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: boxH,
@@ -125,5 +131,15 @@ describe("posição vertical — ordem do utilizador preservada", () => {
     expect(ys[0]).toBeLessThan(ys[1]!);
     expect(ys[1]).toBeLessThan(ys[2]!);
     expect(layers[0]!.height).toBeLessThan(boxH);
+    layers.forEach((layer, i) => {
+      const role = i === 0 ? "lowest" : i === layers.length - 1 ? "highest" : "middle";
+      const delta = resolveDrawerBodyDeltaForStackRoleMm(role);
+      expect(layer.bodyHeight).toBeCloseTo((layer.height ?? 0) - delta, 5);
+      expect(resolveDrawerBodyHeightMm(layer as DrawerLayerItem)).toBeCloseTo(
+        layer.bodyHeight!,
+        5
+      );
+      expect(layer.metadata?.sideBaseElevationMm).toBe(48);
+    });
   });
 });

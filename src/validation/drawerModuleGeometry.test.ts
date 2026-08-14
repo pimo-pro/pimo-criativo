@@ -6,8 +6,8 @@ import {
   drawerGroupToLayerItems,
   calculateDrawerSpecs,
 } from "../core/drawers";
-import { DRAWER_VERTICAL_GAP_MM, DRAWER_SIDE_TOP_CLEARANCE_RATIO, DRAWER_LOWEST_SIDE_TOP_CLEARANCE_RATIO } from "../core/drawers/drawerGeometryConstants";
-import { resolveDrawerStackRole } from "../core/drawers/drawerStackPosition";
+import { DRAWER_VERTICAL_GAP_MM, DRAWER_BODY_DELTA_LOWEST_MM, DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM } from "../core/drawers/drawerGeometryConstants";
+import { resolveDrawerBodyDeltaForStackRoleMm } from "../core/drawers/drawerStackPosition";
 import {
   buildDrawerVerticalSlots,
   drawerVerticalSlotsOverlap,
@@ -63,18 +63,19 @@ describe("Geometria da gaveta no módulo", () => {
 
       layers.forEach((layer, i) => {
         const drawer = group.drawers[i]!;
-        const role = resolveDrawerStackRole(i, drawerCount);
-        const topClearanceRatio =
-          role === "lowest"
-            ? DRAWER_LOWEST_SIDE_TOP_CLEARANCE_RATIO
-            : DRAWER_SIDE_TOP_CLEARANCE_RATIO;
+        const role =
+          drawerCount === 1
+            ? "single"
+            : i === 0
+              ? "lowest"
+              : i === drawerCount - 1
+                ? "highest"
+                : "middle";
+        const delta = resolveDrawerBodyDeltaForStackRoleMm(role);
         expect(layer.height).toBeCloseTo(drawer.specs.frontExt.height, 1);
         expect(layer.bodyHeight).toBeCloseTo(drawer.specs.body.height, 1);
         expect(layer.height).toBeGreaterThan(layer.bodyHeight!);
-        expect(layer.height! - layer.bodyHeight!).toBeCloseTo(
-          layer.height! * topClearanceRatio,
-          0
-        );
+        expect(layer.height! - layer.bodyHeight!).toBeCloseTo(delta, 0);
         expect(layer.posZ).toBeCloseTo(boxD / 2 + 1 - layer.frontThickness / 2, 1);
         expect(layer.posX ?? 0).toBeCloseTo(0, 1);
         expect(layer.width).toBe(boxW - 2 * drawerSettings.gavetaFolgaFrenteMm);
@@ -133,16 +134,19 @@ describe("Geometria da gaveta no módulo", () => {
         boxThickness: boxT,
         drawerHeight: 200,
         totalDrawers: 1,
+        stackRole: "single",
         type: "normal",
       },
       drawerSettings.gavetaProfundidadesDisponiveisMm,
       drawerSettings
     );
     expect(specs.body.depth).toBe(500);
-    // Costa = laterais × factor → frente − costa = frente × (1 − 0,75²)
+    // Costa = lateral − 23; lateral = frente − 85,5 (single)
+    const lat = 200 - DRAWER_BODY_DELTA_LOWEST_MM;
+    expect(specs.back.height).toBeCloseTo(lat - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM, 5);
     expect(specs.frontExt.height - specs.back.height).toBeCloseTo(
-      specs.frontExt.height * (1 - 0.75 * 0.75),
-      0
+      DRAWER_BODY_DELTA_LOWEST_MM + DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
+      5
     );
   });
 });

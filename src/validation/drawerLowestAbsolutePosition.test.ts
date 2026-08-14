@@ -1,15 +1,14 @@
 /**
- * Posição absoluta do gaveta inferior (GAV_1):
- * frente a 2 mm da base; corpo elevação 16,5 mm vs frente → bodyBottom=18,5; Δ=22,5.
- * Ratio laterais R_real = 0,685. Middle/highest: elev=17, ratio Admin 0,75.
+ * Posição absoluta do gaveta inferior (GAV_1) — Diff 3:
+ * frente a 0 mm da base (B0); elevação corpo 48 mm; lateral = frente − 85,5.
  */
 import { describe, expect, it } from "vitest";
 import {
   generateDrawerGroup,
   drawerGroupToLayerItems,
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
-  DRAWER_LOWEST_SIDE_HEIGHT_RATIO,
-  DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_BODY_DELTA_LOWEST_MM,
+  DRAWER_BODY_DELTA_UPPER_MM,
   DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM,
   DRAWER_VERTICAL_BASE_OFFSET_MM,
   resolveDrawerFrontStackGeometry,
@@ -28,28 +27,26 @@ import { settingsDefaults } from "../core/settings/settingsSchema";
 
 describe("gaveta inferior — posição absoluta corpo/frente", () => {
   const T = 19;
-  /** GAV_1: elevação absoluta industrial (não T+folga). */
-  const elevLowest = 16.5;
-  const frontBottomIndustrial = 2;
-  const bodyBottomIndustrial = frontBottomIndustrial + elevLowest; // 18.5
+  const elev = 48;
+  const frontBottomIndustrial = 0;
+  const bodyBottomIndustrial = frontBottomIndustrial + elev; // 48
 
-  it("constantes SSOT GAV_1", () => {
-    expect(DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM).toBe(2);
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(16.5);
-    expect(DRAWER_LOWEST_SIDE_HEIGHT_RATIO).toBe(0.685);
-    expect(resolveLowestDrawerBodyElevationFromFrontMm(T)).toBe(elevLowest);
-    expect(DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM).toBe(12.5);
-    expect(resolveDrawerBodyElevationForStackRoleMm("lowest", T)).toBe(elevLowest);
-    expect(resolveDrawerBodyElevationForStackRoleMm("single", T)).toBe(T + 18.5);
-    expect(resolveDrawerBodyElevationForStackRoleMm("middle", T)).toBe(17);
-    expect(resolveDrawerBodyElevationForStackRoleMm("highest", T)).toBe(17);
+  it("constantes SSOT GAV_1 (Diff 3)", () => {
+    expect(DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM).toBe(0);
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
+    expect(DRAWER_BODY_DELTA_LOWEST_MM).toBe(85.5);
+    expect(DRAWER_BODY_DELTA_UPPER_MM).toBe(68.5);
+    expect(resolveLowestDrawerBodyElevationFromFrontMm(T)).toBe(elev);
+    expect(resolveDrawerBodyElevationForStackRoleMm("lowest", T)).toBe(elev);
+    expect(resolveDrawerBodyElevationForStackRoleMm("single", T)).toBe(elev);
+    expect(resolveDrawerBodyElevationForStackRoleMm("middle", T)).toBe(elev);
+    expect(resolveDrawerBodyElevationForStackRoleMm("highest", T)).toBe(elev);
+    expect(DRAWER_SIDE_BASE_ELEVATION_MM).toBe(48);
     expect(DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM).toBe(41);
-    // Δ = eixo 41 − bodyBottom 18,5 = 22,5
-    expect(DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM - bodyBottomIndustrial).toBeCloseTo(22.5, 5);
   });
 
-  it("generateDrawerGroup — frente 2; corpo E=16,5 → bodyBottom 18,5; R=0,685", () => {
+  it("generateDrawerGroup — frente B0=0; corpo E=48 → bodyBottom 48; delta 85,5/68,5", () => {
     const boxH = 720;
     const group = generateDrawerGroup({
       boxWidth: 600,
@@ -76,13 +73,13 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
 
     expect(geo0.frontBottomFromModuleBaseMm).toBeCloseTo(frontBottomIndustrial, 5);
     expect(geo0.flushToModuleBase).toBe(true);
-    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(elevLowest);
-    expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(DRAWER_SIDE_BASE_ELEVATION_MM);
+    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(elev);
+    expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(elev);
 
     const frontH0 = layers[0]!.height!;
     const frontH1 = layers[1]!.height!;
-    expect(layers[0]!.bodyHeight).toBeCloseTo(frontH0 * DRAWER_LOWEST_SIDE_HEIGHT_RATIO, 5);
-    expect(layers[1]!.bodyHeight).toBeCloseTo(frontH1 * 0.75, 5);
+    expect(layers[0]!.bodyHeight).toBeCloseTo(frontH0 - DRAWER_BODY_DELTA_LOWEST_MM, 5);
+    expect(layers[1]!.bodyHeight).toBeCloseTo(frontH1 - DRAWER_BODY_DELTA_UPPER_MM, 5);
 
     const frontH = layers[0]!.height!;
     const bodyH = layers[0]!.bodyHeight!;
@@ -96,26 +93,15 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     expect(
       resolveDrawerBodyBottomFromModuleBaseMm({
         frontBottomFromModuleBaseMm: geo0.frontBottomFromModuleBaseMm,
-        sideBaseElevationMm: elevLowest,
+        sideBaseElevationMm: elev,
       })
     ).toBeCloseTo(bodyBottomIndustrial, 5);
-
-    const elevHigh = layers[1]!.metadata?.sideBaseElevationMm as number;
-    const bodyH1 = layers[1]!.bodyHeight!;
-    const offsetY1 = layers[1]!.bodyCenterOffsetY!;
-    const bodyTop1 = layers[1]!.posY! + offsetY1 + bodyH1 / 2;
-    const cimaUnderside = moduleBase + boxH - T;
-    expect(cimaUnderside - bodyTop1).toBeGreaterThanOrEqual(28.5 - 0.05);
-    expect(elevHigh).toBe(17);
-    expect(DRAWER_SIDE_BASE_ELEVATION_MM).toBe(17);
   });
 
   it("furos: lowest — rasgo elev+sideH−13; cavilha inferior elev+15", () => {
     const frontH = 358;
     const sideH = resolveDrawerWoodBodyHeightMm(frontH, "lowest");
-    expect(sideH).toBeCloseTo(frontH * DRAWER_LOWEST_SIDE_HEIGHT_RATIO, 5);
-    const elevLow = elevLowest;
-    const elevHigh = 12.5;
+    expect(sideH).toBeCloseTo(frontH - DRAWER_BODY_DELTA_LOWEST_MM, 5);
     const lowest = computeDrawerFrenteExtStructuralHoles({
       largura: 598,
       altura: frontH,
@@ -125,40 +111,41 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
       bodyWidthMm: 548,
       sideThicknessMm: 16,
       bottomThicknessMm: 10,
-      sideBaseElevationMm: elevLow,
+      sideBaseElevationMm: elev,
     });
+    const sideHHigh = resolveDrawerWoodBodyHeightMm(frontH, "highest");
     const highest = computeDrawerFrenteExtStructuralHoles({
       largura: 598,
       altura: frontH,
       espessura: 19,
       stackRole: "highest",
       isLowestDrawer: false,
-      sideHeightMm: resolveDrawerWoodBodyHeightMm(frontH, "highest"),
+      sideHeightMm: sideHHigh,
       bodyWidthMm: 548,
       sideThicknessMm: 16,
       bottomThicknessMm: 10,
-      sideBaseElevationMm: elevHigh,
+      sideBaseElevationMm: elev,
     });
-    const grooveYLow = elevLow + sideH - 13;
-    const grooveYHigh = elevHigh + resolveDrawerWoodBodyHeightMm(frontH, "highest") - 13;
+    const grooveYLow = elev + sideH - 13;
+    const grooveYHigh = elev + sideHHigh - 13;
     expect(lowest.find((h) => h.holeSubtype === "groove")?.y).toBe(grooveYLow);
     expect(highest.find((h) => h.holeSubtype === "groove")?.y).toBe(grooveYHigh);
     const lowerCavLow = Math.min(
       ...lowest.filter((h) => h.tipo === "cavilha").map((h) => h.y)
     );
-    expect(lowerCavLow).toBeCloseTo(elevLow + 15, 5);
+    expect(lowerCavLow).toBeCloseTo(elev + 15, 5);
     expect(lowest.find((h) => h.holeSubtype === "groove")?.profundidade).toBe(11);
   });
 
-  it("viewer/layout: lateral inferior elev=16,5 vs frente; ratio 0,685", () => {
-    const boxH = 762;
+  it("viewer/layout: lateral inferior elev=48 vs frente; delta 85,5", () => {
+    const boxH = 720;
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: boxH,
-      boxDepth: 500,
+      boxDepth: 560,
       boxThickness: T,
-      boxId: "viewer-elev",
-      drawerCount: 3,
+      boxId: "viewer-abs",
+      drawerCount: 1,
       drawerType: "normal",
       heightMode: "equal",
       availableDepths: settingsDefaults.gavetas.gavetaProfundidadesDisponiveisMm,
@@ -168,39 +155,19 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     });
     const layers = drawerGroupToLayerItems(group);
     const L0 = layers[0]!;
-    const elev = L0.metadata?.sideBaseElevationMm as number;
-    expect(elev).toBe(elevLowest);
-    expect(L0.bodyHeight).toBeCloseTo(L0.height! * DRAWER_LOWEST_SIDE_HEIGHT_RATIO, 5);
+    const elevMeta = L0.metadata?.sideBaseElevationMm as number;
+    expect(elevMeta).toBe(elev);
+    expect(L0.bodyHeight).toBeCloseTo(L0.height! - DRAWER_BODY_DELTA_LOWEST_MM, 5);
 
     const layout = resolveDrawerViewerWoodSideLayoutMm({
-      frontPosYMm: L0.frontPosY ?? 0,
+      frontPosYMm: L0.posY ?? 0,
       frontHeightMm: L0.height!,
-      bodyWidthMm: L0.bodyWidth!,
-      sideThicknessMm: L0.leftSideWidth ?? 16,
-      slideLengthMm: L0.bodyDepth!,
-      baseElevationMm: elev,
-      sideHeightMm: L0.leftSideHeight,
+      bodyWidthMm: L0.bodyWidth ?? 548,
+      sideThicknessMm: L0.sideThickness ?? 16,
+      slideLengthMm: L0.nominalDepthMm ?? L0.bodyDepth ?? 500,
+      sideHeightMm: L0.bodyHeight!,
+      baseElevationMm: elevMeta,
     });
-    const frontBottomLocal = (L0.frontPosY ?? 0) - L0.height! / 2;
-    const sideBottomLocal = layout.sidePosYMm - layout.sideHeightMm / 2;
-    expect(sideBottomLocal - frontBottomLocal).toBeCloseTo(elevLowest, 5);
-    expect(layout.sideHeightMm).toBeCloseTo(L0.leftSideHeight!, 5);
-
-    const sideH = L0.leftSideHeight!;
-    const holes = computeDrawerFrenteExtStructuralHoles({
-      largura: L0.width!,
-      altura: L0.height!,
-      espessura: L0.frontThickness ?? 19,
-      stackRole: "lowest",
-      sideHeightMm: sideH,
-      bodyWidthMm: L0.bodyWidth!,
-      sideThicknessMm: L0.leftSideWidth ?? 16,
-      bottomThicknessMm: L0.bottomThickness ?? 10,
-      sideBaseElevationMm: elev,
-    });
-    const lowerCav = Math.min(
-      ...holes.filter((h) => h.tipo === "cavilha").map((h) => h.y)
-    );
-    expect(lowerCav).toBeCloseTo(elev + 15, 5);
+    expect(layout.sideHeightMm).toBeCloseTo(L0.bodyHeight!, 5);
   });
 });

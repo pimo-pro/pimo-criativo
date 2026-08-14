@@ -8,8 +8,8 @@ import { canOpenDrawer } from "../core/drawers/DrawerCollisionService";
 import type { DrawerLayerItem } from "../models/BoxLayers";
 
 describe("Drawer vertical position (FASE 5)", () => {
-  it("usa offset base de 2 mm (frente inferior GAV_1)", () => {
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
+  it("usa offset base de 0 mm (Diff 3 — B0 flush)", () => {
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
   });
 
   it("alinha posições com fórmula unificada", () => {

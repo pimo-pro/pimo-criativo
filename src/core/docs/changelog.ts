@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-14",
+    versao: "Diff1+Diff2+Diff3",
+    descricao:
+      "Publicação completa — Sistema de Gavetas Industrial (gavita 8): corrediças Y pitch 41/288,67/555,33; corpo laterais/costa/elev 48; stack equal_quase frentes 262,67/264,67/264,67; laterais 177,17/196,17/196,17; costas 154,17/173,17/173,17. Testes 97/97 OK.",
+  },
+  {
     data: "2026-08-11",
     versao: "P3.15",
     descricao:

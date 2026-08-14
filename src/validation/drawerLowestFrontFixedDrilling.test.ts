@@ -29,7 +29,7 @@ describe("gav_frente_ext — pairing com laterais (regra global)", () => {
     expect(DRAWER_LOWEST_FRONT_GROOVE_FROM_TOP_MM).toBe(56.5);
     expect(DRAWER_LOWEST_FRONT_GROOVE_X_INSET_MM).toBe(12);
     expect(DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM).toBe(33);
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(16.5);
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
   });
 
   it("lowest: exactamente 4 cavilhas = elev+Y_aresta laterais (sem W?73.5 duplicado)", () => {

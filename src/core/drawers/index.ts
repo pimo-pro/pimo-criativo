@@ -102,17 +102,24 @@ export {
 export {
   DRAWER_VERTICAL_BASE_OFFSET_MM,
   DRAWER_VERTICAL_GAP_MM,
+  calculateEqualQuaseDrawerHeights,
   getDrawerUsableInternalHeightMm,
   resolveDrawerVerticalPosition,
   resolveDrawerVerticalPositions,
 } from "./drawerVerticalPosition";
 export {
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_BODY_DELTA_LOWEST_MM,
+  DRAWER_BODY_DELTA_UPPER_MM,
+  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_LOWEST_SIDE_HEIGHT_RATIO,
   DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM,
   DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_FRONT_LATERAL_GAP_MM,
   DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM,
+  DRAWER_STACK_BASE_OFFSET_MM,
+  DRAWER_STACK_GAVETA1_ADJUST_MM,
 } from "./drawerGeometryConstants";
 export {
   resolveDrawerStackRole,
@@ -120,6 +127,7 @@ export {
   resolveLowestDrawerBodyElevationFromFrontMm,
   resolveSingleDrawerBodyElevationFromFrontMm,
   resolveDrawerBodyElevationForStackRoleMm,
+  resolveDrawerBodyDeltaForStackRoleMm,
   resolveDrawerBodyBottomFromModuleBaseMm,
   type DrawerStackRole,
   type DrawerFrontStackGeometry,

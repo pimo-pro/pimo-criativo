@@ -432,26 +432,72 @@ export function computePiModuleLateralCorredicaHoles(params: {
 
 /**
  * Eixo da corrediça para gavetas middle/highest (mm acima da base da gaveta).
- * Valor fixo, igual para as duas — não depende de T — garante que a 2ª e a 3ª
- * gaveta (mesmas peças físicas) fiquem com a mesma relação corpo↔corrediça e
- * sejam totalmente intercambiáveis entre si.
+ * Usado apenas no modo legado `eixo_desde_frente`.
  */
 const DRAWER_UPPER_SLIDE_AXIS_FROM_BOTTOM_MM = 22.5;
+
+/** Modo de cálculo Y das corrediças nos laterais do módulo. */
+export type CorredicaModoCalculoY = "pitch_H_sobre_n" | "eixo_desde_frente";
+
+/** Defaults industriais (gavita 8 / drill certo) — sem schema Admin nesta fase. */
+export const DEFAULT_CORREDICA_EIXO_GAVETA1_MM = 41;
+export const DEFAULT_CORREDICA_DESCONTO_PAINEL_MM = 19;
+export const DEFAULT_CORREDICA_MODO_CALCULO_Y: CorredicaModoCalculoY =
+  "pitch_H_sobre_n";
+
+/**
+ * Eixos Y das corrediças desde a base do painel (mm).
+ * Modelo industrial gavita 8 / drill certo:
+ *   Y(0) = eixo1
+ *   Y(i) = eixo1 + i·(H/n) − T   (i ≥ 1)
+ */
+export function resolvePitchRunnerLinesFromBottomMm(params: {
+  boxExternalHeightMm: number;
+  drawerCount: number;
+  eixoGaveta1Mm?: number;
+  descontoPainelMm?: number;
+}): number[] {
+  const n = Math.max(0, Math.floor(params.drawerCount));
+  if (n <= 0) return [];
+  const H = Math.max(1, Number(params.boxExternalHeightMm) || 1);
+  const eixo1 =
+    params.eixoGaveta1Mm != null && Number.isFinite(params.eixoGaveta1Mm)
+      ? Math.max(1, Number(params.eixoGaveta1Mm))
+      : DEFAULT_CORREDICA_EIXO_GAVETA1_MM;
+  const T =
+    params.descontoPainelMm != null && Number.isFinite(params.descontoPainelMm)
+      ? Math.max(0, Number(params.descontoPainelMm))
+      : DEFAULT_CORREDICA_DESCONTO_PAINEL_MM;
+  const pitch = H / n;
+  return Array.from({ length: n }, (_, i) =>
+    i === 0 ? eixo1 : eixo1 + i * pitch - T
+  );
+}
 
 /**
  * Linhas Y (topo=0) nas laterais do módulo europeu.
  *
- * Regra industrial:
- * - gaveta inferior (lowest/single): eixo da corrediça = 41 mm acima da base da gaveta (inalterado)
- * - gavetas middle/highest: eixo da corrediça = 22,5 mm acima da base da gaveta (fixo, igual para ambas)
- * - nunca < 41 mm acima do bordo inferior do painel lateral
- * - nunca < 41 mm abaixo do bordo superior
+ * Default industrial (`pitch_H_sobre_n`, gavita 8):
+ *   Y_from_bottom(0) = 41
+ *   Y_from_bottom(i) = 41 + i·(H_ext/n) − T   (i ≥ 1)
+ *   sem eixo 22,5 e sem dupla subtração de B0.
+ *
+ * Legado (`eixo_desde_frente`): base da frente + 41/22,5 − B0.
+ * Clamp: nunca < 41 mm às arestas inferior/superior do painel.
  */
 export function resolveEuropeanModuleRunnerLinesYMm(params: {
   panelHeightMm: number;
+  /** Datum legado / stack — em cutlist já é H externa. */
   boxInternalHeightMm: number;
   drawers: Array<{ posYMm: number; frontHeightMm: number }>;
   rules?: DrawerSlideDrillingRules;
+  /** H externa do módulo (pitch). Default = boxInternalHeightMm. */
+  boxExternalHeightMm?: number;
+  /** T fundo / desconto painel. Default 19. */
+  floorThicknessMm?: number;
+  corredicaModoCalculo?: CorredicaModoCalculoY;
+  corredicaEixoGaveta1Mm?: number;
+  corredicaDescontoPainelMm?: number;
 }): number[] {
   const rules =
     params.rules ??
@@ -459,13 +505,44 @@ export function resolveEuropeanModuleRunnerLinesYMm(params: {
       mode: "pi_module_lateral",
       panelDepthMm: 500,
     });
-  const lowestAxisFromDrawerBottomMm = Math.max(1, rules.alturaRelativaFundoMm); // 41
-  const minFromPanelBottomMm = lowestAxisFromDrawerBottomMm;
-  const panelH = Math.max(1, params.panelHeightMm);
-  const internalH = Math.max(1, params.boxInternalHeightMm);
-  const internalBottomCenterY = -internalH / 2;
   const sorted = [...params.drawers].sort((a, b) => a.posYMm - b.posYMm);
   const drawerCount = sorted.length;
+  const panelH = Math.max(1, params.panelHeightMm);
+  const eixo1 = Math.max(
+    1,
+    params.corredicaEixoGaveta1Mm ??
+      rules.alturaRelativaFundoMm ??
+      DEFAULT_CORREDICA_EIXO_GAVETA1_MM
+  );
+  const minFromPanelBottomMm = eixo1;
+  const modo = params.corredicaModoCalculo ?? DEFAULT_CORREDICA_MODO_CALCULO_Y;
+
+  // --- Modo industrial dinâmico (gavita 8 / drill certo) ---
+  if (modo === "pitch_H_sobre_n" && drawerCount > 0) {
+    const H =
+      params.boxExternalHeightMm != null && Number.isFinite(params.boxExternalHeightMm)
+        ? Number(params.boxExternalHeightMm)
+        : Math.max(1, params.boxInternalHeightMm);
+    const fromBottom = resolvePitchRunnerLinesFromBottomMm({
+      boxExternalHeightMm: H,
+      drawerCount,
+      eixoGaveta1Mm: eixo1,
+      descontoPainelMm:
+        params.corredicaDescontoPainelMm ??
+        params.floorThicknessMm ??
+        DEFAULT_CORREDICA_DESCONTO_PAINEL_MM,
+    });
+    return fromBottom.map((yFromBottom) => {
+      let y = Math.max(minFromPanelBottomMm, yFromBottom);
+      y = Math.min(panelH - minFromPanelBottomMm, y);
+      return panelH - y;
+    });
+  }
+
+  // --- Legado: eixo desde base da frente (41 / 22,5 + subtração B0) ---
+  const lowestAxisFromDrawerBottomMm = Math.max(1, rules.alturaRelativaFundoMm);
+  const internalH = Math.max(1, params.boxInternalHeightMm);
+  const internalBottomCenterY = -internalH / 2;
 
   return sorted.map((drawer, index) => {
     const stackRole = resolveDrawerStackRole(index, drawerCount);
@@ -477,10 +554,6 @@ export function resolveEuropeanModuleRunnerLinesYMm(params: {
     const drawerBottomCenterY = Number(drawer.posYMm) - frontH / 2;
     /** mm acima do piso interno do vão. */
     const drawerBottomFromFloorMm = drawerBottomCenterY - internalBottomCenterY;
-    /**
-     * O offset de stack (10 mm) não puxa a 1ª linha para a aresta:
-     * base de furação da gaveta inferior = piso útil → eixo a +41 mm do bordo do painel.
-     */
     const drawerBottomDrillingMm = Math.max(
       0,
       drawerBottomFromFloorMm - DRAWER_VERTICAL_BASE_OFFSET_MM

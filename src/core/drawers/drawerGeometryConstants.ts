@@ -11,73 +11,89 @@ export const DRAWER_FRONT_LATERAL_GAP_MM = 2;
 
 
 /**
- * Fração da altura da frente deixada livre no topo (documentação legado).
- * Altura real das laterais: factor de settings.gavetas.gavetaReducaoPercentual
- * (middle/highest). GAV_1 (lowest) usa DRAWER_LOWEST_SIDE_HEIGHT_RATIO.
+ * Fração da altura da frente deixada livre no topo (documentação legado 0,25).
+ * @deprecated Produção usa deltas absolutos (DRAWER_BODY_DELTA_*).
  */
 export const DRAWER_SIDE_TOP_CLEARANCE_RATIO = 0.25;
 
 /**
- * @deprecated Usar settings.gavetas.gavetaReducaoPercentual (factor = 1 − %/100).
- * Mantido como alias do default Admin (25% → 0,75) para imports legado.
- * Middle/highest mantêm 0,75 até aprovação industrial.
+ * @deprecated Preferir DRAWER_LOWEST_SIDE_HEIGHT_RATIO (legado ratio).
+ * Mantido como alias do antigo default Admin (25% → 0,75) para imports legado.
  */
 export const DRAWER_SIDE_HEIGHT_RATIO = 0.75;
 
 /**
- * Ratio industrial laterais/corpo — apenas gaveta inferior (GAV_1 / role=lowest).
- * R_real = bodyH / frontH = 0,685 (medições industriais).
- * Middle/highest/single continuam com DRAWER_SIDE_HEIGHT_RATIO / settings Admin.
+ * @deprecated Modelo ratio (pré–gavita 8). Produção usa DRAWER_BODY_DELTA_*.
+ * R_real = bodyH / frontH = 0,685 — não usar para geometria nova.
  */
 export const DRAWER_LOWEST_SIDE_HEIGHT_RATIO = 0.685;
-/** Folga relativa no topo da frente para GAV_1: 1 − R_real. */
+/** @deprecated Folga relativa no topo com R_real: 1 − 0,685. */
 export const DRAWER_LOWEST_SIDE_TOP_CLEARANCE_RATIO =
   1 - DRAWER_LOWEST_SIDE_HEIGHT_RATIO;
 
 /**
  * Elevação da base das laterais/costa em relação à base da frente (mm).
- * Intervalo: 12,5 … 60. Inferior (GAV_1) usa elevação absoluta 16,5 (não T+folga).
+ * Intervalo: 12,5 … 60. Produção: DRAWER_BODY_ELEVATION_FROM_FRONT_MM = 48.
  */
 export const DRAWER_SIDE_BASE_ELEVATION_MIN_MM = 12.5;
 export const DRAWER_SIDE_BASE_ELEVATION_MAX_MM = 60;
+
 /**
- * Elevação corpo — gavetas middle e highest (unificado).
- * Com sideH = h−64,5 e T=19 → folga até face inferior da CIMA = 28,5 mm.
- * Unificado para que a 2ª e a 3ª gaveta (mesmas peças físicas) fiquem com a mesma
- * relação frente↔corpo↔corrediça e sejam totalmente intercambiáveis entre si.
+ * Elevação corpo ↔ base da frente (mm) — SSOT industrial gavita 8 / drill certo.
+ * Unificada em todas as gavetas (lowest/middle/highest/single).
+ * Furos frente: elev+15 / elev+sideH−35 / rasgo elev+sideH−13.
  */
-export const DRAWER_SIDE_BASE_ELEVATION_MM = 17;
+export const DRAWER_BODY_ELEVATION_FROM_FRONT_MM = 48;
+
+/** Alias de produção — aponta para elevação unificada 48. */
+export const DRAWER_SIDE_BASE_ELEVATION_MM = DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+
 /**
- * @deprecated Valor legado de `highest` antes da unificação com `middle`.
- * `resolveDrawerBodyElevationForStackRoleMm` já não usa esta constante — usa
- * `DRAWER_SIDE_BASE_ELEVATION_MM` para middle e highest. Mantida só por compatibilidade
- * de import; não usar para gerar geometria nova.
+ * @deprecated Valor legado de `highest` antes da unificação (12,5).
+ * Não usar para gerar geometria nova.
  */
 export const DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM = 12.5;
 
 /**
- * Frente do gaveta inferior: distância da base da frente à borda inferior do módulo (mm).
- * Industrial GAV_1: 2 mm acima do fundo da caixa (não flush em 0).
- * bodyBottom = 2 + E_inf(16,5) = 18,5 → Δ = 41 − 18,5 = 22,5 mm.
- * Não altera E_inf, R, furos das peças nem o eixo 41 mm.
+ * Offset da 1.ª frente relativamente à base do módulo (B0, mm).
+ * Diff 3 / gavita 8: B0 = 0 — frente inferior flush à base do vão.
+ * bodyBottom = B0 + E(48) = 48 mm.
  */
-export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 2;
+export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 0;
+
+/** Alias SSOT do stack — igual a B0. */
+export const DRAWER_STACK_BASE_OFFSET_MM =
+  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
 
 /**
- * Elevação industrial do corpo vs base da frente — gaveta inferior (GAV_1 / lowest).
- * E_inf_real = 16,5 mm (absoluto; já não é T_fundo + folga).
- * Com frontBottom=2 → bodyBottom=18,5. Eixo módulo 41 mm inalterado (Δ=22,5).
+ * Ajuste da 1.ª frente no modo equal (equal_quase interno, mm).
+ * hEqual = (distributable − ajuste) / n
+ * frente(0) = hEqual + ajuste; frente(i>0) = (distributable − frente(0)) / (n−1)
+ */
+export const DRAWER_STACK_GAVETA1_ADJUST_MM = -2;
+
+/**
+ * Alias GAV_1 — mesma elevação unificada 48 (já não 16,5).
  * Furos da frente: pairing `elev+15` / `elev+sideH−35` / rasgo `elev+sideH−13`.
  */
-export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM = 16.5;
+export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM =
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+
 /**
- * Folga legado sobre FUNDO para role=single (ainda T + 18,5 até aprovação).
- * Não usar em GAV_1 (lowest) — aí a elevação é absoluta 16,5.
+ * @deprecated Folga single T+18,5 — Diff 2 unifica elevação em 48.
  */
 export const DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM = 18.5;
-/** @deprecated Alias — aponta para elevação GAV_1 (16,5). */
+/** @deprecated Alias — aponta para elevação unificada 48. */
 export const DRAWER_LOWEST_CLEARANCE_ABOVE_FLOOR_PANEL_MM =
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
+
+/**
+ * Delta frente − lateral (mm) — modelo dinâmico gavita 8.
+ * lateralHeight = frontHeight − delta(role)
+ * GAV_1: 262,67 − 177,17 = 85,5 · 2ª/3ª: 264,67 − 196,17 = 68,5
+ */
+export const DRAWER_BODY_DELTA_LOWEST_MM = 85.5;
+export const DRAWER_BODY_DELTA_UPPER_MM = 68.5;
 
 /**
  * Furação industrial da frente do gaveta inferior (`stackRole = "lowest"`).
@@ -122,8 +138,8 @@ export const DRAWER_LAT_GROOVE_CORRECTION = 2;
 export const DRAWER_LAT_GROOVE_TOOL_NAME = "FRESA_DESBASTE_10MM";
 
 /**
- * @deprecated Usar settings.gavetas.gavetaReducaoPercentual (mesmo factor nas laterais e costa).
- * Valor legado (mm) — não usar em geometria nova.
+ * Costa = altura_lateral − K (mm). SSOT industrial gavita 8 / drill certo.
+ * Já não é lateral × 0,685.
  */
 export const DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM = 23;
 

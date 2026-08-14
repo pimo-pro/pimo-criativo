@@ -15,10 +15,13 @@ import {
 import type { Drawer } from "./Drawer";
 import {
   resolveDrawerVerticalPositions,
+  calculateEqualQuaseDrawerHeights,
   DRAWER_VERTICAL_BASE_OFFSET_MM,
   DRAWER_VERTICAL_GAP_MM,
   getDrawerUsableInternalHeightMm,
 } from "./drawerVerticalPosition";
+
+export { calculateEqualQuaseDrawerHeights };
 
 export interface DrawerGroup {
   id: string;
@@ -91,10 +94,9 @@ export function calculateDrawerHeights(
     return raw.map((v) => v * scale);
   }
 
-  // Modo equal — dinâmico: h = (H − B0 − G·(n−1)) / n (sem overlap)
+  // Modo equal — Diff 3: equal_quase interno (1.ª frente −2 mm)
   if (mode === "equal" || count === 1) {
-    const each = distributable / count;
-    return Array.from({ length: count }, () => each);
+    return calculateEqualQuaseDrawerHeights(count, distributable);
   }
 
   // Modo progressivo (2 gavetas) — índice 0 = inferior (maior), último = superior (menor)

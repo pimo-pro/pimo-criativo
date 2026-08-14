@@ -10,6 +10,7 @@ import {
 import {
   DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_BOTTOM_SIDE_ENTRY_MM,
+  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "../drawers/drawerGeometryConstants";
 import { calculateDrawerSpecs } from "../drawers/DrawerParametrics";
@@ -33,7 +34,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(resolveXmlMachineTarget("gaveta_lat_esq")).toBe("drill");
   });
 
-  it("SSOT: costa = laterais × factor único; fundo = vão+laterais / sideDepth+frente+costa", () => {
+  it("SSOT: costa = laterais − 23; fundo = vão+laterais / sideDepth+frente+costa", () => {
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 1046,
@@ -41,6 +42,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
         boxInternalDepth: 560,
         boxThickness: 19,
         drawerHeight: 200,
+        stackRole: "single",
       },
       settingsDefaults.gavetas.gavetaProfundidadesDisponiveisMm,
       {
@@ -52,8 +54,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
       }
     );
     const sideH = specs.leftSide.height;
-    const f = 1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
-    expect(specs.back.height).toBeCloseTo(sideH * f, 5);
+    expect(specs.back.height).toBeCloseTo(sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM, 5);
     const internalW = specs.back.width;
     const sideDepth = resolveDrawerSideDepthMm(specs.body.depth);
     expect(specs.bottom.width).toBe(
@@ -79,6 +80,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
         boxInternalDepth: 500,
         boxThickness: 19,
         drawerHeight: 200,
+        stackRole: "single",
       },
       settingsDefaults.gavetas.gavetaProfundidadesDisponiveisMm,
       {
@@ -94,7 +96,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(specs.bottom.width).toBe(1020);
     expect(specs.bottom.height).toBe(516);
     expect(specs.back.height).toBeCloseTo(
-      specs.leftSide.height * (1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100),
+      specs.leftSide.height - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
       5
     );
   });
@@ -216,7 +218,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(groove.depth).toBe((fundo?.espessura ?? 10) + 1);
 
     expect(costa!.dimensoes.altura).toBeCloseTo(
-      (lat?.dimensoes.altura ?? 0) * (1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100),
+      (lat?.dimensoes.altura ?? 0) - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
       5
     );
 

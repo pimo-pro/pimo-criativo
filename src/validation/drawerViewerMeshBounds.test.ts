@@ -3,10 +3,12 @@ import * as THREE from "three";
 import { generateDrawerGroup, drawerGroupToLayerItems } from "../core/drawers";
 import { buildDrawerSpecs, createDrawerObject } from "../3d/objects/DrawerFactory";
 import {
+  DRAWER_BODY_DELTA_LOWEST_MM,
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_SIDE_BASE_ELEVATION_MAX_MM,
   DRAWER_SIDE_BASE_ELEVATION_MIN_MM,
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
-  DRAWER_SIDE_TOP_CLEARANCE_RATIO,
 } from "../core/drawers/drawerGeometryConstants";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 
@@ -82,21 +84,21 @@ function buildDrawerMeshForHeight(frontHeightMm: number) {
 }
 
 describe("viewer 3D — bounding boxes reais das meshes", () => {
-  // drawerCount:1 → role=single (legado T+18,5); GAV_1 (lowest) usa 16,5 noutro teste.
-  const elevationSingle = 19 + 18.5;
+  // drawerCount:1 → role=single → delta 85,5; elevação unificada 48.
+  const elevationSingle = DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
 
-  it("constante GAV_1 elevação absoluta = 16.5 mm", () => {
+  it("constante elevação corpo = 48 mm (intervalo 12,5…60)", () => {
     expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBeGreaterThanOrEqual(
       DRAWER_SIDE_BASE_ELEVATION_MIN_MM
     );
     expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBeLessThanOrEqual(
       DRAWER_SIDE_BASE_ELEVATION_MAX_MM
     );
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(16.5);
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
   });
 
   it.each([234, 390])(
-    "frente %i mm — single: elev T+18.5, altura 75%%, frente em Y=0",
+    "frente %i mm — single: elev 48, lateral = frente−85,5, costa = lat−23",
     (requestedHeightMm) => {
       const { drawerBody, actualFrontHeightMm: h } = buildDrawerMeshForHeight(requestedHeightMm);
       const front = findMesh(drawerBody, "drawer-front-ext")!;
@@ -107,12 +109,14 @@ describe("viewer 3D — bounding boxes reais das meshes", () => {
       const sideB = meshLocalBoundsYMm(left, drawerBody);
       const backB = meshLocalBoundsYMm(back, drawerBody);
 
-      const expectedSideH = h * (1 - DRAWER_SIDE_TOP_CLEARANCE_RATIO);
+      const expectedSideH = h - DRAWER_BODY_DELTA_LOWEST_MM;
 
       expect(frontB.heightMm).toBeCloseTo(h, 0);
       expect(sideB.heightMm).toBeCloseTo(expectedSideH, 0);
-      // Costa = laterais × factor Admin (0,75) no paramétrico — não o layout viewer floor−12−10.
-      expect(backB.heightMm).toBeCloseTo(sideB.heightMm * 0.75, 0);
+      expect(backB.heightMm).toBeCloseTo(
+        sideB.heightMm - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
+        0
+      );
 
       expect(frontB.centerY).toBeCloseTo(0, 1);
       expect(sideB.minY).toBeCloseTo(frontB.minY + elevationSingle, 1);
@@ -130,7 +134,7 @@ describe("viewer 3D — bounding boxes reais das meshes", () => {
     const sideB = meshLocalBoundsYMm(left, drawerBody);
 
     const half = h / 2;
-    const sideH = h * 0.75;
+    const sideH = h - DRAWER_BODY_DELTA_LOWEST_MM;
 
     expect(frontB.centerY).toBeCloseTo(0, 1);
     expect(frontB.minY).toBeCloseTo(-half, 1);

@@ -3,7 +3,7 @@ import { buildPanelDrillingResult } from "../modules/drilling/drillingAdapter";
 import { defaultRulesConfig } from "../core/rules/rulesConfig";
 import { buildDrillFilesForProject } from "../core/drill/drillExport";
 import { drawerGroupToLayerItems, generateDrawerGroup } from "../core/drawers";
-import { DRAWER_SIDE_TOP_CLEARANCE_RATIO } from "../core/drawers/drawerGeometryConstants";
+import { DRAWER_BODY_DELTA_LOWEST_MM } from "../core/drawers/drawerGeometryConstants";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 import { drawerLayerItemToCutList } from "../services/drawerCutlistAdapter";
 
@@ -35,8 +35,8 @@ describe("Fase 5 — frente externa + interna (metálica)", () => {
     const frontExt = cutlist.find((p) => p.tipo === "gaveta_frente_ext")!;
     const lat = cutlist.find((p) => p.tipo === "gaveta_lat_esq")!;
     expect(frontExt.dimensoes.altura - lat.dimensoes.altura).toBeCloseTo(
-      frontExt.dimensoes.altura * DRAWER_SIDE_TOP_CLEARANCE_RATIO,
-      0
+      DRAWER_BODY_DELTA_LOWEST_MM,
+      5
     );
     expect(frontExt.metadata?.drawerRules).toMatchObject({ handleType: "Nenhum" });
   });

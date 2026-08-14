@@ -24,16 +24,16 @@ import {
 import {
   resolveDrawerBodyCenterOffsetYMm,
   resolveDrawerBodyCenterZMm,
-  resolveDrawerWoodBodyHeightMm,
 } from "./drawerViewerLayout";
 import {
   DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_BOTTOM_SIDE_ENTRY_MM,
-  DRAWER_LOWEST_SIDE_HEIGHT_RATIO,
-  DRAWER_SIDE_BASE_ELEVATION_MM,
+  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
 } from "./drawerGeometryConstants";
-import { resolveDrawerBodyElevationForStackRoleMm } from "./drawerStackPosition";
-import { drawerReductionPercentToFactor } from "./drawerSolidWorksStackGeometry";
+import {
+  resolveDrawerBodyDeltaForStackRoleMm,
+  resolveDrawerBodyElevationForStackRoleMm,
+} from "./drawerStackPosition";
 import {
   DRAWER_SLIDE_LENGTHS_MM,
   isDrawerSlideLengthMm,
@@ -362,28 +362,19 @@ export function calculateDrawerSpecs(
       : undefined;
   const frontHeight = clampMm(frontHeightOverride ?? drawerHeight);
 
-  // ===== CORPO =====
-  // GAV_1 (lowest): R_real = 0,685. Middle/highest/single: factor Admin (0,75).
-  const heightFactor =
-    dimensions.stackRole === "lowest"
-      ? DRAWER_LOWEST_SIDE_HEIGHT_RATIO
-      : drawerReductionPercentToFactor(settings.gavetaReducaoPercentual);
-  const woodBodyHeight = resolveDrawerWoodBodyHeightMm(
-    frontHeight,
-    dimensions.stackRole,
-    heightFactor
+  // ===== CORPO (gavita 8) =====
+  // lateral = frente − delta(role); costa = lateral − 23; elevação = 48.
+  // Stack B0/gap e folga frente ficam para Diff 3/4.
+  const stackRole = dimensions.stackRole ?? "middle";
+  const woodBodyHeight = clampMm(
+    Math.max(1, frontHeight - resolveDrawerBodyDeltaForStackRoleMm(stackRole))
   );
   const bodyHeight =
     metalBoxEnabled && resolvedMetalHeight > 0 ? resolvedMetalHeight : woodBodyHeight;
   const sideElev =
     overrides?.sideBaseElevationMm != null && Number.isFinite(overrides.sideBaseElevationMm)
       ? overrides.sideBaseElevationMm
-      : dimensions.stackRole != null
-        ? resolveDrawerBodyElevationForStackRoleMm(
-            dimensions.stackRole,
-            dimensions.boxThickness
-          )
-        : DRAWER_SIDE_BASE_ELEVATION_MM;
+      : resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness);
   const bodyCenterOffsetY = resolveDrawerBodyCenterOffsetYMm(
     frontHeight,
     woodBodyHeight,
@@ -394,7 +385,7 @@ export function calculateDrawerSpecs(
 
   const needsStructuralFrontInt = metalBoxEnabled;
   const internalFrontWidth = needsStructuralFrontInt ? bodyWidth : 0;
-  // Frente interna segue o mesmo factor das laterais (frente × f), não a altura metal.
+  // Frente interna segue a altura madeira das laterais, não a altura metal.
   const internalFrontHeight = needsStructuralFrontInt ? woodBodyHeight : 0;
   const internalFrontThickness = needsStructuralFrontInt ? sideThickness : 0;
   const externalFrontWidth = frontWidth;
@@ -414,9 +405,11 @@ export function calculateDrawerSpecs(
   const rightSideDepth = woodSideDepth;
 
   // ===== TRASEIRA =====
-  // Largura = vão entre laterais; altura = laterais × mesmo factor.
+  // Largura = vão entre laterais; altura = laterais − 23 (SSOT industrial).
   const backWidth = clampMm(bodyWidth - 2 * sideThickness);
-  const backHeight = clampMm(Math.max(1, woodBodyHeight * heightFactor));
+  const backHeight = clampMm(
+    Math.max(1, woodBodyHeight - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM)
+  );
 
   // ===== FUNDO =====
   // Vão entre laterais × comprimento das laterais + entradas industriais:

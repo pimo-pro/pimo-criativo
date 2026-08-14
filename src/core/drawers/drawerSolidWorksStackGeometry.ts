@@ -1,18 +1,22 @@
 /**
  * Stack vertical dinâmico das gavetas (anti-sobreposição).
- * SolidWorks = referência de proporções (descontos laterais), não de alturas/bottoms fixos.
- *
- * h_i = (H − B0 − G×(n−1)) / n
- * bottom[i+1] = bottom[i] + h[i] + G
+ * Diff 3 equal_quase: B0=0 · G=4 · ajuste 1.ª=−2
+ *   hEqual = (H − B0 − G·(n−1) − ajuste) / n
+ *   frente(0) = hEqual + ajuste; frente(i>0) = hEqual
  * slide[i] = bottom[i] + 41
  */
 
 import { settingsDefaults } from "../settings/settingsSchema";
-import type { DrawerStackRole } from "./drawerStackPosition";
 import {
-  DRAWER_LOWEST_SIDE_HEIGHT_RATIO,
+  resolveDrawerBodyDeltaForStackRoleMm,
+  type DrawerStackRole,
+} from "./drawerStackPosition";
+import {
+  DRAWER_STACK_BASE_OFFSET_MM,
+  DRAWER_STACK_GAVETA1_ADJUST_MM,
   DRAWER_VERTICAL_GAP_MM,
 } from "./drawerGeometryConstants";
+import { calculateEqualQuaseDrawerHeights } from "./drawerVerticalPosition";
 
 /** Folga: frente superior cobre CIMA e desce 2 mm abaixo da face inferior. */
 export const DRAWER_TOP_FRONT_CIMA_OVERHANG_BELOW_MM = 2;
@@ -45,22 +49,19 @@ export function resolveDefaultDrawerHeightReductionFactor(): number {
 }
 
 /**
- * Altura madeira das laterais: sideH = frontH × heightRatio.
- * GAV_1 (lowest): R_real = 0,685. Restantes: factor Admin (default 0,75).
+ * Altura madeira das laterais: sideH = frontH − delta(role).
+ * SSOT industrial gavita 8: delta lowest/single=85,5 · middle/highest=68,5.
+ * `heightRatio` ignorado (legado ratio 0,685).
  */
 export function resolveDrawerWoodBodyHeightForStackRoleMm(
   frontHeightMm: number,
   stackRole: DrawerStackRole = "middle",
-  heightRatio?: number
+  _heightRatio?: number
 ): number {
+  void _heightRatio;
   const frontH = Math.max(0, Number(frontHeightMm) || 0);
-  const ratio =
-    heightRatio != null && Number.isFinite(heightRatio) && heightRatio > 0
-      ? heightRatio
-      : stackRole === "lowest"
-        ? DRAWER_LOWEST_SIDE_HEIGHT_RATIO
-        : resolveDefaultDrawerHeightReductionFactor();
-  return Math.max(1, frontH * ratio);
+  const delta = resolveDrawerBodyDeltaForStackRoleMm(stackRole);
+  return Math.max(1, frontH - delta);
 }
 
 export type DynamicDrawerStackLayout = {
@@ -74,7 +75,8 @@ export type DynamicDrawerStackLayout = {
 };
 
 /**
- * Layout equal dinâmico sem sobreposição.
+ * Layout equal_quase dinâmico — coerente com `calculateDrawerHeights("equal")`.
+ * B0=0 · G=4 · ajuste 1.ª = −2 · hEqual = (distributable − ajuste) / n
  * `slideOffsetFromBottomMm` default 41 (piso industrial).
  */
 export function resolveDynamicEqualDrawerStackLayout(params: {
@@ -82,14 +84,22 @@ export function resolveDynamicEqualDrawerStackLayout(params: {
   boxHeightMm: number;
   baseFrontMm?: number;
   gapMm?: number;
+  ajusteGaveta1Mm?: number;
   slideOffsetFromBottomMm?: number;
 }): DynamicDrawerStackLayout {
   const n = Math.max(0, Math.floor(params.count));
   const H = Math.max(1, Number(params.boxHeightMm) || 1);
-  const B0 = Math.max(0, Number(params.baseFrontMm) || 0);
+  const B0 =
+    params.baseFrontMm != null && Number.isFinite(params.baseFrontMm)
+      ? Math.max(0, Number(params.baseFrontMm))
+      : DRAWER_STACK_BASE_OFFSET_MM;
   const G = params.gapMm != null && Number.isFinite(params.gapMm)
     ? Math.max(0, params.gapMm)
     : DRAWER_VERTICAL_GAP_MM;
+  const ajuste =
+    params.ajusteGaveta1Mm != null && Number.isFinite(params.ajusteGaveta1Mm)
+      ? Number(params.ajusteGaveta1Mm)
+      : DRAWER_STACK_GAVETA1_ADJUST_MM;
   const slideOff =
     params.slideOffsetFromBottomMm != null && Number.isFinite(params.slideOffsetFromBottomMm)
       ? Math.max(0, params.slideOffsetFromBottomMm)
@@ -100,12 +110,12 @@ export function resolveDynamicEqualDrawerStackLayout(params: {
   }
 
   const distributable = Math.max(1, H - B0 - G * (n - 1));
-  const h = distributable / n;
-  const heights = Array.from({ length: n }, () => h);
+  const heights = calculateEqualQuaseDrawerHeights(n, distributable, ajuste);
   const bottoms: number[] = [];
   const tops: number[] = [];
   const slides: number[] = [];
   for (let i = 0; i < n; i++) {
+    const h = heights[i]!;
     const bottom = i === 0 ? B0 : bottoms[i - 1]! + heights[i - 1]! + G;
     bottoms.push(bottom);
     tops.push(bottom + h);

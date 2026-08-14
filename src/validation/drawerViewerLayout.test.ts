@@ -9,7 +9,11 @@ import {
   resolveDrawerGroupPosZMm,
   resolveDrawerViewerPosZAdjustmentMm,
 } from "../core/drawers/drawerViewerLayout";
-import { DRAWER_SIDE_BASE_ELEVATION_MM } from "../core/drawers/drawerGeometryConstants";
+import {
+  DRAWER_BODY_DELTA_LOWEST_MM,
+  DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
+  DRAWER_SIDE_BASE_ELEVATION_MM,
+} from "../core/drawers/drawerGeometryConstants";
 import { drawerGroupToLayerItems, generateDrawerGroup } from "../core/drawers";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 
@@ -39,8 +43,13 @@ describe("drawerViewerLayout — geometria 3D industrial", () => {
     expect(resolveDrawerBodyCenterZMm(19, 500)).toBeCloseTo(-(19 / 2 + 500 / 2), 3);
   });
 
-  it("laterais elevadas — offset Y = −(H−H_body)/2 + elevação", () => {
-    expect(resolveDrawerBodyCenterOffsetYMm(200)).toBe(-25 + DRAWER_SIDE_BASE_ELEVATION_MM);
+  it("laterais elevadas — offset Y = −(H−H_body)/2 + elevação 48", () => {
+    // resolveDrawerWoodBodyHeightMm(200) default role=middle → 200−68,5
+    const bodyH = 200 - 68.5;
+    expect(resolveDrawerBodyCenterOffsetYMm(200)).toBeCloseTo(
+      -(200 - bodyH) / 2 + DRAWER_SIDE_BASE_ELEVATION_MM,
+      5
+    );
   });
 
   it("layer → spec → posições coerentes com domínio", () => {
@@ -93,7 +102,7 @@ describe("drawerViewerLayout — geometria 3D industrial", () => {
     expect(front.maxZ - latEsq.maxZ).toBeGreaterThan(0);
   });
 
-  it("factor único: laterais = frente × f; costa = laterais × f", () => {
+  it("delta: laterais = frente − 85,5 (single); costa = laterais − 23", () => {
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: 400,
@@ -107,9 +116,8 @@ describe("drawerViewerLayout — geometria 3D industrial", () => {
       drawerSettings: settingsDefaults.gavetas,
     });
     const [layer] = drawerGroupToLayerItems(group);
-    const f = 1 - settingsDefaults.gavetas.gavetaReducaoPercentual / 100;
     const sideH = layer.leftSideHeight ?? layer.bodyHeight ?? 0;
-    expect(sideH).toBeCloseTo((layer.height ?? 0) * f, 1);
-    expect(layer.backHeight ?? 0).toBeCloseTo(sideH * f, 1);
+    expect(sideH).toBeCloseTo((layer.height ?? 0) - DRAWER_BODY_DELTA_LOWEST_MM, 1);
+    expect(layer.backHeight ?? 0).toBeCloseTo(sideH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM, 1);
   });
 });

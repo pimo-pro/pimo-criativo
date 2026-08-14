@@ -29,6 +29,7 @@ import { calcularPrecoCutList } from "../pricing/pricing";
 import { extractDrawerCutlistFromLayerItems, isDrawerPieceTipo } from "../../services/drawerCutlistAdapter";
 import {
   buildEuropeanModuleLateralCorredicaDrilling,
+  DEFAULT_CORREDICA_DESCONTO_PAINEL_MM,
   resolveEuropeanModuleRunnerLinesYMm,
 } from "../drawers/drilling/DrawerDrillingRules";
 import { resolveDrawerBodyElevationForStackRoleMm } from "../drawers/drawerStackPosition";
@@ -452,12 +453,17 @@ export function cutlistComPrecoFromBox(
       const sortedDrawers = [...drawersLayer].sort(
         (a, b) => (Number(a.posY) || 0) - (Number(b.posY) || 0)
       );
-      /** Datum alinhado ao stack das frentes (H externo) — não H−2T.
-       * Os Y desde o fundo do painel (41 / 288.667 / 555.333) cabem no painel H−2T. */
-      const boxInternalHeightMm = Math.max(1, box.dimensoes.altura);
+      /** H externa do módulo — pitch industrial Y(i)=41+i·(H/n)−T (gavita 8). */
+      const boxExternalHeightMm = Math.max(1, box.dimensoes.altura);
+      const floorThicknessMm = Math.max(
+        0,
+        Number(box.espessura) || DEFAULT_CORREDICA_DESCONTO_PAINEL_MM
+      );
       const runnerLines = resolveEuropeanModuleRunnerLinesYMm({
         panelHeightMm: p.altura_mm,
-        boxInternalHeightMm,
+        boxInternalHeightMm: boxExternalHeightMm,
+        boxExternalHeightMm,
+        floorThicknessMm,
         drawers: sortedDrawers.map((d) => ({
           posYMm: Number(d.posY) || 0,
           frontHeightMm: Number(d.height) || 0,
