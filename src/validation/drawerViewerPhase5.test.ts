@@ -8,8 +8,8 @@ import { canOpenDrawer } from "../core/drawers/DrawerCollisionService";
 import type { DrawerLayerItem } from "../models/BoxLayers";
 
 describe("Drawer vertical position (FASE 5)", () => {
-  it("usa offset base de 0 mm (frente inferior flush)", () => {
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
+  it("usa offset base de 2 mm (frente inferior GAV_1)", () => {
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
   });
 
   it("alinha posições com fórmula unificada", () => {
@@ -18,7 +18,7 @@ describe("Drawer vertical position (FASE 5)", () => {
     const positions = resolveDrawerVerticalPositions(heights, boxH);
     expect(positions[0]).toBe(resolveDrawerVerticalPosition(0, heights, boxH));
     expect(positions[1]).toBe(resolveDrawerVerticalPosition(1, heights, boxH));
-    expect(positions[0]).toBe(-boxH / 2 + 0 + 100);
+    expect(positions[0]).toBe(-boxH / 2 + DRAWER_VERTICAL_BASE_OFFSET_MM + 100);
   });
 });
 

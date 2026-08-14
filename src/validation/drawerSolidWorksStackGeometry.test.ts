@@ -110,7 +110,7 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
-    expect(bodyBottom - moduleBase).toBeCloseTo(16.5, 5);
+    expect(bodyBottom - moduleBase).toBeCloseTo(2 + 16.5, 5);
 
     const bodyH2 = layers[2]!.bodyHeight!;
     const offsetY2 = layers[2]!.bodyCenterOffsetY!;
@@ -141,20 +141,22 @@ describe("stack din?mico anti-sobreposi??o", () => {
     const panelH = H - 2 * T;
     const fromBottom = runnerFromTop.map((yTop) => panelH - yTop);
     expect(fromBottom[0]).toBeCloseTo(41, 3);
-    // middle/highest: eixo fixo 22,5 mm (intercambiáveis) — SSOT em DrawerDrillingRules.ts
-    expect(fromBottom[1]).toBeCloseTo(277.833, 3);
-    expect(fromBottom[2]).toBeCloseTo(533.167, 3);
+    // middle/highest: eixo 22,5 desde base da frente; B0=2 → fromBottom = (bottom−2)+22,5
+    expect(fromBottom[1]).toBeCloseTo(277.167, 3);
+    expect(fromBottom[2]).toBeCloseTo(531.833, 3);
   });
 
-  it("calculateDrawerHeights equal cl?ssico (n?o SW fixo)", () => {
+  it("calculateDrawerHeights equal clássico com B0=2", () => {
     const heights = calculateDrawerHeights(3, H, "equal", undefined, {
       topPanelThicknessMm: T,
     });
-    expect(heights[0]).toBeCloseTo(251.333, 3);
+    // h = (H − 2 − 4×2) / 3 = 752/3
+    expect(heights[0]).toBeCloseTo(250.667, 3);
     expect(heights[0]).toBeCloseTo(heights[1]!, 5);
     const positions = calculateDrawerPositions(heights, H);
     const b0 = positions[0]! - (-H / 2) - heights[0]! / 2;
     const b1 = positions[1]! - (-H / 2) - heights[1]! / 2;
+    expect(b0).toBeCloseTo(2, 5);
     expect(b1 - (b0 + heights[0]!)).toBeCloseTo(4, 5);
   });
 });

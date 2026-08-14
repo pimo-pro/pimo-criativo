@@ -2,13 +2,14 @@
  * Posição da gaveta no stack vertical do módulo (SSOT industrial).
  *
  * Ordem física: índice 0 = inferior (perto da base); último = superior (perto da CIMA).
- * Com `DRAWER_VERTICAL_BASE_OFFSET_MM = 0`:
- * - frente inferior chega — borda inferior do vão
+ * Com `DRAWER_VERTICAL_BASE_OFFSET_MM = 2` (GAV_1):
+ * - frente inferior a 2 mm acima da base do vão
  * - frente superior chega — borda superior (CIMA)
  */
 
 import {
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
+  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
   DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM,
 } from "./drawerGeometryConstants";
@@ -120,8 +121,14 @@ export function resolveDrawerFrontStackGeometry(params: {
   const frontTopFromModuleBaseMm = frontBottomFromModuleBaseMm + frontHeightMm;
 
   const eps = 0.51;
+  const industrialBaseMm =
+    params.baseOffsetMm != null && Number.isFinite(params.baseOffsetMm)
+      ? Number(params.baseOffsetMm)
+      : DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
+  /** Flush industrial = base da frente no datum GAV_1 (B0=2), não no zero geométrico. */
   const flushToModuleBase =
-    (role === "lowest" || role === "single") && frontBottomFromModuleBaseMm <= eps;
+    (role === "lowest" || role === "single") &&
+    Math.abs(frontBottomFromModuleBaseMm - industrialBaseMm) <= eps;
   const flushToModuleTop =
     (role === "highest" || role === "single") &&
     Math.abs(frontTopFromModuleBaseMm - boxH) <= eps;

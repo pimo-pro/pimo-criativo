@@ -57,14 +57,16 @@ export const DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM = 12.5;
 
 /**
  * Frente do gaveta inferior: distância da base da frente à borda inferior do módulo (mm).
- * 0 = flush; 1–2 = folga industrial opcional. Não altera altura da frente nem furos.
+ * Industrial GAV_1: 2 mm acima do fundo da caixa (não flush em 0).
+ * bodyBottom = 2 + E_inf(16,5) = 18,5 → Δ = 41 − 18,5 = 22,5 mm.
+ * Não altera E_inf, R, furos das peças nem o eixo 41 mm.
  */
-export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 0;
+export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 2;
 
 /**
  * Elevação industrial do corpo vs base da frente — gaveta inferior (GAV_1 / lowest).
  * E_inf_real = 16,5 mm (absoluto; já não é T_fundo + folga).
- * Com frontBottom=0 → bodyBottom=16,5. Eixo módulo 41 mm inalterado.
+ * Com frontBottom=2 → bodyBottom=18,5. Eixo módulo 41 mm inalterado (Δ=22,5).
  * Furos da frente: pairing `elev+15` / `elev+sideH−35` / rasgo `elev+sideH−13`.
  */
 export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM = 16.5;

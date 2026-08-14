@@ -1,6 +1,6 @@
 /**
  * Posição absoluta do gaveta inferior (GAV_1):
- * frente flush (0); corpo elevação absoluta 16,5 mm vs frente.
+ * frente a 2 mm da base; corpo elevação 16,5 mm vs frente → bodyBottom=18,5; Δ=22,5.
  * Ratio laterais R_real = 0,685. Middle/highest: elev=17, ratio Admin 0,75.
  */
 import { describe, expect, it } from "vitest";
@@ -30,10 +30,12 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
   const T = 19;
   /** GAV_1: elevação absoluta industrial (não T+folga). */
   const elevLowest = 16.5;
+  const frontBottomIndustrial = 2;
+  const bodyBottomIndustrial = frontBottomIndustrial + elevLowest; // 18.5
 
   it("constantes SSOT GAV_1", () => {
-    expect(DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM).toBe(0);
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
+    expect(DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM).toBe(2);
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
     expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(16.5);
     expect(DRAWER_LOWEST_SIDE_HEIGHT_RATIO).toBe(0.685);
     expect(resolveLowestDrawerBodyElevationFromFrontMm(T)).toBe(elevLowest);
@@ -43,11 +45,11 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     expect(resolveDrawerBodyElevationForStackRoleMm("middle", T)).toBe(17);
     expect(resolveDrawerBodyElevationForStackRoleMm("highest", T)).toBe(17);
     expect(DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM).toBe(41);
-    // Δ com eixo 41 e bodyBottom=E (frontBottom=0): 41 − 16,5 = 24,5
-    expect(DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM - elevLowest).toBeCloseTo(24.5, 5);
+    // Δ = eixo 41 − bodyBottom 18,5 = 22,5
+    expect(DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM - bodyBottomIndustrial).toBeCloseTo(22.5, 5);
   });
 
-  it("generateDrawerGroup — frente 0; corpo E=16,5; R=0,685; superior 17 / 0,75", () => {
+  it("generateDrawerGroup — frente 2; corpo E=16,5 → bodyBottom 18,5; R=0,685", () => {
     const boxH = 720;
     const group = generateDrawerGroup({
       boxWidth: 600,
@@ -72,7 +74,8 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
       posYMm: layers[0]!.posY!,
     });
 
-    expect(geo0.frontBottomFromModuleBaseMm).toBeCloseTo(0, 5);
+    expect(geo0.frontBottomFromModuleBaseMm).toBeCloseTo(frontBottomIndustrial, 5);
+    expect(geo0.flushToModuleBase).toBe(true);
     expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(elevLowest);
     expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(DRAWER_SIDE_BASE_ELEVATION_MM);
 
@@ -88,14 +91,14 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     const frontBottom = layers[0]!.posY! - frontH / 2;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
 
-    expect(frontBottom - moduleBase).toBeCloseTo(0, 5);
-    expect(bodyBottom - moduleBase).toBeCloseTo(elevLowest, 5);
+    expect(frontBottom - moduleBase).toBeCloseTo(frontBottomIndustrial, 5);
+    expect(bodyBottom - moduleBase).toBeCloseTo(bodyBottomIndustrial, 5);
     expect(
       resolveDrawerBodyBottomFromModuleBaseMm({
         frontBottomFromModuleBaseMm: geo0.frontBottomFromModuleBaseMm,
         sideBaseElevationMm: elevLowest,
       })
-    ).toBeCloseTo(elevLowest, 5);
+    ).toBeCloseTo(bodyBottomIndustrial, 5);
 
     const elevHigh = layers[1]!.metadata?.sideBaseElevationMm as number;
     const bodyH1 = layers[1]!.bodyHeight!;

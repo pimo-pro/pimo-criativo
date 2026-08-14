@@ -33,14 +33,14 @@ import {
 } from "./drawerCertificationTestHelpers";
 
 describe("gav_frente — stack vertical por posição no módulo", () => {
-  it("offset de base = 0 (frente inferior flush ao piso do vão)", () => {
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
+  it("offset de base = 2 mm (frente inferior GAV_1 acima do fundo da caixa)", () => {
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
   });
 
-  it("módulo 2 gavetas iguais 720 mm — frentes (H-gap)/2; flush base e CIMA", () => {
+  it("módulo 2 gavetas iguais 720 mm — frentes (H−B0−gap)/2; datum base 2 mm e CIMA", () => {
     const boxH = 720;
     const heights = calculateDrawerHeights(2, boxH, "equal");
-    const expectedEach = (boxH - DRAWER_VERTICAL_GAP_MM) / 2;
+    const expectedEach = (boxH - DRAWER_VERTICAL_BASE_OFFSET_MM - DRAWER_VERTICAL_GAP_MM) / 2;
     expect(heights).toEqual([expectedEach, expectedEach]);
 
     const positions = calculateDrawerPositions(heights, boxH);
@@ -61,7 +61,7 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
     expect(upper.role).toBe("highest");
     expect(lower.flushToModuleBase).toBe(true);
     expect(upper.flushToModuleTop).toBe(true);
-    expect(lower.frontBottomFromModuleBaseMm).toBeCloseTo(0, 5);
+    expect(lower.frontBottomFromModuleBaseMm).toBeCloseTo(DRAWER_VERTICAL_BASE_OFFSET_MM, 5);
     expect(upper.frontTopFromModuleBaseMm).toBeCloseTo(boxH, 5);
   });
 
