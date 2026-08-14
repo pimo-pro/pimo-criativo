@@ -1,25 +1,35 @@
 {
-  "updatedAt": "2026-08-14T12:26:16.736Z",
+  "updatedAt": "2026-08-14T16:02:10.646Z",
   "news": [
+    {
+      "version": "v6.0814.1702",
+      "title": "feat(gavetas): Sistema Industrial Diff1+Diff2+Diff3 — modelo gavita 8 (corrediças Y, corpo, stack equal_quase)",
+      "description": "feat(gavetas): Sistema Industrial Diff1+Diff2+Diff3 — modelo gavita 8 (corrediças Y, corpo, stack equal_quase)",
+      "publishedAt": "2026-08-14T16:02:10.502Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "8939582d"
+    },
     {
       "version": "v6.0814.1326",
       "title": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
       "description": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
-      "publishedAt": "2026-08-14T12:26:16.535Z",
+      "publishedAt": "2026-08-14T13:28:18+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "fd1827bf"
+      "commit": "25e2335"
     },
     {
       "version": "v6.0814.1321",
       "title": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
       "description": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
-      "publishedAt": "2026-08-14T12:21:27.941Z",
+      "publishedAt": "2026-08-14T13:23:44+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "115aa257"
+      "commit": "fd1827b"
     },
     {
       "version": "v6.0812.2205",
