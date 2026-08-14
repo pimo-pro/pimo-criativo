@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-14T12:21:27.083Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
+      "version": "v6.0814.1321"
+    },
+    {
       "publishedAt": "2026-08-12T21:05:10.660Z",
       "author": "pimo-pro",
       "commitMessage": "fix(gavetas): alinhar GAV_1 com elevação 16,5 mm e ratio 0,685",

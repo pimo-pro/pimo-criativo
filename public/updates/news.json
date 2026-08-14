@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-12T21:05:11.519Z",
+  "updatedAt": "2026-08-14T12:21:28.100Z",
   "news": [
+    {
+      "version": "v6.0814.1321",
+      "title": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
+      "description": "fix(gavetas): GAV_1 frontBottom=2 mm para Δ industrial 22,5",
+      "publishedAt": "2026-08-14T12:21:27.941Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "115aa257"
+    },
     {
       "version": "v6.0812.2205",
       "title": "fix(gavetas): alinhar GAV_1 com elevação 16,5 mm e ratio 0,685",
       "description": "fix(gavetas): alinhar GAV_1 com elevação 16,5 mm e ratio 0,685",
-      "publishedAt": "2026-08-12T21:05:11.362Z",
+      "publishedAt": "2026-08-12T22:07:02+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "b119b688"
+      "commit": "7c7e2f3"
     },
     {
       "version": "v6.0812.1540",
