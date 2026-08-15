@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-15T18:44:27.702Z",
+      "author": "pimo-pro",
+      "commitMessage": "Auto deploy",
+      "version": "v6.0815.1944"
+    },
+    {
       "publishedAt": "2026-08-15T14:34:34.715Z",
       "author": "pimo-pro",
       "commitMessage": "Encerramento do tópico DRILL + nota técnica de incompletude",
