@@ -8,6 +8,7 @@ import FormGroup from "../components/ui/FormGroup";
 import Input from "../components/ui/Input";
 import PageContainer from "../components/ui/PageContainer";
 import Section from "../components/ui/Section";
+import { isLocalAuthSession } from "../local-auth";
 import "../components/ui/ui.css";
 
 export default function LoginPage() {
@@ -29,7 +30,9 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate("/dashboard", { replace: true });
+      navigate(isLocalAuthSession() ? "/industrial/pimo-drill" : "/dashboard", {
+        replace: true,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
     } finally {
@@ -55,7 +58,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="ui-form-group">
                 <FormGroup>
                   <Input
-                    type="email"
+                    type="text"
                     label="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

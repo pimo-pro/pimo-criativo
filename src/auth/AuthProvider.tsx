@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { getMe, login as loginApi } from "../api/authApi";
 import { setApiToken } from "../api/apiClient";
+import {
+  clearLocalAuthSession,
+  readLocalAuthSession,
+  tryLocalAuth,
+} from "../local-auth";
 import { AuthContext, type AuthUser } from "./AuthContext";
 
 const STORAGE_TOKEN = "pimo_auth_token";
@@ -34,9 +39,24 @@ export function AuthProvider({ children }: Props) {
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
     localStorage.removeItem(STORAGE_PERMISSIONS);
+    clearLocalAuthSession();
   }, []);
 
   useEffect(() => {
+    const localSession = readLocalAuthSession();
+    if (localSession) {
+      setToken(localSession.token);
+      setUser({
+        id: localSession.user.id,
+        username: localSession.user.name,
+        role: localSession.user.role,
+      });
+      setPermissions([]);
+      setApiToken(null);
+      setLoading(false);
+      return;
+    }
+
     const storedToken = localStorage.getItem(STORAGE_TOKEN);
     const storedUser = localStorage.getItem(STORAGE_USER);
     const storedPermissions = localStorage.getItem(STORAGE_PERMISSIONS);
@@ -62,6 +82,22 @@ export function AuthProvider({ children }: Props) {
 
   const login = useCallback(
     async (email: string, password: string) => {
+      if (tryLocalAuth(email, password)) {
+        const localSession = readLocalAuthSession();
+        if (!localSession) {
+          throw new Error("Sessão local inválida");
+        }
+        setToken(localSession.token);
+        setUser({
+          id: localSession.user.id,
+          username: localSession.user.name,
+          role: localSession.user.role,
+        });
+        setPermissions([]);
+        setApiToken(null);
+        return;
+      }
+
       const loginResult = await loginApi(email, password);
       setApiToken(loginResult.token);
       const me = await getMe();

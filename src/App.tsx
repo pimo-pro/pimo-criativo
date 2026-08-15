@@ -87,6 +87,7 @@ import { AdminSidebar } from "./ui/layout/AdminSidebar";
 import PieceMainView from "./app/industrial/piece/PieceMainView";
 import IndustrialSupervisorDashboardPage from "./app/industrial/supervisor/index";
 import SupervisorProjectPage from "./app/industrial/supervisor/SupervisorProjectPage";
+import PimoDrillPage from "./app/industrial/pimo-drill/PimoDrillPage";
 import IndustrialOperadorPage from "./app/industrial/operador/index";
 import IndustrialReleaseNotesPage from "./app/industrial/release-notes/IndustrialReleaseNotesPage";
 import RelatorioFinalRoute from "./pages/relatorio-final/RelatorioFinalRoute";
@@ -630,6 +631,15 @@ export default function App() {
                   <PiproDesignShellPage />
                 </Suspense>
               </PermissionRoute>
+            </ProtectedRoute>
+          }
+        />
+        {/* PIMO DRILL: layout isolado — sem TopBarTrak / Supabase. */}
+        <Route
+          path="/industrial/pimo-drill"
+          element={
+            <ProtectedRoute>
+              <PimoDrillPage />
             </ProtectedRoute>
           }
         />
