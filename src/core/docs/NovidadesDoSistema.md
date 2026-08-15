@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Release — Flip visual do corpo da gaveta (Viewer Only)
+Camada visual isolada e removível (`drawerVisualBodyFlip.ts`, flag `DRAWER_VIEWER_BODY_VERTICAL_FLIP`).
+
+- Desnível **grande (48 mm)** passa a aparecer no **topo** da frente
+- Desnível **pequeno (~20,5 mm)** na **base**
+- Mesh da frente e flush inalterados; corpo não penetra a frente
+- **Indústria 100% intacta** (cutlist, XML, furação, elevação SSOT 48 mm na base)
+- Para reverter na revisão industrial futura: desligar a flag
+
 ### Release — Sistema de Gavetas Industrial (Diff 1 + Diff 2 + Diff 3) · modelo gavita 8
 Publicação completa das correções industriais das gavetas, validadas contra o módulo de referência gavita 8 (600×800×500, 3 gavetas).
 

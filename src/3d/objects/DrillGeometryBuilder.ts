@@ -4,6 +4,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { SYSTEM_THICKNESS_MM } from "../../core/baseCabinets";
 import type { TechnicalDrillHole } from "../../core/types";
 import { devLogger } from "../../utils/devLogger";
+import { usesViewerBottomOriginY } from "../viewer-engine/measurement/panelHoleGeometry";
 import type { PanelType } from "./PanelFactory";
 
 const THICKNESS_M = SYSTEM_THICKNESS_MM / 1000;
@@ -74,10 +75,7 @@ export function getHole2DLocalPosition(
   panelHeight: number,
   hole: TechnicalDrillHole
 ): { a: number; b: number } {
-  const useBottomOriginY =
-    panelType === "left" || panelType === "right"
-      ? hole.tipo === "cavilha" || hole.tipo === "parafuso" || hole.tipo === "prateleira"
-      : hole.tipo === "cavilha" && panelType === "front";
+  const useBottomOriginY = usesViewerBottomOriginY(panelType, hole);
   const a = (hole.x / 1000) - panelWidth / 2;
   const b = useBottomOriginY
     ? (hole.y / 1000) - panelHeight / 2

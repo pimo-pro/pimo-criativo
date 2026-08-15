@@ -5,7 +5,7 @@ import type { TechnicalDrillHole } from "../../../core/types";
  * Extraído de ViewerPanelVisibility para ser partilhado entre a renderização industrial
  * (contornos/círculos) e o serviço de snapping de medição (centros de furo).
  *
- * IMPORTANTE: comportamento idêntico ao anterior — só move a matemática, não a altera.
+ * Visual-only: não altera coordenadas industriais — só a conversão mm → espaço local Three.js.
  */
 
 export type HolePanelType = "top" | "bottom" | "left" | "right" | "front";
@@ -18,18 +18,41 @@ export const PANEL_HOLE_THICKNESS_M = 0.019;
 export const PANEL_HOLE_OVERLAY_INSET_M = 0.00015;
 
 /**
+ * Visual fix — origem Y no Viewer para overlays/snap (não altera dados de fabrico).
+ *
+ * Frente (gaveta/porta/frente-fixa):
+ * - `cavilha` e `fixacao_estrutural` → BL (Y=0 na base), igual ao datum industrial `orient=BL`
+ * - `puxador` e restantes → origem no topo (handlePlacement)
+ *
+ * Laterais: cavilha/parafuso/prateleira → base (inalterado).
+ */
+export function usesViewerBottomOriginY(
+  panelType: HolePanelTypeExt,
+  hole: Pick<TechnicalDrillHole, "tipo">
+): boolean {
+  if (panelType === "left" || panelType === "right") {
+    return (
+      hole.tipo === "cavilha" ||
+      hole.tipo === "parafuso" ||
+      hole.tipo === "prateleira"
+    );
+  }
+  if (panelType === "front") {
+    return hole.tipo === "cavilha" || hole.tipo === "fixacao_estrutural";
+  }
+  return false;
+}
+
+/**
  * Coordenada "b" (posição do furo no eixo secundário do painel), respeitando a origem
- * de Y conforme o tipo de furo (base vs topo). Idêntico à lógica original.
+ * de Y conforme o tipo de furo (base vs topo).
  */
 export function holeLocalB(
   panelType: HolePanelTypeExt,
   panelH: number,
   hole: TechnicalDrillHole
 ): number {
-  const useBottomOriginY =
-    panelType === "left" || panelType === "right"
-      ? hole.tipo === "cavilha" || hole.tipo === "parafuso" || hole.tipo === "prateleira"
-      : hole.tipo === "cavilha" && panelType === "front";
+  const useBottomOriginY = usesViewerBottomOriginY(panelType, hole);
   return useBottomOriginY ? hole.y / 1000 - panelH / 2 : panelH / 2 - hole.y / 1000;
 }
 

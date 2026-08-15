@@ -42,6 +42,11 @@ import {
 } from "../../core/drawers/drawerViewerLayout";
 import { resolveProfundidadeExternaFromUtilMm, resolveDrawerSideDepthMm } from "../../core/drawers/drawerSlideDepth";
 import { settingsDefaults } from "../../core/settings/settingsSchema";
+import {
+  DRAWER_VIEWER_BODY_VERTICAL_FLIP,
+  resolveDrawerVisualBaseElevationMm,
+  resolveDrawerVisualBodyCenterOffsetYMm,
+} from "./drawerVisualBodyFlip";
 
 const drawerOpenState = new Map<string, boolean>();
 const drawerPositionState = new Map<string, number>();
@@ -442,12 +447,19 @@ function resolveSpecBackCenterZM(spec: DrawerSpec): number {
 }
 
 function resolveSpecBottomCenterYM(spec: DrawerSpec): number {
-  if (Number.isFinite(spec.bottomPosY)) return spec.bottomPosY as number;
+  if (!DRAWER_VIEWER_BODY_VERTICAL_FLIP && Number.isFinite(spec.bottomPosY)) {
+    return spec.bottomPosY as number;
+  }
   const frontHm = spec.heightM;
-  const woodHm = spec.woodBodyHeightM ?? spec.leftSideHeightM ?? spec.bodyHeightM ?? 0.1;
-  const offsetYm =
-    spec.bodyCenterOffsetYM ??
-    resolveDrawerBodyCenterOffsetYMm(frontHm * 1000, woodHm * 1000) / 1000;
+  const woodHm = resolveSpecBodyHeightMm(spec) / 1000;
+  const offsetYm = DRAWER_VIEWER_BODY_VERTICAL_FLIP
+    ? resolveDrawerVisualBodyCenterOffsetYMm(
+        frontHm * 1000,
+        woodHm * 1000,
+        resolveSpecIndustrialBodyElevationMm(spec)
+      ) / 1000
+    : (spec.bodyCenterOffsetYM ??
+      resolveDrawerBodyCenterOffsetYMm(frontHm * 1000, woodHm * 1000) / 1000);
   return (
     resolveDrawerBottomCenterYMm(
       woodHm * 1000,
@@ -477,20 +489,58 @@ function resolveSpecSideBaseElevationMm(spec: DrawerSpec): number {
   return resolveDrawerSideBaseElevationMm();
 }
 
+/** Elevação industrial SSOT (mm) — nunca alterar; só alimenta o flip visual. */
+function resolveSpecIndustrialBodyElevationMm(spec: DrawerSpec): number {
+  return resolveSpecSideBaseElevationMm(spec);
+}
+
+/** Altura do corpo madeira no viewer (mm). */
+function resolveSpecBodyHeightMm(spec: DrawerSpec): number {
+  const frontH = spec.heightM * 1000;
+  return (
+    (spec.leftSideHeightM ??
+      spec.woodBodyHeightM ??
+      spec.bodyHeightM ??
+      resolveDrawerWoodBodyHeightMm(frontH) / 1000) * 1000
+  );
+}
+
+/**
+ * Elevação na base usada só para posicionar o mesh do corpo (Viewer).
+ * Com `DRAWER_VIEWER_BODY_VERTICAL_FLIP`: pequeno na base, 48 mm no topo.
+ */
+function resolveSpecViewerBodyBaseElevationMm(spec: DrawerSpec): number {
+  return resolveDrawerVisualBaseElevationMm(
+    spec.heightM * 1000,
+    resolveSpecBodyHeightMm(spec),
+    resolveSpecIndustrialBodyElevationMm(spec)
+  );
+}
+
 function resolveSpecSideCenterYM(spec: DrawerSpec): number {
-  if (Number.isFinite(spec.leftSidePosY)) return spec.leftSidePosY as number;
   const frontHm = spec.heightM;
+  const industrialElev = resolveSpecIndustrialBodyElevationMm(spec);
+  if (DRAWER_VIEWER_BODY_VERTICAL_FLIP) {
+    return (
+      resolveDrawerVisualBodyCenterOffsetYMm(
+        frontHm * 1000,
+        resolveSpecBodyHeightMm(spec),
+        industrialElev
+      ) / 1000
+    );
+  }
+  if (Number.isFinite(spec.leftSidePosY)) return spec.leftSidePosY as number;
   return (
     spec.bodyCenterOffsetYM ??
     resolveDrawerBodyCenterOffsetYMm(
       frontHm * 1000,
       undefined,
-      resolveSpecSideBaseElevationMm(spec)
+      industrialElev
     ) / 1000
   );
 }
 
-const DRAWER_VIEWER_LAYOUT_REV = "drawer-body-elev-18-5-industrial-sideh";
+const DRAWER_VIEWER_LAYOUT_REV = "drawer-body-visual-y-flip-v1";
 
 export function getDrawerStructureFingerprint(
   spec: DrawerSpec,
@@ -545,7 +595,9 @@ export function getDrawerStructureFingerprint(
     backPosX: spec.backPosX,
     backPosY: spec.backPosY,
     backPosZ: spec.backPosZ,
-    sideBaseElevationMm: spec.sideBaseElevationMm ?? resolveSpecSideBaseElevationMm(spec),
+    sideBaseElevationMm: spec.sideBaseElevationMm ?? resolveSpecIndustrialBodyElevationMm(spec),
+    viewerBodyBaseElevationMm: resolveSpecViewerBodyBaseElevationMm(spec),
+    drawerViewerBodyVerticalFlip: DRAWER_VIEWER_BODY_VERTICAL_FLIP,
     bodyCenterOffsetYM: spec.bodyCenterOffsetYM,
     x: spec.x,
     y: spec.y,
@@ -690,7 +742,7 @@ export function createDrawerObject(
       bodyWidthMm: spec.bodyWidthM * 1000,
       sideThicknessMm: (spec.leftSideWidthM ?? spec.sideThicknessM ?? 0.016) * 1000,
       slideLengthMm,
-      baseElevationMm: resolveSpecSideBaseElevationMm(spec),
+      baseElevationMm: resolveSpecViewerBodyBaseElevationMm(spec),
       sideHeightMm:
         (spec.leftSideHeightM ?? spec.woodBodyHeightM ?? spec.bodyHeightM ?? 0) * 1000 ||
         undefined,
@@ -871,19 +923,22 @@ export function createDrawerObject(
           bodyWidthMm: spec.bodyWidthM * 1000,
           sideThicknessMm: (spec.leftSideWidthM ?? spec.sideThicknessM ?? 0.016) * 1000,
           slideLengthMm: (spec.bodyDepthM ?? viewerBodyDepthM) * 1000,
-          baseElevationMm: resolveSpecSideBaseElevationMm(spec),
+          baseElevationMm: resolveSpecViewerBodyBaseElevationMm(spec),
           sideHeightMm:
             (spec.leftSideHeightM ?? spec.woodBodyHeightM ?? spec.bodyHeightM ?? 0) * 1000 ||
             undefined,
         });
       }
       const viewerSideHeightM = woodSideLayout.sideHeightMm / 1000;
-      // Preferir posY industrial da layer (leftSidePosY / bodyCenterOffset) quando existe.
-      const viewerSidePosYM = Number.isFinite(spec.leftSidePosY)
-        ? (spec.leftSidePosY as number)
-        : Number.isFinite(spec.bodyCenterOffsetYM)
-          ? (spec.bodyCenterOffsetYM as number)
-          : woodSideLayout.sidePosYMm / 1000;
+      // Flip visual: SSOT do mesh = woodSideLayout (elevação visual).
+      // Sem flip: preferir posY da layer quando existe.
+      const viewerSidePosYM = DRAWER_VIEWER_BODY_VERTICAL_FLIP
+        ? woodSideLayout.sidePosYMm / 1000
+        : Number.isFinite(spec.leftSidePosY)
+          ? (spec.leftSidePosY as number)
+          : Number.isFinite(spec.bodyCenterOffsetYM)
+            ? (spec.bodyCenterOffsetYM as number)
+            : woodSideLayout.sidePosYMm / 1000;
       const sideDepthM = (spec.leftSideDepthM ?? woodSideLayout.sideDepthMm / 1000);
       const sidePosYMm = viewerSidePosYM * 1000;
       woodBottomBackLayout = resolveDrawerViewerWoodBottomBackLayoutMm({

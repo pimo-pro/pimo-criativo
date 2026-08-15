@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-15",
+    versao: "viewer-drawer-visual-flip",
+    descricao:
+      "Flip visual Viewer-only do corpo da gaveta (drawerVisualBodyFlip): desnível grande 48 mm no topo, pequeno ~20,5 mm na base; indústria intacta; flag DRAWER_VIEWER_BODY_VERTICAL_FLIP removível.",
+  },
+  {
     data: "2026-08-14",
     versao: "Diff1+Diff2+Diff3",
     descricao:
