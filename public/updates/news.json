@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-14T16:02:10.646Z",
+  "updatedAt": "2026-08-15T14:34:35.494Z",
   "news": [
+    {
+      "version": "v6.0815.1534",
+      "title": "Encerramento do tópico DRILL + nota técnica de incompletude",
+      "description": "Encerramento do tópico DRILL + nota técnica de incompletude\n\n• Encerramento do tópico DRILL no desenvolvimento activo.\n• Simulador PIMO DRILL marcado como incompleto: sem inserção operativa de furos, validação completa ou fluxo operacional.\n• Migração futura do Design Industrial para o módulo DRILL fica adiada até nova ordem.\n• Estado actual: shell parcial (M0–M1); não avançar fases.",
+      "publishedAt": "2026-08-15T14:34:35.312Z",
+      "type": "docs",
+      "author": "pimo-pro",
+      "icon": "docs",
+      "commit": "3a7031f6"
+    },
     {
       "version": "v6.0814.1702",
       "title": "feat(gavetas): Sistema Industrial Diff1+Diff2+Diff3 — modelo gavita 8 (corrediças Y, corpo, stack equal_quase)",
       "description": "feat(gavetas): Sistema Industrial Diff1+Diff2+Diff3 — modelo gavita 8 (corrediças Y, corpo, stack equal_quase)",
-      "publishedAt": "2026-08-14T16:02:10.502Z",
+      "publishedAt": "2026-08-14T17:03:53+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
-      "commit": "8939582d"
+      "commit": "fee7c82"
+    },
+    {
+      "version": "v6.0814.full-gavetas-industrial-165950",
+      "title": "Release v6.0814.full-gavetas-industrial-165950",
+      "description": "Release v6.0814.full-gavetas-industrial-165950",
+      "publishedAt": "2026-08-14T16:59:41+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "8939582"
     },
     {
       "version": "v6.0814.1326",

@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-15T14:34:34.715Z",
+      "author": "pimo-pro",
+      "commitMessage": "Encerramento do tópico DRILL + nota técnica de incompletude",
+      "version": "v6.0815.1534"
+    },
+    {
       "publishedAt": "2026-08-14T16:02:09.977Z",
       "author": "pimo-pro",
       "commitMessage": "Publicação completa — Sistema de Gavetas Industrial (Diff1+Diff2+Diff3) — modelo gavita 8 validado",
