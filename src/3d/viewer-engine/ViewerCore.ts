@@ -661,6 +661,7 @@ export class ViewerCore {
       getBoxEntry: (boxId) => this.boxes.get(boxId),
       projectWorldToScreen: (world) => this.projectWorldToScreen(world),
       getRemateRoot: () => this.remateVisualizer.getRoot(),
+      getTampoRoot: () => this.tampoVisualizer.getRoot(),
       getHematiRoot: () => this.hematiVisualizer.getRoot(),
       getRodapeRoot: () => this.rodapeVisualizer.getRoot(),
     });

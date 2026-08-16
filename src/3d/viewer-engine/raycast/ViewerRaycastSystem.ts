@@ -52,6 +52,8 @@ export type ViewerRaycastSystemDeps = {
   getBoxEntry?: (boxId: string) => ViewerBoxEntry | undefined;
   projectWorldToScreen?: (world: THREE.Vector3) => { x: number; y: number } | null;
   getRemateRoot?: () => THREE.Object3D | null;
+  /** Root do visualizador TAMPO (trapézio / postforming) — picking de remates. */
+  getTampoRoot?: () => THREE.Object3D | null;
   getHematiRoot?: () => THREE.Object3D | null;
   getRodapeRoot?: () => THREE.Object3D | null;
 };
@@ -143,6 +145,16 @@ export class ViewerRaycastSystem {
     skipMergeKey: "isHematiMergeVisual" | "isRodapeMergeVisual" | "isRemateMergeVisual"
   ): string | null {
     if (!root) return null;
+    return this.pickIdFromFinishRoots(event, [root], idKey, skipMergeKey);
+  }
+
+  private pickIdFromFinishRoots(
+    event: { clientX: number; clientY: number },
+    roots: THREE.Object3D[],
+    idKey: "hematiId" | "rodapeId" | "remateId",
+    skipMergeKey: "isHematiMergeVisual" | "isRodapeMergeVisual" | "isRemateMergeVisual"
+  ): string | null {
+    if (!roots.length) return null;
     const canvas = this.deps.getCanvas();
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
@@ -151,7 +163,7 @@ export class ViewerRaycastSystem {
     this.deps.pointer.set(x, y);
     this.deps.raycaster.setFromCamera(this.deps.pointer, this.deps.camera);
     this.deps.raycaster.layers.set(0);
-    const hits = this.deps.raycaster.intersectObjects([root], true);
+    const hits = this.deps.raycaster.intersectObjects(roots, true);
     for (const hit of hits) {
       if (hit.object.userData?.[skipMergeKey] === true) continue;
       if (idKey === "remateId") {
@@ -174,7 +186,10 @@ export class ViewerRaycastSystem {
   }
 
   getRemateIdAtPointer(event: { clientX: number; clientY: number }): string | null {
-    return this.pickIdFromFinishRoot(event, this.deps.getRemateRoot?.(), "remateId", "isRemateMergeVisual");
+    const roots = [this.deps.getRemateRoot?.(), this.deps.getTampoRoot?.()].filter(
+      (r): r is THREE.Object3D => r != null
+    );
+    return this.pickIdFromFinishRoots(event, roots, "remateId", "isRemateMergeVisual");
   }
 
   /** Ponto 3D do primeiro hit (medidas/âncoras — não altera seleção). */
@@ -192,6 +207,7 @@ export class ViewerRaycastSystem {
       this.deps.getHematiRoot?.(),
       this.deps.getRodapeRoot?.(),
       this.deps.getRemateRoot?.(),
+      this.deps.getTampoRoot?.(),
     ].filter((root): root is THREE.Object3D => root != null);
 
     if (finishRoots.length > 0) {

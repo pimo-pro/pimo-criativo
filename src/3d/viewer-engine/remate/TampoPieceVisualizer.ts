@@ -49,11 +49,14 @@ function resolveTampoGeometry(
 
   const withCutouts = buildTampoGeometryWithCutouts(base, piece.cutouts);
   const envelope = resolveTampoAngleEnvelopeMm(cfg, baseLengthMm, widthMm);
-  return applyTampoUnion(withCutouts, piece.union, {
+  const finalGeom = applyTampoUnion(withCutouts, piece.union, {
     w: envelope.lengthMm / 1000,
     h: envelope.widthMm / 1000,
     d,
   });
+  finalGeom.computeBoundingBox();
+  finalGeom.computeBoundingSphere();
+  return finalGeom;
 }
 
 /** Peça TAMPO / Tampo Cozinha — visualização dedicada (postforming). */
@@ -127,6 +130,11 @@ export class TampoPieceVisualizer {
     }
 
     mesh.visible = piece.visible !== false;
+    mesh.name = piece.id;
+    mesh.userData.remateId = piece.id;
+    mesh.userData.pieceId = piece.id;
+    mesh.userData.isRematePiece = true;
+    mesh.userData.isTampoPiece = true;
     mesh.userData.remateProductType = piece.productType;
     mesh.userData.rematePartIndex = piece.partIndex;
     mesh.userData.remateParentGroupId = piece.parentGroupId ?? null;
@@ -150,7 +158,7 @@ export class TampoPieceVisualizer {
       new THREE.MeshStandardMaterial({ color: "#f2f0eb" })
     );
     applyMaterialToMesh(mesh, piece.materialPresetId);
-    mesh.name = `tampo-piece-${piece.id}`;
+    mesh.name = piece.id;
     mesh.userData.isRematePiece = true;
     mesh.userData.isTampoPiece = true;
     mesh.userData.remateId = piece.id;
