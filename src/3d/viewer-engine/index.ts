@@ -53,3 +53,18 @@ export type { MaterialPipelineFacade } from "./materials/materialPipelineFacade"
 export { DisplayMaterialController } from "./materials/displayMaterialController";
 export { createTextureLoaderFacade } from "./loaders/textureLoaderFacade";
 export type { TextureLoaderFacade } from "./loaders/textureLoaderFacade";
+export { TampoPieceVisualizer, isTampoVisualPiece } from "./remate/TampoPieceVisualizer";
+export {
+  createTampoPostformingGeometry,
+  TAMPO_POSTFORM_RADIUS_MM,
+} from "./remate/tampoPostformingGeometry";
+export {
+  TampoCutoutVisualizer,
+  buildTampoGeometryWithCutouts,
+  createTampoCutoutCutterMesh,
+} from "./remate/TampoCutoutVisualizer";
+export {
+  TampoUnionVisualizer,
+  applyTampoUnion,
+  createTampoUnionCutterMesh,
+} from "./remate/TampoUnionVisualizer";

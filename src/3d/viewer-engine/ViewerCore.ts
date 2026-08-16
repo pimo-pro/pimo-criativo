@@ -193,6 +193,7 @@ import type { SmartLayoutBridge } from "./snapping/smartLayoutTypes";
 import { createDisabledSmartLayoutDeps } from "./snapping/smartLayoutDepsFactory";
 import { OrlaVisualizer, type OrlaVisualBridge } from "./orla/OrlaVisualizer";
 import { RematePieceVisualizer, type RematePieceVisualBridge } from "./remate/RematePieceVisualizer";
+import { TampoPieceVisualizer } from "./remate/TampoPieceVisualizer";
 import {
   listRemateIdsInSameLComposite,
   resolveLRemateCimaLeadId,
@@ -524,6 +525,7 @@ export class ViewerCore {
   private costReportEngine!: CostReportEngine;
   private orlaVisualizer = new OrlaVisualizer();
   private remateVisualizer = new RematePieceVisualizer();
+  private tampoVisualizer = new TampoPieceVisualizer();
   private remateVisualBridge: RematePieceVisualBridge | null = null;
   private divSepVisualBridge: DivSepVisualBridge | null = null;
   private rodapeVisualBridge: RodapeVisualBridge | null = null;
@@ -1051,6 +1053,7 @@ export class ViewerCore {
     this.wallGizmo.setOnTransform(() => this.notifyWallTransform());
     this.sceneManager.scene.add(this.wallGizmo.group);
     this.sceneManager.scene.add(this.remateVisualizer.getRoot());
+    this.sceneManager.scene.add(this.tampoVisualizer.getRoot());
     this.sceneManager.scene.add(this.hematiVisualizer.getRoot());
     this.sceneManager.scene.add(this.rodapeVisualizer.getRoot());
     this.setWallEditMode(false);
@@ -1252,6 +1255,7 @@ export class ViewerCore {
   bindRemateBridge(bridge: RematePieceVisualBridge | null): void {
     this.remateVisualBridge = bridge;
     this.remateVisualizer.bindBridge(bridge);
+    this.tampoVisualizer.bindBridge(bridge);
     this.syncRemateVisuals();
   }
 
@@ -1262,12 +1266,14 @@ export class ViewerCore {
       return;
     }
     this.remateVisualizer.syncAll();
+    this.tampoVisualizer.syncAll();
     for (const [, entry] of this.boxes.entries()) {
       if (!entry?.mesh) continue;
       this.clearBoxChildrenRemateLegacy(entry.mesh);
       this.applyPanelVisibilityForObject(entry.mesh);
     }
     this.applyPanelVisibilityForObject(this.remateVisualizer.getRoot());
+    this.applyPanelVisibilityForObject(this.tampoVisualizer.getRoot());
     this.refreshViewerAttachmentsAfterMeshMutation();
   }
 
@@ -1280,7 +1286,11 @@ export class ViewerCore {
   }
 
   getRemateMesh(remateId: string): THREE.Object3D | null {
-    return this.remateVisualizer.getMeshByRemateId(remateId) ?? null;
+    return (
+      this.remateVisualizer.getMeshByRemateId(remateId) ??
+      this.tampoVisualizer.getMeshByRemateId(remateId) ??
+      null
+    );
   }
 
   /**
@@ -6579,6 +6589,8 @@ export class ViewerCore {
     this.remateVisualBridge = null;
     this.remateVisualizer.bindBridge(null);
     this.remateVisualizer.dispose();
+    this.tampoVisualizer.bindBridge(null);
+    this.tampoVisualizer.dispose();
     this.hematiVisualizer.bindBridge(null);
     this.hematiVisualizer.dispose();
     this.rodapeVisualBridge = null;

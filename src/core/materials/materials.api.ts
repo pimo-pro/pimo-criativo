@@ -23,11 +23,25 @@ export type OfficialWoodMaterial = {
     densidade: number;
   };
   viewerMaterialId?: string;
+  /** Metadados de produto (matérias especiais, ex. tampo cozinha). */
+  productMeta?: {
+    productType?: "tampo_cozinha" | string;
+    /** Laminado de fábrica — sem canto vivo / orla clássica. */
+    laminadoFabrica?: boolean;
+    /** Largura máxima de peça (mm). */
+    maxPieceWidthMm?: number;
+  };
 };
 
-/** Chapa padrão industrial FASE 7J — todas as variantes 2800 × 2070 mm. */
+/** Chapa padrão industrial FASE 7J — variantes gerais 2800 × 2070 mm. */
 export const INDUSTRIAL_SHEET_LF_MM = 2800;
 export const INDUSTRIAL_SHEET_HF_MM = 2070;
+
+/** MDB Laminado — chapa especial tampo cozinha. */
+export const MDB_LAMINADO_SHEET_LF_MM = 3660;
+export const MDB_LAMINADO_SHEET_HF_MM = 630;
+export const MDB_LAMINADO_MAX_PIECE_WIDTH_MM = 630;
+export const MDB_LAMINADO_CANONICAL_ID = "mdb_laminado-30";
 
 /** Fallback da costa (10 mm, MDF Branco) quando a família do corpo não tem variante 10 mm. */
 export const COSTA_INDUSTRIAL_CANONICAL_ID = "mdf_branco-10";
@@ -64,6 +78,12 @@ type IndustrialSheetSeed = {
   densidade: number;
   /** Aliases extra para migração (ids/nomes antigos). */
   legacyAliases?: string[];
+  /** Override chapa (default 2800×2070). */
+  larguraChapa?: number;
+  alturaChapa?: number;
+  productType?: "tampo_cozinha" | string;
+  laminadoFabrica?: boolean;
+  maxPieceWidthMm?: number;
 };
 
 /**
@@ -303,6 +323,21 @@ const INDUSTRIAL_SHEETS_SEED: IndustrialSheetSeed[] = [
     custo_m2: 95,
     densidade: 750,
   },
+  // MDB Laminado — tampo cozinha (chapa 3660×630, esp. 30)
+  {
+    canonicalId: MDB_LAMINADO_CANONICAL_ID,
+    label: "MDB Laminado 30",
+    espessuraPadrao: 30,
+    viewerMaterialId: "mdb_laminado",
+    custo_m2: 30,
+    densidade: 750,
+    larguraChapa: MDB_LAMINADO_SHEET_LF_MM,
+    alturaChapa: MDB_LAMINADO_SHEET_HF_MM,
+    productType: "tampo_cozinha",
+    laminadoFabrica: true,
+    maxPieceWidthMm: MDB_LAMINADO_MAX_PIECE_WIDTH_MM,
+    legacyAliases: ["MDB Laminado", "mdb_laminado", "MDB Laminado 30 mm"],
+  },
 ];
 
 function industrialSheetToOfficial(row: IndustrialSheetSeed): OfficialWoodMaterial {
@@ -322,12 +357,54 @@ function industrialSheetToOfficial(row: IndustrialSheetSeed): OfficialWoodMateri
     industrialDefaults: {
       espessuraPadrao: row.espessuraPadrao,
       custo_m2: row.custo_m2,
-      larguraChapa: INDUSTRIAL_SHEET_LF_MM,
-      alturaChapa: INDUSTRIAL_SHEET_HF_MM,
+      larguraChapa: row.larguraChapa ?? INDUSTRIAL_SHEET_LF_MM,
+      alturaChapa: row.alturaChapa ?? INDUSTRIAL_SHEET_HF_MM,
       densidade: row.densidade,
     },
+    productMeta:
+      row.productType || row.laminadoFabrica || row.maxPieceWidthMm
+        ? {
+            productType: row.productType,
+            laminadoFabrica: row.laminadoFabrica === true,
+            maxPieceWidthMm: row.maxPieceWidthMm,
+          }
+        : undefined,
     aliases,
   };
+}
+
+export type MaterialPieceWidthValidation = {
+  ok: boolean;
+  maxPieceWidthMm?: number;
+  message?: string;
+};
+
+/**
+ * Validação industrial de largura de peça vs matéria (ex. MDB Laminado max 630 mm).
+ * Pronta para a peça TAMPO; não altera cutlist nesta fase.
+ */
+export function validateMaterialPieceWidthMm(
+  materialIdOrAlias: string,
+  pieceWidthMm: number
+): MaterialPieceWidthValidation {
+  const mat = resolveMaterial(materialIdOrAlias);
+  const max = mat?.productMeta?.maxPieceWidthMm;
+  if (max == null || !Number.isFinite(max) || max <= 0) return { ok: true };
+  const w = Number(pieceWidthMm);
+  if (!Number.isFinite(w) || w <= max) {
+    return { ok: true, maxPieceWidthMm: max };
+  }
+  return {
+    ok: false,
+    maxPieceWidthMm: max,
+    message: `${mat!.label}: largura máxima ${max} mm (peça ${w} mm). Chapa ${mat!.industrialDefaults?.larguraChapa}×${mat!.industrialDefaults?.alturaChapa} mm.`,
+  };
+}
+
+/** Matéria com productType tampo_cozinha (ex. mdb_laminado-30). */
+export function isTampoCozinhaMaterial(idOrAlias: string): boolean {
+  const m = resolveMaterial(idOrAlias);
+  return m?.productMeta?.productType === "tampo_cozinha" || m?.canonicalId === MDB_LAMINADO_CANONICAL_ID;
 }
 
 /** Chapas industriais ativas (única fonte para listIndustrialWoodMaterials). */

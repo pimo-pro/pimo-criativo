@@ -60,6 +60,8 @@ export function resolveMountSlot(piece: RematePiece): RemateMountSlot {
       return "FUNDO";
     case "L":
       return piece.partIndex === 2 ? "DIR" : "CIMA";
+    case "TAMPO":
+      return "CIMA";
     default:
       return "FRENTE";
   }

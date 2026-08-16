@@ -275,6 +275,14 @@ export function buildOrlaPiecesForBox(
       delete next[panelId];
       continue;
     }
+    // Tampo / laminado de fábrica — sem orla clássica
+    if (
+      item.metadata?.laminadoFabrica === true ||
+      item.metadata?.productType === "TAMPO_COZINHA"
+    ) {
+      delete next[panelId];
+      continue;
+    }
     const esp = pieceEspessuraMm(item);
     const mat = resolvePieceOrlaMaterial(item);
     const piecePresetId = resolveOrlaPresetIdForPiece(

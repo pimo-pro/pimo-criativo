@@ -15,8 +15,16 @@ import { getRemateEnvelopeBoundsM } from "./rematePlacement";
 import { snapToMountRule } from "./remateMountFrame";
 import { snapLRemateGroupCorners } from "./remateLGeometry";
 import { markRematePlacementSettled } from "./remateTransformStability";
-
 import { remateLIndustrialName } from "./remateLGeometry";
+import {
+  applyTampoIndustrialDefaults,
+  shouldApplyTampoRules,
+  TAMPO_MATERIAL_ID,
+  TAMPO_THICKNESS_MM,
+} from "./tampoCozinhaRules";
+
+// Viewer Fase 2: tipo TAMPO / productType TAMPO_COZINHA → TampoPieceVisualizer (postforming).
+// Sem import Three.js neste factory industrial.
 
 let remateSeq = 0;
 
@@ -117,11 +125,19 @@ export function createRematePieces(
     const productType = spec.productType;
     const mountSlot = spec.mountSlot;
     const opts = normalizeProductOptions(productType, spec.productOptions);
+    let materialPresetId = input.materialPresetId ?? ctx.materialPresetId;
+    let thicknessMm = ctx.thicknessMm;
+    if (shouldApplyTampoRules({ productType, materialPresetId })) {
+      materialPresetId = TAMPO_MATERIAL_ID;
+      thicknessMm = TAMPO_THICKNESS_MM;
+    }
     const dims = computeDimensionsForProduct({
       box: ctx.box ?? null,
-      productType,
+      productType: shouldApplyTampoRules({ productType, materialPresetId })
+        ? "TAMPO_COZINHA"
+        : productType,
       mountSlot,
-      thicknessMm: ctx.thicknessMm,
+      thicknessMm,
       productOptions: opts,
       partRole: spec.partRole,
       partIndex: spec.partIndex,
@@ -138,7 +154,7 @@ export function createRematePieces(
       width: input.width ?? dims.width,
       height: input.height ?? dims.height,
       depth: input.depth ?? dims.depth,
-      materialPresetId: input.materialPresetId ?? ctx.materialPresetId,
+      materialPresetId,
       position: input.workspacePosition ?? { xMm: 0, yMm: 0, zMm: 0 },
       rotation: { xRad: 0, yRad: 0, zRad: 0 },
       followBox: input.followBox ?? Boolean(input.parentBoxId),
@@ -147,6 +163,17 @@ export function createRematePieces(
       partIndex: spec.partIndex,
       isInitialPlacement: true,
     };
+
+    if (shouldApplyTampoRules({ productType: piece.productType, materialPresetId: piece.materialPresetId })) {
+      piece = applyTampoIndustrialDefaults(piece);
+      piece.name = buildRematePieceName(
+        ctx.box ?? null,
+        "TAMPO_COZINHA",
+        piece.mountSlot ?? "CIMA",
+        spec.partRole,
+        spec.partIndex
+      );
+    }
 
     if (input.parentBoxId && ctx.box && ctx.boxDimsM) {
       piece = applyMountSnapIfNeeded(piece, ctx.box, ctx.boxDimsM);

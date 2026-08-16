@@ -1,6 +1,14 @@
 import type { FinishTransform } from "../kitchenFinish/finishTypes";
+import type { TampoCutout } from "./tampoCutouts";
+import type { TampoUnion } from "./tampoUnion";
 
-export type RemateProductType = "AVISTA" | "COMPLETO" | "L" | "RODAPE" | "RODAPE_L";
+export type RemateProductType =
+  | "AVISTA"
+  | "COMPLETO"
+  | "L"
+  | "RODAPE"
+  | "RODAPE_L"
+  | "TAMPO_COZINHA";
 
 export type RematePartRole = "MAIN" | "TOP" | "BOTTOM";
 
@@ -42,7 +50,8 @@ export type RematePieceTipo =
   | "BAIXO"
   | "L"
   | "RODAPE"
-  | "RODAPE_L";
+  | "RODAPE_L"
+  | "TAMPO";
 
 export type RemateMountSlot = "FRENTE" | "TRAS" | "DIR" | "ESQ" | "CIMA" | "FUNDO";
 
@@ -110,6 +119,10 @@ export type RematePiece = {
    * undefined / true = incluído.
    */
   visible?: boolean;
+  /** Recortes do TAMPO (fogão/pia/retangular/circular). Só relevante para TAMPO_COZINHA. */
+  cutouts?: TampoCutout[];
+  /** União: este tampo (A) recebe encaixe do targetTampoId (B). null = sem união. */
+  union?: TampoUnion | null;
 };
 
 export type CreateRematePieceInput = {
@@ -154,6 +167,8 @@ export type UpdateRematePieceInput = Partial<
     | "isInitialPlacement"
     | "transform"
     | "visible"
+    | "cutouts"
+    | "union"
   >
 >;
 
@@ -163,6 +178,7 @@ export const REMATE_PRODUCT_TYPE_LABELS: Record<RemateProductType, string> = {
   L: "Remate L",
   RODAPE: "Rodapé",
   RODAPE_L: "Rodapé L",
+  TAMPO_COZINHA: "Tampo / Remate Especial",
 };
 
 export const REMATE_MOUNT_SLOT_LABELS: Record<RemateMountSlot, string> = {
@@ -183,6 +199,7 @@ export const REMATE_PIECE_TIPO_LABELS: Record<RematePieceTipo, string> = {
   L: "Remate L",
   RODAPE: "Rodapé",
   RODAPE_L: "Rodapé L",
+  TAMPO: "Tampo Cozinha",
 };
 
 export function isMultiPartRemateProduct(productType: RemateProductType): boolean {

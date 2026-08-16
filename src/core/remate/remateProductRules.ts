@@ -44,6 +44,8 @@ export const PUXADOR_HEIGHT_MM = 150;
 
 export function defaultMountSlotForProduct(productType: RemateProductType): RemateMountSlot {
   switch (productType) {
+    case "TAMPO_COZINHA":
+      return "CIMA";
     case "RODAPE":
     case "RODAPE_L":
       return "FUNDO";
@@ -58,6 +60,7 @@ export function deriveLegacyTipo(
   productType: RemateProductType,
   mountSlot: RemateMountSlot
 ): RematePieceTipo {
+  if (productType === "TAMPO_COZINHA") return "TAMPO";
   if (productType === "L") return "L";
   if (productType === "RODAPE") return "RODAPE";
   if (productType === "RODAPE_L") return "RODAPE_L";
@@ -80,6 +83,7 @@ export function deriveLegacyTipo(
 
 export function inferProductTypeFromLegacy(piece: Pick<RematePiece, "tipo" | "productType">): RemateProductType {
   if (piece.productType) return piece.productType;
+  if (piece.tipo === "TAMPO") return "TAMPO_COZINHA";
   if (piece.tipo === "L") return "L";
   if (piece.tipo === "RODAPE") return "RODAPE";
   if (piece.tipo === "RODAPE_L") return "RODAPE_L";
@@ -160,6 +164,14 @@ export function computeDimensionsForProduct(
   const extra = opts.coverageExtraMm ?? 0;
   const avistaDepthMm = Math.max(10, avistaW);
 
+  if (ctx.productType === "TAMPO_COZINHA") {
+    const length = Math.max(1, largura);
+    return {
+      width: Math.min(length, 3660),
+      height: 630,
+      depth: t > 0 ? t : 30,
+    };
+  }
   if (ctx.productType === "RODAPE") {
     return { width: largura, height: RODAPE_HEIGHT_MM, depth: t };
   }

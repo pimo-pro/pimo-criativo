@@ -12,6 +12,11 @@ import {
   resolveRemateIndustrialSuffix,
   resolveRematePieceDisplayName,
 } from "./labels";
+import {
+  serializeTampoCutoutsForCutlist,
+  TAMPO_CUTOUT_TYPE_LABELS,
+} from "./tampoCutouts";
+import { serializeTampoUnionForCutlist } from "./tampoUnion";
 
 function toCutDimensions(remate: RematePiece): CutListItem["dimensoes"] {
   const sheet = resolveRemateSheetCutDimensions(remate);
@@ -97,6 +102,24 @@ export function buildRemateCutlistItems(
         followBox: remate.followBox,
         placementMode: remate.placementMode ?? (remate.followBox ? "SNAPPED" : "FREE"),
         faceOffsets: remate.faceOffsets,
+        laminadoFabrica: productType === "TAMPO_COZINHA",
+        remateCategory: productType === "TAMPO_COZINHA" ? "tampo_especial" : "remate",
+        cutouts:
+          productType === "TAMPO_COZINHA"
+            ? serializeTampoCutoutsForCutlist(remate.cutouts)
+            : undefined,
+        cutoutOperations:
+          productType === "TAMPO_COZINHA"
+            ? (remate.cutouts ?? []).map((c) => ({
+                kind: "tampo_cutout" as const,
+                tipo: c.tipo,
+                label: TAMPO_CUTOUT_TYPE_LABELS[c.tipo],
+              }))
+            : undefined,
+        union:
+          productType === "TAMPO_COZINHA"
+            ? serializeTampoUnionForCutlist(remate.union)
+            : undefined,
         ...rotationMeta,
       },
     };

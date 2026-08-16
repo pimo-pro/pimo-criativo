@@ -45,6 +45,16 @@ export const INITIAL_MATERIAL_PRESETS: MaterialPreset[] = [
     metallic: M,
   },
   {
+    id: "mdb_laminado",
+    name: "MDB Laminado",
+    color: "#f2f0eb",
+    textureUrl: TEXTURE_URLS.mdfBranco,
+    uvScale: D,
+    uvRotation: 0,
+    roughness: 0.5,
+    metallic: M,
+  },
+  {
     id: "laminado_linho_cancun",
     name: "Cinza",
     color: "#9ca3af",

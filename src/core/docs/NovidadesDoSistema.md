@@ -1,5 +1,31 @@
 # Novidades do Sistema
 
+### Release — TAMPO Cozinha completo (Fases 1–4)
+Sistema completo de tampo de cozinha: matéria industrial, peça Remate Especial, viewer postforming, recortes e união entre tampos.
+
+**Matéria**
+- Nova chapa **MDB Laminado 30 mm** (`mdb_laminado-30`)
+- Chapa **3660 × 630**, custo **30 €/m²**, laminado de fábrica (sem orla clássica)
+
+**Industrial (Fase 1)**
+- Tipo **TAMPO_COZINHA** no fluxo Remate 2.0
+- Largura fixa **630 mm**, espessura **30 mm**, comprimento dinâmico (máx. 3660 mm)
+- Cutlist via `remateCutlist` (sem peças avulsas de remate clássico)
+
+**Viewer (Fase 2)**
+- `TampoPieceVisualizer` com borda frontal arredondada (postforming ≈ **11 mm**)
+- Snapping e manipulação iguais aos remates
+
+**Recortes (Fase 3)**
+- Fogão, pia, retangular e circular
+- Validação de limites + CSG no Viewer
+- Metadata na cutlist (operações, sem peças novas)
+
+**União entre tampos (Fase 4)**
+- Encaixe A←B com overlap **5–10 mm** (default **8 mm**)
+- Direcções LEFT / RIGHT / FRONT / BACK
+- Remoção controlada da faixa de postforming só no tampo receptor
+
 ### Release — Flip visual do corpo da gaveta (Viewer Only)
 Camada visual isolada e removível (`drawerVisualBodyFlip.ts`, flag `DRAWER_VIEWER_BODY_VERTICAL_FLIP`).
 

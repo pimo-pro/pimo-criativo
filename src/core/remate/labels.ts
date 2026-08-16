@@ -21,6 +21,10 @@ export function resolveRemateIndustrialSuffix(remate: RematePiece): string {
     return remateLIndustrialSuffix(remate.partIndex);
   }
 
+  if (productType === "TAMPO_COZINHA" || remate.tipo === "TAMPO") {
+    return "TAMPO";
+  }
+
   if (productType === "RODAPE_L" || remate.tipo === "RODAPE_L") {
     return remate.partIndex === 2 ? "RODAPE_L_B" : "RODAPE_L_A";
   }
@@ -43,14 +47,17 @@ export function resolveRemateIndustrialSuffix(remate: RematePiece): string {
   return "FRENTE";
 }
 
-function isRemateTipoSuffix(tipo: RematePieceTipo): tipo is Exclude<RematePieceTipo, "L" | "RODAPE_L"> {
+function isRemateTipoSuffix(
+  tipo: RematePieceTipo
+): tipo is Exclude<RematePieceTipo, "L" | "RODAPE_L"> {
   return (
     tipo === "FRENTE" ||
     tipo === "DIR" ||
     tipo === "ESQ" ||
     tipo === "CIMA" ||
     tipo === "BAIXO" ||
-    tipo === "RODAPE"
+    tipo === "RODAPE" ||
+    tipo === "TAMPO"
   );
 }
 

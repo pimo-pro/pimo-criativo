@@ -27,6 +27,8 @@ import WoodGrainLockToggle from "../material/WoodGrainLockToggle";
 import GroupedMaterialSelect from "../material/GroupedMaterialSelect";
 import { measureRemateGap, measureRemateGapToBox } from "../../../core/remate/remateGapMeasure";
 import RemateRulesSection from "./RemateRulesSection";
+import TampoCutoutPropertiesPanel from "./TampoCutoutPropertiesPanel";
+import TampoUnionPanel from "./TampoUnionPanel";
 import { OPPOSITE_MOUNT_SLOT } from "../../../core/remate/remateCloneUtils";
 import { resolveRematePieceNomeForRemate } from "../../../core/remate/labels";
 import { isLRemateExt, isLRemateInt } from "../../../core/remate/remateLGeometry";
@@ -90,7 +92,14 @@ function useNumericField(
 }
 
 const MOUNT_SLOTS: RemateMountSlot[] = ["FRENTE", "DIR", "ESQ", "CIMA", "FUNDO"];
-const PRODUCTS: RemateProductType[] = ["AVISTA", "COMPLETO", "L", "RODAPE", "RODAPE_L"];
+const PRODUCTS: RemateProductType[] = [
+  "AVISTA",
+  "COMPLETO",
+  "L",
+  "RODAPE",
+  "RODAPE_L",
+  "TAMPO_COZINHA",
+];
 
 const lDimCardStyle: CSSProperties = {
   padding: "10px 12px",
@@ -258,6 +267,7 @@ export default function RematePropertiesPanel({ remateId }: Props) {
   const faceEditable = productType === "AVISTA" || productType === "COMPLETO";
   const isMain = !remate.partRole || remate.partRole === "MAIN";
   const isCompleto = productType === "COMPLETO";
+  const isTampo = productType === "TAMPO_COZINHA";
 
   const material = getMaterialByIdOrLabel(remate.materialPresetId);
   const thicknessMm = Number(material?.espessura) || 19;
@@ -397,6 +407,31 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           </p>
         ) : null}
 
+        {isTampo ? (
+          <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>
+            Tampo / Remate Especial — largura fixa 630 mm, matéria MDB Laminado 30, laminado de fábrica (sem orla clássica).
+          </p>
+        ) : null}
+
+        {isTampo ? (
+          <TampoCutoutPropertiesPanel
+            remate={remate}
+            onChangeCutouts={(cutouts) => actions.updateRemate(remate.id, { cutouts })}
+          />
+        ) : null}
+
+        {isTampo ? (
+          <TampoUnionPanel
+            remate={remate}
+            otherTampos={(project.remates ?? []).filter(
+              (r) =>
+                r.id !== remate.id &&
+                (r.productType === "TAMPO_COZINHA" || r.tipo === "TAMPO")
+            )}
+            onChangeUnion={(union) => actions.updateRemate(remate.id, { union })}
+          />
+        ) : null}
+
         {remate.placementMode === "FREE" ? (
           <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>Posição livre</p>
         ) : null}
@@ -412,11 +447,24 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           <>
             <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
               Comprimento (mm)
-              <input className="input input-sm" type="number" min={1} {...widthField} />
+              <input
+                className="input input-sm"
+                type="number"
+                min={1}
+                max={isTampo ? 3660 : undefined}
+                {...widthField}
+              />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
               Largura (mm)
-              <input className="input input-sm" type="number" min={1} {...heightField} />
+              <input
+                className="input input-sm"
+                type="number"
+                min={1}
+                readOnly={isTampo}
+                disabled={isTampo}
+                {...heightField}
+              />
             </label>
             <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>
               Espessura: {thicknessMm} mm (material)
@@ -455,6 +503,7 @@ export default function RematePropertiesPanel({ remateId }: Props) {
               actions.updateRemate(remate.id, { materialPresetId: materialId })
             }
             selectClassName="select input-sm"
+            disabled={isTampo}
           />
         </label>
 
@@ -513,7 +562,7 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           Duplicar Remate
         </button>
 
-        {OPPOSITE_MOUNT_SLOT[remate.mountSlot ?? "FRENTE"] && productType !== "L" ? (
+        {OPPOSITE_MOUNT_SLOT[remate.mountSlot ?? "FRENTE"] && productType !== "L" && !isTampo ? (
           <button
             type="button"
             className="btn"

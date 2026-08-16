@@ -40,4 +40,11 @@ export const REMATE_CATALOG_ITEMS: RemateCatalogItem[] = [
     defaultMountSlot: "FUNDO",
     nome: REMATE_PRODUCT_TYPE_LABELS.RODAPE_L,
   },
+  {
+    id: "remate-tampo-cozinha",
+    productType: "TAMPO_COZINHA",
+    defaultMountSlot: "CIMA",
+    nome: REMATE_PRODUCT_TYPE_LABELS.TAMPO_COZINHA,
+    descricao: "MDB Laminado 30 · 630 mm · laminado de fábrica",
+  },
 ];

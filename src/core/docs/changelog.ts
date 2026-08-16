@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-16",
+    versao: "tampo-v1",
+    descricao:
+      "TAMPO Cozinha Fases 1–4: matéria MDB Laminado 30 (3660×630); TAMPO_COZINHA industrial+viewer postforming; recortes fogão/pia/retangular/circular; união entre tampos overlap 5–10 mm.",
+  },
+  {
     data: "2026-08-15",
     versao: "viewer-drawer-visual-flip",
     descricao:

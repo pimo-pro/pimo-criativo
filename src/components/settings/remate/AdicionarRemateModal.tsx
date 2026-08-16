@@ -14,7 +14,14 @@ import {
   defaultMountSlotForProduct,
 } from "../../../core/remate/remateProductRules";
 
-const PRODUCTS: RemateProductType[] = ["AVISTA", "COMPLETO", "L", "RODAPE", "RODAPE_L"];
+const PRODUCTS: RemateProductType[] = [
+  "AVISTA",
+  "COMPLETO",
+  "L",
+  "RODAPE",
+  "RODAPE_L",
+  "TAMPO_COZINHA",
+];
 const MOUNT_SLOTS: RemateMountSlot[] = ["FRENTE", "DIR", "ESQ", "CIMA", "FUNDO"];
 
 type Props = {

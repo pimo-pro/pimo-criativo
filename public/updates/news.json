@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-15T18:44:28.722Z",
+  "updatedAt": "2026-08-16T14:40:00.000Z",
   "news": [
+    {
+      "version": "tampo-v1",
+      "title": "TAMPO Cozinha completo (Fases 1–4)",
+      "description": "Sistema completo de tampo de cozinha.\n\n• Matéria MDB Laminado 30 mm (3660×630, 30 €/m², laminado de fábrica).\n• Peça TAMPO_COZINHA no fluxo Remate (630×30, comprimento dinâmico).\n• Viewer com postforming frontal (~11 mm).\n• Recortes: fogão, pia, retangular, circular (CSG + metadata cutlist).\n• União entre tampos: overlap 5–10 mm (default 8), direcções LEFT/RIGHT/FRONT/BACK.",
+      "publishedAt": "2026-08-16T14:40:00.000Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "pending"
+    },
     {
       "version": "v6.0815.1944",
       "title": "Auto deploy",

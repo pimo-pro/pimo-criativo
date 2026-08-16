@@ -12,6 +12,7 @@ export type MaterialPbrId =
   | "agl_carvalho"
   | "nogueira"
   | "mdf_branco"
+  | "mdb_laminado"
   | "laminado_linho_cancun"
   | "mdf_preto"
   | "hdf_cru"
@@ -23,6 +24,7 @@ export const MATERIAIS_PBR_OPCOES: { id: MaterialPbrId; label: string }[] = [
   { id: "agl_carvalho", label: "AGL_Carvalho" },
   { id: "nogueira", label: "Nogueira" },
   { id: "mdf_branco", label: "MDF Branco" },
+  { id: "mdb_laminado", label: "MDB Laminado" },
   { id: "laminado_linho_cancun", label: "Laminado Linho Cancun" },
   { id: "mdf_preto", label: "MDF Preto" },
   { id: "hdf_cru", label: "HDF Cru" },

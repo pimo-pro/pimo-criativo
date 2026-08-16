@@ -23,6 +23,7 @@ function isRemateCompletoLateral(input: IndustrialGrainInput): boolean {
   if (input.tipo !== "remate") return false;
   if (input.remateProductType === "AVISTA") return false;
   if (input.remateProductType === "RODAPE" || input.remateProductType === "RODAPE_L") return false;
+  if (input.remateProductType === "TAMPO_COZINHA") return false;
   const lateral =
     input.remateTipo === "DIR" ||
     input.remateTipo === "ESQ" ||

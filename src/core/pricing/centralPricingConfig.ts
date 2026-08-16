@@ -26,6 +26,7 @@ export type CentralChapasPricing = {
   AGLOMERADO_BRANCO_19?: number;
   CONTRAPLACADO_CARVALHO_18?: number;
   HDF_CRU_3?: number;
+  MDB_LAMINADO_30?: number;
   espessuraReducaoPct?: number;
   [key: string]: number | undefined;
 };
@@ -127,6 +128,7 @@ const MARKET_BUILTIN_RAW: CentralPricingFile = {
     AGLOMERADO_BRANCO_19: 29,
     CONTRAPLACADO_CARVALHO_18: 155,
     HDF_CRU_3: 15,
+    MDB_LAMINADO_30: 30,
     espessuraReducaoPct: 0.95,
   },
   orlas: {
@@ -319,6 +321,7 @@ export function normalizeCentralPricing(raw: unknown): CentralPricingFile {
           "AGLOMERADO_BRANCO_19",
           "CONTRAPLACADO_CARVALHO_18",
           "HDF_CRU_3",
+          "MDB_LAMINADO_30",
           "espessuraReducaoPct",
         ]),
       },
@@ -460,6 +463,7 @@ const CHAPA_KEY_BY_FAMILY: Record<string, string> = {
   lacado: "MDF_LACADO_19",
   laminado_linho_cancun: "AGLOMERADO_BRANCO_19",
   nogueira: "CARVALHO_LAMINADO_19",
+  mdb_laminado: "MDB_LAMINADO_30",
 };
 
 /**

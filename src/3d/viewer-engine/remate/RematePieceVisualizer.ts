@@ -41,6 +41,10 @@ function isRodapeLikeRematePiece(piece: RematePiece): boolean {
   return piece.tipo === "RODAPE" || piece.tipo === "RODAPE_L";
 }
 
+function isTampoLikeRematePiece(piece: RematePiece): boolean {
+  return piece.tipo === "TAMPO" || piece.productType === "TAMPO_COZINHA";
+}
+
 export class RematePieceVisualizer {
   private bridge: RematePieceVisualBridge | null = null;
   private readonly root = new THREE.Group();
@@ -72,7 +76,9 @@ export class RematePieceVisualizer {
       return;
     }
 
-    const remateList = this.bridge.listRematePieces().filter((piece) => !isRodapeLikeRematePiece(piece));
+    const remateList = this.bridge
+      .listRematePieces()
+      .filter((piece) => !isRodapeLikeRematePiece(piece) && !isTampoLikeRematePiece(piece));
     const lCompositeGroups = collectLRemateCompositeGroups(remateList);
     const compositeRemateIds = new Set<string>();
     for (const { ext, int } of lCompositeGroups.values()) {

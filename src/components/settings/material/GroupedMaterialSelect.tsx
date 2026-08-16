@@ -16,6 +16,7 @@ type Props = {
   selectClassName?: string;
   materialSelectId?: string;
   thicknessSelectId?: string;
+  disabled?: boolean;
 };
 
 function FamiliaSwatch({ familia }: { familia: string }) {
@@ -64,6 +65,7 @@ export default function GroupedMaterialSelect({
   selectClassName = "select",
   materialSelectId,
   thicknessSelectId,
+  disabled = false,
 }: Props) {
   const grupos = useMemo(() => groupMaterialsByPadronizado(materials), [materials]);
 
@@ -114,6 +116,7 @@ export default function GroupedMaterialSelect({
           onChange={(e) => handleFamilyChange(e.target.value)}
           style={{ width: "100%", flex: 1 }}
           aria-label="Família de material"
+          disabled={disabled}
         >
           {grupos.map((g) => (
             <option key={g.materialPadronizado} value={g.materialPadronizado}>
@@ -129,6 +132,7 @@ export default function GroupedMaterialSelect({
         onChange={(e) => handleThicknessChange(Number(e.target.value))}
         style={{ width: "100%" }}
         aria-label="Espessura"
+        disabled={disabled}
       >
         {thicknessOptions.map((m) => {
           const t = getMaterialEspessuraMm(m);

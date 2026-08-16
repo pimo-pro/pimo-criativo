@@ -20,7 +20,14 @@ import {
 import BoxRodapeSection from "../rodape/BoxRodapeSection";
 import { resolveRematePieceNomeForRemate } from "../../../core/remate/labels";
 
-const PRODUCTS: RemateProductType[] = ["AVISTA", "COMPLETO", "L", "RODAPE", "RODAPE_L"];
+const PRODUCTS: RemateProductType[] = [
+  "AVISTA",
+  "COMPLETO",
+  "L",
+  "RODAPE",
+  "RODAPE_L",
+  "TAMPO_COZINHA",
+];
 const MOUNT_SLOTS: RemateMountSlot[] = ["FRENTE", "DIR", "ESQ", "CIMA", "FUNDO"];
 
 const drawerShellStyle: React.CSSProperties = {

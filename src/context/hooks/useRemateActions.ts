@@ -22,6 +22,13 @@ import {
   invalidateMaterialCutlistCache,
   refreshViewerAfterMaterialSync,
 } from "../../core/materials/materialSync";
+import {
+  applyTampoIndustrialDefaults,
+  shouldApplyTampoRules,
+  TAMPO_MATERIAL_ID,
+  TAMPO_THICKNESS_MM,
+  validateTampoIndustrial,
+} from "../../core/remate/tampoCozinhaRules";
 
 export type RemateActions = Pick<
   ProjectActions,
@@ -75,18 +82,26 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
             const box = input.parentBoxId
               ? prev.workspaceBoxes.find((b) => b.id === input.parentBoxId)
               : null;
-            const materialPresetId =
+            let materialPresetId =
               input.materialPresetId || box?.material || prev.materialId || prev.material.tipo;
-            const material = getMaterialByIdOrLabel(materialPresetId);
-            const thicknessMm =
+            let material = getMaterialByIdOrLabel(materialPresetId);
+            let thicknessMm =
               Number(material?.espessura ?? box?.espessura ?? prev.material.espessura) || 19;
-            const created = createRematePieces(input, {
-              box,
-              allBoxes: prev.workspaceBoxes,
-              materialPresetId,
-              thicknessMm,
-              boxDimsM: box ? boxDimsFromWorkspace(box) : undefined,
-            });
+            if (shouldApplyTampoRules({ productType: input.productType, materialPresetId })) {
+              materialPresetId = TAMPO_MATERIAL_ID;
+              material = getMaterialByIdOrLabel(materialPresetId);
+              thicknessMm = Number(material?.espessura) || TAMPO_THICKNESS_MM;
+            }
+            const created = createRematePieces(
+              { ...input, materialPresetId },
+              {
+                box,
+                allBoxes: prev.workspaceBoxes,
+                materialPresetId,
+                thicknessMm,
+                boxDimsM: box ? boxDimsFromWorkspace(box) : undefined,
+              }
+            );
             return applyResultados({
               ...prev,
               remates: [...(prev.remates ?? []), ...created],
@@ -105,11 +120,16 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
       createStandaloneRematePiece: (input: CreateRematePieceInput) => {
         updateProject(
           (prev) => {
-            const materialPresetId = prev.materialId || prev.material.tipo;
-            const material = getMaterialByIdOrLabel(materialPresetId);
-            const thicknessMm = Number(material?.espessura ?? prev.material.espessura) || 19;
+            let materialPresetId = input.materialPresetId || prev.materialId || prev.material.tipo;
+            let material = getMaterialByIdOrLabel(materialPresetId);
+            let thicknessMm = Number(material?.espessura ?? prev.material.espessura) || 19;
+            if (shouldApplyTampoRules({ productType: input.productType, materialPresetId })) {
+              materialPresetId = TAMPO_MATERIAL_ID;
+              material = getMaterialByIdOrLabel(materialPresetId);
+              thicknessMm = Number(material?.espessura) || TAMPO_THICKNESS_MM;
+            }
             const created = createRematePieces(
-              { ...input, followBox: false },
+              { ...input, followBox: false, materialPresetId },
               {
                 allBoxes: prev.workspaceBoxes,
                 materialPresetId,
@@ -194,17 +214,59 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
               if (userEditedDimensions) {
                 nextRemate = { ...nextRemate, userDimensionsLocked: true };
               }
+
+              if (
+                shouldApplyTampoRules({
+                  productType: nextRemate.productType ?? patch.productType,
+                  materialPresetId: nextRemate.materialPresetId,
+                })
+              ) {
+                const candidate = applyTampoIndustrialDefaults({
+                  ...nextRemate,
+                  width: patch.width ?? nextRemate.width,
+                  height: patch.height ?? nextRemate.height,
+                });
+                const validation = validateTampoIndustrial({
+                  widthMm: candidate.width,
+                  heightMm: candidate.height,
+                  materialPresetId: candidate.materialPresetId,
+                });
+                if (!validation.ok && (patch.width != null || patch.height != null)) {
+                  // Dims inválidas: manter medidas anteriores, forçar regras TAMPO
+                  nextRemate = applyTampoIndustrialDefaults({
+                    ...remate,
+                    productType: "TAMPO_COZINHA",
+                    materialPresetId: TAMPO_MATERIAL_ID,
+                  });
+                  return nextRemate;
+                }
+                nextRemate = candidate;
+              }
+
                 const box = nextRemate.parentBoxId
                   ? prev.workspaceBoxes.find((b) => b.id === nextRemate.parentBoxId)
                   : null;
                 const mat = getMaterialByIdOrLabel(nextRemate.materialPresetId);
                 const thicknessMm =
-                  Number(mat?.espessura ?? box?.espessura ?? prev.material.espessura) || 19;
+                  Number(mat?.espessura ?? box?.espessura ?? prev.material.espessura) ||
+                  (shouldApplyTampoRules({
+                    productType: nextRemate.productType,
+                    materialPresetId: nextRemate.materialPresetId,
+                  })
+                    ? TAMPO_THICKNESS_MM
+                    : 19);
                 const shouldRecalcDims =
                   patch.productOptions != null ||
                   patch.productType != null ||
                   patch.mountSlot != null;
-                if (shouldRecalcDims && !nextRemate.userDimensionsLocked) {
+                if (
+                  shouldRecalcDims &&
+                  !nextRemate.userDimensionsLocked &&
+                  !shouldApplyTampoRules({
+                    productType: nextRemate.productType,
+                    materialPresetId: nextRemate.materialPresetId,
+                  })
+                ) {
                   const productType = nextRemate.productType ?? inferProductTypeFromLegacy(nextRemate);
                   const opts = normalizeProductOptions(productType, nextRemate.productOptions);
                   const dims = computeDimensionsForProduct({
@@ -217,6 +279,27 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
                     partIndex: nextRemate.partIndex,
                   });
                   nextRemate = { ...nextRemate, ...dims, depth: thicknessMm };
+                } else if (
+                  shouldRecalcDims &&
+                  !nextRemate.userDimensionsLocked &&
+                  shouldApplyTampoRules({
+                    productType: nextRemate.productType,
+                    materialPresetId: nextRemate.materialPresetId,
+                  })
+                ) {
+                  const dims = computeDimensionsForProduct({
+                    box: box ?? null,
+                    productType: "TAMPO_COZINHA",
+                    mountSlot: nextRemate.mountSlot ?? "CIMA",
+                    thicknessMm: TAMPO_THICKNESS_MM,
+                    productOptions: nextRemate.productOptions,
+                    partRole: nextRemate.partRole,
+                    partIndex: nextRemate.partIndex,
+                  });
+                  nextRemate = applyTampoIndustrialDefaults({
+                    ...nextRemate,
+                    ...dims,
+                  });
                 } else if (
                   patch.width != null ||
                   patch.height != null ||
@@ -248,6 +331,30 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
                 return nextRemate;
               });
 
+            let changelog = prev.changelog;
+            const updated = remates.find((r) => r.id === transformTargetId);
+            if (
+              updated &&
+              (patch.width != null || patch.height != null) &&
+              shouldApplyTampoRules({
+                productType: updated.productType,
+                materialPresetId: updated.materialPresetId,
+              })
+            ) {
+              const validation = validateTampoIndustrial({
+                widthMm: patch.width ?? updated.width,
+                heightMm: patch.height ?? updated.height,
+                materialPresetId: updated.materialPresetId,
+              });
+              if (!validation.ok) {
+                changelog = appendChangelog(prev.changelog, {
+                  timestamp: new Date(),
+                  type: "box",
+                  message: validation.errors.join(" "),
+                });
+              }
+            }
+
             const couplingLeadId = resolveLRemateGroupCouplingLeadId(
               transformTargetId,
               prev.remates ?? [],
@@ -266,6 +373,7 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
             const next = applyResultados({
               ...prev,
               remates,
+              changelog,
             });
             projectRef.current = next;
             if (patch.materialPresetId != null) {
