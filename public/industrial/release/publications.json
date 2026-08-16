@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-16T13:45:20.959Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(tampo): tipagem do modal de recortes para build de deploy",
+      "version": "v6.0816.1445"
+    },
+    {
       "publishedAt": "2026-08-16T13:42:49.464Z",
       "author": "pimo-pro",
       "commitMessage": "feat(tampo): matéria MDB laminado + viewer + recortes + união entre tampos",

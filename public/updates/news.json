@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-16T13:42:51.478Z",
+  "updatedAt": "2026-08-16T13:45:21.780Z",
   "news": [
     {
       "version": "tampo-v1",
@@ -10,6 +10,16 @@
       "author": "pimo-pro",
       "icon": "feature",
       "commit": "pending"
+    },
+    {
+      "version": "v6.0816.1445",
+      "title": "fix(tampo): tipagem do modal de recortes para build de deploy",
+      "description": "fix(tampo): tipagem do modal de recortes para build de deploy",
+      "publishedAt": "2026-08-16T13:45:21.606Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "6c4726f1"
     },
     {
       "version": "v6.0816.1442",
