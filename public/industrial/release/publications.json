@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-16T18:34:07.535Z",
+      "author": "pimo-pro",
+      "commitMessage": "feat(tampo): presets industriais + suporte completo a trapézio (Fase 5)",
+      "version": "v6.0816.1934"
+    },
+    {
       "publishedAt": "2026-08-16T13:45:20.959Z",
       "author": "pimo-pro",
       "commitMessage": "fix(tampo): tipagem do modal de recortes para build de deploy",
