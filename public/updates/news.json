@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-16T14:40:00.000Z",
+  "updatedAt": "2026-08-16T13:42:51.478Z",
   "news": [
     {
       "version": "tampo-v1",
@@ -12,14 +12,34 @@
       "commit": "pending"
     },
     {
+      "version": "v6.0816.1442",
+      "title": "feat(tampo): matéria MDB laminado + viewer + recortes + união entre tampos",
+      "description": "feat(tampo): matéria MDB laminado + viewer + recortes + união entre tampos",
+      "publishedAt": "2026-08-16T13:42:51.228Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "097ddfa2"
+    },
+    {
       "version": "v6.0815.1944",
       "title": "Auto deploy",
       "description": "Auto deploy",
-      "publishedAt": "2026-08-15T18:44:28.539Z",
+      "publishedAt": "2026-08-15T19:46:09+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "b7689a2c"
+      "commit": "b82e74f"
+    },
+    {
+      "version": "v3-viewer-drawer-visual-flip-20260815-1942",
+      "title": "fix(viewer): aplicar flip visual vertical do corpo da gaveta (indústria intacta)",
+      "description": "fix(viewer): aplicar flip visual vertical do corpo da gaveta (indústria intacta)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-15T19:42:07+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "4dacf86"
     },
     {
       "version": "v3-viewer-drawer-visual-flip",
@@ -29,7 +49,7 @@
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "4dacf861"
+      "commit": "pending"
     },
     {
       "version": "v6.0815.1534",

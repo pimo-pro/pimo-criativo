@@ -31,9 +31,11 @@ export default function AdicionarRecorteModal({
   onConfirm,
 }: Props) {
   const [tipo, setTipo] = useState<TampoCutoutTipo>("TAMPO_CUTOUT_FOGAO");
-  const [width, setWidth] = useState(TAMPO_CUTOUT_DEFAULTS.TAMPO_CUTOUT_FOGAO.width);
-  const [height, setHeight] = useState(TAMPO_CUTOUT_DEFAULTS.TAMPO_CUTOUT_FOGAO.height);
-  const [diameter, setDiameter] = useState(TAMPO_CUTOUT_DEFAULTS.TAMPO_CUTOUT_CIRCULAR.diameter);
+  const [width, setWidth] = useState<number>(TAMPO_CUTOUT_DEFAULTS.TAMPO_CUTOUT_FOGAO.width);
+  const [height, setHeight] = useState<number>(TAMPO_CUTOUT_DEFAULTS.TAMPO_CUTOUT_FOGAO.height);
+  const [diameter, setDiameter] = useState<number>(
+    TAMPO_CUTOUT_DEFAULTS.TAMPO_CUTOUT_CIRCULAR.diameter
+  );
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
 
