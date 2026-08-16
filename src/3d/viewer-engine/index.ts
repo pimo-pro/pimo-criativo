@@ -68,3 +68,5 @@ export {
   applyTampoUnion,
   createTampoUnionCutterMesh,
 } from "./remate/TampoUnionVisualizer";
+export { buildTampoAngleShape, getTampoAnglePlanVerticesMm } from "./remate/tampoAngleGeometry";
+export { createTampoPostformingGeometryFromShape } from "./remate/tampoPostformingGeometry";

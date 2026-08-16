@@ -13,6 +13,7 @@ import {
   DEFAULT_AVISTA_WIDTH_MM,
   defaultMountSlotForProduct,
 } from "../../../core/remate/remateProductRules";
+import TampoPresetSelector from "./TampoPresetSelector";
 
 const PRODUCTS: RemateProductType[] = [
   "AVISTA",
@@ -178,6 +179,17 @@ export default function AdicionarRemateModal({ open, onClose, onConfirm }: Props
               />
               Modo puxador
             </label>
+          </div>
+        ) : null}
+
+        {productType === "TAMPO_COZINHA" ? (
+          <div style={{ marginBottom: 10 }}>
+            <TampoPresetSelector
+              onConfirm={(input) => {
+                onConfirm(input);
+                onClose();
+              }}
+            />
           </div>
         ) : null}
 

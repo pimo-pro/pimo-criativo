@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSG } from "three-csg-ts";
 
 /** Raio postforming frontal (mm). ∈ [10, 12]. */
 export const TAMPO_POSTFORM_RADIUS_MM = 11;
@@ -9,6 +10,8 @@ export const TAMPO_POSTFORM_RADIUS_M = TAMPO_POSTFORM_RADIUS_MM / 1000;
  *  w = comprimento, h = largura 630 mm, d = espessura 30 mm
  * Postforming só na aresta frontal-superior (local +Y / +Z do perfil).
  * Sem cantos laterais arredondados. Sem recortes.
+ *
+ * Caminho retangular Fase 2 — NÃO alterar (zero regressão).
  */
 export function createTampoPostformingGeometry(
   w: number,
@@ -49,6 +52,69 @@ export function createTampoPostformingGeometry(
   const cx = (bb.min.x + bb.max.x) / 2;
   const cy = (bb.min.y + bb.max.y) / 2;
   const cz = (bb.min.z + bb.max.z) / 2;
+  geom.translate(-cx, -cy, -cz);
+  return geom;
+}
+
+/**
+ * Extrude planta (Shape XY, metros) + espessura Z.
+ * Postforming na aresta frontal (+Y) via CSG (¼ cilindro).
+ * Usado quando angleConfig está activo; caminho retangular mantém createTampoPostformingGeometry.
+ */
+export function createTampoPostformingGeometryFromShape(
+  planShape: THREE.Shape,
+  thicknessM: number,
+  radiusM: number = TAMPO_POSTFORM_RADIUS_M
+): THREE.BufferGeometry {
+  const safeD = Math.max(0.001, thicknessM);
+  const R = Math.min(Math.max(0, radiusM), safeD / 2 - 1e-4);
+
+  let geom: THREE.BufferGeometry = new THREE.ExtrudeGeometry(planShape, {
+    depth: safeD,
+    bevelEnabled: false,
+    curveSegments: 12,
+  });
+  geom.translate(0, 0, -safeD / 2);
+  geom.computeBoundingBox();
+  const bb = geom.boundingBox!;
+  if (!bb) return geom;
+
+  const spanX = bb.max.x - bb.min.x;
+  const midX = (bb.min.x + bb.max.x) / 2;
+  const frontY = bb.max.y;
+  const topZ = bb.max.z;
+
+  // ¼ cilindro ao longo de X na aresta frente-topo (+Y, +Z)
+  const cyl = new THREE.CylinderGeometry(R, R, spanX + 0.004, 16, 1, false, 0, Math.PI / 2);
+  cyl.rotateZ(Math.PI / 2);
+  const cutter = new THREE.Mesh(cyl, new THREE.MeshStandardMaterial());
+  cutter.position.set(midX, frontY - R, topZ - R);
+  cutter.updateMatrix();
+
+  const source = new THREE.Mesh(geom, new THREE.MeshStandardMaterial());
+  source.updateMatrix();
+
+  try {
+    const carved = CSG.subtract(source, cutter);
+    if (carved?.geometry) {
+      geom.dispose();
+      geom = carved.geometry;
+      geom.computeVertexNormals();
+      if (!geom.attributes.uv2 && geom.attributes.uv) {
+        geom.setAttribute("uv2", geom.attributes.uv.clone());
+      }
+    }
+  } finally {
+    cyl.dispose();
+    if (Array.isArray(cutter.material)) cutter.material.forEach((m) => m.dispose());
+    else cutter.material.dispose();
+  }
+
+  geom.computeBoundingBox();
+  const bb2 = geom.boundingBox!;
+  const cx = (bb2.min.x + bb2.max.x) / 2;
+  const cy = (bb2.min.y + bb2.max.y) / 2;
+  const cz = (bb2.min.z + bb2.max.z) / 2;
   geom.translate(-cx, -cy, -cz);
   return geom;
 }

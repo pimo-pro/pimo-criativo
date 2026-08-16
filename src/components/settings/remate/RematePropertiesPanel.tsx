@@ -29,6 +29,7 @@ import { measureRemateGap, measureRemateGapToBox } from "../../../core/remate/re
 import RemateRulesSection from "./RemateRulesSection";
 import TampoCutoutPropertiesPanel from "./TampoCutoutPropertiesPanel";
 import TampoUnionPanel from "./TampoUnionPanel";
+import TampoAnglePanel from "./TampoAnglePanel";
 import { OPPOSITE_MOUNT_SLOT } from "../../../core/remate/remateCloneUtils";
 import { resolveRematePieceNomeForRemate } from "../../../core/remate/labels";
 import { isLRemateExt, isLRemateInt } from "../../../core/remate/remateLGeometry";
@@ -417,6 +418,15 @@ export default function RematePropertiesPanel({ remateId }: Props) {
           <TampoCutoutPropertiesPanel
             remate={remate}
             onChangeCutouts={(cutouts) => actions.updateRemate(remate.id, { cutouts })}
+          />
+        ) : null}
+
+        {isTampo ? (
+          <TampoAnglePanel
+            remate={remate}
+            onChangeAngleConfig={(angleConfig) =>
+              actions.updateRemate(remate.id, { angleConfig })
+            }
           />
         ) : null}
 

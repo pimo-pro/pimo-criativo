@@ -17,6 +17,7 @@ import {
   TAMPO_CUTOUT_TYPE_LABELS,
 } from "./tampoCutouts";
 import { serializeTampoUnionForCutlist } from "./tampoUnion";
+import { serializeTampoAngleForCutlist } from "./tampoAngle";
 
 function toCutDimensions(remate: RematePiece): CutListItem["dimensoes"] {
   const sheet = resolveRemateSheetCutDimensions(remate);
@@ -119,6 +120,10 @@ export function buildRemateCutlistItems(
         union:
           productType === "TAMPO_COZINHA"
             ? serializeTampoUnionForCutlist(remate.union)
+            : undefined,
+        tampoAngle:
+          productType === "TAMPO_COZINHA"
+            ? serializeTampoAngleForCutlist(remate.angleConfig)
             : undefined,
         ...rotationMeta,
       },

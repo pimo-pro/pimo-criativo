@@ -19,6 +19,7 @@ import {
 } from "../../../core/remate/remateProductRules";
 import BoxRodapeSection from "../rodape/BoxRodapeSection";
 import { resolveRematePieceNomeForRemate } from "../../../core/remate/labels";
+import TampoPresetSelector from "./TampoPresetSelector";
 
 const PRODUCTS: RemateProductType[] = [
   "AVISTA",
@@ -256,6 +257,20 @@ export default function BoxRemateDrawer({
               Modo puxador
             </label>
           </>
+        ) : null}
+
+        {productType === "TAMPO_COZINHA" ? (
+          <TampoPresetSelector
+            parentBoxId={boxId}
+            onConfirm={(input) => {
+              actions.createRematePiece({
+                ...input,
+                parentBoxId: boxId,
+                followBox: true,
+                materialPresetId: materialPreset,
+              });
+            }}
+          />
         ) : null}
 
         <button type="button" className="button button-primary" onClick={handleCreate}>

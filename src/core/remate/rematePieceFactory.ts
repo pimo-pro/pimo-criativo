@@ -22,6 +22,7 @@ import {
   TAMPO_MATERIAL_ID,
   TAMPO_THICKNESS_MM,
 } from "./tampoCozinhaRules";
+import { normalizeTampoAngleConfig } from "./tampoAngle";
 
 // Viewer Fase 2: tipo TAMPO / productType TAMPO_COZINHA → TampoPieceVisualizer (postforming).
 // Sem import Three.js neste factory industrial.
@@ -173,6 +174,9 @@ export function createRematePieces(
         spec.partRole,
         spec.partIndex
       );
+      if (input.angleConfig !== undefined) {
+        piece.angleConfig = normalizeTampoAngleConfig(input.angleConfig, piece.height);
+      }
     }
 
     if (input.parentBoxId && ctx.box && ctx.boxDimsM) {

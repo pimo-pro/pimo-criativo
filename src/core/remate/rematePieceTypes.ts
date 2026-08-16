@@ -1,6 +1,7 @@
 import type { FinishTransform } from "../kitchenFinish/finishTypes";
 import type { TampoCutout } from "./tampoCutouts";
 import type { TampoUnion } from "./tampoUnion";
+import type { TampoAngleConfig } from "./tampoAngle";
 
 export type RemateProductType =
   | "AVISTA"
@@ -123,6 +124,8 @@ export type RematePiece = {
   cutouts?: TampoCutout[];
   /** União: este tampo (A) recebe encaixe do targetTampoId (B). null = sem união. */
   union?: TampoUnion | null;
+  /** Configuração de ângulo opcional para TAMPO. null = retângulo. */
+  angleConfig?: TampoAngleConfig | null;
 };
 
 export type CreateRematePieceInput = {
@@ -139,6 +142,8 @@ export type CreateRematePieceInput = {
   followBox?: boolean;
   /** Posição workspace absoluta (mm) quando standalone. */
   workspacePosition?: RematePiecePosition;
+  /** Ângulo opcional (só TAMPO). null/omitido = retângulo. */
+  angleConfig?: TampoAngleConfig | null;
 };
 
 export type UpdateRematePieceInput = Partial<
@@ -169,6 +174,7 @@ export type UpdateRematePieceInput = Partial<
     | "visible"
     | "cutouts"
     | "union"
+    | "angleConfig"
   >
 >;
 

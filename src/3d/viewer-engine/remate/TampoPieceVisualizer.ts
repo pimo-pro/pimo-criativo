@@ -14,10 +14,16 @@ import { getRemateEnvelopeBoundsM } from "../../../core/remate/rematePlacement";
 import type { RematePieceVisualBridge } from "./RematePieceVisualizer";
 import {
   createTampoPostformingGeometry,
+  createTampoPostformingGeometryFromShape,
   TAMPO_POSTFORM_RADIUS_MM,
 } from "./tampoPostformingGeometry";
 import { buildTampoGeometryWithCutouts } from "./TampoCutoutVisualizer";
 import { applyTampoUnion } from "./TampoUnionVisualizer";
+import { buildTampoAngleShape } from "./tampoAngleGeometry";
+import {
+  normalizeTampoAngleConfig,
+  resolveTampoAngleEnvelopeMm,
+} from "../../../core/remate/tampoAngle";
 
 export { TAMPO_POSTFORM_RADIUS_MM };
 
@@ -30,9 +36,24 @@ function resolveTampoGeometry(
   h: number,
   d: number
 ): THREE.BufferGeometry {
-  const base = createTampoPostformingGeometry(w, h, d);
+  const baseLengthMm = piece.width;
+  const widthMm = piece.height;
+  const cfg = normalizeTampoAngleConfig(piece.angleConfig, widthMm);
+
+  const base = cfg
+    ? createTampoPostformingGeometryFromShape(
+        buildTampoAngleShape(cfg, baseLengthMm, widthMm),
+        d
+      )
+    : createTampoPostformingGeometry(w, h, d);
+
   const withCutouts = buildTampoGeometryWithCutouts(base, piece.cutouts);
-  return applyTampoUnion(withCutouts, piece.union, { w, h, d });
+  const envelope = resolveTampoAngleEnvelopeMm(cfg, baseLengthMm, widthMm);
+  return applyTampoUnion(withCutouts, piece.union, {
+    w: envelope.lengthMm / 1000,
+    h: envelope.widthMm / 1000,
+    d,
+  });
 }
 
 /** Peça TAMPO / Tampo Cozinha — visualização dedicada (postforming). */
@@ -116,6 +137,7 @@ export class TampoPieceVisualizer {
     mesh.userData.tampoCutoutCount = piece.cutouts?.length ?? 0;
     mesh.userData.tampoUnionOverlapMm = piece.union?.overlapMm ?? null;
     mesh.userData.tampoUnionDirection = piece.union?.direction ?? null;
+    mesh.userData.tampoAngleDeg = normalizeTampoAngleConfig(piece.angleConfig, piece.height)?.angleDeg ?? null;
     this.applyWorldTransform(mesh, piece);
     applyRemateGrainOnSnap(mesh, piece.materialPresetId, piece.faceOffsets?.rotationSnapIndex ?? 0, {
       grainLocked: this.isGrainLocked(piece),
@@ -142,6 +164,7 @@ export class TampoPieceVisualizer {
     mesh.userData.tampoCutoutCount = piece.cutouts?.length ?? 0;
     mesh.userData.tampoUnionOverlapMm = piece.union?.overlapMm ?? null;
     mesh.userData.tampoUnionDirection = piece.union?.direction ?? null;
+    mesh.userData.tampoAngleDeg = normalizeTampoAngleConfig(piece.angleConfig, piece.height)?.angleDeg ?? null;
     mesh.renderOrder = TAMPO_RENDER_ORDER;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
