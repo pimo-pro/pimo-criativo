@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-16T18:49:00.000Z",
+  "updatedAt": "2026-08-16T18:52:48.941Z",
   "news": [
+    {
+      "version": "v6.0816.1952",
+      "title": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",
+      "description": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",
+      "publishedAt": "2026-08-16T18:52:48.768Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "f803aaf1"
+    },
     {
       "version": "tampo-raycast-fix",
       "title": "Correção: TAMPO agora pode ser selecionado no Viewer (raycast roots).",
@@ -15,11 +25,21 @@
       "version": "v6.0816.1934",
       "title": "feat(tampo): presets industriais + suporte completo a trapézio (Fase 5)",
       "description": "feat(tampo): presets industriais + suporte completo a trapézio (Fase 5)",
-      "publishedAt": "2026-08-16T18:34:08.225Z",
+      "publishedAt": "2026-08-16T19:35:44+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
-      "commit": "12795b33"
+      "commit": "ced00a3"
+    },
+    {
+      "version": "v6.0816.1931",
+      "title": "feat(tampo): presets industriais + suporte completo a trapézio (Fase 5)",
+      "description": "feat(tampo): presets industriais + suporte completo a trapézio (Fase 5)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-16T19:31:09+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "12795b3"
     },
     {
       "version": "tampo-fase5-presets",

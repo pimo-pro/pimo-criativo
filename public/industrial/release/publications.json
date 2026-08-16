@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-16T18:52:47.971Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",
+      "version": "v6.0816.1952"
+    },
+    {
       "publishedAt": "2026-08-16T18:34:07.535Z",
       "author": "pimo-pro",
       "commitMessage": "feat(tampo): presets industriais + suporte completo a trapézio (Fase 5)",
