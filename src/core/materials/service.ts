@@ -40,8 +40,8 @@ let materialsListReadOverride: MaterialRecord[] | null = null;
 export function setIndustrialMaterialsReadOverride(list: MaterialRecord[] | null): void {
   materialsListReadOverride = list;
 }
-/** Incrementar quando for necessário voltar a sincronizar o CRUD com o catálogo oficial (FASE 7M = 9). */
-const MATERIALS_CRUD_DATA_VERSION = 9;
+/** Incrementar quando for necessário voltar a sincronizar o CRUD com o catálogo oficial (FASE 7M = 10). */
+const MATERIALS_CRUD_DATA_VERSION = 10;
 const MATERIALS_CRUD_DATA_VERSION_KEY = "pimo_materials_crud_data_version";
 const DEFAULT_SHEET_WIDTH_MM = 2800;
 const DEFAULT_SHEET_HEIGHT_MM = 2070;
@@ -61,6 +61,7 @@ function categoryFromLabel(label: string): string {
   const lower = label.trim().toLowerCase();
   if (lower.includes("mdf")) return "mdf";
   if (lower.includes("hdf")) return "hdf";
+  if (lower.includes("agl")) return "industrial";
   if (lower.includes("carvalho")) return "carvalho";
   if (lower.includes("lacado")) return "lacado";
   if (lower.includes("nogueira")) return "carvalho";
@@ -224,7 +225,7 @@ export function writeMaterialsCrudSnapshot(list: MaterialRecord[]): void {
 }
 
 /**
- * FASE 7M — Substitui o conteúdo do CRUD por exactamente os 16 materiais industriais oficiais.
+ * FASE 7M — Substitui o conteúdo do CRUD pelo catálogo industrial oficial.
  * Reutiliza o `id` de registo do localStorage quando encontra correspondência por `industrialMaterialId` ou label oficial
  * (para não invalidar `project.materialId` / `workspaceBox.material` que apontem para esses ids).
  */

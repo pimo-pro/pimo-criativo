@@ -81,17 +81,35 @@ async function main(): Promise<void> {
   });
   styleHeader(chapas.addRow([...MATERIAIS_SSOT_CHAPAS_HEADERS]));
 
-  const areaM2 = (INDUSTRIAL_SHEET_LF_MM / 1000) * (INDUSTRIAL_SHEET_HF_MM / 1000);
-  const medida = `${INDUSTRIAL_SHEET_LF_MM} × ${INDUSTRIAL_SHEET_HF_MM}`;
+  const FAMILIA_BY_CANONICAL_PREFIX: Record<string, string> = {
+    mdf_branco: "MDF Branco",
+    laminado_linho_cancun: "AGL LAM Linho Cancun",
+    mdf_preto: "MDF Preto",
+    hdf_cru: "HDF CRU",
+    carvalho: "HDF FOLHEADO CARVALHO",
+    agl_carvalho: "AGL CARVALHO",
+    agl_branco: "AGL LAM BRANCO",
+    nogueira: "HDF FOLHEADO NOGUEIRA",
+    lacado: "HDF LACADO",
+    mdb_laminado: "MDB Laminado",
+  };
 
   for (const m of listOfficialMaterials().filter((x) => x.industrial)) {
+    const lf = m.industrialDefaults?.larguraChapa ?? INDUSTRIAL_SHEET_LF_MM;
+    const hf = m.industrialDefaults?.alturaChapa ?? INDUSTRIAL_SHEET_HF_MM;
+    const areaM2 = (lf / 1000) * (hf / 1000);
+    const medida = `${lf} × ${hf}`;
+    const familyKey = m.canonicalId.replace(/-\d+(\.\d+)?$/, "");
+    const familia =
+      FAMILIA_BY_CANONICAL_PREFIX[familyKey] ??
+      m.label.replace(/\s+\d+(?:[.,]\d+)?(?:\s*mm)?\s*$/i, "").trim();
     const esp = m.industrialDefaults?.espessuraPadrao ?? null;
     const precoM2 = m.industrialDefaults?.custo_m2 ?? null;
     const precoChapa =
       precoM2 != null && Number.isFinite(precoM2) ? round2(precoM2 * areaM2) : null;
     const row = chapas.addRow([
       m.label,
-      "", // Nome novo padronizado — a preencher
+      familia,
       m.canonicalId,
       esp,
       medida,

@@ -22,6 +22,7 @@ describe("materialGrouping SSOT", () => {
     expect(names.some((n) => /\d/.test(n))).toBe(false);
     expect(names).toContain("MDF Branco");
     expect(names).toContain("MDF Preto");
+    expect(names).toContain("AGL LAM BRANCO");
 
     const mdf = grupos.find((g) => g.materialPadronizado === "MDF Branco");
     expect(mdf).toBeTruthy();

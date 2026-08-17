@@ -1,17 +1,19 @@
 /**
- * Bridges read-only para RematePieceVisualizer, RodapeVisualizer e HematiVisualizer
+ * Bridges read-only para remates, TAMPO, roda pé e hematis
  * no showroom PROJETOS (paridade com Workspace.tsx, sem ViewerCore).
  */
 
 import * as THREE from "three";
 import type { ProjectState } from "../../context/projectTypes";
 import { RematePieceVisualizer, type RematePieceVisualBridge } from "../../3d/viewer-engine/remate/RematePieceVisualizer";
+import { TampoPieceVisualizer } from "../../3d/viewer-engine/remate/TampoPieceVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "../../3d/viewer-engine/rodape/RodapeVisualizer";
 import { HematiVisualizer, type HematiVisualBridge } from "../../3d/viewer-engine/hemati/HematiVisualizer";
 import { mmToM } from "../../utils/units";
 
 export type ShowroomFinishVisuals = {
   remateVisualizer: RematePieceVisualizer;
+  tampoVisualizer: TampoPieceVisualizer;
   rodapeVisualizer: RodapeVisualizer;
   hematiVisualizer: HematiVisualizer;
   syncAll: () => void;
@@ -34,6 +36,7 @@ export function createShowroomFinishVisuals(
   getBoxWorldMatrix: (boxId: string) => THREE.Matrix4 | null
 ): ShowroomFinishVisuals {
   const remateVisualizer = new RematePieceVisualizer();
+  const tampoVisualizer = new TampoPieceVisualizer();
   const rodapeVisualizer = new RodapeVisualizer();
   const hematiVisualizer = new HematiVisualizer();
 
@@ -91,20 +94,30 @@ export function createShowroomFinishVisuals(
   };
 
   remateVisualizer.bindBridge(remateBridge);
+  tampoVisualizer.bindBridge(remateBridge);
   hematiVisualizer.bindBridge(hematiBridge);
   rodapeVisualizer.bindBridge(rodapeBridge);
 
   const syncAll = () => {
     remateVisualizer.syncAll();
+    tampoVisualizer.syncAll();
     hematiVisualizer.syncAll();
     rodapeVisualizer.syncAll();
   };
 
   const dispose = () => {
     remateVisualizer.dispose();
+    tampoVisualizer.dispose();
     hematiVisualizer.dispose();
     rodapeVisualizer.dispose();
   };
 
-  return { remateVisualizer, rodapeVisualizer, hematiVisualizer, syncAll, dispose };
+  return {
+    remateVisualizer,
+    tampoVisualizer,
+    rodapeVisualizer,
+    hematiVisualizer,
+    syncAll,
+    dispose,
+  };
 }

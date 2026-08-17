@@ -57,12 +57,14 @@ export function ShowroomParametricBoxes({
     if (!root || !finish) return;
 
     root.add(finish.remateVisualizer.getRoot());
+    root.add(finish.tampoVisualizer.getRoot());
     root.add(finish.rodapeVisualizer.getRoot());
     root.add(finish.hematiVisualizer.getRoot());
     finish.syncAll();
 
     return () => {
       root.remove(finish.remateVisualizer.getRoot());
+      root.remove(finish.tampoVisualizer.getRoot());
       root.remove(finish.rodapeVisualizer.getRoot());
       root.remove(finish.hematiVisualizer.getRoot());
       finish.dispose();

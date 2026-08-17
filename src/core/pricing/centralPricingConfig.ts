@@ -496,7 +496,7 @@ export function chapaEurM2FromCentral(
     if (
       !family ||
       family.includes("mdf_branco") ||
-      family.includes("branco") ||
+      (family.includes("branco") && !family.includes("agl")) ||
       family === "mdf" ||
       keyNorm.includes("costa")
     ) {

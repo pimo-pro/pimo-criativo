@@ -109,6 +109,7 @@ export function defaultTextureForFamilia(familia: string): string | null {
   if (k.includes("mdf preto") || k === "mdf preto") return DEFAULT_PUBLIC_TEXTURES.mdfPreto;
   if (k.includes("linho") || k.includes("cancun")) return DEFAULT_PUBLIC_TEXTURES.mdfCinza;
   if (k.includes("nogueir")) return DEFAULT_PUBLIC_TEXTURES.nogueira;
+  if (k.includes("agl") && k.includes("branco")) return DEFAULT_PUBLIC_TEXTURES.mdfBranco;
   if (k.includes("carvalho")) return DEFAULT_PUBLIC_TEXTURES.carvalho;
   if (k.includes("lacado")) return DEFAULT_PUBLIC_TEXTURES.mdfBranco;
   if (k.includes("hdf cru") || k === "hdf cru") return DEFAULT_PUBLIC_TEXTURES.mdfBranco;

@@ -263,6 +263,48 @@ const INDUSTRIAL_SHEETS_SEED: IndustrialSheetSeed[] = [
     custo_m2: 55,
     densidade: 720,
   },
+  // AGL LAM BRANCO
+  {
+    canonicalId: "agl_branco-19",
+    label: "AGL LAM BRANCO 19",
+    espessuraPadrao: 19,
+    viewerMaterialId: "agl_branco",
+    custo_m2: 7.5,
+    densidade: 720,
+    legacyAliases: [
+      "agl_branco",
+      "AGL_BRANCO",
+      "AGL LAM BRANCO",
+      "AGL_BRANCO-19",
+    ],
+  },
+  {
+    canonicalId: "agl_branco-16",
+    label: "AGL LAM BRANCO 16",
+    espessuraPadrao: 16,
+    viewerMaterialId: "agl_branco",
+    custo_m2: 6.5,
+    densidade: 720,
+    legacyAliases: ["AGL_BRANCO-16"],
+  },
+  {
+    canonicalId: "agl_branco-10",
+    label: "AGL LAM BRANCO 10",
+    espessuraPadrao: 10,
+    viewerMaterialId: "agl_branco",
+    custo_m2: 7,
+    densidade: 720,
+    legacyAliases: ["AGL_BRANCO-10"],
+  },
+  {
+    canonicalId: "agl_branco-8",
+    label: "AGL LAM BRANCO 8",
+    espessuraPadrao: 8,
+    viewerMaterialId: "agl_branco",
+    custo_m2: 6,
+    densidade: 720,
+    legacyAliases: ["AGL_BRANCO-8"],
+  },
   // Nogueira
   {
     canonicalId: "nogueira-20",

@@ -10,6 +10,9 @@ import { getSsotFamiliaForMaterialId } from "../../../core/catalog/materiaisSsot
 export const MATERIAL_NOME_PADRONIZADO_MAP: Record<string, string> = {
   agl_carvalho: "AGL CARVALHO",
   "agl carvalho": "AGL CARVALHO",
+  agl_branco: "AGL LAM BRANCO",
+  "agl branco": "AGL LAM BRANCO",
+  "agl lam branco": "AGL LAM BRANCO",
   carvalho: "HDF FOLHEADO CARVALHO",
   "hdf cru": "HDF CRU",
   hdf_cru: "HDF CRU",

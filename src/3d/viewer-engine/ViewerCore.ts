@@ -1289,8 +1289,8 @@ export class ViewerCore {
 
   getRemateMesh(remateId: string): THREE.Object3D | null {
     return (
-      this.remateVisualizer.getMeshByRemateId(remateId) ??
       this.tampoVisualizer.getMeshByRemateId(remateId) ??
+      this.remateVisualizer.getMeshByRemateId(remateId) ??
       null
     );
   }

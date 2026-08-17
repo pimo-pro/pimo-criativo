@@ -453,6 +453,9 @@ export class EventsManager {
       const boxId = mesh ? e.getBoxIdByMesh(mesh) : null;
       e.setHoveredBox(boxId);
       if (boxId == null) {
+        const remateId = e.getRemateIdAtPointer(event);
+        e.setHoveredRemate(remateId);
+      } else {
         e.setHoveredRemate(null);
       }
       return;

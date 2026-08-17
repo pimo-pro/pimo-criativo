@@ -115,6 +115,16 @@ export const INITIAL_MATERIAL_PRESETS: MaterialPreset[] = [
     textureUrl: TEXTURE_URLS.carvalho,
   },
   {
+    id: "agl_branco",
+    name: "AGL LAM BRANCO",
+    color: "#f2f0eb",
+    textureUrl: TEXTURE_URLS.mdfBranco,
+    uvScale: D,
+    uvRotation: 0,
+    roughness: 0.52,
+    metallic: M,
+  },
+  {
     id: "madeira_carvalho",
     name: "Madeira Carvalho",
     color: "#b8956a",

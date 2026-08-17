@@ -20,6 +20,16 @@ import { resolveRemateIdFromFinishHit } from "../remate/remateLCompositeVisual";
 /** Layer lógica interna (raycast continua em layer 0; classificação separa interno vs externo). */
 export const VIEWER_INTERNAL_PICK_LAYER = 30;
 
+/** Mesh/grupo do TAMPO — não herda o boxId do módulo para picking. */
+export function isTampoPickObject(object: THREE.Object3D | null | undefined): boolean {
+  let current: THREE.Object3D | null = object ?? null;
+  while (current) {
+    if (current.userData?.isTampoPiece === true) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
 /** Limites da sala (m) usados por getWallIdInFrontOfCamera — espelha o campo em ViewerCore. */
 export type ViewerRaycastRoomBounds = {
   minX: number;
@@ -78,13 +88,25 @@ export class ViewerRaycastSystem {
     return this.deps.raycaster.intersectObject(helper, true).length;
   }
 
-  /** Raízes para raycaster do highlight (caixas + sala). */
+  /** Raízes para raycaster do highlight (caixas + sala + remates/TAMPO). */
   private getHighlightRaycastRoots(): THREE.Object3D[] {
     const roots: THREE.Object3D[] = [];
     this.deps.getBoxes().forEach((entry) => roots.push(entry.mesh));
     roots.push(this.deps.getRoomBuilderGroup());
     this.deps.getRoomBoxWalls().forEach((w) => roots.push(w.mesh));
+    for (const root of this.getFinishRaycastRoots()) {
+      roots.push(root);
+    }
     return roots;
+  }
+
+  private getFinishRaycastRoots(): THREE.Object3D[] {
+    return [
+      this.deps.getTampoRoot?.(),
+      this.deps.getRemateRoot?.(),
+      this.deps.getHematiRoot?.(),
+      this.deps.getRodapeRoot?.(),
+    ].filter((root): root is THREE.Object3D => root != null);
   }
 
   getHighlightIntersects(event: { clientX: number; clientY: number }): THREE.Intersection[] {
@@ -102,6 +124,8 @@ export class ViewerRaycastSystem {
 
   /** Obtém boxId a partir de um mesh (grupo ou filho/GLB); sobe na hierarquia até encontrar userData.boxId ou o grupo da caixa. */
   getBoxIdByMesh(mesh: THREE.Object3D): string | null {
+    // TAMPO: o userData.boxId é só parentesco visual — não seleccionar a caixa.
+    if (isTampoPickObject(mesh)) return null;
     const boxes = this.deps.getBoxes();
     let current: THREE.Object3D | null = mesh;
     while (current) {
@@ -186,7 +210,7 @@ export class ViewerRaycastSystem {
   }
 
   getRemateIdAtPointer(event: { clientX: number; clientY: number }): string | null {
-    const roots = [this.deps.getRemateRoot?.(), this.deps.getTampoRoot?.()].filter(
+    const roots = [this.deps.getTampoRoot?.(), this.deps.getRemateRoot?.()].filter(
       (r): r is THREE.Object3D => r != null
     );
     return this.pickIdFromFinishRoots(event, roots, "remateId", "isRemateMergeVisual");
@@ -203,12 +227,7 @@ export class ViewerRaycastSystem {
     this.deps.raycaster.setFromCamera(this.deps.pointer, this.deps.camera);
     this.deps.raycaster.layers.set(0);
 
-    const finishRoots = [
-      this.deps.getHematiRoot?.(),
-      this.deps.getRodapeRoot?.(),
-      this.deps.getRemateRoot?.(),
-      this.deps.getTampoRoot?.(),
-    ].filter((root): root is THREE.Object3D => root != null);
+    const finishRoots = this.getFinishRaycastRoots();
 
     if (finishRoots.length > 0) {
       const finishHits = this.deps.raycaster.intersectObjects(finishRoots, true);

@@ -58,6 +58,7 @@ function familyHints(family: string): string[] {
   if (k.includes("mdf branco") || k === "mdf branco") hints.push("mdf branco", "mdf_branco");
   if (k.includes("mdf preto")) hints.push("mdf preto", "mdf_preto");
   if (k.includes("agl") && k.includes("carvalho")) hints.push("agl carvalho", "agl_carvalho");
+  if (k.includes("agl") && k.includes("branco")) hints.push("agl branco", "agl_branco", "agl lam branco");
   if (k.includes("carvalho") && !k.includes("agl")) hints.push("carvalho", "carvalho natural");
   if (k.includes("nogueir")) hints.push("nogueira");
   if (k.includes("lacado")) hints.push("lacado");

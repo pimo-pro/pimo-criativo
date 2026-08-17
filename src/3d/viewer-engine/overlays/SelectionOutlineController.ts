@@ -150,6 +150,22 @@ export class SelectionOutlineController {
     this.clearHelpers();
 
     if (this.isRemateTarget(target)) {
+      if (target.userData?.isTampoPiece === true && target instanceof THREE.Mesh && target.geometry) {
+        const edges = new THREE.EdgesGeometry(target.geometry);
+        const wireframe = new THREE.LineSegments(edges, this.material);
+        wireframe.name = "selection-outline-layout";
+        wireframe.raycast = () => null;
+        wireframe.frustumCulled = false;
+        // Igual aos remates: copiamos matrixWorld no update. Sem isto o helper
+        // volta à origem do mundo (selecção «flutuante» longe do tampo).
+        wireframe.matrixAutoUpdate = false;
+        wireframe.renderOrder =
+          typeof target.userData?.remateOutlineRenderOrder === "number"
+            ? target.userData.remateOutlineRenderOrder
+            : 2001;
+        this.group.add(wireframe);
+        return;
+      }
       const dims = this.getRemateDimensions(target);
       if (!dims) return;
       this.addWireframe(dims.w, dims.h, dims.d, {

@@ -127,6 +127,8 @@ export class TampoPieceVisualizer {
     } else {
       mesh.geometry.dispose();
       mesh.geometry = resolveTampoGeometry(piece, w, h, d);
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
       this.applyMaterial(mesh, piece);
     }
 

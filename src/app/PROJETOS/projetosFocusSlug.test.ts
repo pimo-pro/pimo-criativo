@@ -118,4 +118,36 @@ describe("projetosFocusSlug", () => {
     const fromLegacy = resolveProjetosFocusFromSegments(record, "box-1", undefined);
     expect(fromLegacy.boxId).toBe("box-1");
   });
+
+  it("TAMPO standalone (sem parentBoxId) entra no catálogo avulso", () => {
+    const record = makeRecord({
+      projectName: "tampo-avulso",
+      workspaceBoxes: [],
+      boxes: [],
+      remates: [
+        {
+          id: "tampo-1",
+          parentBoxId: undefined,
+          tipo: "TAMPO",
+          productType: "TAMPO_COZINHA",
+          name: "Tampo 1",
+          width: 1995,
+          height: 630,
+          depth: 30,
+          materialPresetId: "mdb_laminado-30",
+          position: { xMm: 0, yMm: 0, zMm: 0 },
+          rotation: { xRad: 0, yRad: 0, zRad: 0 },
+          followBox: false,
+        },
+      ],
+      rodapes: [],
+    }, "tampo-avulso");
+
+    const catalog = buildProjetosFocusCatalog(record);
+    const row = catalog!.rows.find((r) => r.id === "tampo-1");
+    expect(row).toBeDefined();
+    expect(row!.boxId).toBeUndefined();
+    expect(row!.boxSlug).toBe("avulso");
+    expect(row!.pieceId).toBe("tampo-1");
+  });
 });

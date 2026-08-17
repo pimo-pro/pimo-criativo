@@ -9,6 +9,7 @@ describe("materiaisFamiliaAppearance", () => {
     expect(defaultTextureForFamilia("MDF Branco")).toBe("/textures/mdf/mdf-branco.jpg");
     expect(defaultTextureForFamilia("MDF Preto")).toBe("/textures/mdf/mdf-preto.jpg");
     expect(defaultTextureForFamilia("AGL CARVALHO")).toBe("/textures/wood/carvalho.jpg");
+    expect(defaultTextureForFamilia("AGL LAM BRANCO")).toBe("/textures/mdf/mdf-branco.jpg");
   });
 
   it("resolve aparência por textura padrão ou cor do CRUD", () => {

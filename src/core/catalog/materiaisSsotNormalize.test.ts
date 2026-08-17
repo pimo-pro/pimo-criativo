@@ -26,6 +26,14 @@ describe("materiaisSsotNormalize + apply mapping", () => {
     const mdfBranco = grupos.find((g) => g.familia === "MDF Branco");
     expect(mdfBranco).toBeTruthy();
     expect(mdfBranco!.espessuras.length).toBeGreaterThanOrEqual(2);
+    const aglBranco = grupos.find((g) => g.familia === "AGL LAM BRANCO");
+    expect(aglBranco).toBeTruthy();
+    expect(aglBranco!.espessuras.map((e) => e.espessuraMm)).toEqual(
+      expect.arrayContaining([8, 10, 16, 19])
+    );
+    expect(resolved.find((r) => r.industrialCanonicalId === "agl_branco-16")?.precoPorM2Eur).toBe(
+      6.5
+    );
     expect(grupos.every((g) => g.familia && !/\d+\s*mm$/i.test(g.familia))).toBe(true);
   });
 });
