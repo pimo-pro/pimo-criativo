@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-17T08:00:00.638Z",
+  "updatedAt": "2026-08-17T08:50:05.195Z",
   "news": [
+    {
+      "version": "v6.0817.0950",
+      "title": "feat(materiais): família AGL LAM BRANCO; fix(tampo): seleção no Viewer",
+      "description": "feat(materiais): família AGL LAM BRANCO; fix(tampo): seleção no Viewer",
+      "publishedAt": "2026-08-17T08:50:05.024Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "3a7658a1"
+    },
     {
       "version": "v6.0817.0859",
       "title": "Auto deploy",
       "description": "Auto deploy",
-      "publishedAt": "2026-08-17T08:00:00.438Z",
+      "publishedAt": "2026-08-17T09:01:36+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "f363a712"
+      "commit": "2e1b4a6"
+    },
+    {
+      "version": "v6.0817.0857",
+      "title": "fix(tampo-angle): geometria angular correta, ângulo real, postforming seguro; retangular intacto",
+      "description": "fix(tampo-angle): geometria angular correta, ângulo real, postforming seguro; retangular intacto\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-17T08:57:33+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "6fde66e"
     },
     {
       "version": "tampo-angle-geometry",
@@ -19,7 +39,7 @@
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "6fde66e5"
+      "commit": "pending"
     },
     {
       "version": "v6.0817.0833",

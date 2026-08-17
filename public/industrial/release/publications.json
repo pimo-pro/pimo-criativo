@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-17T08:50:04.395Z",
+      "author": "pimo-pro",
+      "commitMessage": "feat(materiais): família AGL LAM BRANCO; fix(tampo): seleção no Viewer",
+      "version": "v6.0817.0950"
+    },
+    {
       "publishedAt": "2026-08-17T07:59:59.720Z",
       "author": "pimo-pro",
       "commitMessage": "Auto deploy",
