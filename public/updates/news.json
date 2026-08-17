@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-17T07:56:00.000Z",
+  "updatedAt": "2026-08-17T08:00:00.638Z",
   "news": [
+    {
+      "version": "v6.0817.0859",
+      "title": "Auto deploy",
+      "description": "Auto deploy",
+      "publishedAt": "2026-08-17T08:00:00.438Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "f363a712"
+    },
     {
       "version": "tampo-angle-geometry",
       "title": "Correção TAMPO angular — geometria estável, frente≠trás, ângulo real, postforming seguro; montagem retangular intacta.",
@@ -15,11 +25,11 @@
       "version": "v6.0817.0833",
       "title": "Auto deploy",
       "description": "Auto deploy",
-      "publishedAt": "2026-08-17T07:33:05.463Z",
+      "publishedAt": "2026-08-17T08:34:47+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "d77822c3"
+      "commit": "ce6a2e9"
     },
     {
       "version": "v6.0817.0829",
