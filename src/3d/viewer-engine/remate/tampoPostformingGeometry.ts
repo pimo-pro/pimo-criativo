@@ -56,6 +56,25 @@ export function createTampoPostformingGeometry(
   return geom;
 }
 
+/** Aresta frontal da planta (+Y): o cutter CSG não pode cobrir o envelope traseiro. */
+function frontEdgeFromPlanShape(planShape: THREE.Shape): { minX: number; maxX: number; frontY: number } {
+  const pts = planShape.getPoints();
+  let frontY = Number.NEGATIVE_INFINITY;
+  for (const p of pts) {
+    if (p.y > frontY) frontY = p.y;
+  }
+  const yEps = 0.002;
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  for (const p of pts) {
+    if (Math.abs(p.y - frontY) <= yEps) {
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+    }
+  }
+  return { minX, maxX, frontY };
+}
+
 /**
  * Extrude planta (Shape XY, metros) + espessura Z.
  * Postforming na aresta frontal (+Y) via CSG (¼ cilindro).
@@ -68,6 +87,7 @@ export function createTampoPostformingGeometryFromShape(
 ): THREE.BufferGeometry {
   const safeD = Math.max(0.001, thicknessM);
   const R = Math.min(Math.max(0, radiusM), safeD / 2 - 1e-4);
+  const frontEdge = frontEdgeFromPlanShape(planShape);
 
   let geom: THREE.BufferGeometry = new THREE.ExtrudeGeometry(planShape, {
     depth: safeD,
@@ -79,9 +99,13 @@ export function createTampoPostformingGeometryFromShape(
   const bb = geom.boundingBox!;
   if (!bb) return geom;
 
-  const spanX = bb.max.x - bb.min.x;
-  const midX = (bb.min.x + bb.max.x) / 2;
-  const frontY = bb.max.y;
+  const spanX = Number.isFinite(frontEdge.minX) && Number.isFinite(frontEdge.maxX)
+    ? Math.max(0.001, frontEdge.maxX - frontEdge.minX)
+    : bb.max.x - bb.min.x;
+  const midX = Number.isFinite(frontEdge.minX) && Number.isFinite(frontEdge.maxX)
+    ? (frontEdge.minX + frontEdge.maxX) / 2
+    : (bb.min.x + bb.max.x) / 2;
+  const frontY = Number.isFinite(frontEdge.frontY) ? frontEdge.frontY : bb.max.y;
   const topZ = bb.max.z;
 
   // ¼ cilindro ao longo de X na aresta frente-topo (+Y, +Z)
@@ -97,11 +121,22 @@ export function createTampoPostformingGeometryFromShape(
   try {
     const carved = CSG.subtract(source, cutter);
     if (carved?.geometry) {
-      geom.dispose();
-      geom = carved.geometry;
-      geom.computeVertexNormals();
-      if (!geom.attributes.uv2 && geom.attributes.uv) {
-        geom.setAttribute("uv2", geom.attributes.uv.clone());
+      carved.geometry.computeBoundingBox();
+      const carvedBb = carved.geometry.boundingBox;
+      const origX = bb.max.x - bb.min.x;
+      const origY = bb.max.y - bb.min.y;
+      const carvedX = carvedBb ? carvedBb.max.x - carvedBb.min.x : 0;
+      const carvedY = carvedBb ? carvedBb.max.y - carvedBb.min.y : 0;
+      const collapsed = carvedX < origX * 0.5 || carvedY < origY * 0.5;
+      if (!collapsed) {
+        geom.dispose();
+        geom = carved.geometry;
+        geom.computeVertexNormals();
+        if (!geom.attributes.uv2 && geom.attributes.uv) {
+          geom.setAttribute("uv2", geom.attributes.uv.clone());
+        }
+      } else {
+        carved.geometry.dispose();
       }
     }
   } finally {

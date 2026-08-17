@@ -21,8 +21,7 @@ describe("TAMPO Fase 5 — ângulo industrial", () => {
 
   it("tampo1: frente 1995, trás 2303 → ângulo coerente", () => {
     const angle = computeTampoAngleDegFromLengths(1995, 2303, 630);
-    expect(angle).toBeGreaterThan(10);
-    expect(angle).toBeLessThan(20);
+    expect(angle).toBeCloseTo(26.1, 1);
     const cfg = { frontLengthMm: 1995, backLengthMm: 2303, angleDeg: angle };
     expect(validateTampoAngleConfig(cfg, BASE).ok).toBe(true);
     const n = normalizeTampoAngleConfig(cfg);

@@ -33,8 +33,8 @@ export function computeTampoAngleDegFromLengths(
   widthMm: number = TAMPO_FIXED_WIDTH_MM
 ): number {
   const W = Math.max(1, Number(widthMm) || TAMPO_FIXED_WIDTH_MM);
-  const deltaHalf = (Number(backLengthMm) - Number(frontLengthMm)) / 2;
-  return (Math.atan2(deltaHalf, W) * 180) / Math.PI;
+  const delta = Number(backLengthMm) - Number(frontLengthMm);
+  return (Math.atan2(delta, W) * 180) / Math.PI;
 }
 
 export function createDefaultTampoAngleConfig(baseLengthMm: number): TampoAngleConfig {

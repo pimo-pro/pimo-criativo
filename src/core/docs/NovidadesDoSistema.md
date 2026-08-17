@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Release — Correção TAMPO angular (geometria)
+Correção TAMPO angular — geometria estável, frente≠trás, ângulo real, postforming seguro; montagem retangular intacta.
+
+- Trapézio com lado esquerdo a esquadria; frente em +Y; coordenadas em metros
+- Ângulo real: `atan2(trás − frente, 630)`
+- Postforming só na aresta frontal; se o CSG colapsar, mantém-se o extrude
+- Frente ≠ trás aceite (incluindo frente > trás)
+- TAMPO retangular (frente = trás / `angleConfig == null`) intacto
+
 ### Release — Correção TAMPO angular
 Correção TAMPO angular — frente≠trás, pose horizontal, rotação preservada; montagem retangular intacta.
 

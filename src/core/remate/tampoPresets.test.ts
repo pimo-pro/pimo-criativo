@@ -17,7 +17,7 @@ describe("TAMPO presets — modelos pré-definidos", () => {
   it("preset1: frente 1995 / trás 2303 → trapézio correcto", () => {
     expect(TAMPO_PRESET_1.angleConfig.frontLengthMm).toBe(1995);
     expect(TAMPO_PRESET_1.angleConfig.backLengthMm).toBe(2303);
-    expect(TAMPO_PRESET_1.angleConfig.angleDeg).toBeCloseTo(13.7, 1);
+    expect(TAMPO_PRESET_1.angleConfig.angleDeg).toBeCloseTo(26.1, 1);
     const cfg = normalizeTampoAngleConfig(TAMPO_PRESET_1.angleConfig);
     const v = getTampoAnglePlanVerticesMm(cfg, TAMPO_PRESET_1.width, 630);
     expect(v.frontR.x - v.frontL.x).toBeCloseTo(1995, 5);
@@ -27,7 +27,7 @@ describe("TAMPO presets — modelos pré-definidos", () => {
   it("preset2: frente 1633 / trás 1818 → trapézio correcto", () => {
     expect(TAMPO_PRESET_2.angleConfig.frontLengthMm).toBe(1633);
     expect(TAMPO_PRESET_2.angleConfig.backLengthMm).toBe(1818);
-    expect(TAMPO_PRESET_2.angleConfig.angleDeg).toBeCloseTo(8.4, 1);
+    expect(TAMPO_PRESET_2.angleConfig.angleDeg).toBeCloseTo(16.4, 1);
     const cfg = normalizeTampoAngleConfig(TAMPO_PRESET_2.angleConfig);
     const v = getTampoAnglePlanVerticesMm(cfg, TAMPO_PRESET_2.width, 630);
     expect(v.frontR.x - v.frontL.x).toBeCloseTo(1633, 5);
