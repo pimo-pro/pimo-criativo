@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Release — Correção TAMPO angular
+Correção TAMPO angular — frente≠trás, pose horizontal, rotação preservada; montagem retangular intacta.
+
+- TAMPO angular (`angleConfig`) deixa o pipeline de montagem da caixa (`followBox` / CIMA)
+- Frente ≠ trás aceite, incluindo frente > trás
+- Pose horizontal; a rotação deixa de ser resetada após sync
+- TAMPO retangular (`angleConfig == null`) mantém `followBox` + CIMA
+- Gavetas, portas, DIV, SEP, PI e remates AVISTA/L/COMPLETO intactos
+
 ### Release — TAMPO Cozinha completo (Fases 1–4)
 Sistema completo de tampo de cozinha: matéria industrial, peça Remate Especial, viewer postforming, recortes e união entre tampos.
 

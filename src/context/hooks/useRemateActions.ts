@@ -29,6 +29,10 @@ import {
   TAMPO_THICKNESS_MM,
   validateTampoIndustrial,
 } from "../../core/remate/tampoCozinhaRules";
+import {
+  isTampoAngularConfig,
+  TAMPO_ANGULAR_LAY_FLAT_X_RAD,
+} from "../../core/remate/tampoAngle";
 
 export type RemateActions = Pick<
   ProjectActions,
@@ -313,6 +317,23 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
                   nextRemate = { ...nextRemate, placementMode: "SNAPPED" };
                 } else if (patch.followBox === false) {
                   nextRemate = { ...nextRemate, placementMode: "FREE" };
+                }
+                if (isTampoAngularConfig(nextRemate.angleConfig, nextRemate.height)) {
+                  const rot = nextRemate.rotation;
+                  const needsLayFlat =
+                    !rot ||
+                    (Math.abs(rot.xRad) < 1e-6 &&
+                      Math.abs(rot.yRad) < 1e-6 &&
+                      Math.abs(rot.zRad) < 1e-6);
+                  nextRemate = {
+                    ...nextRemate,
+                    followBox: false,
+                    parentBoxId: undefined,
+                    placementMode: "FREE",
+                    rotation: needsLayFlat
+                      ? { xRad: TAMPO_ANGULAR_LAY_FLAT_X_RAD, yRad: 0, zRad: 0 }
+                      : rot,
+                  };
                 }
                 const shouldResnap =
                   nextRemate.followBox &&

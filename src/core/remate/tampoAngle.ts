@@ -21,7 +21,7 @@ export type TampoAngleValidation = {
 };
 
 export const TAMPO_ANGLE_MAX_LENGTH_MM = MDB_LAMINADO_SHEET_LF_MM; // 3660
-export const TAMPO_ANGLE_MIN_DEG = 0;
+export const TAMPO_ANGLE_MIN_DEG = -60;
 export const TAMPO_ANGLE_MAX_DEG = 60;
 export const TAMPO_ANGLE_RECT_EPS_MM = 1;
 export const TAMPO_ANGLE_RECT_EPS_DEG = 0.5;
@@ -118,6 +118,16 @@ export function validateTampoAngleConfig(
   void base.widthMm;
   return { ok: errors.length === 0, errors };
 }
+
+export function isTampoAngularConfig(
+  cfg: TampoAngleConfig | null | undefined,
+  widthMm: number = TAMPO_FIXED_WIDTH_MM
+): boolean {
+  return normalizeTampoAngleConfig(cfg, widthMm) != null;
+}
+
+/** Pose local para o trapézio assentar no chão (Y-up): espessura em +Y. */
+export const TAMPO_ANGULAR_LAY_FLAT_X_RAD = -Math.PI / 2;
 
 export function serializeTampoAngleForCutlist(
   cfg?: TampoAngleConfig | null

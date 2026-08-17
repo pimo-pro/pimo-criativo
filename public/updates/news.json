@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-16T18:52:48.941Z",
+  "updatedAt": "2026-08-17T07:27:00.000Z",
   "news": [
+    {
+      "version": "tampo-angular-pose",
+      "title": "Correção TAMPO angular — frente≠trás, pose horizontal, rotação preservada; montagem retangular intacta.",
+      "description": "Correção TAMPO angular — frente≠trás, pose horizontal, rotação preservada; montagem retangular intacta.\n\n• TAMPO angular (angleConfig) deixa o pipeline de montagem da caixa (followBox / CIMA).\n• Frente ≠ trás aceite, incluindo frente > trás (ângulo negativo até −60°).\n• Pose horizontal (lay-flat); rotação guardada após sync.\n• TAMPO retangular (angleConfig == null) mantém followBox + CIMA.\n• Gavetas, portas, DIV, SEP, PI e remates AVISTA/L/COMPLETO intactos.",
+      "publishedAt": "2026-08-17T07:27:00.000Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "pending"
+    },
     {
       "version": "v6.0816.1952",
       "title": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",

@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-17",
+    versao: "tampo-angular-pose",
+    descricao:
+      "Correção TAMPO angular — frente≠trás, pose horizontal, rotação preservada; montagem retangular intacta.",
+  },
+  {
     data: "2026-08-16",
     versao: "tampo-v1",
     descricao:

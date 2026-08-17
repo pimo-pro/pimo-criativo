@@ -201,6 +201,7 @@ import {
 } from "./remate/remateLCompositeVisual";
 import { isLRematePiece } from "../../core/remate/remateLGeometry";
 import { applyRemateRotationSnapToMesh } from "../../core/remate/remateRotationSnap";
+import { isTampoAngularConfig } from "../../core/remate/tampoAngle";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
 import { mToMm, mmToM } from "../../utils/units";
@@ -983,7 +984,7 @@ export class ViewerCore {
       this.smartAlignSnapEngine.onDragStart();
       if (this.viewerState.getSelectedRemate()) {
         const remateId = this.viewerState.getSelectedRemate()!;
-        const rawMesh = this.remateVisualizer.getMeshByRemateId(remateId);
+        const rawMesh = this.getRemateMesh(remateId);
         const obj = resolveRemateTransformRoot(rawMesh) ?? rawMesh ?? this.transformControls!.object;
         if (obj) this.remateSmartSnapping.onDragStart(obj as THREE.Object3D);
       } else if (this.viewerState.getSelectedDivSep()) {
@@ -1305,7 +1306,7 @@ export class ViewerCore {
   ): boolean {
     const pieces = this.remateVisualBridge?.listRematePieces() ?? [];
     const leadId = resolveLRemateCimaLeadId(remateId, pieces);
-    const rawMesh = this.remateVisualizer.getMeshByRemateId(leadId);
+    const rawMesh = this.getRemateMesh(leadId);
     const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
     if (!mesh) return false;
 
@@ -1805,7 +1806,7 @@ export class ViewerCore {
 
     const rematePieces = this.remateVisualBridge?.listRematePieces() ?? [];
     for (const piece of rematePieces) {
-      const mesh = this.remateVisualizer.getMeshByRemateId(piece.id);
+      const mesh = this.getRemateMesh(piece.id);
       if (!mesh) continue;
       mesh.updateMatrixWorld(true);
       if (isObjectInScreenRect(mesh, selectionRect, camera, canvasRect)) {
@@ -2025,7 +2026,7 @@ export class ViewerCore {
     }
 
     if (decoded.kind === "remate") {
-      const mesh = this.remateVisualizer.getMeshByRemateId(decoded.id);
+      const mesh = this.getRemateMesh(decoded.id);
       return mesh ? { mesh } : null;
     }
 
@@ -2111,7 +2112,7 @@ export class ViewerCore {
 
     const remateId = this.viewerState.getSelectedRemate();
     if (remateId) {
-      const mesh = this.remateVisualizer.getMeshByRemateId(remateId);
+      const mesh = this.getRemateMesh(remateId);
       if (mesh) push({ kind: "remate", id: remateId, mesh });
     }
 
@@ -5354,7 +5355,7 @@ export class ViewerCore {
   private notifyRemateTransform(): void {
     const remateId = this.viewerState.getSelectedRemate();
     if (!remateId) return;
-    const rawMesh = this.remateVisualizer.getMeshByRemateId(remateId);
+    const rawMesh = this.getRemateMesh(remateId);
     const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
     if (!mesh) return;
     const p = mesh.position;
@@ -5535,10 +5536,11 @@ export class ViewerCore {
   resolveFinishCollisionAfterSync(params: { remateId?: string; rodapeId?: string }): void {
     const { remateId, rodapeId } = params;
     if (remateId) {
-      const rawMesh = this.remateVisualizer.getMeshByRemateId(remateId);
+      const rawMesh = this.getRemateMesh(remateId);
       const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
       if (!mesh) return;
       const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === remateId);
+      if (isTampoAngularConfig(piece?.angleConfig, piece?.height)) return;
       const boxId = piece?.parentBoxId ?? (mesh.userData.boxId as string | undefined);
       this.applyFinishCollisionConstraint(mesh, boxId, remateId);
       const prev = this.viewerState.getSelectedRemate();
@@ -5566,6 +5568,10 @@ export class ViewerCore {
     excludeRodapeId?: string
   ): void {
     if (!this.lockEnabled) return;
+    if (excludeRemateId) {
+      const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === excludeRemateId);
+      if (isTampoAngularConfig(piece?.angleConfig, piece?.height)) return;
+    }
 
     const excludeRemateIds = new Set<string>();
     if (excludeRemateId) {
@@ -5581,7 +5587,7 @@ export class ViewerCore {
     const seenMeshUuids = new Set<string>();
     for (const piece of this.remateVisualBridge?.listRematePieces() ?? []) {
       if (excludeRemateIds.has(piece.id)) continue;
-      const mesh = this.remateVisualizer.getMeshByRemateId(piece.id);
+      const mesh = this.getRemateMesh(piece.id);
       if (!mesh || mesh === movingMesh || seenMeshUuids.has(mesh.uuid)) continue;
       seenMeshUuids.add(mesh.uuid);
       otherMeshes.push(mesh);
@@ -5626,7 +5632,7 @@ export class ViewerCore {
       entities.push({ kind: "box", id, mesh: entry.mesh as THREE.Mesh });
     });
     for (const piece of this.remateVisualBridge?.listRematePieces() ?? []) {
-      const raw = this.remateVisualizer.getMeshByRemateId(piece.id);
+      const raw = this.getRemateMesh(piece.id);
       const mesh = resolveRemateTransformRoot(raw) ?? raw;
       if (!mesh || !(mesh instanceof THREE.Mesh)) continue;
       entities.push({
@@ -5980,18 +5986,19 @@ export class ViewerCore {
     }
 
     if (selectedRemateId) {
-      const rawMesh = this.remateVisualizer.getMeshByRemateId(selectedRemateId);
+      const rawMesh = this.getRemateMesh(selectedRemateId);
       const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
       const obj = this.transformControls?.object;
       if (isDragging && mesh && obj === mesh) {
         const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === selectedRemateId);
+        const angular = isTampoAngularConfig(piece?.angleConfig, piece?.height);
         const boxId = piece?.parentBoxId ?? (mesh.userData.boxId as string | undefined);
         const entry = boxId ? this.boxes.get(boxId) : undefined;
 
         const snapTarget = mesh as THREE.Mesh;
         const isLCimaComposite = mesh.userData?.isRemateLComposite === true;
 
-        if (currentTool === "translate" && entry && piece && boxId && !isLCimaComposite) {
+        if (currentTool === "translate" && entry && piece && boxId && !isLCimaComposite && !angular) {
           const cfg = this.remateVisualBridge?.getBoxConfig(boxId);
           if (cfg) {
             this.remateSmartSnapping.applyDuringTranslate({
@@ -6000,13 +6007,13 @@ export class ViewerCore {
               boxConfig: cfg,
             });
           }
-        } else if (currentTool === "translate" && piece && !boxId && !isLCimaComposite) {
+        } else if (currentTool === "translate" && piece && (!boxId || angular) && !isLCimaComposite) {
           this.remateSmartSnapping.applyStandaloneGridSnap(snapTarget);
-        } else if (currentTool === "rotate" && !isLCimaComposite) {
+        } else if (currentTool === "rotate" && !isLCimaComposite && !angular) {
           applyRemateRotationSnapToMesh(snapTarget, entry?.mesh ?? null);
         }
 
-        if (currentTool === "translate" && !isLCimaComposite) {
+        if (currentTool === "translate" && !isLCimaComposite && !angular) {
           this.applyDynamicAlignSnap({
             mesh: snapTarget,
             entity: { kind: "remate", id: selectedRemateId, parentBoxId: boxId },
@@ -6015,7 +6022,7 @@ export class ViewerCore {
           });
         }
 
-        if (currentTool === "translate" && mesh && obj === mesh) {
+        if (currentTool === "translate" && mesh && obj === mesh && !angular) {
           const boxId = piece?.parentBoxId ?? (mesh.userData.boxId as string | undefined);
           this.applyFinishCollisionConstraint(mesh, boxId, selectedRemateId);
         }

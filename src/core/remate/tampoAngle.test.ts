@@ -38,6 +38,17 @@ describe("TAMPO Fase 5 — ângulo industrial", () => {
     expect(validateTampoAngleConfig(cfg, { widthMm: 1633, heightMm: 630 }).ok).toBe(true);
   });
 
+  it("aceita frente > trás (ângulo negativo)", () => {
+    const angle = computeTampoAngleDegFromLengths(2303, 1995, 630);
+    expect(angle).toBeLessThan(0);
+    expect(
+      validateTampoAngleConfig(
+        { frontLengthMm: 2303, backLengthMm: 1995, angleDeg: angle },
+        { widthMm: 2303, heightMm: 630 }
+      ).ok
+    ).toBe(true);
+  });
+
   it("rejeita comprimentos ≤ 0", () => {
     expect(
       validateTampoAngleConfig(
@@ -55,7 +66,7 @@ describe("TAMPO Fase 5 — ângulo industrial", () => {
     expect(v.ok).toBe(false);
   });
 
-  it("rejeita ângulo fora de [0, 60] após sync incoerente", () => {
+  it("rejeita ângulo fora de [-60, 60] após sync incoerente", () => {
     const v = validateTampoAngleConfig(
       { frontLengthMm: 1000, backLengthMm: 1000, angleDeg: 90 },
       BASE

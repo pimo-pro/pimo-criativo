@@ -23,6 +23,7 @@ import { buildTampoAngleShape } from "./tampoAngleGeometry";
 import {
   normalizeTampoAngleConfig,
   resolveTampoAngleEnvelopeMm,
+  isTampoAngularConfig,
 } from "../../../core/remate/tampoAngle";
 
 export { TAMPO_POSTFORM_RADIUS_MM };
@@ -204,19 +205,22 @@ export class TampoPieceVisualizer {
   }
 
   private applyWorldTransform(mesh: THREE.Mesh, piece: RematePiece): void {
-    const pose = shouldResolveRematePoseFromBounds(piece)
-      ? (() => {
-          if (!piece.parentBoxId) {
-            return getRemateSavedPoseLocal(piece);
-          }
-          const cfg = this.bridge?.getBoxConfig(piece.parentBoxId);
-          if (!cfg) return getRemateSavedPoseLocal(piece);
-          const bounds = getRemateEnvelopeBoundsM(cfg.widthM, cfg.heightM, cfg.depthM, cfg.box ?? null);
-          return resolveRematePoseLocal(piece, bounds);
-        })()
-      : getRemateSavedPoseLocal(piece);
+    const angular = isTampoAngularConfig(piece.angleConfig, piece.height);
+    const pose = angular
+      ? getRemateSavedPoseLocal(piece)
+      : shouldResolveRematePoseFromBounds(piece)
+        ? (() => {
+            if (!piece.parentBoxId) {
+              return getRemateSavedPoseLocal(piece);
+            }
+            const cfg = this.bridge?.getBoxConfig(piece.parentBoxId);
+            if (!cfg) return getRemateSavedPoseLocal(piece);
+            const bounds = getRemateEnvelopeBoundsM(cfg.widthM, cfg.heightM, cfg.depthM, cfg.box ?? null);
+            return resolveRematePoseLocal(piece, bounds);
+          })()
+        : getRemateSavedPoseLocal(piece);
 
-    if (piece.parentBoxId) {
+    if (!angular && piece.parentBoxId) {
       const worldMatrix = this.bridge?.getBoxWorldMatrix(piece.parentBoxId);
       if (worldMatrix) {
         const local = new THREE.Vector3(

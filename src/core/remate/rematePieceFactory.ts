@@ -22,7 +22,11 @@ import {
   TAMPO_MATERIAL_ID,
   TAMPO_THICKNESS_MM,
 } from "./tampoCozinhaRules";
-import { normalizeTampoAngleConfig } from "./tampoAngle";
+import {
+  isTampoAngularConfig,
+  normalizeTampoAngleConfig,
+  TAMPO_ANGULAR_LAY_FLAT_X_RAD,
+} from "./tampoAngle";
 
 // Viewer Fase 2: tipo TAMPO / productType TAMPO_COZINHA → TampoPieceVisualizer (postforming).
 // Sem import Three.js neste factory industrial.
@@ -179,7 +183,22 @@ export function createRematePieces(
       }
     }
 
-    if (input.parentBoxId && ctx.box && ctx.boxDimsM) {
+    const isAngular = isTampoAngularConfig(piece.angleConfig, piece.height);
+    if (isAngular) {
+      // Trapézio não usa pipeline de montagem CIMA/followBox (evita pose vertical e reset de rotação).
+      piece.followBox = false;
+      piece.parentBoxId = undefined;
+      piece.placementMode = "FREE";
+      const rot = piece.rotation;
+      if (
+        !rot ||
+        (Math.abs(rot.xRad) < 1e-6 && Math.abs(rot.yRad) < 1e-6 && Math.abs(rot.zRad) < 1e-6)
+      ) {
+        piece.rotation = { xRad: TAMPO_ANGULAR_LAY_FLAT_X_RAD, yRad: 0, zRad: 0 };
+      }
+      piece.position = input.workspacePosition ?? defaultStandalonePosition(ctx.allBoxes ?? [], piece);
+      piece = markRematePlacementSettled(piece);
+    } else if (input.parentBoxId && ctx.box && ctx.boxDimsM) {
       piece = applyMountSnapIfNeeded(piece, ctx.box, ctx.boxDimsM);
     } else if (!input.parentBoxId) {
       piece.position = input.workspacePosition ?? defaultStandalonePosition(ctx.allBoxes ?? [], piece);
