@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-17T11:03:22.129Z",
+      "author": "pimo-pro",
+      "commitMessage": "TAMPO — integração industrial completa (A–F): chapa 3660×630×30, geometria tipada, ponte cutlist→produção, PDF poligonal, TCN poligonal, XML excluído",
+      "version": "v6.0817.1203"
+    },
+    {
       "publishedAt": "2026-08-17T08:50:04.395Z",
       "author": "pimo-pro",
       "commitMessage": "feat(materiais): família AGL LAM BRANCO; fix(tampo): seleção no Viewer",
