@@ -96,6 +96,79 @@ function pdfDisplayHoleOffset(pl: CutPlacement, h: PdfHole): { sx: number; sy: n
   return holeLocalToSheetOffsetMm(h.x, h.y, normalizedRotation(pl.rotacao), pl.largura_mm, pl.altura_mm);
 }
 
+type PlacementPdfExt = CutPlacement & {
+  originalOuterPolygonMm?: Array<{ x: number; y: number }>;
+  originalInnerContours?: NonNullable<CutPlacement["innerContours"]>;
+};
+
+export type PlacementPdfDrawOp =
+  | { kind: "rect"; x: number; y: number; w: number; h: number }
+  | { kind: "polygon"; points: Array<{ x: number; y: number }> }
+  | { kind: "inner-rect"; x: number; y: number; w: number; h: number }
+  | { kind: "inner-circle"; cx: number; cy: number; r: number };
+
+function pdfLocalPoint(pl: CutPlacement, hx: number, hy: number): { x: number; y: number } {
+  const off = holeLocalToSheetOffsetMm(hx, hy, normalizedRotation(pl.rotacao), pl.largura_mm, pl.altura_mm);
+  return { x: off.sx, y: off.sy };
+}
+
+function axisAlignedFromCorners(corners: Array<{ x: number; y: number }>): {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} {
+  const xs = corners.map((p) => p.x);
+  const ys = corners.map((p) => p.y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+}
+
+/**
+ * Operações de desenho no espaço local do placement (mesmo offset que os furos).
+ * Prefere `originalOuterPolygonMm` / `originalInnerContours` quando existirem.
+ */
+export function placementPdfDrawOps(pl: CutPlacement): PlacementPdfDrawOp[] {
+  const ext = pl as PlacementPdfExt;
+  const ops: PlacementPdfDrawOp[] = [];
+  const poly = ext.originalOuterPolygonMm ?? pl.outerPolygonMm;
+  if (poly && poly.length >= 3) {
+    ops.push({ kind: "polygon", points: poly.map((p) => pdfLocalPoint(pl, p.x, p.y)) });
+  } else {
+    ops.push({ kind: "rect", x: 0, y: 0, w: pl.largura_mm, h: pl.altura_mm });
+  }
+
+  const contours = ext.originalInnerContours ?? pl.innerContours ?? [];
+  for (const c of contours) {
+    if (c.innerCircle && c.innerCircle.diameter_mm > 0) {
+      const ctr = pdfLocalPoint(pl, c.innerCircle.cx_mm, c.innerCircle.cy_mm);
+      ops.push({ kind: "inner-circle", cx: ctr.x, cy: ctr.y, r: c.innerCircle.diameter_mm / 2 });
+    }
+    const box = axisAlignedFromCorners([
+      pdfLocalPoint(pl, c.x_mm, c.y_mm),
+      pdfLocalPoint(pl, c.x_mm + c.largura_mm, c.y_mm),
+      pdfLocalPoint(pl, c.x_mm + c.largura_mm, c.y_mm + c.altura_mm),
+      pdfLocalPoint(pl, c.x_mm, c.y_mm + c.altura_mm),
+    ]);
+    ops.push({ kind: "inner-rect", ...box });
+  }
+  return ops;
+}
+
+function drawClosedPath(
+  doc: jsPDF,
+  pts: Array<{ x: number; y: number }>,
+  style: "S" | "F" | "FD"
+): void {
+  if (pts.length < 3) return;
+  const lines: number[][] = [];
+  for (let i = 1; i < pts.length; i++) {
+    lines.push([pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y]);
+  }
+  doc.lines(lines, pts[0]!.x, pts[0]!.y, [1, 1], style, true);
+}
+
 function isHoleInsidePlacementAndSheet(
   pl: CutPlacement,
   h: PdfHole,
@@ -291,10 +364,25 @@ function drawSheetDiagram(
     doc.setDrawColor(...BRAND_RED);
     doc.setFillColor(255, 255, 255);
     doc.setLineWidth(0.35);
-    doc.rect(px, py, pw, ph, "FD");
+    const piecePhysLeft = placementPhysicalLeft(pl, sheet.largura_mm, topRightOrigin);
+    const toDiagram = (localX: number, localY: number) => ({
+      x: originX + (piecePhysLeft + localX) * scale,
+      y: originY + (pl.y_mm + localY) * scale,
+    });
+    const drawOps = placementPdfDrawOps(pl);
+    const outer = drawOps.find((op) => op.kind === "polygon" || op.kind === "rect");
+    if (outer?.kind === "polygon") {
+      drawClosedPath(
+        doc,
+        outer.points.map((p) => toDiagram(p.x, p.y)),
+        "FD"
+      );
+    } else {
+      doc.rect(px, py, pw, ph, "FD");
+    }
 
     const bands = placementEdgeBands(pl);
-    if (bands) {
+    if (bands && outer?.kind !== "polygon") {
       const inset = 0.35;
       if (bands.top) drawDottedLine(doc, px + inset, py + inset, px + pw - inset, py + inset);
       if (bands.bottom) drawDottedLine(doc, px + inset, py + ph - inset, px + pw - inset, py + ph - inset);
@@ -302,11 +390,26 @@ function drawSheetDiagram(
       if (bands.right) drawDottedLine(doc, px + pw - inset, py + inset, px + pw - inset, py + ph - inset);
     }
 
+    for (const op of drawOps) {
+      if (op.kind === "inner-rect") {
+        const p0 = toDiagram(op.x, op.y);
+        doc.setDrawColor(...BRAND_RED);
+        doc.setFillColor(255, 255, 255);
+        doc.setLineWidth(0.25);
+        doc.rect(p0.x, p0.y, op.w * scale, op.h * scale, "S");
+      } else if (op.kind === "inner-circle") {
+        const c = toDiagram(op.cx, op.cy);
+        doc.setDrawColor(...BRAND_RED);
+        doc.setFillColor(255, 255, 255);
+        doc.setLineWidth(0.25);
+        doc.circle(c.x, c.y, op.r * scale, "S");
+      }
+    }
+
     const displayHoles = holesForPdf(pl, sheet, topRightOrigin);
     if (displayHoles.length > 0) {
       doc.setFillColor(30, 30, 30);
       doc.setDrawColor(30, 30, 30);
-      const piecePhysLeft = placementPhysicalLeft(pl, sheet.largura_mm, topRightOrigin);
       for (const h of displayHoles) {
         const off = pdfDisplayHoleOffset(pl, h);
         const hx = originX + (piecePhysLeft + off.sx) * scale;
@@ -455,7 +558,54 @@ function drawPieceTablePaginated(
 
         // Silhueta sem caixa envolvente nem contorno.
         doc.setFillColor(248, 244, 244);
-        doc.rect(rx, ry, rw, rh, "F");
+        const thumbOps = placementPdfDrawOps(pl);
+        const toThumb = (sx: number, sy: number) => {
+          if (forceLandscape) {
+            return {
+              x: rx + (sy / Math.max(pl.altura_mm, 1)) * rw,
+              y: ry + ((pl.largura_mm - sx) / Math.max(pl.largura_mm, 1)) * rh,
+            };
+          }
+          return {
+            x: rx + (sx / Math.max(pl.largura_mm, 1)) * rw,
+            y: ry + (sy / Math.max(pl.altura_mm, 1)) * rh,
+          };
+        };
+        const outer = thumbOps.find((op) => op.kind === "polygon" || op.kind === "rect");
+        if (outer?.kind === "polygon") {
+          drawClosedPath(doc, outer.points.map((p) => toThumb(p.x, p.y)), "F");
+        } else {
+          doc.rect(rx, ry, rw, rh, "F");
+        }
+        for (const op of thumbOps) {
+          if (op.kind === "inner-rect") {
+            const corners = [
+              toThumb(op.x, op.y),
+              toThumb(op.x + op.w, op.y),
+              toThumb(op.x + op.w, op.y + op.h),
+              toThumb(op.x, op.y + op.h),
+            ];
+            const xs = corners.map((p) => p.x);
+            const ys = corners.map((p) => p.y);
+            doc.setDrawColor(180, 140, 140);
+            doc.setLineWidth(0.12);
+            doc.rect(
+              Math.min(...xs),
+              Math.min(...ys),
+              Math.max(...xs) - Math.min(...xs),
+              Math.max(...ys) - Math.min(...ys),
+              "S"
+            );
+          } else if (op.kind === "inner-circle") {
+            const c = toThumb(op.cx, op.cy);
+            const rThumb = forceLandscape
+              ? (op.r / Math.max(pl.altura_mm, 1)) * rw
+              : (op.r / Math.max(pl.largura_mm, 1)) * rw;
+            doc.setDrawColor(180, 140, 140);
+            doc.setLineWidth(0.12);
+            doc.circle(c.x, c.y, Math.max(0.2, rThumb), "S");
+          }
+        }
 
         const thumbHoles = holesForPdf(pl, sheet, false);
         if (thumbHoles.length > 0) {

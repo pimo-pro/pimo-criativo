@@ -15,6 +15,12 @@ import {
   resolveTcnUnmDsMm,
 } from "./tcnPanelThickness";
 import { resolveTcnDrillDepthMm, resolveTcnDrillDiameterMm } from "./tcnDrillParams";
+import {
+  buildPlacementExteriorContourPath,
+  buildPlacementInnerContourPaths,
+  isPlacementInsideSheet,
+  sanitizePlacementsForTcn,
+} from "./tcnContourPaths";
 
 const HEADER = "TPA\\ALBATROS\\EDICAD\\00.00:0";
 
@@ -48,23 +54,6 @@ function resolveContourToolOffsetMm(settings: {
   const toolRadiusMm = toolDiameterMm / 2;
   const compensacao = settings?.cnc?.compensacaoFerramenta ?? "fora";
   return compensacao === "dentro" ? 0 : toolRadiusMm;
-}
-
-function rectToolCenterExteriorFromPlacementMm(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  toolRadiusMm: number
-): { x0: number; y0: number; x1: number; y1: number } {
-  const R = Math.max(0, toolRadiusMm);
-  return { x0: x - R, y0: y - R, x1: x + w + R, y1: y + h + R };
-}
-
-function rectDistance(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): number {
-  const dx = Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)));
-  const dy = Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h)));
-  return Math.sqrt(dx * dx + dy * dy);
 }
 
 function flipPointToTopRightAnchor(x: number, y: number, maxW: number, maxH: number): { x: number; y: number } {
@@ -104,60 +93,6 @@ function converterCoordenadasFuroTCN(
   const tcnPt = transformPlacementToTcn({ x: xAbs, y: yAbs, z: 0 }, sheetLarguraMm, maxW, maxH);
 
   return { tcnX: tcnPt.x, tcnY: tcnPt.y, xAbs, yAbs, off };
-}
-
-function isPlacementInsideSheet(x: number, y: number, w: number, h: number, sheetW: number, sheetH: number): boolean {
-  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h)) return false;
-  if (w <= 0 || h <= 0) return false;
-  if (x < -EPSILON_MM || y < -EPSILON_MM) return false;
-  if (x + w > sheetW + EPSILON_MM) return false;
-  if (y + h > sheetH + EPSILON_MM) return false;
-  return true;
-}
-
-function sanitizePlacementsForTcn(
-  placements: SheetResult["placements"],
-  sheet: SheetResult["sheet"],
-  minSpacingMm: number,
-  toolRadiusMm: number,
-  sheetMarginMm: number
-): SheetResult["placements"] {
-  const unique: SheetResult["placements"] = [];
-  const placedRects: Array<{ x: number; y: number; w: number; h: number }> = [];
-  const signatures = new Set<string>();
-
-  for (const pl of placements) {
-    const x = pl.x_mm;
-    const y = pl.y_mm;
-    const w = pl.largura_mm;
-    const h = pl.altura_mm;
-
-    const signature = `${Math.round(x * 1000)}:${Math.round(y * 1000)}:${Math.round(w * 1000)}:${Math.round(h * 1000)}`;
-    if (signatures.has(signature)) continue;
-
-    if (!isPlacementInsideSheet(x, y, w, h, sheet.largura_mm, sheet.altura_mm)) continue;
-
-    const contour = rectToolCenterExteriorFromPlacementMm(x, y, w, h, toolRadiusMm);
-    const minFromEdge = Math.max(0, sheetMarginMm - toolRadiusMm);
-    if (
-      contour.x0 < -minFromEdge ||
-      contour.y0 < -minFromEdge ||
-      contour.x1 > sheet.largura_mm + minFromEdge ||
-      contour.y1 > sheet.altura_mm + minFromEdge
-    ) {
-      continue;
-    }
-
-    const rect = { x, y, w, h };
-    const tooClose = placedRects.some((r) => rectDistance(r, rect) < minSpacingMm - EPSILON_MM);
-    if (tooClose) continue;
-
-    signatures.add(signature);
-    placedRects.push(rect);
-    unique.push(pl);
-  }
-
-  return unique;
 }
 
 function buildToolBlock(x: number, y: number, zSafe: number): string {
@@ -221,65 +156,6 @@ function buildSideBlock(
   }
   lines.push("}SIDE");
   return lines;
-}
-
-function buildContourPathV1Style(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  toolRadiusMm: number,
-  thicknessMm: number,
-  zSafe: number,
-  rampDistMm: number
-): { w89: { x: number; y: number }; path: Array<{ x: number; y: number; z: number }> } {
-  const R = Math.max(0, toolRadiusMm);
-  const x0 = x - R;
-  const x1 = x + w + R;
-  const y0 = y - R;
-  const y1 = y + h + R;
-  const eyBase = (y0 + y1) / 2;
-  const zCut = -Math.abs(thicknessMm);
-  const EXIT_OVERRUN_MM = 20;
-
-  const w89 = { x: x0, y: eyBase + rampDistMm };
-  const yExit = Math.max(y0, eyBase - EXIT_OVERRUN_MM);
-  const yLift = Math.max(y0, eyBase - EXIT_OVERRUN_MM - rampDistMm);
-
-  const path: Array<{ x: number; y: number; z: number }> = [
-    { x: x0, y: eyBase, z: zCut },
-    { x: x0, y: y0, z: zCut },
-    { x: x1, y: y0, z: zCut },
-    { x: x1, y: y1, z: zCut },
-    { x: x0, y: y1, z: zCut },
-    { x: x0, y: eyBase, z: zCut },
-    { x: x0, y: yExit, z: zCut },
-    { x: x0, y: yLift, z: zSafe },
-  ];
-  return { w89, path };
-}
-
-function buildInternalContourPoints(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  z: number,
-  toolRadiusMm: number
-): Array<{ x: number; y: number; z: number }> {
-  const inset = Math.max(0, toolRadiusMm);
-  if (w <= 2 * inset || h <= 2 * inset) return [];
-  const x0 = x + inset;
-  const y0 = y + inset;
-  const x1 = x + w - inset;
-  const y1 = y + h - inset;
-  return [
-    { x: x0, y: y0, z },
-    { x: x0, y: y1, z },
-    { x: x1, y: y1, z },
-    { x: x1, y: y0, z },
-    { x: x0, y: y0, z },
-  ];
 }
 
 export function generateTcnForPanelNestingMo(
@@ -379,32 +255,12 @@ export function generateTcnForPanelNestingMo(
   for (const pl of sanitizedPlacements) {
     const panelMm = resolveTcnPanelThicknessMm(pl, sheet);
     const zCut = -panelMm;
-    const w = pl.largura_mm;
-    const h = pl.altura_mm;
-    const x = pl.x_mm;
-    const y = pl.y_mm;
-    const rot = ((pl.rotacao ?? 0) % 360 + 360) % 360;
 
     pushContourFromPath(
-      buildContourPathV1Style(x, y, w, h, contourToolOffsetMm, panelMm, Z_SAFETY_MM, RAMP_DISTANCE_MM)
+      buildPlacementExteriorContourPath(pl, contourToolOffsetMm, panelMm, Z_SAFETY_MM, RAMP_DISTANCE_MM)
     );
-
-    const innerContours = pl.innerContours;
-    if (innerContours?.length) {
-      for (const rect of innerContours) {
-        const offR = holeLocalToSheetOffsetMm(rect.x_mm, rect.y_mm, rot, pl.largura_mm, pl.altura_mm);
-        const iw = rot === 90 ? rect.altura_mm : rect.largura_mm;
-        const ih = rot === 90 ? rect.largura_mm : rect.altura_mm;
-        const innerPointsRaw = buildInternalContourPoints(x + offR.sx, y + offR.sy, iw, ih, zCut, TOOL_RADIUS_MM);
-        if (innerPointsRaw.length === 0) continue;
-
-        const innerPointsTcn = innerPointsRaw.map((p) => transformPlacementToTcn(p, dl, maxW, maxH));
-        const first = innerPointsTcn[0];
-        const innerClosed = [...innerPointsTcn, { x: first.x, y: first.y, z: Z_SAFETY_MM }];
-
-        sideInnerLines.push(buildToolBlock(first.x, first.y, Z_SAFETY_MM));
-        sideInnerLines.push(buildW2201(innerClosed, Z_SAFETY_MM));
-      }
+    for (const inner of buildPlacementInnerContourPaths(pl, TOOL_RADIUS_MM, zCut, Z_SAFETY_MM)) {
+      pushContourFromPath(inner);
     }
   }
 

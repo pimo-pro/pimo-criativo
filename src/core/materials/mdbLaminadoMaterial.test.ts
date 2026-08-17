@@ -6,6 +6,7 @@ import {
   MDB_LAMINADO_SHEET_LF_MM,
   resolveMaterial,
   validateMaterialPieceWidthMm,
+  usesOfficialMdbLaminadoSheet,
 } from "./materials.api";
 import { INITIAL_MATERIAL_PRESETS } from "./presets";
 import { MATERIAIS_PBR_OPCOES } from "../manufacturing/materials";
@@ -54,5 +55,11 @@ describe("MDB Laminado 30 mm — registo industrial", () => {
   it("preset visual e opção PBR registados", () => {
     expect(INITIAL_MATERIAL_PRESETS.some((p) => p.id === "mdb_laminado")).toBe(true);
     expect(MATERIAIS_PBR_OPCOES.some((o) => o.id === "mdb_laminado")).toBe(true);
+  });
+
+  it("usesOfficialMdbLaminadoSheet reconhece o TAMPO e rejeita MDF 19", () => {
+    expect(usesOfficialMdbLaminadoSheet("mdb_laminado-30")).toBe(true);
+    expect(usesOfficialMdbLaminadoSheet("MDB Laminado 30")).toBe(true);
+    expect(usesOfficialMdbLaminadoSheet("mdf_branco-19")).toBe(false);
   });
 });

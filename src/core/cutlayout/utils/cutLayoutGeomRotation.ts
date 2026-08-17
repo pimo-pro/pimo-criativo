@@ -25,7 +25,10 @@ type InnerContour = {
   y_mm: number;
   largura_mm: number;
   altura_mm: number;
+  innerCircle?: { cx_mm: number; cy_mm: number; diameter_mm: number };
 };
+
+type OuterPolygonPoint = { x: number; y: number };
 
 type PlacementLike = {
   x_mm: number;
@@ -38,6 +41,8 @@ type PlacementLike = {
   originalDrillHoles?: DrillHole[];
   innerContours?: InnerContour[];
   originalInnerContours?: InnerContour[];
+  outerPolygonMm?: OuterPolygonPoint[];
+  originalOuterPolygonMm?: OuterPolygonPoint[];
 };
 
 type SheetLike = {
@@ -99,31 +104,48 @@ function contourFinalRect(
   origW: number,
   origH: number
 ): InnerContour {
-  if (rotation === 90) {
+  const withCircle = (rect: InnerContour): InnerContour => {
+    if (!c.innerCircle) return rect;
+    const ctr = holeFinalOffset(
+      { x: c.innerCircle.cx_mm, y: c.innerCircle.cy_mm, diameter: 0, depth: 0 },
+      rotation,
+      origW,
+      origH
+    );
     return {
+      ...rect,
+      innerCircle: {
+        cx_mm: ctr.x,
+        cy_mm: ctr.y,
+        diameter_mm: c.innerCircle.diameter_mm,
+      },
+    };
+  };
+  if (rotation === 90) {
+    return withCircle({
       x_mm: c.y_mm,
       y_mm: origW - c.x_mm - c.largura_mm,
       largura_mm: c.altura_mm,
       altura_mm: c.largura_mm,
-    };
+    });
   }
   if (rotation === 180) {
-    return {
+    return withCircle({
       x_mm: origW - c.x_mm - c.largura_mm,
       y_mm: origH - c.y_mm - c.altura_mm,
       largura_mm: c.largura_mm,
       altura_mm: c.altura_mm,
-    };
+    });
   }
   if (rotation === 270) {
-    return {
+    return withCircle({
       x_mm: origH - c.y_mm - c.altura_mm,
       y_mm: c.x_mm,
       largura_mm: c.altura_mm,
       altura_mm: c.largura_mm,
-    };
+    });
   }
-  return { ...c };
+  return withCircle({ ...c });
 }
 
 function isHoleInsidePlacementAndSheet(
@@ -200,6 +222,7 @@ function toConsumerContour(
       y_mm: c.y_mm,
       largura_mm: c.largura_mm,
       altura_mm: c.altura_mm,
+      ...(c.innerCircle ? { innerCircle: { ...c.innerCircle } } : {}),
     };
   }
   return contourFinalRect(c, rotation, origW, origH);
@@ -246,30 +269,30 @@ export function rotateInnerContours(
   origH: number
 ): InnerContour[] {
   if (angle === 0) return contours.map((c) => ({ ...c }));
-  return contours.map((c) => {
-    if (angle === 90) {
-      return {
-        x_mm: c.y_mm,
-        y_mm: origW - c.x_mm - c.largura_mm,
-        largura_mm: c.altura_mm,
-        altura_mm: c.largura_mm,
-      };
-    }
-    if (angle === 180) {
-      return {
-        x_mm: origW - c.x_mm - c.largura_mm,
-        y_mm: origH - c.y_mm - c.altura_mm,
-        largura_mm: c.largura_mm,
-        altura_mm: c.altura_mm,
-      };
-    }
-    return {
-      x_mm: origH - c.y_mm - c.altura_mm,
-      y_mm: c.x_mm,
-      largura_mm: c.altura_mm,
-      altura_mm: c.largura_mm,
-    };
-  });
+  return contours.map((c) => contourFinalRect(c, angle, origW, origH));
+}
+
+function pointFinalOffset(
+  p: OuterPolygonPoint,
+  rotation: 0 | 90 | 180 | 270,
+  origW: number,
+  origH: number
+): OuterPolygonPoint {
+  if (rotation === 90) return { x: p.y, y: origW - p.x };
+  if (rotation === 180) return { x: origW - p.x, y: origH - p.y };
+  if (rotation === 270) return { x: origH - p.y, y: p.x };
+  return { x: p.x, y: p.y };
+}
+
+/** Mesma convenção dos furos: 90° CCW `(x,y) → (y, origW − x)`. */
+export function rotateOuterPolygonMm(
+  points: OuterPolygonPoint[],
+  angle: 0 | 90 | 180 | 270,
+  origW: number,
+  origH: number
+): OuterPolygonPoint[] {
+  if (angle === 0) return points.map((p) => ({ ...p }));
+  return points.map((p) => pointFinalOffset(p, angle, origW, origH));
 }
 
 /**
@@ -314,6 +337,10 @@ export function applyRotationGeometryToSheets(sheets: SheetLike[]): void {
         p.originalInnerContours = p.innerContours.map((c) => ({ ...c }));
       }
 
+      if (!p.originalOuterPolygonMm && p.outerPolygonMm && p.outerPolygonMm.length > 0) {
+        p.originalOuterPolygonMm = p.outerPolygonMm.map((pt) => ({ ...pt }));
+      }
+
       const rotation = normalizeRotation(p.rotacao);
       const { w: origW, h: origH } = originalDimensions(p, rotation);
 
@@ -335,6 +362,11 @@ export function applyRotationGeometryToSheets(sheets: SheetLike[]): void {
           .filter(({ final }) => isContourInsidePlacementAndSheet(p, final, s.sheet))
           .map(({ original }) => toConsumerContour(original, rotation, origW, origH));
         p.innerContours = validContours.length > 0 ? validContours : undefined;
+      }
+
+      const origPolygon = p.originalOuterPolygonMm ?? p.outerPolygonMm;
+      if (origPolygon && origPolygon.length > 0) {
+        p.outerPolygonMm = rotateOuterPolygonMm(origPolygon, rotation, origW, origH);
       }
     }
   }

@@ -449,6 +449,13 @@ export function isTampoCozinhaMaterial(idOrAlias: string): boolean {
   return m?.productMeta?.productType === "tampo_cozinha" || m?.canonicalId === MDB_LAMINADO_CANONICAL_ID;
 }
 
+/** Grupo industrial que deve usar a chapa oficial MDB Laminado 30 (3660×630×30), não as settings. */
+export function usesOfficialMdbLaminadoSheet(materialIdOrLabel?: string | null): boolean {
+  const raw = String(materialIdOrLabel ?? "").trim();
+  if (!raw) return false;
+  return isTampoCozinhaMaterial(raw);
+}
+
 /** Chapas industriais ativas (única fonte para listIndustrialWoodMaterials). */
 export const INDUSTRIAL_WOOD_MATERIALS: OfficialWoodMaterial[] = INDUSTRIAL_SHEETS_SEED.map(industrialSheetToOfficial);
 

@@ -6,6 +6,12 @@
 export const changelog = [
   {
     data: "2026-08-17",
+    versao: "tampo-industrial-v1",
+    descricao:
+      "Integração industrial completa do TAMPO (A–F): chapa MDB 3660×630×30, geometria tipada sem Three.js, PDF/TCN poligonais, XML excluído; caixaria 19 mm intacta.",
+  },
+  {
+    data: "2026-08-17",
     versao: "tampo-angle-geometry",
     descricao:
       "Correção TAMPO angular — geometria estável, frente≠trás, ângulo real, postforming seguro; montagem retangular intacta.",

@@ -21,6 +21,11 @@ import { listMaterials } from "../materials/service";
 import { getLayoutKerfMmForCncNesting } from "../cnc/tcnGenerator";
 import { getSettings } from "../settings/settingsService";
 import { CHAPA_PADRAO_LARGURA, CHAPA_PADRAO_ALTURA } from "../manufacturing/materials";
+import {
+  MDB_LAMINADO_SHEET_HF_MM,
+  MDB_LAMINADO_SHEET_LF_MM,
+  usesOfficialMdbLaminadoSheet,
+} from "../materials/materials.api";
 
 export type ChapasRealSheetRow = {
   sheetIndex: number;
@@ -103,6 +108,11 @@ export function computeChapasReal(
     sheetAltura_mm: sheetDef.altura_mm,
   };
 
+  const omitGlobalSheetOverride = (opts: typeof layoutOptions) => {
+    const { sheetLargura_mm: _w, sheetAltura_mm: _h, ...rest } = opts;
+    return rest;
+  };
+
   const sheets: ChapasRealSheetRow[] = [];
   const mergedLayoutSheets: CutLayoutResult["sheets"] = [];
   const diagnostics: string[] = [];
@@ -120,6 +130,19 @@ export function computeChapasReal(
     const materialLabel = resolveMaterialLabelForCutlistItem(sample, materials);
     const thicknessMm = inferCutlistItemThicknessMm(sample);
     const groupLabel = `${materialLabel} ${thicknessMm || "?"}mm`;
+    const groupIsMdb = groupItems.some((item) =>
+      usesOfficialMdbLaminadoSheet(String(item.materialId ?? item.material ?? ""))
+    );
+    const groupSheetDef = groupIsMdb
+      ? {
+          ...sheetDef,
+          largura_mm: MDB_LAMINADO_SHEET_LF_MM,
+          altura_mm: MDB_LAMINADO_SHEET_HF_MM,
+          espessura_mm: 30,
+          materialName: materialLabel,
+        }
+      : sheetDef;
+    const groupLayoutOptions = groupIsMdb ? omitGlobalSheetOverride(layoutOptions) : layoutOptions;
 
     let groupLayout: CutLayoutResult | null = null;
     try {
@@ -129,7 +152,7 @@ export function computeChapasReal(
         continue;
       }
       const pieces = enrichPiecesWithMaterialSheetDimensions(rawPieces);
-      groupLayout = runCutLayout(pieces, sheetDef, layoutOptions);
+      groupLayout = runCutLayout(pieces, groupSheetDef, groupLayoutOptions);
       if (!groupLayout?.sheets?.length) {
         diagnostics.push(
           `grupo "${groupLabel}": runCutLayout (fast) sem sheets — ${pieces.length} peça(s)`

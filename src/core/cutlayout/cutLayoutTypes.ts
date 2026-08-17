@@ -70,6 +70,16 @@ export type CutPiece = {
   shortCode?: string;
   /** Metadados industriais adicionais (offsets, flags, regras aplicadas etc.). */
   metadata?: Record<string, unknown>;
+  /** Polígono exterior (mm), origem no canto inferior-esquerdo do AABB. Só TAMPO. */
+  outerPolygonMm?: Array<{ x: number; y: number }>;
+  /** Contornos internos (rasgos, recortes) — coordenadas relativas à peça (x_mm, y_mm). */
+  innerContours?: Array<{
+    x_mm: number;
+    y_mm: number;
+    largura_mm: number;
+    altura_mm: number;
+    innerCircle?: { cx_mm: number; cy_mm: number; diameter_mm: number };
+  }>;
 };
 
 export type CutPlacement = {
@@ -117,8 +127,16 @@ export type CutPlacement = {
   shortCode?: string;
   /** Metadados industriais adicionais (offsets, flags, regras aplicadas etc.). */
   metadata?: Record<string, unknown>;
+  /** Polígono exterior (mm), origem no canto inferior-esquerdo do AABB. Só TAMPO. */
+  outerPolygonMm?: Array<{ x: number; y: number }>;
   /** Contornos internos (rasgos, recortes) — coordenadas relativas à peça (x_mm, y_mm). No TCN são compensados para dentro (-raio da fresa). */
-  innerContours?: Array<{ x_mm: number; y_mm: number; largura_mm: number; altura_mm: number }>;
+  innerContours?: Array<{
+    x_mm: number;
+    y_mm: number;
+    largura_mm: number;
+    altura_mm: number;
+    innerCircle?: { cx_mm: number; cy_mm: number; diameter_mm: number };
+  }>;
 };
 
 export type SheetResult = {

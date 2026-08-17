@@ -26,6 +26,10 @@ import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMe
 import { getDefaultOfficialMaterial, resolveMaterial, resolveIndustrialMaterialAtThickness, COSTA_FIXED_THICKNESS_MM, DRAWER_SIDE_THICKNESS_MM } from "../materials/materials.api";
 import { getIndustrialMaterial, getMaterialByIdOrLabel } from "../materials/service";
 import {
+  buildTampoPieceGeometryFromMetadata,
+  isTampoCozinhaCutlistMetadata,
+} from "../remate/tampoIndustrialGeometry";
+import {
   applyFixedMarginOffset as applyFixedMarginOffsetUtil,
   cloneSheets as cloneSheetsUtil,
   createUsableSheetArea as createUsableSheetAreaUtil,
@@ -810,6 +814,10 @@ export function cutlistToPieces(
       : isGavetaLateral
         ? Math.round(Math.max(origA > 0 ? origA : dims[1] ?? 1, 1))
       : Math.round(Math.max(dims[1] ?? 1, 1));
+    const tampoGeometry =
+      isRemate && isTampoCozinhaCutlistMetadata(itemMeta)
+        ? buildTampoPieceGeometryFromMetadata({ lengthMm: largura, widthMm: altura }, itemMeta)
+        : null;
     const pieces: CutPiece[] = [];
     const itemWithMeta = item as typeof item & { pieceNumber?: number; shortCode?: string };
     const qty = Math.max(1, Number(item.quantidade) || 1);
@@ -840,6 +848,8 @@ export function cutlistToPieces(
           ...(itemMeta ?? {}),
           ...rotationMeta,
         },
+        outerPolygonMm: tampoGeometry?.outerPolygonMm,
+        innerContours: tampoGeometry?.innerContours,
       });
     }
     return pieces;

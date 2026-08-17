@@ -11,6 +11,7 @@ import {
 import { sanitizeIndustrialFileToken } from "./industrialNestingGroup";
 import { applyRotationGeometryToSheets } from "../cutlayout/utils/cutLayoutGeomRotation";
 import { isDrawerFrontPieceTipo } from "../drill/xmlMachineRouting";
+import { usesOfficialMdbLaminadoSheet } from "../materials/materials.api";
 
 /** Opções de nesting alinhadas ao TCN: kerf = minSpacing (entre contornos) + 2×raio da fresa. */
 export function getDefaultCncLayoutOptions(sheet?: SheetDefinition): CutLayoutEngineOptions {
@@ -199,19 +200,30 @@ export function buildCncFromCutlistItems(
     const cncItems = thicknessResolution.items;
 
     const baseSheet = _sheet ?? getSheetDefinitionFromSettings();
-    const enforcedLayoutOptions: CutLayoutEngineOptions = {
-      ...layoutOptions,
-      kerf_mm: getLayoutKerfMmForCncNesting(getSettings()),
-      groupByThicknessOnly: true,
-      sheetLargura_mm: layoutOptions.sheetLargura_mm ?? baseSheet.largura_mm,
-      sheetAltura_mm: layoutOptions.sheetAltura_mm ?? baseSheet.altura_mm,
-    };
 
     const rawPieces = cutlistToPieces(cncItems);
     if (rawPieces.length === 0) {
       return null;
     }
     const pieces = enrichPiecesWithMaterialSheetDimensions(rawPieces);
+    // MDB/TAMPO: não forçar a chapa das settings (2800×2070); o layout usa 3660×630.
+    const mdbOnly =
+      pieces.length > 0 &&
+      pieces.every((piece) => usesOfficialMdbLaminadoSheet(piece.materialId ?? piece.materialName));
+    const { sheetLargura_mm: optionSheetW, sheetAltura_mm: optionSheetH, ...layoutOptionsRest } = layoutOptions;
+    const enforcedLayoutOptions: CutLayoutEngineOptions = mdbOnly
+      ? {
+          ...layoutOptionsRest,
+          kerf_mm: getLayoutKerfMmForCncNesting(getSettings()),
+          groupByThicknessOnly: true,
+        }
+      : {
+          ...layoutOptions,
+          kerf_mm: getLayoutKerfMmForCncNesting(getSettings()),
+          groupByThicknessOnly: true,
+          sheetLargura_mm: optionSheetW ?? baseSheet.largura_mm,
+          sheetAltura_mm: optionSheetH ?? baseSheet.altura_mm,
+        };
 
     const metaByPieceKey = new Map<string, IndustrialMeta>();
     for (const p of pieces) {

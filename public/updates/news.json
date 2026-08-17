@@ -2,6 +2,16 @@
   "updatedAt": "2026-08-17T08:50:05.195Z",
   "news": [
     {
+      "version": "tampo-industrial-v1",
+      "title": "Integração industrial completa do TAMPO",
+      "description": "• Integração industrial completa do TAMPO\n• Chapa MDB 3660×630×30 (Fase A)\n• Geometria tipada sem Three.js (Fase B)\n• Ponte cutlist→produção com outerPolygonMm + innerContours (Fase C)\n• PDF industrial com polígono e recortes (Fase D)\n• TCN industrial com contorno poligonal + interiores (Fase E)\n• XML excluído por design (fresagem, não furação)\n• Regressão caixaria 19 mm intacta",
+      "publishedAt": "2026-08-17T08:49:50.000Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "pending"
+    },
+    {
       "version": "v6.0817.0950",
       "title": "feat(materiais): família AGL LAM BRANCO; fix(tampo): seleção no Viewer",
       "description": "feat(materiais): família AGL LAM BRANCO; fix(tampo): seleção no Viewer",

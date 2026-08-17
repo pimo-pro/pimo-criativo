@@ -24,6 +24,11 @@ import type {
 import type { RotationScoringConfig } from "../scoring/rotationScoring";
 import type { GlobalScoreMetrics } from "../scoring/solutionMetrics";
 import type { SimulateTrialForGroupResult } from "./trialRunner";
+import {
+  MDB_LAMINADO_SHEET_HF_MM,
+  MDB_LAMINADO_SHEET_LF_MM,
+  usesOfficialMdbLaminadoSheet,
+} from "../../materials/materials.api";
 
 const DEFAULT_KERF_MM = 3;
 const MIN_UTILIZATION_PERCENT = 0.8;
@@ -62,6 +67,37 @@ export function isDevRuntime(): boolean {
     return process.env.NODE_ENV !== "production";
   }
   return true;
+}
+
+function groupUsesOfficialMdbLaminadoSheet(groupPieces: CutPiece[]): boolean {
+  return groupPieces.some((piece) => usesOfficialMdbLaminadoSheet(piece.materialId ?? piece.materialName));
+}
+
+/** MDB/TAMPO: chapa oficial 3660×630 — as settings globais (2800×2070) não sobrepõem. */
+function resolveGroupSheetDefinition(
+  groupPieces: CutPiece[],
+  options: CutLayoutEngineOptions | undefined,
+  sheetDef: SheetDefinition,
+  espStr: string,
+  materialId: string
+): SheetDefinition {
+  const perMaterialWidth = Number(groupPieces[0]?.sheetWidthMm);
+  const perMaterialHeight = Number(groupPieces[0]?.sheetHeightMm);
+  const perMaterialSheetThickness = Number(groupPieces[0]?.sheetThicknessMm);
+  const espessura_mm =
+    perMaterialSheetThickness > 0 ? perMaterialSheetThickness : Number(espStr) || sheetDef.espessura_mm;
+  const mdbGroup = groupUsesOfficialMdbLaminadoSheet(groupPieces);
+  return {
+    largura_mm: mdbGroup
+      ? MDB_LAMINADO_SHEET_LF_MM
+      : options?.sheetLargura_mm ?? (perMaterialWidth > 0 ? perMaterialWidth : sheetDef.largura_mm),
+    altura_mm: mdbGroup
+      ? MDB_LAMINADO_SHEET_HF_MM
+      : options?.sheetAltura_mm ?? (perMaterialHeight > 0 ? perMaterialHeight : sheetDef.altura_mm),
+    espessura_mm,
+    materialId: materialId !== "material" ? materialId : sheetDef.materialId,
+    materialName: groupPieces[0]?.materialName ?? sheetDef.materialName,
+  };
 }
 
 /**
@@ -359,16 +395,13 @@ export function runCutLayout(
     const materialId = options?.groupByThicknessOnly
       ? (sheetDef.materialId ?? groupPieces[0]?.materialId ?? "material")
       : key.split("|")[0];
-    const perMaterialWidth = Number(groupPieces[0]?.sheetWidthMm);
-    const perMaterialHeight = Number(groupPieces[0]?.sheetHeightMm);
-    const perMaterialSheetThickness = Number(groupPieces[0]?.sheetThicknessMm);
-    const sheet: SheetDefinition = {
-      largura_mm: options?.sheetLargura_mm ?? (perMaterialWidth > 0 ? perMaterialWidth : sheetDef.largura_mm),
-      altura_mm: options?.sheetAltura_mm ?? (perMaterialHeight > 0 ? perMaterialHeight : sheetDef.altura_mm),
-      espessura_mm: perMaterialSheetThickness > 0 ? perMaterialSheetThickness : (Number(espStr) || sheetDef.espessura_mm),
-      materialId: materialId !== "material" ? materialId : sheetDef.materialId,
-      materialName: groupPieces[0]?.materialName ?? sheetDef.materialName,
-    };
+    const sheet: SheetDefinition = resolveGroupSheetDefinition(
+      groupPieces,
+      options,
+      sheetDef,
+      espStr,
+      materialId
+    );
     const marginMm = getSheetSafetyMarginMm();
     const placementSheet = deps.createUsableSheetArea(sheet, marginMm);
     const sheetArea = Math.max(1, sheet.largura_mm * sheet.altura_mm);

@@ -119,6 +119,8 @@ function makePlacement(
     pieceNumber: piece.pieceNumber,
     shortCode: piece.shortCode,
     metadata: piece.metadata,
+    outerPolygonMm: piece.outerPolygonMm,
+    innerContours: piece.innerContours,
   };
 }
 

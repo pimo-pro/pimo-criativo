@@ -28,6 +28,7 @@ import {
   listOfficialMaterials,
   listIndustrialWoodMaterials,
   resolveMaterial,
+  MDB_LAMINADO_CANONICAL_ID,
 } from "./materials.api";
 import { inferMaterialMadeiraFromRecord } from "./nestingGrainLock";
 
@@ -40,8 +41,8 @@ let materialsListReadOverride: MaterialRecord[] | null = null;
 export function setIndustrialMaterialsReadOverride(list: MaterialRecord[] | null): void {
   materialsListReadOverride = list;
 }
-/** Incrementar quando for necessário voltar a sincronizar o CRUD com o catálogo oficial (FASE 7M = 10). */
-const MATERIALS_CRUD_DATA_VERSION = 10;
+/** Incrementar quando for necessário voltar a sincronizar o CRUD com o catálogo oficial (Fase A MDB = 11). */
+const MATERIALS_CRUD_DATA_VERSION = 11;
 const MATERIALS_CRUD_DATA_VERSION_KEY = "pimo_materials_crud_data_version";
 const DEFAULT_SHEET_WIDTH_MM = 2800;
 const DEFAULT_SHEET_HEIGHT_MM = 2070;
@@ -99,6 +100,13 @@ function validPositive(value: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function isOfficialMdbLaminadoRecord(record: { industrialMaterialId?: string; label?: string }): boolean {
+  const industrialId = (record.industrialMaterialId ?? "").trim();
+  if (industrialId === MDB_LAMINADO_CANONICAL_ID) return true;
+  const official = resolveMaterial(record.label ?? industrialId);
+  return official?.canonicalId === MDB_LAMINADO_CANONICAL_ID;
+}
+
 function ensureRequiredMaterialsCatalog(): { created: number; updated: number } {
   const list = loadFromStorage();
   const seeds = buildRequiredMaterialSeeds();
@@ -114,16 +122,20 @@ function ensureRequiredMaterialsCatalog(): { created: number; updated: number } 
       continue;
     }
     const current = list[idx];
+    const forceMdbSheet =
+      seed.industrialMaterialId === MDB_LAMINADO_CANONICAL_ID || isOfficialMdbLaminadoRecord(current);
     const next: MaterialRecord = {
       ...current,
       categoryId: current.categoryId || seed.categoryId,
       color: current.color ?? seed.color,
       textureUrl: current.textureUrl ?? seed.textureUrl,
-      espessura: validPositive(current.espessura) ?? seed.espessura,
+      espessura: forceMdbSheet ? seed.espessura : validPositive(current.espessura) ?? seed.espessura,
       precoPorM2: Number.isFinite(Number(current.precoPorM2)) ? Number(current.precoPorM2) : seed.precoPorM2,
-      sheetWidthMm: validPositive(current.sheetWidthMm) ?? seed.sheetWidthMm,
-      sheetHeightMm: validPositive(current.sheetHeightMm) ?? seed.sheetHeightMm,
-      sheetThicknessMm: validPositive(current.sheetThicknessMm) ?? seed.sheetThicknessMm,
+      sheetWidthMm: forceMdbSheet ? seed.sheetWidthMm : validPositive(current.sheetWidthMm) ?? seed.sheetWidthMm,
+      sheetHeightMm: forceMdbSheet ? seed.sheetHeightMm : validPositive(current.sheetHeightMm) ?? seed.sheetHeightMm,
+      sheetThicknessMm: forceMdbSheet
+        ? seed.sheetThicknessMm
+        : validPositive(current.sheetThicknessMm) ?? seed.sheetThicknessMm,
       sheetWeightKg: Number.isFinite(Number(current.sheetWeightKg)) ? Number(current.sheetWeightKg) : seed.sheetWeightKg,
       sheetDensity: Number.isFinite(Number(current.sheetDensity)) ? Number(current.sheetDensity) : seed.sheetDensity,
       industrialMaterialId: (current.industrialMaterialId?.trim() || seed.industrialMaterialId) as string | undefined,
