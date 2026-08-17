@@ -1,6 +1,26 @@
 {
-  "updatedAt": "2026-08-17T07:27:00.000Z",
+  "updatedAt": "2026-08-17T07:33:05.626Z",
   "news": [
+    {
+      "version": "v6.0817.0833",
+      "title": "Auto deploy",
+      "description": "Auto deploy",
+      "publishedAt": "2026-08-17T07:33:05.463Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "d77822c3"
+    },
+    {
+      "version": "v6.0817.0829",
+      "title": "fix(tampo): comportamento correto para tampo angular sem quebrar montagem retangular",
+      "description": "fix(tampo): comportamento correto para tampo angular sem quebrar montagem retangular\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-17T08:29:26+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "81c97e7"
+    },
     {
       "version": "tampo-angular-pose",
       "title": "Correção TAMPO angular — frente≠trás, pose horizontal, rotação preservada; montagem retangular intacta.",
@@ -9,17 +29,27 @@
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "81c97e7e"
+      "commit": "pending"
     },
     {
       "version": "v6.0816.1952",
       "title": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",
       "description": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",
-      "publishedAt": "2026-08-16T18:52:48.768Z",
+      "publishedAt": "2026-08-16T19:54:29+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "f803aaf1"
+      "commit": "b1c3969"
+    },
+    {
+      "version": "v6.0816.1950",
+      "title": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates",
+      "description": "fix(viewer): incluir tampoVisualizer.getRoot no raycast de remates\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-16T19:50:49+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "f803aaf"
     },
     {
       "version": "tampo-raycast-fix",
