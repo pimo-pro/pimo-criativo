@@ -222,7 +222,21 @@ export class TampoPieceVisualizer {
           })()
         : getRemateSavedPoseLocal(piece);
 
-    if (!angular && piece.parentBoxId) {
+    if (angular) {
+      mesh.position.set(
+        piece.position.xMm / 1000,
+        piece.position.yMm / 1000,
+        piece.position.zMm / 1000
+      );
+      mesh.rotation.set(
+        piece.rotation.xRad,
+        piece.rotation.yRad,
+        piece.rotation.zRad
+      );
+      return;
+    }
+
+    if (piece.parentBoxId) {
       const worldMatrix = this.bridge?.getBoxWorldMatrix(piece.parentBoxId);
       if (worldMatrix) {
         const local = new THREE.Vector3(
