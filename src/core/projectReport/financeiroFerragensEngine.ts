@@ -229,9 +229,7 @@ export function buildFerragensVisual(
   return items;
 }
 
-export function emitFerragensTotalVisual(
-  items: Pick<FerragemVisualItem, "total">[] | ReportFinanceiroDetalhe[]
-): number {
+export function emitFerragensTotalVisual(items: Array<{ total?: number }>): number {
   return round2(items.reduce((s, i) => s + (Number(i.total) || 0), 0));
 }
 
