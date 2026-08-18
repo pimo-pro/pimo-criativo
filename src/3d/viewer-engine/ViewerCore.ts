@@ -123,11 +123,11 @@ import { devLogger } from "../../utils/devLogger";
 import { WallGizmo } from "../gizmos/WallGizmo";
 import { updateWallCulling } from "../visibility/WallRaycastCulling";
 import type { SnapDebugData } from "../snapping/ModelWallSnap";
-import { snapModelToNearestWall } from "../snapping/ModelWallSnap";
 import { keepModelInsideRoom, preventModelWallIntersection } from "../collision/ModelCollision";
 import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { ViewerRenderExporter } from "./export/ViewerRenderExporter";
-import { TransformConstraints } from "./constraints/TransformConstraints";
+import { TransformConstraints, type ClampTransformContext } from "./constraints/TransformConstraints";
+import { SnapEngine, type SnapAlignTarget } from "./snapping/SnapEngine";
 import { applyFinishMovementConstraints } from "./constraints/finishCollision";
 import { MeasurementEngine } from "./measurement/MeasurementEngine";
 import type { RulerMeasurementHit, UnifiedMeasurement } from "./measurement/unifiedMeasurementTypes";
@@ -484,6 +484,7 @@ export class ViewerCore {
   private rotationDiagnosticsLastLogTs = 0;
   private renderExporter!: ViewerRenderExporter;
   private constraints!: TransformConstraints;
+  private snapEngine!: SnapEngine;
   /**
    * Fronteiras de integração extraídas do core:
    * - measurementEngine: régua unificada (único motor de medição).
@@ -1071,6 +1072,13 @@ export class ViewerCore {
     });
 
     this.constraints = new TransformConstraints();
+    this.snapEngine = new SnapEngine({
+      getAlignEngine: () => this.smartAlignSnapEngine,
+      isAlignEnabled: () => this.settings.enableSmartAlignSnap,
+      buildAlignContext: () => this.buildSmartAlignSnapContextForDrag(),
+      syncAlignOverlay: () => this.syncSmartAlignSnapOverlayFromEngine(),
+      getConstraints: () => this.constraints,
+    });
     this.renderExporter = new ViewerRenderExporter({
       getBoxes: () => this.boxes,
       getRenderer: () => this.rendererManager.renderer,
@@ -1972,7 +1980,7 @@ export class ViewerCore {
             .map((w) => w.mesh)
             .filter((w) => w.userData?.isMainWall === true);
           const allRoomWalls = this.roomBoxWalls.map((w) => w.mesh);
-          snapModelToNearestWall(member.mesh, wallsMain);
+          this.snapEngine.snapMeshToNearestMainWall(member.mesh, wallsMain);
           preventModelWallIntersection(member.mesh, allRoomWalls);
           keepModelInsideRoom(member.mesh, this.roomBounds);
           this.applyRoomConstraint(member.mesh, { ignoreY: entry.manualPosition });
@@ -5606,25 +5614,8 @@ export class ViewerCore {
     }
   }
 
-  private applyDynamicAlignSnap(params: {
-    mesh: THREE.Object3D;
-    entity: {
-      kind: import("./snapping/smartAlignSnapTypes").SmartSnapEntityKind;
-      id: string;
-      parentBoxId?: string;
-    };
-    isDragging: boolean;
-    currentTool: string;
-  }): void {
-    if (!this.settings.enableSmartAlignSnap || !this.smartAlignSnapEngine.isEnabled()) return;
-    this.smartAlignSnapEngine.applyDuringTranslate({
-      mesh: params.mesh,
-      entity: params.entity,
-      ctx: this.buildSmartAlignSnapContextForDrag(),
-      isDragging: params.isDragging,
-      currentTool: params.currentTool,
-    });
-    this.syncSmartAlignSnapOverlayFromEngine();
+  private applyDynamicAlignSnap(params: SnapAlignTarget): void {
+    this.snapEngine.applyDuringTranslate(params);
   }
 
   private buildDisabledSmartSnapContext(): SmartAlignSnapContext {
@@ -5970,16 +5961,24 @@ export class ViewerCore {
       const entry = this.boxes.get(selectedBoxId);
       const obj = this.transformControls?.object;
       if (entry && obj === entry.mesh) {
-        this.applyDynamicAlignSnap({
-          mesh: entry.mesh,
-          entity: { kind: "box", id: selectedBoxId },
-          isDragging,
-          currentTool,
+        this.snapEngine.applyBoxTranslatePipeline({
+          align: {
+            mesh: entry.mesh,
+            entity: { kind: "box", id: selectedBoxId },
+            isDragging,
+            currentTool,
+          },
+          clampCtx: this.getClampTransformContext(),
         });
+        return;
       }
     }
 
-    this.constraints.clampTransform({
+    this.constraints.clampTransform(this.getClampTransformContext());
+  }
+
+  private getClampTransformContext(): ClampTransformContext {
+    return {
       transformControls: this.transformControls,
       selectedBoxId: this.viewerState.getSelectedBox(),
       selectedWallIndex: this.viewerState.getSelectedWallIndex(),
@@ -5998,7 +5997,8 @@ export class ViewerCore {
       setLastSnapDebugData: (data) => {
         this.lastSnapDebugData = data;
       },
-    });
+      snapMeshToNearestMainWall: (mesh, walls) => this.snapEngine.snapMeshToNearestMainWall(mesh, walls),
+    };
   }
 
   private clampSelectedWallChildTransform(): void {

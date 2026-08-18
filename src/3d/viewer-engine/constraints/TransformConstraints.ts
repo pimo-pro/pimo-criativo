@@ -3,7 +3,7 @@ import type { TransformControls } from "three/examples/jsm/controls/TransformCon
 import type { ViewerBoxEntry } from "../types";
 import { setBox3FromObjectExcludingLayoutProxy } from "../box/boxAabbUtils";
 import { keepModelInsideRoom, preventModelWallIntersection } from "../../collision/ModelCollision";
-import { snapModelToNearestWall, type SnapDebugData } from "../../snapping/ModelWallSnap";
+import type { SnapDebugData } from "../../snapping/ModelWallSnap";
 
 type RoomBoundsLike = {
   minX: number;
@@ -33,6 +33,11 @@ export type ClampTransformContext = {
   getFixedYForCabinet: (_entry: ViewerBoxEntry) => number;
   updateBoxesIntersectingWalls: () => void;
   setLastSnapDebugData: (_data: SnapDebugData | null) => void;
+  /** Único caminho de ModelWallSnap no translate de caixa (orquestrado por SnapEngine). */
+  snapMeshToNearestMainWall: (
+    _mesh: THREE.Object3D,
+    _mainWalls: THREE.Mesh[]
+  ) => { debug: SnapDebugData };
 };
 
 export class TransformConstraints {
@@ -69,7 +74,7 @@ export class TransformConstraints {
               .filter((w) => w.userData?.isMainWall === true);
             const allRoomWalls = ctx.roomBoxWalls.map((w) => w.mesh);
 
-            const snapResult = snapModelToNearestWall(obj, wallsMain);
+            const snapResult = ctx.snapMeshToNearestMainWall(obj, wallsMain);
             ctx.setLastSnapDebugData(snapResult.debug);
             preventModelWallIntersection(obj, allRoomWalls);
             keepModelInsideRoom(obj, ctx.roomBounds);

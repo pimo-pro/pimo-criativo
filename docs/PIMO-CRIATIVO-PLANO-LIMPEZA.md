@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.17 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** e **Z-01.2.2** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2.1 e Z-01.2.2; restante Z-01.2 em **planeamento** |
+| **Versão do plano** | 1.18 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1**, **Z-01.2.2** e **Z-01.2.3** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2.1–Z-01.2.3; restante Z-01.2 em **planeamento** |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Próximo código Viewer: **Z-01.2.3** (unificar snap) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Próximo código Viewer: **Z-01.2.4** (unificar auto-fill) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -400,7 +400,7 @@ Padrões **sem hits** neste clone: `backup_*`, `notes_*`, `analysis_*`, `draft_*
 | D-07 | 5 viewers 3D | ViewerCore, `src/viewer/`, v4, showroom, pimo-drill | Modos derivados + experimento | Isolar v4 | Confusão |
 | D-08 | API tripla viewer | `window.viewerCore`, Context, `useViewerSync` | Stubs triplicados | Unificar API | React |
 | D-09 | Sala dupla | `RoomManager` vs `RoomEngine` | Bind duplo em `useViewerRoom` | Interface única | Bugs parede |
-| D-10 | Snap parede duplo | `ModelWallSnap` vs `SmartSnapping` | `ViewerCoreAudit.ts` | Unificar + testes | Drag |
+| D-10 | Snap parede duplo | `ModelWallSnap` vs `SmartSnapping` | `ViewerCoreAudit.ts` | **Mitigado** em Z-01.2.3 (`SnapEngine`; SmartSnapping overlay-only) | Drag |
 | D-11 | 3 camadas materiais | `core/`, `3d/`, `viewer-engine/materials/` | Domínio vs PBR | Renomear | Nomes |
 | D-12 | 3 camadas regras | `core/rules/`, `admin/rules/`, snapping admin | Produto vs admin vs runtime | Mapa regra→runtime | Config |
 | D-13 | Routing híbrido | React Router + `LegacyApp.pushState` | `/` legacy | Migrar rotas | URLs |
@@ -533,7 +533,7 @@ O próprio ficheiro declara-se orquestrador (linhas ~248–254) e ponto único d
 
 | Duplicação | Evidência | Risco |
 |------------|-----------|--------|
-| **Triplo snap** | No mesmo drag: `SmartAlignSnapEngine` → `TransformConstraints`/`ModelWallSnap`; `SmartSnapping` só overlay | Comportamento imprevisível (R-05, D-10) |
+| **Triplo snap** | Unificado em Z-01.2.3: `SnapEngine` orquestra SmartAlign → TransformConstraints/ModelWallSnap; `SmartSnapping` só overlay | Resolvido (algoritmos intactos; D-10) |
 | **autoLayout vs smartLayout vs `core/autoRoomFill`** | Três pipelines de preencher parede/sala; ContextMenu expõe os dois primeiros; PainelSala usa Kitchen Layout 3.0 | Menus que parecem iguais, planos diferentes |
 | **`composer` vs `mainComposer`** | Dois EffectComposers no RAF | Custo GPU; não é morto |
 | **`window.viewerCore` vs `PimoViewerApi`** | Workspace atribui o global em `setOnViewerReady`; contexto React relê o mesmo objecto | Dois caminhos, tipagem frouxa |
@@ -566,7 +566,7 @@ Consumidores principais: `Workspace.tsx`, `usePimoViewer.ts`, `ContextMenu.tsx`,
 |------------|------|------------|------|
 | R-05 | Monólito 6112 linhas | **Alta** | Qualquer bug de drag/snap/câmara passa por este ficheiro |
 | — | RAF + dois composers | **Alta** runtime | Bloom no modo normal todos os frames; showcase acrescenta bokeh |
-| D-10 | Dual/triplo snap | **Alta** produto | Unificar altera o arrasto |
+| D-10 | Dual/triplo snap | **Mitigado** | Orquestrador `SnapEngine` (Z-01.2.3); tolerâncias de produto intocadas |
 | — | `window.viewerCore` | **Média** | HMR, acesso antes de ready, `as unknown` |
 | — | Zero testes directos | **Alta** | Nenhum `ViewerCore*.test.ts`; só subsistemas |
 | — | Engines no constructor | **Média** | designer/cost/manufacturing nascem mesmo sem PainelSala |
@@ -760,7 +760,7 @@ Nenhum passo avança sem: `aplica Z-01 — extrair módulo X` (X = ID da linha).
 |----|-------|-------------|---------------------|--------------|
 | **Z-01.2.1** | Remover NO-OPs sem consumidores | `setOnRulerTick`, `setRulerEnabled`, `updateBoxDimensions`, `setCameraFrontView`, wiring `syncDrawerFrontMaterialsForBox`, `events.emit`, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar` | `createRoom` (ainda usado por `useViewerSync`); BoxBuilder | **Executado** 18-08-2026 |
 | **Z-01.2.2** | Unificar régua | Um botão / uma API `setMeasurementMode`; ContextMenu deixa de duplicar «Régua interna»; fachada `MeasurementEngine.ts` | Novo motor de medição (reutiliza `UnifiedMeasurementEngine`) | **Executado** 18-08-2026 |
-| **Z-01.2.3** | Unificar snap | `SnapEngine.applyDuringTranslate` com ordem documentada; SmartSnapping overlay-only ou estratégia | Alterar tolerâncias de produto sem testes de drag | D-10; R-05 |
+| **Z-01.2.3** | Unificar snap | `SnapEngine.applyDuringTranslate` / `applyBoxTranslatePipeline`; ordem SmartAlign → TransformConstraints; SmartSnapping overlay-only | Alterar tolerâncias de produto sem testes de drag | **Executado** 18-08-2026 |
 | **Z-01.2.4** | Unificar auto-fill | Uma fachada `LayoutEngine`; Kitchen 3.0 (`core/autoRoomFill`) é o canónico de **projecto**; 3D preview opcional | Apagar `core/autoRoomFill` | PainelSala + ContextMenu |
 | **Z-01.2.5** | `ProjectLoader` + `ProjectFormatAdapter` | Esqueleto + adapter `pimo-project` + gancho GLB existente | Parsers DXF/IFC/STEP; qualquer gerador industrial | SSOT `ProjectState` |
 | **Z-01.2.6** | Migrar API global → `PimoViewerApi` | ContextMenu e remates deixam `window.viewerCore`; tipos em `viewerCoreWindow.d.ts` encolhem | Remover o global no mesmo passo se HMR/Workspace ainda o atribuir | Adapter já existe |
@@ -787,7 +787,7 @@ Alvo de superfície pública (orientação, não contrato rígido): grupos `scen
 
 | Risco | Mitigação |
 |-------|-----------|
-| Drag/snap (D-10) | Z-01.2.3 com testes de `clampTransform` / golden de posições em mm |
+| Drag/snap (D-10) | **Feito** em Z-01.2.3: testes de ordem + limiar 250 mm; algoritmos SmartAlign/ModelWallSnap não fundidos |
 | Dupla API durante 2.6 | `window.viewerCore` permanece até grep = 0 consumidores de produto |
 | HMR / dispose | Teste de fachada `dispose` + `setOnViewerReady` (já documentado em `viewerReadiness.ts`) |
 | BoxBuilder tocado por acidente | Extrações só movem **chamadas**; zero edits em `src/3d/objects/` |
@@ -817,7 +817,7 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 7. `events.emit` (F-08) — **removido** em Z-01.2.1; Events System continua F-05 (sem código).
 8. Documentar `industrialReady: false` em qualquer import CAD na UI, para o operador não exportar CNC de malha não paramétrica.
 
-**Z-01.2.1 e Z-01.2.2 executados** em 18-08-2026. Próximo código possível: **Z-01.2.3** (unificar snap).
+**Z-01.2.1, Z-01.2.2 e Z-01.2.3 executados** em 18-08-2026. Próximo código possível: **Z-01.2.4** (unificar auto-fill).
 
 ### 6.2.10 Relatório de execução — Z-01.2.1 (18 de Agosto de 2026)
 
@@ -855,6 +855,31 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 **Mantido:** `internalRuler` (sync/isActive), `getInternalMeasurements` (cavidade, não é a régua), `createRoom`, BoxBuilder, snap, layout, ProjectState schema (`internalRulerEnabled` passa a espelhar `rulerEnabled`).
 
 **Grep:** zero callers de `enableForBox` fora da fachada/motor; zero «Régua interna» na UI.
+
+### 6.2.12 Relatório de execução — Z-01.2.3 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-01.2.3» — unificação do snap, aprovado pelo dono do produto.
+
+**Motor canónico:** `src/3d/viewer-engine/snapping/SnapEngine.ts` (orquestrador; **não** funde a matemática de SmartAlign + ModelWallSnap).
+
+**Pontos de entrada mapeados:**
+- `ViewerCore.clampTransform` — caixas, remates, rodapés
+- `ViewerCore.clampGroupTransform` / `applySmartSnapForGroup` — gizmos de grupo
+- `ViewerTools` → `clampTransform`
+- `BoxSceneController` — **sem** snap (auto-rotate desligado, comentário legado)
+- Workspace — **sem** chamadas directas de snap
+
+**Fluxo único (caixa, translate):**
+1. `SnapEngine.applyDuringTranslate` → `SmartAlignSnapEngine` + overlay de alinhamento
+2. `TransformConstraints.clampTransform` → chão, colisão, `SnapEngine.snapMeshToNearestMainWall` (`ModelWallSnap`, limiar **250 mm**), limites da sala
+
+**Overlay:** `SmartSnapping.applyDuringTranslate` **não** entra no pipeline (fachada `viewerApi.snapping` / refresh de overlay). Remates continuam a usar `RemateSmartSnapping` (domínio de peça, não motor de caixa).
+
+**Grep:** `snapModelToNearestWall` só em `ModelWallSnap.ts` (definição) e `SnapEngine.ts` (único wrapper). ViewerCore **não** chama ModelWallSnap nem SmartAlign directamente no drag.
+
+**Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, mm industriais, RoomManager, LayoutEngine, algoritmos de SmartAlign/ModelWallSnap.
+
+**Testes D-10:** `SnapEngine.test.ts` — ordem align→constraints; limiar 250 mm; posição em mm inalterada quando os motores mock não movem.
 
 ---
 
@@ -1150,6 +1175,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.15 | **Z-01.2:** plano de modularização (fachada fina, módulos A–E, ProjectLoader/FormatAdapter, ordem Z-01.2.1…2.9). **Zero** alterações ao Viewer. Motor universal = visualização via `ProjectState`; CAD externo não gera TCN/DRILL. | Khaled (dono do produto) + plano Cursor |
 | 2026-08-18 | 1.16 | **Z-01.2.1 executado:** remoção de NO-OPs (`events.emit`, régua legada, aliases, sync drawer NO-OP, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar`). `createRoom` e BoxBuilder intocados. Tag `z-01-2-1-noops`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.17 | **Z-01.2.2 executado:** régua unificada via `MeasurementEngine`; botão duplicado do ContextMenu removido; aliases públicos da régua interna apagados. Tag `z-01-2-2-ruler`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.18 | **Z-01.2.3 executado:** `SnapEngine` orquestra SmartAlign → TransformConstraints/ModelWallSnap; SmartSnapping overlay-only. Tag `z-01-2-3-snap`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1337,6 +1363,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **API** | Removidos aliases `setInternalMeasurementMode` / `enableInternalRuler` / `disableInternalRuler` |
 | **Intocado** | `createRoom`, BoxBuilder, snap, layout, schema ProjectState, pipeline industrial |
 
+### 13.19 Changelog v1.17 → v1.18
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-01.2.3** | `SnapEngine` como orquestrador canónico; ordem SmartAlign → TransformConstraints; ModelWallSnap só via wrapper |
+| **Overlay** | `SmartSnapping.applyDuringTranslate` confirmado fora do pipeline de drag |
+| **D-10** | Limiar 250 mm testado; algoritmos de alinhamento/parede **não** fundidos |
+| **Intocado** | BoxBuilder, malha, RoomManager, LayoutEngine, ProjectState, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1347,4 +1382,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.17).
+Fim do documento de planeamento (v1.18).

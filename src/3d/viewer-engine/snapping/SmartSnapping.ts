@@ -150,6 +150,10 @@ export class SmartSnapping {
     this.clearOverlay();
   }
 
+  /**
+   * Overlay / `viewerApi.snapping` apenas (Z-01.2.3).
+   * Não faz parte do pipeline canónico de drag — esse passa por `SnapEngine`.
+   */
   applyDuringTranslate(params: {
     mesh: THREE.Object3D;
     selectedBoxId: string;
