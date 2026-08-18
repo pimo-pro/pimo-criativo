@@ -129,9 +129,9 @@ import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { ViewerRenderExporter } from "./export/ViewerRenderExporter";
 import { TransformConstraints } from "./constraints/TransformConstraints";
 import { applyFinishMovementConstraints } from "./constraints/finishCollision";
-import { UnifiedMeasurementEngine } from "./measurement/UnifiedMeasurementEngine";
+import { MeasurementEngine } from "./measurement/MeasurementEngine";
 import type { RulerMeasurementHit, UnifiedMeasurement } from "./measurement/unifiedMeasurementTypes";
-import { createInternalRulerFacade, type InternalRulerFacade } from "./measurement/internalRulerFacade";
+import type { InternalRulerFacade } from "./measurement/internalRulerFacade";
 import type { InternalCavityMeasurements } from "./measurement/internalRulerOverlayTypes";
 import { computeInternalCavityMeasurements } from "./selection/boxCavityBounds";
 import {
@@ -486,12 +486,12 @@ export class ViewerCore {
   private constraints!: TransformConstraints;
   /**
    * Fronteiras de integração extraídas do core:
-   * - measurementOverlay: régua/medição interna e overlays 2D.
+   * - measurementEngine: régua unificada (único motor de medição).
    * - panelVisibility: visibilidade de painéis, contornos e exploded view.
    * - runtimeLoop: cadência de frame, resize e pipeline de render.
    * O ViewerCore permanece como orquestrador e ponto único de composição.
    */
-  private unifiedMeasurement!: UnifiedMeasurementEngine;
+  private measurementEngine!: MeasurementEngine;
   private getProjectMeasurementsFn: () => UnifiedMeasurement[] = () => [];
   private onInternalMeasurementSavedFn: (_entry: UnifiedMeasurement) => void = () => {};
   private smartSnappingEngine!: SmartSnapping;
@@ -712,7 +712,7 @@ export class ViewerCore {
     );
     this.applyMousePresetToControls();
     this.applyBackgroundMode();
-    this.unifiedMeasurement = new UnifiedMeasurementEngine({
+    this.measurementEngine = new MeasurementEngine({
       getCamera: () => this.cameraManager.camera,
       getCanvas: () => this.rendererManager.renderer.domElement,
       getContainer: () => this.container,
@@ -727,14 +727,14 @@ export class ViewerCore {
       getNearestWallDistance: () => this.computeDistanceToNearestWall(),
       getFloorDistance: () => this.computeDistanceToFloor(),
     });
-    this.internalRuler = createInternalRulerFacade(this.unifiedMeasurement);
+    this.internalRuler = this.measurementEngine.facade;
 
     this.smartSnappingEngine = new SmartSnapping({
       getCamera: () => this.cameraManager.camera,
       getCanvas: () => this.rendererManager.renderer.domElement,
       getContainer: () => this.container,
       projectWorldToScreen: (worldPoint) => this.projectWorldToScreen(worldPoint),
-      isInternalRulerActive: () => this.unifiedMeasurement.isActive(),
+      isInternalRulerActive: () => this.measurementEngine.isActive(),
       getRoomBounds: () => this.roomBounds,
       getRoomOpenings: () => this.getRoomOpeningsForSnapping(),
     });
@@ -751,7 +751,7 @@ export class ViewerCore {
     this.smartAlignOverlay = createSmartAlignOverlayFacade(this.smartAlignSnapOverlay);
 
     this.smartAlignSnapEngine = new SmartAlignSnapEngine({
-      isInternalRulerActive: () => this.unifiedMeasurement.isActive(),
+      isInternalRulerActive: () => this.measurementEngine.isActive(),
     });
     this.smartAlignSnapEngine.enable();
 
@@ -759,7 +759,7 @@ export class ViewerCore {
 
     bindViewerOverlayCoordinator({
       coordinator: this.overlayCoordinator,
-      unifiedMeasurement: this.unifiedMeasurement,
+      unifiedMeasurement: this.measurementEngine.engine,
       smartSnappingEngine: this.smartSnappingEngine,
       smartAlignSnapEngine: this.smartAlignSnapEngine,
       syncSmartAlignSnapOverlay: () => this.syncSmartAlignSnapOverlayFromEngine(),
@@ -1193,7 +1193,7 @@ export class ViewerCore {
   ): void {
     this.getProjectMeasurementsFn = getMeasurements;
     this.onInternalMeasurementSavedFn = onSaved;
-    this.unifiedMeasurement.syncFromProject(getMeasurements());
+    this.measurementEngine.syncFromProject(getMeasurements());
   }
 
   bindAutoLayoutBridge(
@@ -2184,22 +2184,13 @@ export class ViewerCore {
     return inputs;
   }
 
-  /** Modo canónico da régua unificada (activado pelo botão único "Régua"). */
+  /** Modo canónico da régua (único motor: MeasurementEngine). */
   setMeasurementMode(enabled: boolean): void {
-    this.unifiedMeasurement.setEnabled(enabled);
+    this.measurementEngine.setEnabled(enabled);
   }
 
   getMeasurementMode(): boolean {
-    return this.unifiedMeasurement.isEnabled();
-  }
-
-  /** Alias compatível (antigo botão "Régua"). */
-  setInternalMeasurementMode(enabled: boolean): void {
-    this.setMeasurementMode(enabled);
-  }
-
-  getInternalMeasurementMode(): boolean {
-    return this.getMeasurementMode();
+    return this.measurementEngine.isEnabled();
   }
 
   /** Fase 5 Parte A — picking interno (face / aresta / ponto). */
@@ -2238,15 +2229,6 @@ export class ViewerCore {
     }
   }
 
-  /** Alias compatível: o botão "Régua interna" passa a activar a régua unificada. */
-  enableInternalRuler(): void {
-    this.setMeasurementMode(true);
-  }
-
-  disableInternalRuler(): void {
-    this.setMeasurementMode(false);
-  }
-
   getInternalMeasurements(boxId?: string): InternalCavityMeasurements | null {
     const resolvedId =
       boxId ??
@@ -2260,7 +2242,7 @@ export class ViewerCore {
   }
 
   isInternalRulerOverlayActive(): boolean {
-    return this.unifiedMeasurement.isActive();
+    return this.measurementEngine.isActive();
   }
 
   getInternalSelectionEnabled(): boolean {
@@ -3581,13 +3563,13 @@ export class ViewerCore {
       reflowBoxes: () => this.reflowBoxes(),
       updateCameraTarget: () => this.updateCameraTarget(),
     });
-    if (removed) this.unifiedMeasurement.onSceneContentChanged();
+    if (removed) this.measurementEngine.onSceneContentChanged();
     return removed;
   }
 
   clearBoxes(): void {
     Array.from(this.boxes.keys()).forEach((id) => this.removeBox(id));
-    this.unifiedMeasurement.onSceneContentChanged();
+    this.measurementEngine.onSceneContentChanged();
   }
 
   /*
@@ -5217,11 +5199,11 @@ export class ViewerCore {
       }
     });
     if (id == null) {
-      this.unifiedMeasurement.onSelectionChanged(null);
+      this.measurementEngine.onSelectionChanged(null);
       this.setInternalSelection(null);
       return;
     }
-    this.unifiedMeasurement.onSelectionChanged(id);
+    this.measurementEngine.onSelectionChanged(id);
   }
 
   /**
@@ -5245,7 +5227,7 @@ export class ViewerCore {
         if (obj && "position" in obj) (obj as THREE.Object3D).position.z = this.dragStartZForShiftLock;
       }
       this.viewerTools.applyCurrentTool();
-      this.unifiedMeasurement.onRulerMovementTick("transform");
+      this.measurementEngine.onRulerMovementTick("transform");
       if (this.groupGizmo?.isActive()) {
         this.notifyGroupTransform();
       } else if (this.viewerState.getSelectedRemate()) {
@@ -6430,7 +6412,7 @@ export class ViewerCore {
 
   private updateCanvasSize = () => {
     this.runtimeLoop.onResize();
-    this.unifiedMeasurement.resize();
+    this.measurementEngine.resize();
     this.smartSnappingEngine.resize();
     this.smartAlignOverlay.resize();
   };
@@ -6578,7 +6560,7 @@ export class ViewerCore {
       this.internalSelectionOutline = null;
     }
     this.dimensionsOverlay.dispose();
-    this.unifiedMeasurement.dispose();
+    this.measurementEngine.dispose();
     this.unregisterAdminSnappingRules?.();
     this.unregisterAdminSnappingRules = null;
     this.smartSnappingEngine.dispose();

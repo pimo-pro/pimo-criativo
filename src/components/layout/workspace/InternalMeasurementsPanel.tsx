@@ -20,7 +20,7 @@ export default function InternalMeasurementsPanel() {
     [project.measurements?.internal, boxId]
   );
 
-  const rulerActive = viewerApi?.internalRuler?.isActive?.() === true;
+  const rulerActive = viewerApi?.getMeasurementMode?.() === true;
 
   if (unifiedEntries.length === 0 && legacyEntries.length === 0 && !rulerActive) return null;
 

@@ -78,9 +78,9 @@ export type ViewerSettings = {
   photoModeEnabled: boolean;
   /** Highlight 3D: hover/click em elementos selecionáveis (portas, gavetas, painéis, furos). */
   highlightEnabled: boolean;
-  /** Régua: modo de medição (UI apenas; medição a implementar). */
+  /** Régua: modo de medição (botão único da toolbar → MeasurementEngine). */
   rulerEnabled: boolean;
-  /** Régua interna (cavidade): seleção interna + overlay de dimensões L×A×P. */
+  /** Depreciado: espelha `rulerEnabled` (Z-01.2.2). Não usar como segundo modo. */
   internalRulerEnabled: boolean;
   ultraPerformanceModeOptions: UltraPerformanceModeOptions;
   /** Multiplicador global da iluminação (0.6 - 1.4). */

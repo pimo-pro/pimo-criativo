@@ -49,7 +49,8 @@ type DraftPoint = {
 };
 
 /**
- * Motor unificado de medição do Viewer.
+ * Implementação da régua unificada (overlay 2D, dois pontos, movimento).
+ * O ViewerCore não usa esta classe directamente — passa por `MeasurementEngine` (Z-01.2.2).
  * Substitui ViewerMeasurementOverlay (A+B), InternalRuler (C) e InternalRulerOverlay (D).
  * - Um único overlay 2D DPI-aware.
  * - Medição global por dois pontos (peça/face/furo/parede/ponto livre).

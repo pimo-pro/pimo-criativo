@@ -741,8 +741,7 @@ const hasShownViewerReadyToastRef = useRef(false);
     viewerApi.setExplodedViewEnabled?.(settings.explodedViewEnabled);
     viewerApi.setExplodedViewIntensity?.(settings.explodedViewIntensity);
     viewerApi.setHighlightEnabled?.(settings.highlightEnabled);
-    // Régua unificada: um único modo canónico controlado por `rulerEnabled`.
-    // `internalRulerEnabled` fica depreciado (absorvido pela régua unificada, sem efeito próprio).
+    // Régua unificada: um único modo canónico (`rulerEnabled` → MeasurementEngine.setEnabled).
     viewerApi.setMeasurementMode?.(settings.rulerEnabled);
     viewerApi.setUltraPerformanceModeOptions?.(settings.ultraPerformanceModeOptions);
     viewerApi.setUltraPerformanceMode?.(settings.ultraPerformanceModeOptions.enabled);

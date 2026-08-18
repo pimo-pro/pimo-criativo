@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.16 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01 / Z-01.2** registados; **Z-01.2.1 (NO-OPs) executado** em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L- e Z-01.2.1; restante Z-01.2 em **planeamento** |
+| **Versão do plano** | 1.17 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** e **Z-01.2.2** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2.1 e Z-01.2.2; restante Z-01.2 em **planeamento** |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Próximo código Viewer: **Z-01.2.2** (unificar régua) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Próximo código Viewer: **Z-01.2.3** (unificar snap) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -537,7 +537,7 @@ O próprio ficheiro declara-se orquestrador (linhas ~248–254) e ponto único d
 | **autoLayout vs smartLayout vs `core/autoRoomFill`** | Três pipelines de preencher parede/sala; ContextMenu expõe os dois primeiros; PainelSala usa Kitchen Layout 3.0 | Menus que parecem iguais, planos diferentes |
 | **`composer` vs `mainComposer`** | Dois EffectComposers no RAF | Custo GPU; não é morto |
 | **`window.viewerCore` vs `PimoViewerApi`** | Workspace atribui o global em `setOnViewerReady`; contexto React relê o mesmo objecto | Dois caminhos, tipagem frouxa |
-| **Régua vs Régua interna** | Toolbar: `toggleRuler` → `setMeasurementMode`; ContextMenu: `internalRuler.enableForBox` — **o mesmo** `UnifiedMeasurementEngine` | Botão duplicado |
+| **Régua vs Régua interna** | Toolbar: `toggleRuler` → `setMeasurementMode` — **unificado** em Z-01.2.2 (ContextMenu duplicado removido) | Resolvido |
 | **Três pastas «viewer»** | `src/3d/viewer-engine/` (motor), `src/viewer/` (tipos/utils, 4 ficheiros), `src/core/viewer/` (adapter/readiness) | Onboarding |
 
 `createRoom` (@deprecated, ~3660) **ainda é chamado** por `useViewerSync.ts` — não é morto; é ponte.
@@ -759,7 +759,7 @@ Nenhum passo avança sem: `aplica Z-01 — extrair módulo X` (X = ID da linha).
 | ID | Passo | O que entra | O que **não** entra | Dependências |
 |----|-------|-------------|---------------------|--------------|
 | **Z-01.2.1** | Remover NO-OPs sem consumidores | `setOnRulerTick`, `setRulerEnabled`, `updateBoxDimensions`, `setCameraFrontView`, wiring `syncDrawerFrontMaterialsForBox`, `events.emit`, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar` | `createRoom` (ainda usado por `useViewerSync`); BoxBuilder | **Executado** 18-08-2026 |
-| **Z-01.2.2** | Unificar régua | Um botão / uma API `setMeasurementMode`; ContextMenu deixa de duplicar «Régua interna» | Novo motor de medição | Z-01.2.1 recomendado |
+| **Z-01.2.2** | Unificar régua | Um botão / uma API `setMeasurementMode`; ContextMenu deixa de duplicar «Régua interna»; fachada `MeasurementEngine.ts` | Novo motor de medição (reutiliza `UnifiedMeasurementEngine`) | **Executado** 18-08-2026 |
 | **Z-01.2.3** | Unificar snap | `SnapEngine.applyDuringTranslate` com ordem documentada; SmartSnapping overlay-only ou estratégia | Alterar tolerâncias de produto sem testes de drag | D-10; R-05 |
 | **Z-01.2.4** | Unificar auto-fill | Uma fachada `LayoutEngine`; Kitchen 3.0 (`core/autoRoomFill`) é o canónico de **projecto**; 3D preview opcional | Apagar `core/autoRoomFill` | PainelSala + ContextMenu |
 | **Z-01.2.5** | `ProjectLoader` + `ProjectFormatAdapter` | Esqueleto + adapter `pimo-project` + gancho GLB existente | Parsers DXF/IFC/STEP; qualquer gerador industrial | SSOT `ProjectState` |
@@ -817,7 +817,7 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 7. `events.emit` (F-08) — **removido** em Z-01.2.1; Events System continua F-05 (sem código).
 8. Documentar `industrialReady: false` em qualquer import CAD na UI, para o operador não exportar CNC de malha não paramétrica.
 
-**Z-01.2.1 executado** em 18-08-2026. Próximo código possível: **Z-01.2.2** (unificar régua).
+**Z-01.2.1 e Z-01.2.2 executados** em 18-08-2026. Próximo código possível: **Z-01.2.3** (unificar snap).
 
 ### 6.2.10 Relatório de execução — Z-01.2.1 (18 de Agosto de 2026)
 
@@ -837,7 +837,24 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 | `onAfterRenderTick` | Método vazio removido; callback do runtime loop passou a opcional |
 | `Tools3DToolbar` | Ficheiro apagado; JSX removido de `Workspace.tsx` |
 
-**Intocado:** `createRoom`, BoxBuilder, `enableInternalRuler` / `setBoxSpacing` (ainda na API; não estavam neste lote), pipeline industrial.
+**Intocado:** `createRoom`, BoxBuilder, pipeline industrial.
+
+### 6.2.11 Relatório de execução — Z-01.2.2 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-01.2.2» — unificação da régua.
+
+**Motor canónico:** `src/3d/viewer-engine/measurement/MeasurementEngine.ts` (fachada sobre `UnifiedMeasurementEngine`, **sem** segundo algoritmo).
+
+**Fluxo único:**
+`UnifiedTopToolbar` → `actions.toggleRuler()` → `viewerSettings.rulerEnabled` → `Workspace` → `viewerApi.setMeasurementMode` → `MeasurementEngine.setEnabled`.
+
+**UI:** removido o item «Régua interna» do ContextMenu (`ferramentas.internalRulerToggle`). O botão **Régua** da toolbar mantém-se.
+
+**Aliases públicos removidos:** `setInternalMeasurementMode`, `getInternalMeasurementMode`, `enableInternalRuler`, `disableInternalRuler`.
+
+**Mantido:** `internalRuler` (sync/isActive), `getInternalMeasurements` (cavidade, não é a régua), `createRoom`, BoxBuilder, snap, layout, ProjectState schema (`internalRulerEnabled` passa a espelhar `rulerEnabled`).
+
+**Grep:** zero callers de `enableForBox` fora da fachada/motor; zero «Régua interna» na UI.
 
 ---
 
@@ -1132,6 +1149,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.14 | **Z-01 iniciado:** auditoria completa do expositor geral. Alvo: `src/3d/viewer-engine/ViewerCore.ts` (6112 linhas). Relatório + plano de divisão em §6.1. **Zero** alterações ao Viewer. Antiga Z-01 (integration UI) reatribuída a **Z-04**. | Khaled (dono do produto) + auditoria Cursor |
 | 2026-08-18 | 1.15 | **Z-01.2:** plano de modularização (fachada fina, módulos A–E, ProjectLoader/FormatAdapter, ordem Z-01.2.1…2.9). **Zero** alterações ao Viewer. Motor universal = visualização via `ProjectState`; CAD externo não gera TCN/DRILL. | Khaled (dono do produto) + plano Cursor |
 | 2026-08-18 | 1.16 | **Z-01.2.1 executado:** remoção de NO-OPs (`events.emit`, régua legada, aliases, sync drawer NO-OP, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar`). `createRoom` e BoxBuilder intocados. Tag `z-01-2-1-noops`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.17 | **Z-01.2.2 executado:** régua unificada via `MeasurementEngine`; botão duplicado do ContextMenu removido; aliases públicos da régua interna apagados. Tag `z-01-2-2-ruler`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1311,6 +1329,14 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **F-08** | `events.emit` removido |
 | **Intocado** | `createRoom`, BoxBuilder, TCN/DRILL/PI, PHP, Supabase |
 
+### 13.18 Changelog v1.16 → v1.17
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-01.2.2** | `MeasurementEngine` como fachada canónica; botão «Régua interna» removido do ContextMenu |
+| **API** | Removidos aliases `setInternalMeasurementMode` / `enableInternalRuler` / `disableInternalRuler` |
+| **Intocado** | `createRoom`, BoxBuilder, snap, layout, schema ProjectState, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1321,4 +1347,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.16).
+Fim do documento de planeamento (v1.17).

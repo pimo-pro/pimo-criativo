@@ -46,28 +46,23 @@ export function useViewerUiActions(ctx: ProjectActionsExecutionContext): ViewerU
 
     a.toggleRuler = () => {
       updateProject(
-        (prev) => ({
-          ...prev,
-          viewerSettings: {
-            ...prev.viewerSettings,
-            rulerEnabled: !prev.viewerSettings.rulerEnabled,
-          },
-        }),
+        (prev) => {
+          const next = !prev.viewerSettings.rulerEnabled;
+          return {
+            ...prev,
+            viewerSettings: {
+              ...prev.viewerSettings,
+              rulerEnabled: next,
+              internalRulerEnabled: next,
+            },
+          };
+        },
         true
       );
     };
 
     a.toggleInternalRuler = () => {
-      updateProject(
-        (prev) => ({
-          ...prev,
-          viewerSettings: {
-            ...prev.viewerSettings,
-            internalRulerEnabled: !prev.viewerSettings.internalRulerEnabled,
-          },
-        }),
-        true
-      );
+      a.toggleRuler();
     };
 
     a.setLayoutWarnings = (warnings) => {

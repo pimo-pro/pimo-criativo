@@ -31,6 +31,7 @@ export type { InternalSelectionHit, InternalSelectionState } from "./selection";
 export { ViewerTools } from "./tools";
 export type { IViewerToolsEngine } from "./tools";
 export type { InternalRulerFacade } from "./measurement/internalRulerFacade";
+export { MeasurementEngine } from "./measurement/MeasurementEngine";
 export { DimensionsOverlayController } from "./overlays/DimensionsOverlayController";
 export { SelectionOutlineController } from "./overlays/SelectionOutlineController";
 export { WallSelectionOutlineController } from "./overlays/WallSelectionOutlineController";

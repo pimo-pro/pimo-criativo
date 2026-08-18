@@ -55,7 +55,6 @@ export type MouseMenuActionId =
   | "sala.roomSnappingToggle"
   | "materiais.mousePreset"
   | "cutlist.open"
-  | "ferramentas.internalRulerToggle"
   | "ferramentas.snappingToggle"
   | "ferramentas.snapModeToggle"
   | "ferramentas.autoAlignmentToggle"
@@ -346,9 +345,6 @@ export function buildMouseMenu(input: MouseMenuEngineInput): MouseMenuCategory[]
     id: "ferramentas",
     label: "Ferramentas",
     actions: [
-      ...(input.hasSelectedBox
-        ? [{ id: "ferramentas.internalRulerToggle" as const, label: "Régua interna" }]
-        : []),
       { id: "ferramentas.snappingToggle", label: "Snapping" },
       { id: "ferramentas.snapModeToggle", label: "Modo snapping" },
       ...(input.hasRoom

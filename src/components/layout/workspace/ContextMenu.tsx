@@ -332,8 +332,6 @@ export default function ContextMenu({
   if (!position) return null;
   const estimatedMainHeight = categoryMenu.length * ITEM_HEIGHT + 16;
   const mainPos = placeMenu(position.x, position.y, MENU_MIN_WIDTH, estimatedMainHeight);
-  // Régua unificada: estado global (não depende da caixa selecionada).
-  const internalRulerActive = viewerApi?.internalRuler?.isActive?.() === true;
   const snappingEnabled = viewerApi?.snapping?.isEnabled?.() === true;
   const snapMode = viewerApi?.snapping?.getMode?.() ?? "basic";
   const roomSnappingEnabled = viewerApi?.snapping?.isRoomSnappingEnabled?.() === true;
@@ -343,7 +341,6 @@ export default function ContextMenu({
 
   const getActionLabel = (action: MouseMenuAction): string => {
     if (action.id === "box.lockToggle") return locked ? "Desbloquear peça" : "Bloquear peça";
-    if (action.id === "ferramentas.internalRulerToggle") return internalRulerActive ? "Desativar régua interna" : "Ativar régua interna";
     if (action.id === "ferramentas.snappingToggle") return snappingEnabled ? "Snapping: ON" : "Snapping: OFF";
     if (action.id === "ferramentas.snapModeToggle") return `Snapping Mode: ${snapMode === "advanced" ? "Advanced" : "Basic"}`;
     if (action.id === "sala.roomSnappingToggle") return `Room Snapping: ${roomSnappingEnabled ? "ON" : "OFF"}`;
@@ -455,10 +452,6 @@ export default function ContextMenu({
     if (actionId === "remate.snapCima" && contextMenuLayerTarget?.remateId) {
       actions.resetRemateSnap(contextMenuLayerTarget.remateId, "CIMA");
       window.viewerCore?.syncRemateVisuals?.();
-    }
-    if (actionId === "ferramentas.internalRulerToggle" && selectedBoxId) {
-      if (internalRulerActive) viewerApi?.internalRuler?.disable?.();
-      else viewerApi?.internalRuler?.enableForBox?.(selectedBoxId);
     }
     if (actionId === "ferramentas.snappingToggle") {
       if (snappingEnabled) viewerApi?.snapping?.disable?.();

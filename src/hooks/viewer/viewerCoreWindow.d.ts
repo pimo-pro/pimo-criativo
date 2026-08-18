@@ -67,8 +67,6 @@ declare global {
       frameSelection?: (boxId: string) => boolean;
       setMeasurementMode?: (enabled: boolean) => void;
       getMeasurementMode?: () => boolean;
-      setInternalMeasurementMode?: (enabled: boolean) => void;
-      getInternalMeasurementMode?: () => boolean;
       internalRuler?: {
         enableForBox: (boxId: string) => void;
         disable: () => void;

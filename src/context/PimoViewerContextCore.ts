@@ -131,9 +131,6 @@ export type PimoViewerApi = {
   /** Modo canónico da régua unificada (botão único "Régua"). */
   setMeasurementMode?: (_enabled: boolean) => void;
   getMeasurementMode?: () => boolean;
-  /** Alias compatível da régua unificada (antigo modo de medição interna por bordas). */
-  setInternalMeasurementMode?: (_enabled: boolean) => void;
-  getInternalMeasurementMode?: () => boolean;
   /** Fase 5 Parte A — seleção interna (faces, arestas, pontos). */
   getInternalSelectionHit?: (_event: { clientX: number; clientY: number }) => import("../3d/viewer-engine/selection/internalSelectionTypes").InternalSelectionHit | null;
   getInternalSelection?: () => import("../3d/viewer-engine/selection/internalSelectionTypes").InternalSelectionState | null;
@@ -143,8 +140,6 @@ export type PimoViewerApi = {
   setOnInternalSurfaceSelected?: (_callback: ((_hit: import("../3d/viewer-engine/selection/internalSelectionTypes").InternalSelectionState) => void) | null) => void;
   setOnInternalEdgeSelected?: (_callback: ((_hit: import("../3d/viewer-engine/selection/internalSelectionTypes").InternalSelectionState) => void) | null) => void;
   setOnInternalPointSelected?: (_callback: ((_hit: import("../3d/viewer-engine/selection/internalSelectionTypes").InternalSelectionState) => void) | null) => void;
-  enableInternalRuler?: () => void;
-  disableInternalRuler?: () => void;
   getInternalMeasurements?: (_boxId?: string) => import("../3d/viewer-engine/measurement/internalRulerOverlayTypes").InternalCavityMeasurements | null;
   isInternalRulerOverlayActive?: () => boolean;
   internalRuler?: {
