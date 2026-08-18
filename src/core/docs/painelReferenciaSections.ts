@@ -59,13 +59,13 @@ export const painelReferenciaSections: DocSection[] = [
     interactions: "Painel consome architectureIndex; sidebar usa PANEL_NAV_ITEMS para scroll suave às secções.",
   },
   {
-    title: "ViewerToolbar e Tools3DToolbar",
+    title: "ViewerToolbar e UnifiedTopToolbar",
     description: "Toolbar superior do Viewer com ações (PROJETO, SALVAR, etc.) e ferramentas 3D (Select, Move, Rotate).",
     internals:
       "ViewerToolbar: ícones pequenos com tooltips; aciona viewerApiAdapter via ToolbarModalContext. " +
-      "Tools3DToolbar: emite tool:select, tool:move, tool:rotate (Scale, Orbit, Pan preparados). " +
+      "UnifiedTopToolbar: emite tool:select, tool:move, tool:rotate. " +
       "toolbarConfig.ts define VIEWER_TOOLBAR_ITEMS e TOOLS_3D_ITEMS.",
-    files: ["src/components/layout/viewer-toolbar/ViewerToolbar.tsx", "src/components/layout/viewer-toolbar/Tools3DToolbar.tsx", "src/constants/toolbarConfig.ts"],
+    files: ["src/components/layout/viewer-toolbar/ViewerToolbar.tsx", "src/components/layout/unified-toolbar/UnifiedTopToolbar.tsx", "src/constants/toolbarConfig.ts"],
     interactions: "ToolbarModalContext conecta ViewerToolbar aos modais em RightToolsBar.",
   },
   {

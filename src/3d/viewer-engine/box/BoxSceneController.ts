@@ -167,11 +167,6 @@ type PostUpdateFlowParams = {
   defaultMaterialName: string;
 } & BoxTransformDeps & BoxSceneVisualDeps & BoxRoomConstraintDeps & BoxTargetCameraDeps & BoxRenderDeps & {
   updateBoxMaterial: (_boxId: string, _materialName: string) => void;
-  syncDrawerFrontMaterialsForBox: (
-    _boxId: string,
-    _drawerLayerItems: BoxOptions["drawerLayerItems"],
-    _materialName: string
-  ) => void;
   shouldUseFeetLock: (_entry: ViewerBoxEntry) => boolean;
   applyFloorConstraint: (_mesh: THREE.Object3D) => void;
   applyCatalogModelScale: (_entry: ViewerBoxEntry, _model: THREE.Object3D) => void;

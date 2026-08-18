@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import type { IconProps } from "../types";
 
-/** Câmera — caminhos extraídos de Tools3DToolbar.tsx */
+/** Câmera — caminhos extraídos da toolbar do Viewer. */
 export const IconCamera: FC<IconProps> = ({
   size,
   color = "currentColor",
@@ -27,7 +27,7 @@ export const IconCamera: FC<IconProps> = ({
   </svg>
 );
 
-/** Highlight — caminhos extraídos de Tools3DToolbar.tsx */
+/** Highlight — caminhos extraídos da toolbar do Viewer. */
 export const IconHighlight: FC<IconProps> = ({
   size,
   color = "currentColor",
@@ -53,7 +53,7 @@ export const IconHighlight: FC<IconProps> = ({
   </svg>
 );
 
-/** Régua — caminhos extraídos de Tools3DToolbar.tsx */
+/** Régua — caminhos extraídos da toolbar do Viewer. */
 export const IconRuler: FC<IconProps> = ({
   size,
   color = "currentColor",

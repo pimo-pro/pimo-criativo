@@ -2,7 +2,7 @@
  * Barra de ferramentas fixa acima do Footer.
  * Botões de texto para abrir/fechar painéis de informação (Resumo, Cutlist, Portas, etc.).
  * Um único painel aberto por vez; clique no mesmo botão fecha.
- * Estilo alinhado ao Tools3DToolbar.
+ * Estilo alinhado à toolbar unificada.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

@@ -179,7 +179,7 @@ src/
 ├── hooks/            — usePimoViewer, useCalculadoraSync, useViewerSync, useGerarArquivoHandlers
 ├── constants/        — viewerOptions, toolbarConfig, fileManagerConfig
 ├── components/
-│   ├── layout/       — Workspace, ViewerToolbar, Tools3DToolbar, LeftPanel, RightPanel, RightToolsBar
+│   ├── layout/       — Workspace, ViewerToolbar, UnifiedTopToolbar, LeftPanel, RightPanel, RightToolsBar
 │   └── ui/           — Panel, UnifiedPopover, StepperPopover, etc.
 └── pages/            — Documentacao, PainelReferencia, Ajuda, ProjectProgress, AdminPanel, etc.
 `.trim();

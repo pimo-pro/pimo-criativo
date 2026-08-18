@@ -7,7 +7,6 @@ import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
 import ViewerToolbar from "../viewer-toolbar/ViewerToolbar";
-import Tools3DToolbar from "../viewer-toolbar/Tools3DToolbar";
 import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import { defaultState } from "../../../context/projectState";
 import { loadViewerCore } from "../../../core/viewer/viewerEngineLoader";
@@ -1360,10 +1359,6 @@ return (
             onToggleLock={toggleLock}
           />
           <ViewerToolbar confirmNewOpen={confirmNewOpen} setConfirmNewOpen={setConfirmNewOpen} />
-          <Tools3DToolbar
-            activeTool={project.activeViewerTool ?? "select"}
-            onToolSelect={handleToolSelect}
-          />
         </div>
 <div className="workspace-viewer" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", position: "relative" }}>
           <div

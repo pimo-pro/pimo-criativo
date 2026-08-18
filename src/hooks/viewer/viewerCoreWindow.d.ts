@@ -428,9 +428,6 @@ declare global {
       display?: {
         shadowIntensity: number;
       };
-      events?: {
-        emit?: (event: string, ...args: unknown[]) => void;
-      };
     };
   }
 }

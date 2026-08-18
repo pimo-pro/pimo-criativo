@@ -371,15 +371,6 @@ export class ViewerCore {
     set shadowIntensity(_value: number);
   };
 
-  /** Eventos internos do Viewer Engine (extensão para automação/plugins). */
-  readonly events: {
-    emit: (_event: string, ..._args: unknown[]) => void;
-  } = {
-    emit: () => {
-      /* extensão futura: plugins / automação */
-    },
-  };
-
   // Lock: impede colisoes entre caixas e respeita os limites da sala.
   private lockEnabled = true;
   // Shift-Lock: bloqueia movimento no eixo Z quando Shift esta pressionado.
@@ -789,14 +780,12 @@ export class ViewerCore {
     this.intelligentDesignerEngine = new IntelligentDesignerEngine({
       getBridge: () => this.smartLayoutBridge,
       getRoomLabelHint: () => this.smartLayoutBridge?.getRoomLabelHint?.(),
-      refinePlan: (plan) => this.refineLayoutPlan(plan),
     });
     this.manufacturingReportEngine = new ManufacturingReportEngine({
       getContext: () => this.buildManufacturingScanContext(),
       applyPlan: (plan) => {
         this.smartLayoutBridge?.applyPlan(plan);
       },
-      refinePlan: (plan) => this.refineLayoutPlan(plan),
       distribute: (boxIds) => this.autoDistributionEngine.distribute({
         boxIds,
         alignTop: true,
@@ -1145,7 +1134,6 @@ export class ViewerCore {
       getTurntableTarget: () => this.controls?.controls?.target?.clone() ?? null,
       getBoxes: () => this.boxes,
       onBeforeRenderTick: () => this.onBeforeRenderTick(),
-      onAfterRenderTick: () => this.onAfterRenderTick(),
     });
 
     this.updateCameraTarget();
@@ -1612,7 +1600,6 @@ export class ViewerCore {
     const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 1));
     this.shadowIntensityValue = clamped;
     this.lights.keyLight.shadow.intensity = clamped;
-    this.events.emit("shadowIntensityChanged", clamped);
     this.requestRender();
   }
 
@@ -2786,24 +2773,6 @@ export class ViewerCore {
   }
 
   /**
-   * Sync automático DESACTIVADO.
-   * A matéria da frente só muda via updateDrawerMaterial (escolha do utilizador).
-   * Não restaura, não reaplica grão, não reconstrói após updateBoxMaterial.
-   */
-  private syncDrawerFrontMaterialsForBox(
-    boxId: string,
-    drawerLayerItems: DrawerLayerItem[] | undefined,
-    boxMaterialId: string
-  ): void {
-    void boxId;
-    void drawerLayerItems;
-    void boxMaterialId;
-    traceDrawerFrontMaterial("syncDrawerFrontMaterialsForBox.NOOP", {
-      note: "sync automático desactivado — só updateDrawerMaterial controla a frente",
-    });
-  }
-
-  /**
    * Define o modo de materiais (performance/showcase/realistic) e reaplica a todas as caixas.
    */
   setMaterialMode(mode: MaterialMode): void {
@@ -2813,13 +2782,6 @@ export class ViewerCore {
 
   getMaterialMode(): MaterialMode {
     return this.materialPipeline.getMaterialMode();
-  }
-
-  updateBoxDimensions(
-    id: string,
-    dimensions: { width: number; height: number; depth: number }
-  ): boolean {
-    return this.updateBox(id, dimensions);
   }
 
   setBoxPosition(id: string, position: { x: number; y: number; z: number }): boolean {
@@ -2884,11 +2846,6 @@ export class ViewerCore {
       this.incrementRotationDiagnostics(mesh.uuid, "applied");
       this.logRotationDiagnosticsIfNeeded();
     }
-  }
-
-  setCameraFrontView() {
-    this.cameraManager.setPosition(0, 2.2, 6);
-    this.updateCameraTarget();
   }
 
   private applyMousePresetToControls(): void {
@@ -3129,14 +3086,6 @@ export class ViewerCore {
     this.highlightManager?.setEnabled(this.viewerState.getHighlightEnabled());
     this.refreshOutlineTarget();
     this.applyPanelVisibilityForAllBoxes();
-  }
-
-  /**
-   * @deprecated Compatibilidade com API antiga da régua.
-   * Mantém apenas o cursor visual; não reativa o modo de régua legado nem altera medições atuais.
-   */
-  setRulerEnabled(enabled: boolean): void {
-    this.rendererManager.renderer.domElement.style.cursor = enabled ? "crosshair" : "";
   }
 
   getExplodedViewEnabled(): boolean {
@@ -3553,8 +3502,6 @@ export class ViewerCore {
         plan: structurePlan,
         defaultMaterialName: this.defaultMaterialName,
         updateBoxMaterial: (boxId, materialName) => this.updateBoxMaterial(boxId, materialName),
-        syncDrawerFrontMaterialsForBox: (boxId, drawerLayerItems, materialName) =>
-          this.syncDrawerFrontMaterialsForBox(boxId, drawerLayerItems, materialName),
         reapplyDisplayMaterials: () => this.reapplyDisplayMaterials(),
         shouldUseFeetLock: (boxEntry) => this.shouldUseFeetLock(boxEntry),
         getFixedYForCabinet: (boxEntry) => this.getFixedYForCabinet(boxEntry),
@@ -4291,14 +4238,6 @@ export class ViewerCore {
 
   setOnBoxSelected(callback: (_id: string | null) => void): void {
     this.onBoxSelected = callback;
-  }
-
-  /**
-   * @deprecated Callback legado da régua.
-   * NO-OP intencional: medições atuais usam InternalRuler/ViewerMeasurementOverlay.
-   */
-  setOnRulerTick(callback: (() => void) | null): void {
-    void callback;
   }
 
   setOnDoorLayerDoubleClick(callback: ((_boxId: string, _doorLayerId: string) => void) | null): void {
@@ -5728,12 +5667,6 @@ export class ViewerCore {
     };
   }
 
-  /**
-   * Extension point para refinamento centralizado de planos inteligentes/manufacturing.
-   * Contrato atual: NO-OP; engines chamadoras não devem depender de efeitos colaterais.
-   */
-  private refineLayoutPlan(_plan: import("./autoLayout/autoLayoutTypes").AutoLayoutPlan): void {}
-
   private generateIntelligentDesigns(seedBoxId: string): boolean {
     const designs = this.intelligentDesignerEngine.buildDesigns(seedBoxId);
     if (!designs.length) return false;
@@ -5771,7 +5704,6 @@ export class ViewerCore {
       if (activeEntry && isEnvironmentStyleId(activeEntry.id)) {
         this.intelligentDesignerEngine.getBehaviorStore().learnStylePreference(activeEntry.id);
       }
-      this.refineLayoutPlan(pending.plan);
       this.clearSmartAlignSnapOverlay();
     }
     return ok;
@@ -6556,10 +6488,6 @@ export class ViewerCore {
       ? this.roomBoxWalls.find((w) => w.id === this.viewerState.getSelectedWallIndex())
       : null;
     this.wallSelectionOutline.update(wallEntry ? { mesh: wallEntry.mesh } : null);
-  }
-
-  private onAfterRenderTick(): void {
-    // Extension point reservado para pós-frame; sem efeitos no contrato atual.
   }
 
   saveSnapshot(): import("../../context/projectTypes").ViewerSnapshot | null {

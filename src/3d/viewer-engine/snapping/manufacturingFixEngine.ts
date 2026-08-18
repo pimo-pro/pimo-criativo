@@ -6,7 +6,7 @@ import { getManufacturingRules } from "./rulesRuntime";
 export type ManufacturingFixDeps = {
   getBoxes: () => WorkspaceBox[];
   applyPlan: (plan: AutoLayoutPlan) => void;
-  refinePlan: (plan: AutoLayoutPlan) => void;
+  refinePlan?: (plan: AutoLayoutPlan) => void;
   distribute: (boxIds: string[]) => boolean;
   isSmartSnapEnabled: () => boolean;
 };
@@ -148,7 +148,7 @@ export class ManufacturingFixEngine {
     if (fixPlan.plan.moveBoxes.length) {
       this.deps.applyPlan(fixPlan.plan);
       if (this.deps.isSmartSnapEnabled()) {
-        this.deps.refinePlan(fixPlan.plan);
+        this.deps.refinePlan?.(fixPlan.plan);
       }
     } else {
       const boxIds = [...new Set(fixPlan.plan.moveBoxes.map((m) => m.boxId))];

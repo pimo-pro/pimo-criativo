@@ -27,7 +27,7 @@ import { formatMaterialHintForUi } from "./styleMaterialHints";
 export type IntelligentDesignerDeps = {
   getBridge: () => SmartLayoutBridge | null;
   getRoomLabelHint?: () => string | undefined;
-  refinePlan: (plan: AutoLayoutPlan) => void;
+  refinePlan?: (plan: AutoLayoutPlan) => void;
 };
 
 const PROFILE_BY_ID: Record<DesignVariantId, DesignProfile> = {
@@ -155,7 +155,7 @@ export class IntelligentDesignerEngine {
     if (!design || !bridge) return false;
     this.pushPlanHistory(design.plan);
     bridge.applyPlan(design.plan);
-    this.deps.refinePlan(design.plan);
+    this.deps.refinePlan?.(design.plan);
     this.behavior.recordDesignChoice(id);
     this.lastAppliedDesignId = id;
     return true;
@@ -167,7 +167,7 @@ export class IntelligentDesignerEngine {
     if (!variation || !bridge) return false;
     this.pushPlanHistory(variation.plan);
     bridge.applyPlan(variation.plan);
-    this.deps.refinePlan(variation.plan);
+    this.deps.refinePlan?.(variation.plan);
     this.behavior.recordVariationChoice(variation.kind);
     return true;
   }
@@ -184,7 +184,7 @@ export class IntelligentDesignerEngine {
     if (!bridge) return false;
     this.pushPlanHistory(plan);
     bridge.applyPlan(plan);
-    this.deps.refinePlan(plan);
+    this.deps.refinePlan?.(plan);
     if (meta?.designId) {
       this.behavior.recordDesignChoice(meta.designId);
       this.lastAppliedDesignId = meta.designId;
@@ -256,7 +256,7 @@ export class IntelligentDesignerEngine {
     const bridge = this.deps.getBridge();
     if (!bridge) return false;
     bridge.applyPlan(previous);
-    this.deps.refinePlan(previous);
+    this.deps.refinePlan?.(previous);
     return true;
   }
 
@@ -324,7 +324,7 @@ export class IntelligentDesignerEngine {
       ? this.getDesignById(this.lastAppliedDesignId)
       : this.designs[0];
     if (!design) return false;
-    this.deps.refinePlan(design.plan);
+    this.deps.refinePlan?.(design.plan);
     this.behavior.recordRefinement();
     return true;
   }

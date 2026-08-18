@@ -5,7 +5,7 @@ import type { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
 
 /**
  * Contrato do loop de runtime/render.
- * Ordem por frame: onBeforeRenderTick() -> renderOneFrame() -> onAfterRenderTick().
+ * Ordem por frame: onBeforeRenderTick() -> renderOneFrame() -> onAfterRenderTick?().
  * Invariantes:
  * - O core fornece callbacks sem efeitos colaterais irreversíveis por frame.
  * - ensureMainComposer/getMainComposer e getShowcaseComposer refletem o estado real do pipeline.
@@ -31,7 +31,7 @@ type ViewerRuntimeLoopDeps = {
   getTurntableTarget: () => THREE.Vector3 | null;
   getBoxes: () => Map<string, { mesh: THREE.Object3D }>;
   onBeforeRenderTick: () => void;
-  onAfterRenderTick: () => void;
+  onAfterRenderTick?: () => void;
 };
 
 /** Responsável apenas pela cadência de frame e seleção do pipeline de render. */
@@ -55,7 +55,7 @@ export class ViewerRuntimeLoop {
       }
       this.deps.onBeforeRenderTick();
       this.renderOneFrame();
-      this.deps.onAfterRenderTick();
+      this.deps.onAfterRenderTick?.();
       this.rafId = requestAnimationFrame(animate);
     };
     this.rafId = requestAnimationFrame(animate);

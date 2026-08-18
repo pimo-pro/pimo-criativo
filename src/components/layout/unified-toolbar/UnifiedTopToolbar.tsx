@@ -1,7 +1,7 @@
 /**
  * Barra superior unificada do Workspace (evolução incremental).
  * «Salvar e Gerar Design»: executa gerarESalvarDesign (persistir + gerar) e só depois abre o painel.
- * Ferramentas 3D selecionar / mover / rodar (mesma semântica que Tools3DToolbar).
+ * Ferramentas 3D selecionar / mover / rodar (toolbar unificada).
  */
 
 import { useState, useRef, useEffect } from "react";
@@ -26,7 +26,7 @@ const cfgProjeto = VIEWER_TOOLBAR_ITEMS.find((i) => i.id === "projeto");
 const cfgImagem = VIEWER_TOOLBAR_ITEMS.find((i) => i.id === "imagem");
 const cfgResetCamera = VIEWER_TOOLBAR_ITEMS.find((i) => i.id === "reset-camera");
 
-/** Igual a `toolbarButtonStyle` em Tools3DToolbar (botão lock). */
+/** Estilo do botão lock na toolbar unificada. */
 const lockToolbarButtonStyle = {
   width: 28,
   height: 28,

@@ -12,7 +12,7 @@ import type {
 export type ManufacturingReportEngineDeps = {
   getContext: () => ManufacturingScanContext;
   applyPlan: (plan: AutoLayoutPlan) => void;
-  refinePlan: (plan: AutoLayoutPlan) => void;
+  refinePlan?: (plan: AutoLayoutPlan) => void;
   distribute: (boxIds: string[]) => boolean;
   isSmartSnapEnabled: () => boolean;
 };

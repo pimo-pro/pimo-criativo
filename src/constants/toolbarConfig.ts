@@ -1,6 +1,6 @@
 /**
  * Configuração centralizada da toolbar do Viewer.
- * Ícones, ações, tooltips e IDs para ViewerToolbar e Tools3DToolbar.
+ * Ícones, ações, tooltips e IDs para ViewerToolbar e UnifiedTopToolbar.
  *
  * Novos botões (ex.: Reset Camera): adicionar em VIEWER_TOOLBAR_ITEMS
  * respeitando a ordem definida para a toolbar.
