@@ -4,7 +4,6 @@ import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import { usePhotoModeLivePreview } from "../../../hooks/usePhotoModeLivePreview";
 import { useUiStore } from "../../../stores/uiStore";
 import type { PimoViewerApi } from "../../../context/PimoViewerContextCore";
-import type { Viewer } from "../../../3d/core/Viewer";
 import type {
   ViewerCameraPreset,
   ViewerRenderBackground,
@@ -32,11 +31,6 @@ async function callRenderScene(
   const bound = viewerApi?.renderScene;
   if (typeof bound === "function") {
     return bound(options);
-  }
-  const core =
-    typeof window !== "undefined" ? (window as unknown as { viewerCore?: Viewer }).viewerCore : undefined;
-  if (core && typeof core.renderScene === "function") {
-    return core.renderScene(options);
   }
   return null;
 }

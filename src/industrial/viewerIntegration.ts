@@ -1,5 +1,6 @@
 import type { ViewerMaterialSyncSurface } from "../3d/viewer-engine/integration/viewerIndustrialSurface";
 import { getViewerMaterialId } from "../core/materials/service";
+import { getActiveViewerCore } from "../core/viewer/pimoViewerRuntime";
 import type { DrawerLayerItem } from "../models/BoxLayers";
 
 /**
@@ -16,7 +17,7 @@ export type MaterialSyncViewerRefresh = {
   affectedRodapeIds: string[];
 };
 
-/** Callbacks opcionais expostos em `window.viewerCore` usados após sync de materiais. */
+/** Callbacks opcionais da superfície pública do viewer usados após sync de materiais. */
 export type ViewerCoreIndustrialSurface = ViewerMaterialSyncSurface;
 
 /**
@@ -24,9 +25,8 @@ export type ViewerCoreIndustrialSurface = ViewerMaterialSyncSurface;
  * Extraído de `core/materials/materialSync` para boundary explícito.
  */
 export function refreshViewerAfterMaterialSync(result: MaterialSyncViewerRefresh): void {
-  if (typeof window === "undefined") return;
   const run = () => {
-    const core = (window as Window & { viewerCore?: ViewerCoreIndustrialSurface }).viewerCore;
+    const core = getActiveViewerCore() as ViewerCoreIndustrialSurface | null;
     if (!core) return;
     if (result.affectedRemateIds.length > 0) {
       core.syncRemateVisuals?.();
@@ -52,21 +52,9 @@ export function syncDrawerFrontMaterialToViewer(
   materialId: string,
   drawerLayerItems?: DrawerLayerItem[]
 ): void {
-  if (typeof window === "undefined") return;
   const viewerMaterialId = getViewerMaterialId(materialId);
   const run = () => {
-    const core = (
-      window as Window & {
-        viewerCore?: ViewerCoreIndustrialSurface & {
-          updateDrawerMaterial?: (
-            b: string,
-            d: string,
-            m: string,
-            items?: DrawerLayerItem[]
-          ) => void;
-        };
-      }
-    ).viewerCore;
+    const core = getActiveViewerCore();
     core?.updateDrawerMaterial?.(boxId, drawerLayerId, viewerMaterialId, drawerLayerItems);
   };
   if (typeof requestAnimationFrame === "function") {
@@ -82,5 +70,5 @@ export const VIEWER_INDUSTRIAL_INTEGRATION_POINTS = {
   cutlist: "context/projectState → manufacturing/cutlistFromBoxes (sem import viewer)",
   export: "hooks/useGerarArquivoHandlers → fabrication (independente do viewer loop)",
   pieceQr: "app/industrial/piece → qrcode/qrcodeService",
-  workspace: "components/layout/workspace/Workspace → window.viewerCore",
+  workspace: "components/layout/workspace/Workspace → PimoViewerApi",
 } as const;

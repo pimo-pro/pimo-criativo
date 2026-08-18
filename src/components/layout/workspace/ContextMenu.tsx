@@ -337,7 +337,7 @@ export default function ContextMenu({
   const roomSnappingEnabled = viewerApi?.snapping?.isRoomSnappingEnabled?.() === true;
   const autoAlignmentEnabled = viewerApi?.snapping?.isAutoAlignmentEnabled?.() !== false;
   const autoSpacingEnabled = viewerApi?.snapping?.isAutoSpacingEnabled?.() === true;
-  const smartAlignSnapEnabled = window.viewerCore?.settings?.enableSmartAlignSnap === true;
+  const smartAlignSnapEnabled = viewerApi?.settings?.enableSmartAlignSnap === true;
 
   const getActionLabel = (action: MouseMenuAction): string => {
     if (action.id === "box.lockToggle") return locked ? "Desbloquear peça" : "Bloquear peça";
@@ -360,7 +360,7 @@ export default function ContextMenu({
         const decoded = decodeSelectionId(encoded);
         if (!decoded) continue;
         if (decoded.kind === "box") {
-          window.viewerCore?.updateBoxMaterial?.(decoded.id, materialId);
+          viewerApi?.updateBoxMaterial?.(decoded.id, materialId);
           continue;
         }
         if (decoded.kind === "door") {
@@ -377,8 +377,8 @@ export default function ContextMenu({
           if (box) viewerApi?.updateDrawerMaterial?.(box.id, decoded.id, getViewerMaterialId(materialId));
         }
       }
-      window.viewerCore?.syncRemateVisuals?.();
-      window.viewerCore?.syncRodapeVisuals?.();
+      viewerApi?.syncRemateVisuals?.();
+      viewerApi?.syncRodapeVisuals?.();
       onClose();
       return;
     }
@@ -443,15 +443,15 @@ export default function ContextMenu({
     }
     if (actionId === "remate.snapFrente" && contextMenuLayerTarget?.remateId) {
       actions.resetRemateSnap(contextMenuLayerTarget.remateId, "FRENTE");
-      window.viewerCore?.syncRemateVisuals?.();
+      viewerApi?.syncRemateVisuals?.();
     }
     if (actionId === "remate.snapFundo" && contextMenuLayerTarget?.remateId) {
       actions.resetRemateSnap(contextMenuLayerTarget.remateId, "FUNDO");
-      window.viewerCore?.syncRemateVisuals?.();
+      viewerApi?.syncRemateVisuals?.();
     }
     if (actionId === "remate.snapCima" && contextMenuLayerTarget?.remateId) {
       actions.resetRemateSnap(contextMenuLayerTarget.remateId, "CIMA");
-      window.viewerCore?.syncRemateVisuals?.();
+      viewerApi?.syncRemateVisuals?.();
     }
     if (actionId === "ferramentas.snappingToggle") {
       if (snappingEnabled) viewerApi?.snapping?.disable?.();
@@ -490,18 +490,18 @@ export default function ContextMenu({
       const raw = window.prompt("ID da parede (0=frente, 1=direita, 2=fundo, 3=esquerda):", "0");
       const wallId = raw == null ? NaN : Number.parseInt(raw, 10);
       if (Number.isFinite(wallId) && wallId >= 0 && wallId <= 3) {
-        if (window.viewerCore?.settings?.enableSmartAlignSnap) {
-          window.viewerCore.smartLayout?.previewAutoWallFill?.(wallId, selectedBoxId);
+        if (viewerApi?.settings?.enableSmartAlignSnap) {
+          viewerApi.smartLayout?.previewAutoWallFill?.(wallId, selectedBoxId);
         } else {
-          window.viewerCore?.smartLayout?.autoWallFill?.(wallId, selectedBoxId);
+          viewerApi?.smartLayout?.autoWallFill?.(wallId, selectedBoxId);
         }
       }
     }
     if (actionId === "smartLayout.autoRoomFill") {
-      window.viewerCore?.smartLayout?.autoRoomFill?.(selectedBoxId ?? undefined);
+      viewerApi?.smartLayout?.autoRoomFill?.(selectedBoxId ?? undefined);
     }
     if (actionId === "smartLayout.autoDistribute" && activeSelectedIds.length >= 2) {
-      window.viewerCore?.smartLayout?.autoDistribute?.(activeSelectedIds);
+      viewerApi?.smartLayout?.autoDistribute?.(activeSelectedIds);
     }
     if (actionId === "smartLayout.autoStackShelves" && selectedBoxId) {
       const countRaw = window.prompt("Número de prateleiras (0=auto):", "0");
@@ -509,7 +509,7 @@ export default function ContextMenu({
       const topMarginMm = Number.parseFloat(window.prompt("Margem superior (mm):", "50") ?? "50");
       const bottomMarginMm = Number.parseFloat(window.prompt("Margem inferior (mm):", "50") ?? "50");
       if (Number.isFinite(count) && count >= 0) {
-        window.viewerCore?.smartLayout?.autoStackShelves?.(selectedBoxId, {
+        viewerApi?.smartLayout?.autoStackShelves?.(selectedBoxId, {
           count,
           topMarginMm: Number.isFinite(topMarginMm) ? topMarginMm : 50,
           bottomMarginMm: Number.isFinite(bottomMarginMm) ? bottomMarginMm : 50,
@@ -517,39 +517,39 @@ export default function ContextMenu({
       }
     }
     if (actionId === "smartLayout.applyPredictive") {
-      window.viewerCore?.smartLayout?.applyPredictiveLayout?.();
-      window.viewerCore?.refreshTransformControlsAttachment?.();
+      viewerApi?.smartLayout?.applyPredictiveLayout?.();
+      viewerApi?.refreshTransformControlsAttachment?.();
     }
     if (actionId === "smartLayout.rejectPredictive") {
-      window.viewerCore?.smartLayout?.rejectPredictiveLayout?.();
+      viewerApi?.smartLayout?.rejectPredictiveLayout?.();
     }
     if (actionId === "intelligentDesigner.generateABC" && selectedBoxId) {
-      window.viewerCore?.intelligentDesigner?.generateDesigns?.(selectedBoxId);
+      viewerApi?.intelligentDesigner?.generateDesigns?.(selectedBoxId);
     }
     if (actionId === "intelligentDesigner.generateVariations") {
-      window.viewerCore?.intelligentDesigner?.generateVariations?.();
+      viewerApi?.intelligentDesigner?.generateVariations?.();
     }
     if (actionId === "intelligentDesigner.applyA") {
-      window.viewerCore?.intelligentDesigner?.previewDesign?.("A");
-      window.viewerCore?.intelligentDesigner?.applyDesign?.("A");
-      window.viewerCore?.refreshTransformControlsAttachment?.();
+      viewerApi?.intelligentDesigner?.previewDesign?.("A");
+      viewerApi?.intelligentDesigner?.applyDesign?.("A");
+      viewerApi?.refreshTransformControlsAttachment?.();
     }
     if (actionId === "intelligentDesigner.applyB") {
-      window.viewerCore?.intelligentDesigner?.previewDesign?.("B");
-      window.viewerCore?.intelligentDesigner?.applyDesign?.("B");
-      window.viewerCore?.refreshTransformControlsAttachment?.();
+      viewerApi?.intelligentDesigner?.previewDesign?.("B");
+      viewerApi?.intelligentDesigner?.applyDesign?.("B");
+      viewerApi?.refreshTransformControlsAttachment?.();
     }
     if (actionId === "intelligentDesigner.applyC") {
-      window.viewerCore?.intelligentDesigner?.previewDesign?.("C");
-      window.viewerCore?.intelligentDesigner?.applyDesign?.("C");
-      window.viewerCore?.refreshTransformControlsAttachment?.();
+      viewerApi?.intelligentDesigner?.previewDesign?.("C");
+      viewerApi?.intelligentDesigner?.applyDesign?.("C");
+      viewerApi?.refreshTransformControlsAttachment?.();
     }
     if (actionId === "intelligentDesigner.refine") {
-      window.viewerCore?.intelligentDesigner?.refineLayout?.();
-      window.viewerCore?.refreshTransformControlsAttachment?.();
+      viewerApi?.intelligentDesigner?.refineLayout?.();
+      viewerApi?.refreshTransformControlsAttachment?.();
     }
     if (actionId === "intelligentDesigner.learnPreferences") {
-      const summary = window.viewerCore?.intelligentDesigner?.learnPreferences?.();
+      const summary = viewerApi?.intelligentDesigner?.learnPreferences?.();
       if (summary) window.alert(`Preferências aprendidas:\n\n${summary}`);
     }
     const styleActionMap: Record<string, import("../../../3d/viewer-engine/snapping/intelligentDesignerTypes").EnvironmentStyleId> = {
@@ -564,23 +564,23 @@ export default function ContextMenu({
     };
     const styleId = styleActionMap[actionId];
     if (styleId && selectedBoxId) {
-      window.viewerCore?.intelligentDesigner?.previewStyle?.(styleId, selectedBoxId);
+      viewerApi?.intelligentDesigner?.previewStyle?.(styleId, selectedBoxId);
     }
 
     if (actionId === "multi.createGroup") {
       const groupId = actions.createObjectGroup(activeSelectedObjectIds);
       if (groupId) {
         groupStore.getState().setActiveGroupId(groupId);
-        window.viewerCore?.setGroupTransformMembers?.(activeSelectedObjectIds);
+        viewerApi?.setGroupTransformMembers?.(activeSelectedObjectIds);
       }
     }
     if (actionId === "multi.ungroup" && activeGroupId) {
       actions.ungroupObject(activeGroupId);
       groupStore.getState().clearGroupSelection();
-      window.viewerCore?.clearGroupTransformMembers?.();
+      viewerApi?.clearGroupTransformMembers?.();
     }
     if (actionId === "multi.addAnchor") {
-      const hit = window.viewerCore?.addMeasurementAnchorAtPointer?.({
+      const hit = viewerApi?.addMeasurementAnchorAtPointer?.({
         clientX: position?.x ?? 0,
         clientY: position?.y ?? 0,
       });

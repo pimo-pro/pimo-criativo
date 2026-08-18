@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { BoxModule, WorkspaceBox } from "../types";
 import type { RematePiece } from "./rematePieceTypes";
+import { getActiveViewerCore } from "../viewer/pimoViewerRuntime";
 
 export type RemateGapResult = {
   gapXMm: number;
@@ -39,8 +40,8 @@ function remateStandaloneFootprint(remate: RematePiece): FootprintAabb {
 }
 
 function tryRemateFootprintFromViewer(remateId: string): FootprintAabb | null {
-  const core = window.viewerCore as { getRemateMesh?: (id: string) => THREE.Object3D | null } | undefined;
-  const mesh = core?.getRemateMesh?.(remateId);
+  const core = getActiveViewerCore();
+  const mesh = core?.getRemateMesh?.(remateId) as THREE.Object3D | null | undefined;
   if (!mesh) return null;
   const box3 = new THREE.Box3().setFromObject(mesh);
   if (box3.isEmpty()) return null;
@@ -53,10 +54,7 @@ function tryRemateFootprintFromViewer(remateId: string): FootprintAabb | null {
 }
 
 function tryBoxFootprintFromViewer(boxId: string): FootprintAabb | null {
-  const core = window.viewerCore as {
-    getBoxWorldMatrix?: (id: string) => THREE.Matrix4 | null;
-    getBoxDimensions?: (id: string) => { width: number; height: number; depth: number } | null;
-  } | undefined;
+  const core = getActiveViewerCore();
   const matrix = core?.getBoxWorldMatrix?.(boxId);
   const dims = core?.getBoxDimensions?.(boxId);
   if (!matrix || !dims) return null;

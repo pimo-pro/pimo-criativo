@@ -24,10 +24,10 @@ export const VIEWER_CORE_AUDIT: ViewerCoreAuditItem[] = [
   {
     id: "window-viewerCore-dual-api",
     severity: "medium",
-    area: "window.viewerCore + PimoViewerContext",
-    finding: "Dois caminhos de acesso à API do viewer.",
-    recommendation: "Alinhar viewerCoreWindow.d.ts; migrar bridges para hook único.",
-    touchedInPass: false,
+    area: "PimoViewerApi (window.viewerCore só ponte)",
+    finding: "Consumidores de produto usam PimoViewerApi / getActiveViewerCore(); o global é ponte HMR.",
+    recommendation: "Manter a ponte até Z-01.2.7; não reintroduzir chamadas de produto a window.viewerCore.",
+    touchedInPass: true,
   },
   {
     id: "transform-notify-per-frame",

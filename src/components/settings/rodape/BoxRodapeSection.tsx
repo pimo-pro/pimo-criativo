@@ -1,4 +1,5 @@
 import { useProject } from "../../../context/useProject";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import { useUiStore } from "../../../stores/uiStore";
 import Panel from "../../ui/Panel";
 import type { CreateRodapeInput, RodapeKind } from "../../../core/rodape/rodapeTypes";
@@ -19,6 +20,7 @@ const TOGGLES: Array<{ kind: RodapeKind; label: string }> = [
 
 export default function BoxRodapeSection({ boxId, embedded = false }: Props) {
   const { project, actions } = useProject();
+  const { viewerApi } = usePimoViewerContext();
   const setSelectedObject = useUiStore((s) => s.setSelectedObject);
   const setSelectedTool = useUiStore((s) => s.setSelectedTool);
   const box = project.workspaceBoxes.find((b) => b.id === boxId);
@@ -92,7 +94,7 @@ export default function BoxRodapeSection({ boxId, embedded = false }: Props) {
               onClick={() => {
                 setSelectedObject({ type: "rodape", id: rodape.id });
                 setSelectedTool("home");
-                window.viewerCore?.selectRodape?.(rodape.id);
+                viewerApi.selectRodape?.(rodape.id);
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

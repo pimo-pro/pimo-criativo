@@ -16,8 +16,8 @@
  * 1. PimoViewerProvider expõe SEMPRE um `PimoViewerApi` válido (stub NOOP até
  *    o Workspace registar a API real). Nunca expor `null` no contexto.
  *
- * 2. `window.viewerCore` só pode ser atribuído dentro do callback
- *    `ViewerCore.setOnViewerReady` — nunca antes da init completa.
+ * 2. `setActiveViewerCore` (e a ponte `window.viewerCore`) só podem ser atribuídos
+ *    dentro do callback `ViewerCore.setOnViewerReady` — nunca antes da init completa.
  *
  * 3. `viewerReady === true` no ViewerCore só após `notifyViewerReady()`
  *    (queueMicrotask pós-construtor: eventos, loop, boxes).
@@ -25,7 +25,7 @@
  * 4. NUNCA ler `viewerApi.viewerReady` ou `viewerCore.viewerReady` em objetos
  *    possivelmente null/undefined. Usar SEMPRE:
  *      - `isViewerApiReady(viewerApi)`  — camada React / hooks / UI
- *      - `isViewerCoreReady(viewerCore)` — camada window / usePimoViewer
+ *      - `isViewerCoreReady(viewerCore)` — camada runtime / usePimoViewer
  *
  * 5. Em arrays de dependências de `useEffect` / `useMemo`, extrair um booleano
  *    seguro (`const viewerReady = isViewerApiReady(viewerApi)`) — nunca

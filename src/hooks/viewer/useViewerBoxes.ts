@@ -1,9 +1,10 @@
 /**
  * Hook especializado para boxes no viewer.
- * Obtém a API de boxes a partir de window.viewerCore.
+ * Obtém a API de boxes a partir do runtime canónico (`getActiveViewerCore`).
  */
 import { useMemo } from "react";
 import { isViewerCoreReady } from "../../core/viewer/viewerReadiness";
+import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 
 const NOOP = () => {};
 const NOOP_SELECT_BOX = () => {};
@@ -47,8 +48,7 @@ const BOXES_NOOP_API = {
 } as const;
 
 export function useViewerBoxes() {
-  const viewerCore =
-    typeof window !== "undefined" ? (window as Window).viewerCore : undefined;
+  const viewerCore = getActiveViewerCore() ?? undefined;
   const coreReady = isViewerCoreReady(viewerCore);
 
   return useMemo(() => {

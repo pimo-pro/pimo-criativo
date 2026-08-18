@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Panel from "../../ui/Panel";
 import { useSettings } from "../../../context/SettingsContext";
+import { getActivePimoViewerApi } from "../../../core/viewer/pimoViewerRuntime";
 import {
   DEFAULT_ORLA_VISUAL_RULES,
   ORLA_EDGE_LABELS,
@@ -62,7 +63,7 @@ export default function OrlaRulesSettingsPanel() {
       setDraft(effective);
       setSavedRules(effective);
       setMessage("Regras de ORLA guardadas.");
-      window.viewerCore?.syncOrlaVisuals?.();
+      getActivePimoViewerApi()?.syncOrlaVisuals?.();
     } else {
       setMessage(result.errors[0] ?? "Não foi possível guardar as regras.");
     }
@@ -80,7 +81,7 @@ export default function OrlaRulesSettingsPanel() {
       setDraft(effective);
       setSavedRules(effective);
       setMessage("Regras repostas para os valores por defeito.");
-      window.viewerCore?.syncOrlaVisuals?.();
+      getActivePimoViewerApi()?.syncOrlaVisuals?.();
     }
   }, [updateSettings]);
 

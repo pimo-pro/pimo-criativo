@@ -1,9 +1,10 @@
 /**
  * Hook especializado para materiais no viewer.
- * Obtém a API de materiais a partir de window.viewerCore.
+ * Obtém a API de materiais a partir do runtime canónico (`getActiveViewerCore`).
  */
 import { useMemo } from "react";
 import { isViewerCoreReady } from "../../core/viewer/viewerReadiness";
+import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 
 const NOOP = () => {};
 const NOOP_RETURN_UNDEFINED = () => undefined;
@@ -27,11 +28,10 @@ const MATERIALS_NOOP_API = {
 } as const;
 
 export function useViewerMaterials() {
-  const viewerCore =
-    typeof window !== "undefined" ? (window as Window).viewerCore : undefined;
+  const viewerCore = getActiveViewerCore() ?? undefined;
 
   return useMemo(() => {
-    if (!isViewerCoreReady(viewerCore)) return MATERIALS_NOOP_API;
+    if (!isViewerCoreReady(viewerCore) || !viewerCore) return MATERIALS_NOOP_API;
 
     const bind = (fn: ((..._args: unknown[]) => unknown) | undefined) =>
       fn ? fn.bind(viewerCore) : NOOP;
@@ -40,12 +40,8 @@ export function useViewerMaterials() {
       updateBoxMaterial: bind(viewerCore.updateBoxMaterial),
       updateDoorMaterial: bind(viewerCore.updateDoorMaterial),
       updateDrawerMaterial: bind(viewerCore.updateDrawerMaterial),
-      updateFixedFrontMaterial: bind(
-        (viewerCore as { updateFixedFrontMaterial?: (..._args: unknown[]) => unknown }).updateFixedFrontMaterial
-      ),
-      updateFrontMaterial: bind(
-        (viewerCore as { updateFrontMaterial?: (..._args: unknown[]) => unknown }).updateFrontMaterial
-      ),
+      updateFixedFrontMaterial: bind(viewerCore.updateFixedFrontMaterial),
+      updateFrontMaterial: bind(viewerCore.updateFrontMaterial),
       setMaterialMode: bind(viewerCore.setMaterialMode),
       getMaterialMode: bind(viewerCore.getMaterialMode),
       setMaterialQuality: bind(viewerCore.setMaterialQuality),

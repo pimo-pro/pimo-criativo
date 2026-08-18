@@ -4,33 +4,10 @@
  */
 
 import type { PimoViewerApi } from "../context/PimoViewerContextCore";
+import { getActiveViewerCore } from "../core/viewer/pimoViewerRuntime";
 import { getRoomDimensionsCm, wallStore } from "../stores/wallStore";
 import { ROOM_20_DEFAULTS } from "../3d/viewer-engine/room/RoomEngine";
 import { wallStorePositionToViewerMeters } from "./roomCoordinates";
-
-type RoomManagerWithConfigWalls = {
-  roomManager?: {
-    wallsMain?: unknown[];
-    updateWallFromConfig?: (_config: {
-      id: number;
-      lengthM: number;
-      heightM: number;
-      thicknessM: number;
-      position: { x: number; y?: number; z: number };
-      rotationDeg: number;
-    }) => boolean;
-    addWallFromConfig?: (_config: {
-      id: number;
-      lengthM: number;
-      heightM: number;
-      thicknessM: number;
-      position: { x: number; y?: number; z: number };
-      rotationDeg: number;
-      isMainWall?: boolean;
-    }) => unknown;
-    updateCamera?: () => void;
-  };
-};
 
 export function applyRoomMeshFromWallStore(
   viewerApi: Pick<PimoViewerApi, "createRoomWithDimensions" | "removeRoom"> | null | undefined
@@ -53,8 +30,7 @@ export function applyRoomMeshFromWallStore(
   const thicknessM = Math.max(0.05, thicknessCm / 100);
   const numWalls: 3 | 4 = walls.length >= 4 ? 4 : 3;
   viewerApi.createRoomWithDimensions(widthM, depthM, heightM, numWalls, thicknessM);
-  const core = typeof window !== "undefined" ? (window.viewerCore as RoomManagerWithConfigWalls | undefined) : undefined;
-  const manager = core?.roomManager;
+  const manager = getActiveViewerCore()?.roomManager;
   if (!manager?.addWallFromConfig) return;
   walls.forEach((wall, index) => {
     const position = wallStorePositionToViewerMeters(wall, walls, dims.widthCm, dims.depthCm);

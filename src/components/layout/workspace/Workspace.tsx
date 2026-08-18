@@ -11,6 +11,7 @@ import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import { defaultState } from "../../../context/projectState";
 import { loadViewerCore } from "../../../core/viewer/viewerEngineLoader";
 import { isViewerApiReady } from "../../../core/viewer/viewerReadiness";
+import { setActiveViewerCore, type ViewerCoreRuntime } from "../../../core/viewer/pimoViewerRuntime";
 import { mToMm } from "../../../utils/units";
 import { useWallStore, wallStore } from "../../../stores/wallStore";
 import { applyRoomMeshFromWallStore, applyRoomOpeningsFromWallStore, getRoomMeshFingerprintFromWallStore } from "../../../utils/roomMeshFromWallStore";
@@ -159,8 +160,8 @@ export default function Workspace({
   const [showKeyboardShortcutsHelp, setShowKeyboardShortcutsHelp] = useState(false);
   const [, setViewerMounted] = useState(false);
 
-  // Montar ViewerCore via import dinâmico. window.viewerCore só é exposto dentro de setOnViewerReady.
-  // viewerMounted força re-render quando viewerReady passa a true (usePimoViewer / contexto).
+  // Montar ViewerCore via import dinâmico.
+  // Runtime canónico: setActiveViewerCore. window.viewerCore fica só como ponte (HMR / dispose).
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -174,6 +175,7 @@ export default function Workspace({
         window.setOnViewerReady = (callback) => core.setOnViewerReady(callback);
         core.setOnViewerReady(() => {
           if (!mounted) return;
+          setActiveViewerCore(core as unknown as ViewerCoreRuntime);
           window.viewerCore = core as unknown as typeof window.viewerCore;
           setViewerMounted(true);
         });
@@ -190,6 +192,7 @@ export default function Workspace({
       if (core?.dispose) {
         core.dispose();
       }
+      setActiveViewerCore(null);
       (window as Window & { viewerCore?: unknown }).viewerCore = undefined;
       delete window.setOnViewerReady;
       setViewerMounted(false);
@@ -398,50 +401,35 @@ export default function Workspace({
   }, [project.selectedWorkspaceBoxId, project.workspaceBoxes, selectedObjects]);
 
   useEffect(() => {
-    const core = window.viewerCore as { setMultiSelectionOutlines?: (ids: string[]) => void } | undefined;
-    core?.setMultiSelectionOutlines?.(selectedObjects);
-  }, [selectedObjects, viewerReady]);
+    viewerApi.setMultiSelectionOutlines?.(selectedObjects);
+  }, [selectedObjects, viewerReady, viewerApi]);
 
   useEffect(() => {
     if (!viewerReady) return;
     const { activeGroupId, ephemeralMemberIds } = groupStore.getState();
     const members = resolveActiveGroupMembers(project.objectGroups, activeGroupId, ephemeralMemberIds);
     const fallback = selectedObjects.length >= 2 ? selectedObjects : members;
-    const core = window.viewerCore as {
-      setGroupTransformMembers?: (ids: string[]) => void;
-      clearGroupTransformMembers?: () => void;
-    } | undefined;
     if (fallback.length >= 2) {
-      core?.setGroupTransformMembers?.(fallback);
+      viewerApi.setGroupTransformMembers?.(fallback);
       groupStore.getState().setEphemeralMemberIds(fallback);
     } else {
-      core?.clearGroupTransformMembers?.();
+      viewerApi.clearGroupTransformMembers?.();
     }
-  }, [selectedObjects, project.objectGroups, viewerReady]);
+  }, [selectedObjects, project.objectGroups, viewerReady, viewerApi]);
 
   useEffect(() => {
     if (!viewerReady) return;
-    const core = window.viewerCore as {
-      syncMeasurementAnchors?: (
-        anchors: typeof project.measurements.anchors,
-        selectedMesh?: unknown
-      ) => void;
-    } | undefined;
-    core?.syncMeasurementAnchors?.(project.measurements.anchors ?? [], null);
-  }, [project.measurements.anchors, viewerReady, project.selectedWorkspaceBoxId]);
+    viewerApi.syncMeasurementAnchors?.(project.measurements.anchors ?? [], null);
+  }, [project.measurements.anchors, viewerReady, project.selectedWorkspaceBoxId, viewerApi]);
 
   useEffect(() => {
     if (!viewerReady) return;
-    const core = window.viewerCore as {
-      setOnTransformDragStart?: (cb: (() => void) | null) => void;
-      setOnTransformDragEnd?: (cb: (() => void) | null) => void;
-    } | undefined;
-    core?.setOnTransformDragStart?.(() => {
+    viewerApi.setOnTransformDragStart?.(() => {
       dragPreStateRef.current =
         reviveState(serializeState(projectRef.current) as import("../../../context/projectTypes").ProjectState) ??
         projectRef.current;
     });
-    core?.setOnTransformDragEnd?.(() => {
+    viewerApi.setOnTransformDragEnd?.(() => {
       const pre = dragPreStateRef.current;
       if (pre && "recordDragUndo" in actionsRef.current) {
         (actionsRef.current as { recordDragUndo: (s: typeof project) => void }).recordDragUndo(pre);
@@ -449,10 +437,10 @@ export default function Workspace({
       }
     });
     return () => {
-      core?.setOnTransformDragStart?.(null);
-      core?.setOnTransformDragEnd?.(null);
+      viewerApi.setOnTransformDragStart?.(null);
+      viewerApi.setOnTransformDragEnd?.(null);
     };
-  }, [viewerReady]);
+  }, [viewerReady, viewerApi]);
 
   useEffect(() => {
     viewerApi.setOnDoorLayerDoubleClick((boxId, doorLayerId) => {
@@ -758,7 +746,7 @@ const hasShownViewerReadyToastRef = useRef(false);
 
   useEffect(() => {
     if (!viewerReady) return;
-    const core = window.viewerCore;
+    const core = viewerApi;
     core?.bindInternalMeasurementBridge?.(
       () => projectRef.current.measurements?.unified ?? [],
       (entry) => actionsRef.current.addUnifiedMeasurement(entry)
@@ -1023,19 +1011,16 @@ const hasShownViewerReadyToastRef = useRef(false);
         actionsRef.current.updateSeparador(itemId, { positionMm });
       }
     });
-  }, [viewerReady, setSelectedObject, setSelectedTool, clearUiSelection]);
+  }, [viewerReady, setSelectedObject, setSelectedTool, clearUiSelection, viewerApi]);
 
   useEffect(() => {
     if (!viewerReady) return;
-    window.viewerCore?.syncOrlaVisuals?.();
-    window.viewerCore?.syncRemateVisuals?.();
-    window.viewerCore?.syncHematiVisuals?.();
-    window.viewerCore?.syncRodapeVisuals?.();
-    const core = window.viewerCore as typeof window.viewerCore & {
-      viewerState?: { getTransformControlsDragging(): boolean };
-    };
-    if (core?.viewerState?.getTransformControlsDragging()) return;
-    window.viewerCore?.refreshTransformControlsAttachment?.();
+    viewerApi.syncOrlaVisuals?.();
+    viewerApi.syncRemateVisuals?.();
+    viewerApi.syncHematiVisuals?.();
+    viewerApi.syncRodapeVisuals?.();
+    if (viewerApi.getTransformControlsDragging?.()) return;
+    viewerApi.refreshTransformControlsAttachment?.();
   }, [
     project.orlaPieces,
     project.orlaPresets,
@@ -1047,6 +1032,7 @@ const hasShownViewerReadyToastRef = useRef(false);
     project.boxes,
     settings.orlaRules,
     viewerReady,
+    viewerApi,
   ]);
 
   useEffect(() => {
@@ -1080,14 +1066,7 @@ const hasShownViewerReadyToastRef = useRef(false);
       stepMm: number,
       shiftKey = false
     ) => {
-      const core = window.viewerCore as typeof window.viewerCore & {
-        applyRemateKeyboardTransform?: (
-          id: string,
-          arrowKey: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight",
-          options?: { stepMm?: number; stepDeg?: number; shiftKey?: boolean }
-        ) => boolean;
-      };
-      core?.applyRemateKeyboardTransform?.(remateId, key, { stepMm, shiftKey });
+      viewerApi.applyRemateKeyboardTransform?.(remateId, key, { stepMm, shiftKey });
     };
 
     const performRodapeMoveStep = (
@@ -1126,7 +1105,7 @@ const hasShownViewerReadyToastRef = useRef(false);
       let nextTransform = { ...transform };
 
       if (rodape.parentBoxId) {
-        const worldMatrix = window.viewerCore?.getBoxWorldMatrix?.(rodape.parentBoxId) as Matrix4 | undefined;
+        const worldMatrix = viewerApi.getBoxWorldMatrix?.(rodape.parentBoxId) as Matrix4 | undefined;
         if (worldMatrix) {
           const inv = new Matrix4().copy(worldMatrix).invert();
           const deltaLocal = delta.clone().applyMatrix4(inv);
@@ -1155,8 +1134,8 @@ const hasShownViewerReadyToastRef = useRef(false);
         ),
       };
       actionsRef.current.updateRodape(rodapeId, nextPatch);
-      window.viewerCore?.syncRodapeVisuals?.();
-      window.viewerCore?.resolveFinishCollisionAfterSync?.({ rodapeId });
+      viewerApi.syncRodapeVisuals?.();
+      viewerApi.resolveFinishCollisionAfterSync?.({ rodapeId });
     };
 
     const performMoveStep = (key: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight", stepMm: number) => {
@@ -1307,7 +1286,7 @@ const hasShownViewerReadyToastRef = useRef(false);
       window.removeEventListener("blur", handleWindowBlur);
       clearKeyboardMoveTimers();
     };
-  }, []);
+  }, [viewerApi]);
 
   const workspacePositionKey = useMemo(
     () => JSON.stringify(project.workspaceBoxes.map((b) => [b.id, b.posicaoX_mm, b.posicaoY_mm, b.posicaoZ_mm])),
@@ -1406,21 +1385,15 @@ return (
               containerRef={containerRef}
               enabled={(project.activeViewerTool ?? "select") === "select" && viewerReady}
               canStartAtPointer={(event) => {
-                const core = window.viewerCore as
-                  | { isPointerOnSelectableObject?: (e: { clientX: number; clientY: number }) => boolean }
-                  | undefined;
-                return core?.isPointerOnSelectableObject?.({
+                return viewerApi.isPointerOnSelectableObject?.({
                   clientX: event.clientX,
                   clientY: event.clientY,
                 }) !== true;
               }}
               getIdsInRect={(rect) => {
                 const canvas = containerRef.current?.querySelector("canvas");
-                const core = window.viewerCore as
-                  | { getSelectionIdsInScreenRect?: (r: typeof rect, c: HTMLCanvasElement) => string[] }
-                  | undefined;
-                if (!canvas || !core?.getSelectionIdsInScreenRect) return [];
-                return core.getSelectionIdsInScreenRect(rect, canvas);
+                if (!canvas || !viewerApi.getSelectionIdsInScreenRect) return [];
+                return viewerApi.getSelectionIdsInScreenRect(rect, canvas);
               }}
               onSelectionComplete={(ids) => {
                 setSelectedObjects(ids);

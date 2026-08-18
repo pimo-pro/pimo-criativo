@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useProject } from "../../../context/useProject";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import { useUiStore } from "../../../stores/uiStore";
 import type {
   CreateRematePieceInput,
@@ -97,6 +98,7 @@ export default function BoxRemateDrawer({
   embedded = false,
 }: Props) {
   const { project, actions } = useProject();
+  const { viewerApi } = usePimoViewerContext();
   const setSelectedObject = useUiStore((s) => s.setSelectedObject);
   const [productType, setProductType] = useState<RemateProductType>("AVISTA");
   const [mountSlot, setMountSlot] = useState<RemateMountSlot>("FRENTE");
@@ -304,7 +306,7 @@ export default function BoxRemateDrawer({
                 }}
                 onClick={() => {
                   setSelectedObject({ type: "remate", id: remate.id });
-                  window.viewerCore?.selectRemate?.(remate.id);
+                  viewerApi.selectRemate?.(remate.id);
                   if (!embedded) onClose?.();
                 }}
               >

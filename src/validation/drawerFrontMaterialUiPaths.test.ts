@@ -21,6 +21,7 @@ import {
 import { generateDrawerGroup, drawerGroupToLayerItems } from "../core/drawers";
 import { settingsDefaults } from "../core/settings/settingsSchema";
 import { syncDrawerFrontMaterialToViewer } from "../industrial/viewerIntegration";
+import { setActiveViewerCore } from "../core/viewer/pimoViewerRuntime";
 
 vi.mock("../3d/objects/BoxMaterialApplier", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../3d/objects/BoxMaterialApplier")>();
@@ -150,7 +151,7 @@ describe("drawer front material — caminhos UI e contrato viewer", () => {
 
     beforeEach(() => {
       updateDrawerMaterial.mockClear();
-      vi.stubGlobal("window", { viewerCore: { updateDrawerMaterial } });
+      setActiveViewerCore({ updateDrawerMaterial } as never);
       vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
         cb(0);
         return 0;
@@ -158,10 +159,11 @@ describe("drawer front material — caminhos UI e contrato viewer", () => {
     });
 
     afterEach(() => {
+      setActiveViewerCore(null);
       vi.unstubAllGlobals();
     });
 
-    it("delega a viewerCore.updateDrawerMaterial com id canónico", () => {
+    it("delega a PimoViewerApi.updateDrawerMaterial com id canónico", () => {
       syncDrawerFrontMaterialToViewer("box-1", "drawer-1", "mdf_branco");
       expect(updateDrawerMaterial).toHaveBeenCalledWith(
         "box-1",

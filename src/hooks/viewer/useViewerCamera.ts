@@ -1,9 +1,10 @@
 /**
  * Hook especializado para câmera do viewer.
- * Obtém a API de câmera a partir de window.viewerCore.
+ * Obtém a API de câmera a partir do runtime canónico (`getActiveViewerCore`).
  */
 import { useMemo } from "react";
 import { isViewerCoreReady } from "../../core/viewer/viewerReadiness";
+import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 
 const NOOP = () => {};
 const NOOP_RETURN_UNDEFINED = () => undefined;
@@ -20,11 +21,10 @@ const CAMERA_NOOP_API = {
 } as const;
 
 export function useViewerCamera() {
-  const viewerCore =
-    typeof window !== "undefined" ? (window as Window).viewerCore : undefined;
+  const viewerCore = getActiveViewerCore() ?? undefined;
 
   return useMemo(() => {
-    if (!isViewerCoreReady(viewerCore)) return CAMERA_NOOP_API;
+    if (!isViewerCoreReady(viewerCore) || !viewerCore) return CAMERA_NOOP_API;
 
     const bind = (fn: ((..._args: unknown[]) => unknown) | undefined) =>
       fn ? fn.bind(viewerCore) : NOOP;

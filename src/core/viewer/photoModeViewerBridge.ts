@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import type { Viewer } from "../../3d/core/Viewer";
 import type { ViewerBackgroundMode } from "../../context/projectTypes";
+import { getActiveViewerCore } from "./pimoViewerRuntime";
 
 export type PhotoModeLightBaseline = {
   key: number;
@@ -77,9 +78,7 @@ function getInternals(viewer: Viewer): ViewerInternals | null {
 }
 
 export function getViewerFromWindow(): Viewer | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as { viewerCore?: Viewer | undefined };
-  return w.viewerCore ?? null;
+  return (getActiveViewerCore() as unknown as Viewer | null) ?? null;
 }
 
 export function captureLightBaseline(viewer: Viewer): PhotoModeLightBaseline | null {

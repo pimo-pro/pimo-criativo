@@ -7,6 +7,7 @@ import type { Viewer } from "../3d/core/Viewer";
 import type { PimoViewerApi } from "../context/PimoViewerContextCore";
 import { PIMO_VIEWER_STUBS } from "../context/pimoViewerStubApi";
 import { isViewerCoreReady } from "../core/viewer/viewerReadiness";
+import { getActiveViewerCore } from "../core/viewer/pimoViewerRuntime";
 
 /** Nomes de métodos do viewerCore que devem ser expostos na API (override dos stubs). */
 const VIEWER_CORE_SETTING_METHODS = [
@@ -85,6 +86,51 @@ const VIEWER_CORE_INDUSTRIAL_DESIGN_METHODS = [
   "refreshIndustrialDesignValidation",
 ] as const;
 
+/** Métodos vivos do ViewerCore migrados da API global para a fachada PimoViewerApi. */
+const VIEWER_CORE_FACADE_METHODS = [
+  "syncOrlaVisuals",
+  "syncRemateVisuals",
+  "syncHematiVisuals",
+  "syncRodapeVisuals",
+  "refreshTransformControlsAttachment",
+  "resolveFinishCollisionAfterSync",
+  "setOnMultiSelectToggle",
+  "setMultiSelectionOutlines",
+  "setGroupTransformMembers",
+  "clearGroupTransformMembers",
+  "setOnTransformDragStart",
+  "setOnTransformDragEnd",
+  "syncMeasurementAnchors",
+  "addMeasurementAnchorAtPointer",
+  "isPointerOnSelectableObject",
+  "getSelectionIdsInScreenRect",
+  "bindInternalMeasurementBridge",
+  "bindAutoLayoutBridge",
+  "bindOrlaBridge",
+  "bindRemateBridge",
+  "bindHematiBridge",
+  "bindRodapeBridge",
+  "bindDivSepBridge",
+  "getBoxWorldMatrix",
+  "getRemateMesh",
+  "selectRemate",
+  "selectRodape",
+  "selectHemati",
+  "selectDivSep",
+  "setOnRemateTransform",
+  "setOnRemateSelected",
+  "setOnRodapeSelected",
+  "setOnHematiTransform",
+  "setOnRodapeTransform",
+  "setOnDivSepTransform",
+  "applyRemateKeyboardTransform",
+  "applyMaterialPreset",
+  "getCameraPosition",
+  "setCameraPosition",
+  "setCameraZoom",
+  "getCameraZoom",
+] as const;
+
 /**
  * Retorna uma API plana para o viewer (boxes, room, camera, materials, ruler).
  * Métodos do ViewerCore só são expostos após `viewerReady === true`.
@@ -94,8 +140,7 @@ export function usePimoViewer() {
   const room = useViewerRoom();
   const camera = useViewerCamera();
   const materials = useViewerMaterials();
-  const viewerCore =
-    typeof window !== "undefined" ? window.viewerCore ?? undefined : undefined;
+  const viewerCore = getActiveViewerCore() ?? undefined;
   const coreReady = isViewerCoreReady(viewerCore);
   const viewerRef = useRef<Viewer | null>(null);
 
@@ -114,6 +159,7 @@ export function usePimoViewer() {
               ...VIEWER_CORE_SETTING_METHODS,
               ...VIEWER_CORE_UTILITY_METHODS,
               ...VIEWER_CORE_INDUSTRIAL_DESIGN_METHODS,
+              ...VIEWER_CORE_FACADE_METHODS,
             ].reduce<Record<string, unknown>>((acc, name) => {
               const fn = (viewerCore as Record<string, unknown>)[name];
               if (typeof fn === "function") acc[name] = fn.bind(viewerCore);
@@ -123,20 +169,25 @@ export function usePimoViewer() {
         getBoxIdByMesh:
           coreReady &&
           viewerCore &&
-          typeof (viewerCore as { getBoxIdByMeshPublic?: unknown }).getBoxIdByMeshPublic === "function"
-            ? (viewerCore as { getBoxIdByMeshPublic: (..._args: unknown[]) => unknown }).getBoxIdByMeshPublic.bind(viewerCore)
+          typeof viewerCore.getBoxIdByMeshPublic === "function"
+            ? viewerCore.getBoxIdByMeshPublic.bind(viewerCore)
             : PIMO_VIEWER_STUBS.getBoxIdByMesh,
+        getTransformControlsDragging:
+          coreReady && viewerCore
+            ? () => viewerCore.viewerState?.getTransformControlsDragging?.() === true
+            : () => false,
+        settings: coreReady ? viewerCore?.settings : undefined,
         internalRuler:
-          coreReady && viewerCore && (viewerCore as { internalRuler?: PimoViewerApi["internalRuler"] }).internalRuler
-            ? (viewerCore as { internalRuler: NonNullable<PimoViewerApi["internalRuler"]> }).internalRuler
+          coreReady && viewerCore && viewerCore.internalRuler
+            ? viewerCore.internalRuler
             : PIMO_VIEWER_STUBS.internalRuler,
         snapping:
-          coreReady && viewerCore && (viewerCore as { snapping?: PimoViewerApi["snapping"] }).snapping
-            ? (viewerCore as { snapping: NonNullable<PimoViewerApi["snapping"]> }).snapping
+          coreReady && viewerCore && viewerCore.snapping
+            ? viewerCore.snapping
             : PIMO_VIEWER_STUBS.snapping,
         autoLayout:
-          coreReady && viewerCore && (viewerCore as { autoLayout?: PimoViewerApi["autoLayout"] }).autoLayout
-            ? (viewerCore as { autoLayout: NonNullable<PimoViewerApi["autoLayout"]> }).autoLayout
+          coreReady && viewerCore && viewerCore.autoLayout
+            ? viewerCore.autoLayout
             : PIMO_VIEWER_STUBS.autoLayout,
         smartLayout: coreReady ? viewerCore?.smartLayout : undefined,
         intelligentDesigner: coreReady ? viewerCore?.intelligentDesigner : undefined,

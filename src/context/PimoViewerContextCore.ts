@@ -13,6 +13,113 @@ import type {
 } from "./projectTypes";
 import type { Viewer } from "../3d/core/Viewer";
 import type { MouseMenuTarget } from "../ui/context-menu/ContextMenuEngine";
+import type { MeasurementAnchorEntry } from "../core/viewer/measurementAnchors";
+
+export type IntelligentDesignerStyleId =
+  | "modern"
+  | "nordic"
+  | "industrial"
+  | "minimalist"
+  | "classic"
+  | "scandinavian"
+  | "japandi"
+  | "luxury";
+
+export type FinishFreeTransformPatch = {
+  transform: {
+    xMm: number;
+    yMm: number;
+    zMm: number;
+    rotacaoXRad: number;
+    rotacaoYRad: number;
+    rotacaoZRad: number;
+  };
+  placementFree: boolean;
+};
+
+export type PimoViewerSmartLayoutApi = {
+  autoWallFill: (_wallId: string | number, _moduleBoxId: string) => boolean;
+  previewAutoWallFill: (_wallId: string | number, _moduleBoxId: string) => boolean;
+  autoRoomFill: (_seedBoxId?: string) => boolean;
+  autoDistribute: (_boxIds: string[]) => boolean;
+  autoStackShelves: (
+    _boxId: string,
+    _options: { count: number; topMarginMm: number; bottomMarginMm: number }
+  ) => boolean;
+  applyPredictiveLayout: () => boolean;
+  rejectPredictiveLayout: () => void;
+  hasPredictiveLayout: () => boolean;
+};
+
+export type PimoViewerIntelligentDesignerApi = {
+  generateDesigns: (_seedBoxId: string) => boolean;
+  generateVariations: () => boolean;
+  previewDesign: (_id: "A" | "B" | "C") => boolean;
+  applyDesign: (_id: "A" | "B" | "C") => boolean;
+  refineLayout: () => boolean;
+  learnPreferences: () => string;
+  explainDecision: (_id?: "A" | "B" | "C") => string;
+  previewStyle: (_styleId: IntelligentDesignerStyleId, _seedBoxId: string) => boolean;
+  applyStyle: (_styleId: IntelligentDesignerStyleId, _seedBoxId: string) => boolean;
+  explainStyle: (_styleId?: IntelligentDesignerStyleId) => string;
+  listStyles: () => Array<{ id: IntelligentDesignerStyleId; label: string }>;
+};
+
+export type PimoViewerCostEstimatorApi = {
+  generateCostReport: (
+    _seedBoxId?: string
+  ) => import("../3d/viewer-engine/snapping/costTypes").CostFullReport;
+  summarizeForUI: (
+    _seedBoxId?: string
+  ) => import("../3d/viewer-engine/snapping/costTypes").CostUiSummary;
+  score: () => number;
+  compareDesigns: (_seedBoxId: string) => unknown;
+  compareStyles: () => unknown;
+  estimateChangeImpact: (_change: {
+    depthDeltaMm?: number;
+    heightDeltaMm?: number;
+    moduleCountDelta?: number;
+    remateCountDelta?: number;
+    rodapeCountDelta?: number;
+  }) => { summary: string; deltaPercent: number; projectedCost: number };
+  suggestCheaper: (_seedBoxId: string) => boolean;
+  suggestPremium: (_seedBoxId: string) => boolean;
+  suggestBalanced: (_seedBoxId: string) => boolean;
+};
+
+export type PimoViewerManufacturingApi = {
+  generateReport: () => import("../3d/viewer-engine/snapping/manufacturingTypes").ManufacturingFullReport;
+  getReport: () => import("../3d/viewer-engine/snapping/manufacturingTypes").ManufacturingUiReport;
+  autoFix: () => { ok: boolean; message: string; score: number };
+  score: () => number;
+  previewFixes: () => boolean;
+  applySuggestedFixes: () => boolean;
+};
+
+export type PimoViewerConversationalDesignerApi = {
+  sendMessage: (
+    _text: string,
+    _seedBoxId: string
+  ) => {
+    assistantText: string;
+    applied: boolean;
+    suggestion?: string;
+  };
+  quickAction: (
+    _action: "moreSpace" | "moreSymmetry" | "minimal" | "optimizeWall" | "variations",
+    _seedBoxId: string
+  ) => {
+    assistantText: string;
+    applied: boolean;
+    suggestion?: string;
+  };
+  getHistory: () => Array<{
+    role: "user" | "assistant";
+    text: string;
+    timestamp: number;
+  }>;
+  explain: () => string;
+};
 
 export type PimoViewerApi = {
   viewerRef: React.MutableRefObject<Viewer | null>;
@@ -178,11 +285,14 @@ export type PimoViewerApi = {
       _options: { count: number; topMarginMm: number; bottomMarginMm: number }
     ) => boolean;
   };
-  smartLayout?: NonNullable<Window["viewerCore"]>["smartLayout"];
-  intelligentDesigner?: NonNullable<Window["viewerCore"]>["intelligentDesigner"];
-  conversationalDesigner?: NonNullable<Window["viewerCore"]>["conversationalDesigner"];
-  manufacturing?: NonNullable<Window["viewerCore"]>["manufacturing"];
-  costEstimator?: NonNullable<Window["viewerCore"]>["costEstimator"];
+  settings?: {
+    enableSmartAlignSnap: boolean;
+  };
+  smartLayout?: PimoViewerSmartLayoutApi;
+  intelligentDesigner?: PimoViewerIntelligentDesignerApi;
+  conversationalDesigner?: PimoViewerConversationalDesignerApi;
+  manufacturing?: PimoViewerManufacturingApi;
+  costEstimator?: PimoViewerCostEstimatorApi;
   /** Retorna o alvo do ponteiro para o menu de contexto inteligente. */
   getContextMenuLayerHit?: (_event: { clientX: number; clientY: number }) => MouseMenuTarget | null;
   getRightmostX?: () => number;
@@ -295,6 +405,120 @@ export type PimoViewerApi = {
   ) => void;
   getIndustrialDesignValidationIssues?: () => import("../core/industrialDesigner/geometryValidation").DesignValidationIssue[];
   refreshIndustrialDesignValidation?: () => import("../core/industrialDesigner/geometryValidation").DesignValidationIssue[];
+  applyMaterialPreset?: (_presetId: unknown) => void;
+  getCameraPosition?: () => unknown;
+  setCameraPosition?: (..._args: unknown[]) => void;
+  setCameraZoom?: (..._args: unknown[]) => void;
+  getCameraZoom?: () => unknown;
+  setOnMultiSelectToggle?: (_callback: ((_encodedId: string) => void) | null) => void;
+  setMultiSelectionOutlines?: (_ids: string[]) => void;
+  setGroupTransformMembers?: (_ids: string[]) => void;
+  clearGroupTransformMembers?: () => void;
+  setOnTransformDragStart?: (_callback: (() => void) | null) => void;
+  setOnTransformDragEnd?: (_callback: (() => void) | null) => void;
+  syncMeasurementAnchors?: (
+    _anchors: MeasurementAnchorEntry[],
+    _selectedMesh?: unknown
+  ) => void;
+  addMeasurementAnchorAtPointer?: (_event: { clientX: number; clientY: number }) => {
+    id: string;
+    position: { x: number; y: number; z: number };
+    label?: string;
+    createdAt: number;
+  } | null;
+  isPointerOnSelectableObject?: (_event: { clientX: number; clientY: number }) => boolean;
+  getSelectionIdsInScreenRect?: (
+    _rect: { left: number; top: number; right: number; bottom: number },
+    _canvas: HTMLCanvasElement
+  ) => string[];
+  bindInternalMeasurementBridge?: (
+    _getMeasurements: () => import("../3d/viewer-engine/measurement/unifiedMeasurementTypes").UnifiedMeasurement[],
+    _onSaved: (_entry: import("../3d/viewer-engine/measurement/unifiedMeasurementTypes").UnifiedMeasurement) => void
+  ) => void;
+  bindAutoLayoutBridge?: (
+    _bridge: Pick<
+      import("../3d/viewer-engine/autoLayout/autoLayoutTypes").AutoLayoutBridge,
+      "getWorkspaceBoxes" | "applyPlan"
+    > & {
+      runProjectRoomFill?: () => boolean;
+      getRoomLabelHint?: () => string | undefined;
+    }
+  ) => void;
+  bindOrlaBridge?: (
+    _bridge: Pick<
+      import("../3d/viewer-engine/orla/OrlaVisualizer").OrlaVisualBridge,
+      "getBoxOrlaConfig"
+    > | null
+  ) => void;
+  bindRemateBridge?: (
+    _bridge: Pick<
+      import("../3d/viewer-engine/remate/RematePieceVisualizer").RematePieceVisualBridge,
+      "listRematePieces" | "getBoxConfig" | "getBoxWorldMatrix"
+    > | null
+  ) => void;
+  bindHematiBridge?: (
+    _bridge: Pick<
+      import("../3d/viewer-engine/hemati/HematiVisualizer").HematiVisualBridge,
+      "getBoxHematiConfig" | "listBoxHematiConfigs" | "getBoxWorldMatrix"
+    > | null
+  ) => void;
+  bindRodapeBridge?: (
+    _bridge: Pick<
+      import("../3d/viewer-engine/rodape/RodapeVisualizer").RodapeVisualBridge,
+      "getBoxRodapeConfig" | "listBoxRodapeConfigs" | "getBoxWorldMatrix"
+    > | null
+  ) => void;
+  bindDivSepBridge?: (
+    _bridge: import("../3d/viewer-engine/divSep/DivSepVisualBridge").DivSepVisualBridge | null
+  ) => void;
+  syncOrlaVisuals?: () => void;
+  syncRemateVisuals?: () => void;
+  syncHematiVisuals?: () => void;
+  syncRodapeVisuals?: () => void;
+  refreshTransformControlsAttachment?: () => void;
+  resolveFinishCollisionAfterSync?: (_params: { remateId?: string; rodapeId?: string }) => void;
+  getTransformControlsDragging?: () => boolean;
+  getBoxWorldMatrix?: (_boxId: string) => import("three").Matrix4 | null;
+  getRemateMesh?: (_remateId: string) => import("three").Object3D | null;
+  selectRemate?: (_remateId: string | null) => void;
+  selectRodape?: (_rodapeId: string | null) => void;
+  selectHemati?: (_hematiId: string | null) => void;
+  selectDivSep?: (
+    _selection: { boxId: string; kind: "div" | "sep"; itemId: string } | null
+  ) => void;
+  setOnRemateTransform?: (
+    _callback:
+      | ((
+          remateId: string,
+          patch: import("../core/remate/rematePieceTypes").UpdateRematePieceInput
+        ) => void)
+      | null
+  ) => void;
+  setOnRemateSelected?: (_callback: ((_remateId: string | null) => void) | null) => void;
+  setOnRodapeSelected?: (_callback: ((_rodapeId: string | null) => void) | null) => void;
+  setOnHematiTransform?: (
+    _callback: ((hematiId: string, patch: FinishFreeTransformPatch) => void) | null
+  ) => void;
+  setOnRodapeTransform?: (
+    _callback: ((rodapeId: string, patch: FinishFreeTransformPatch) => void) | null
+  ) => void;
+  setOnDivSepTransform?: (
+    _callback:
+      | ((
+          params: {
+            boxId: string;
+            kind: "div" | "sep";
+            itemId: string;
+            positionMm: number;
+          }
+        ) => void)
+      | null
+  ) => void;
+  applyRemateKeyboardTransform?: (
+    _remateId: string,
+    _arrowKey: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight",
+    _options?: { stepMm?: number; stepDeg?: number; shiftKey?: boolean }
+  ) => boolean;
 };
 
 export type PimoViewerContextValue = {

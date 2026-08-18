@@ -1138,14 +1138,14 @@ export class ViewerCore {
     return this.viewerState.getCurrentMode();
   }
 
-  /** True após inicialização completa (eventos, loop, boxes). Único sinal para expor window.viewerCore. */
+  /** True após inicialização completa (eventos, loop, boxes). Único sinal para expor a API pública. */
   get viewerReady(): boolean {
     return this.viewerReadyFlag;
   }
 
   /**
    * Regista callback para quando o viewer está pronto.
-   * Workspace deve atribuir window.viewerCore apenas dentro deste callback.
+   * Workspace deve chamar `setActiveViewerCore` (e a ponte `window.viewerCore`) só neste callback.
    */
   setOnViewerReady(callback: (() => void) | null): void {
     if (!callback) return;

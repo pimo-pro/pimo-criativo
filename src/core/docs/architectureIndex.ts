@@ -144,7 +144,7 @@ export const DATA_FLOWS: DataFlowRef[] = [
   { id: "flow-1", name: "Workspace → MultiBoxManager → Viewer", from: "Workspace", to: "Viewer", description: "Inicialização e orquestração da sincronização" },
   { id: "flow-2", name: "workspaceBoxes → useCalculadoraSync → viewerApi", from: "ProjectContext.workspaceBoxes", to: "viewerApi.addBox/updateBox/removeBox", description: "Sincronização de boxes paramétricos" },
   { id: "flow-3", name: "UI (Painéis) → useProject actions → ProjectProvider", from: "LeftPanel/RightPanel/Toolbar", to: "ProjectContext.actions", description: "Entrada principal de alterações de estado" },
-  { id: "flow-4", name: "ProjectProvider → Workspace → Viewer", from: "project/workspaceBoxes", to: "viewerApi + window.viewerCore", description: "Render e sincronização visual" },
+  { id: "flow-4", name: "ProjectProvider → Workspace → Viewer", from: "project/workspaceBoxes", to: "PimoViewerApi", description: "Render e sincronização visual" },
   { id: "flow-5", name: "UI Exportar → useGerarArquivoHandlers → Engines", from: "Workspace modal", to: "CutLayout/PDF/CNC/DRILL", description: "Exportação de layout, PDFs, TCN e Drill XML" },
   {
     id: "flow-6",

@@ -26,6 +26,7 @@ import WoodGrainRotationToggle from "../material/WoodGrainRotationToggle";
 import WoodGrainLockToggle from "../material/WoodGrainLockToggle";
 import GroupedMaterialSelect from "../material/GroupedMaterialSelect";
 import { measureRemateGap, measureRemateGapToBox } from "../../../core/remate/remateGapMeasure";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import RemateRulesSection from "./RemateRulesSection";
 import TampoCutoutPropertiesPanel from "./TampoCutoutPropertiesPanel";
 import TampoUnionPanel from "./TampoUnionPanel";
@@ -176,6 +177,7 @@ function LRemateDimensionsCards({ ext, int, thicknessMm, actions }: LRemateDimen
 
 export default function RematePropertiesPanel({ remateId }: Props) {
   const { project, actions } = useProject();
+  const { viewerApi } = usePimoViewerContext();
   const setSelectedObject = useUiStore((s) => s.setSelectedObject);
   const selectedObject = useUiStore((s) => s.selectedObject);
   const remate = (project.remates ?? []).find((r) => r.id === remateId);
@@ -565,7 +567,7 @@ export default function RematePropertiesPanel({ remateId }: Props) {
             const newId = actions.duplicateRemate(remate.id);
             if (newId) {
               setSelectedObject({ type: "remate", id: newId });
-              window.viewerCore?.selectRemate?.(newId);
+              viewerApi.selectRemate?.(newId);
             }
           }}
         >
@@ -580,7 +582,7 @@ export default function RematePropertiesPanel({ remateId }: Props) {
               const newId = actions.createOppositeRemate(remate.id);
               if (newId) {
                 setSelectedObject({ type: "remate", id: newId });
-                window.viewerCore?.selectRemate?.(newId);
+                viewerApi.selectRemate?.(newId);
               }
             }}
           >

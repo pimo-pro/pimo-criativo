@@ -1,9 +1,10 @@
 /**
  * Hook especializado para sala e paredes no viewer.
- * Obtém a API de sala a partir de window.viewerCore.
+ * Obtém a API de sala a partir do runtime canónico (`getActiveViewerCore`).
  */
 import { useMemo } from "react";
 import { isViewerCoreReady } from "../../core/viewer/viewerReadiness";
+import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 
 const NOOP = () => {};
 const NOOP_RETURN_FALSE = () => false;
@@ -46,11 +47,10 @@ const ROOM_NOOP_API = {
 } as const;
 
 export function useViewerRoom() {
-  const viewerCore =
-    typeof window !== "undefined" ? (window as Window).viewerCore : undefined;
+  const viewerCore = getActiveViewerCore() ?? undefined;
 
   return useMemo(() => {
-    if (!isViewerCoreReady(viewerCore)) return ROOM_NOOP_API;
+    if (!isViewerCoreReady(viewerCore) || !viewerCore) return ROOM_NOOP_API;
 
     const room = viewerCore.roomManager;
     const bindMaybe = (

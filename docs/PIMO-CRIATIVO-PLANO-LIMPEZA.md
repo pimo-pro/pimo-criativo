@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.20 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.5** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2.1–Z-01.2.5; restante Z-01.2 em **planeamento** |
+| **Versão do plano** | 1.21 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.6** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2.1–Z-01.2.6; restante Z-01.2 em **planeamento** |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Próximo código Viewer: **Z-01.2.6** (migrar API global → `PimoViewerApi`) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Próximo código Viewer: **Z-01.2.7** (extrair módulos A→E) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -763,7 +763,7 @@ Nenhum passo avança sem: `aplica Z-01 — extrair módulo X` (X = ID da linha).
 | **Z-01.2.3** | Unificar snap | `SnapEngine.applyDuringTranslate` / `applyBoxTranslatePipeline`; ordem SmartAlign → TransformConstraints; SmartSnapping overlay-only | Alterar tolerâncias de produto sem testes de drag | **Executado** 18-08-2026 |
 | **Z-01.2.4** | Unificar auto-fill | Uma fachada `LayoutEngine`; Kitchen 3.0 (`core/autoRoomFill`) é o canónico de **projecto**; 3D preview opcional | Apagar `core/autoRoomFill` | **Executado** 18-08-2026 |
 | **Z-01.2.5** | `ProjectLoader` + `ProjectFormatAdapter` | Esqueleto + adapter `pimo-project` + gancho GLB existente | Parsers DXF/IFC/STEP; qualquer gerador industrial | **Executado** 18-08-2026 |
-| **Z-01.2.6** | Migrar API global → `PimoViewerApi` | ContextMenu e remates deixam `window.viewerCore`; tipos em `viewerCoreWindow.d.ts` encolhem | Remover o global no mesmo passo se HMR/Workspace ainda o atribuir | Adapter já existe |
+| **Z-01.2.6** | Migrar API global → `PimoViewerApi` | ContextMenu e remates deixam `window.viewerCore`; tipos em `viewerCoreWindow.d.ts` encolhem | Remover o global no mesmo passo se HMR/Workspace ainda o atribuir | **Executado** 18-08-2026 |
 | **Z-01.2.7** | Extrair módulos A → E | Lighting, Composer, Selection, Room API, Box fachada, Finish sync, Camera presets | Mudança de comportamento visual | 2.1–2.4 estáveis |
 | **Z-01.2.8** | Testes de fachada | `viewerReady`, addBox, setMeasurementMode, dispose, load `pimo-project` mínimo | jsdom Three completo no primeiro PR | Após 2.7 ou por módulo |
 | **Z-01.2.9** | Lazy-init engines pesadas | designer / cost / manufacturing / conversational só ao abrir PainelSala | Alterar algoritmos desses engines | 2.7 |
@@ -817,7 +817,7 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 7. `events.emit` (F-08) — **removido** em Z-01.2.1; Events System continua F-05 (sem código).
 8. Documentar `industrialReady: false` em qualquer import CAD na UI, para o operador não exportar CNC de malha não paramétrica.
 
-**Z-01.2.1 a Z-01.2.5 executados** em 18-08-2026. Próximo código possível: **Z-01.2.6** (migrar API global → `PimoViewerApi`).
+**Z-01.2.1 a Z-01.2.6 executados** em 18-08-2026. Próximo código possível: **Z-01.2.7** (extrair módulos A→E).
 
 ### 6.2.10 Relatório de execução — Z-01.2.1 (18 de Agosto de 2026)
 
@@ -925,7 +925,21 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 
 **Testes:** `ProjectLoader.test.ts` — identidade 600 mm; GLB não industrial; CAD futuro rejeitado.
 
----
+### 6.2.15 Relatório de execução — Z-01.2.6 (18 de Agosto de 2026)
+
+**Gatilho:** «Quero avançar para a execução da fase Z-01.2.6» — migração `window.viewerCore` → `PimoViewerApi`, aprovado pelo dono do produto.
+
+**Runtime canónico:** `src/core/viewer/pimoViewerRuntime.ts` — `setActiveViewerCore` / `getActiveViewerCore` e `setActivePimoViewerApi` / `getActivePimoViewerApi`.
+
+**Fachada:** `PimoViewerApi` passa a incluir a superfície pública que estava só em `viewerCoreWindow.d.ts` (sync finish, selecção remate/rodapé, bridges, medição, smartLayout/designer, etc.). `usePimoViewer` copia esses métodos do core activo.
+
+**Consumidores migrados:** Workspace, ContextMenu, remates, rodapé, regras de ORLA, Photo Mode, `remateGapMeasure`, `roomMeshFromWallStore`, `industrial/viewerIntegration`, hooks `useViewerBoxes` / `Room` / `Camera` / `Materials`.
+
+**Ponte:** Workspace continua a atribuir `window.viewerCore` em `setOnViewerReady` (HMR / dispose). `viewerCoreWindow.d.ts` encolhe para `viewerCore?: PimoViewerApi`. Aliases mortos (`setBoxSpacing` / `updateBoxSpacing`) saíram do `d.ts`; **não** foram apagados do ViewerCore.
+
+**Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, RoomManager, SnapEngine, LayoutEngine, comportamento visual.
+
+**Testes:** `pimoViewerRuntime.test.ts`; `drawerFrontMaterialUiPaths.test.ts` passa a usar o runtime (não o global).
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -1222,6 +1236,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.18 | **Z-01.2.3 executado:** `SnapEngine` orquestra SmartAlign → TransformConstraints/ModelWallSnap; SmartSnapping overlay-only. Tag `z-01-2-3-snap`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.19 | **Z-01.2.4 executado:** `LayoutEngine` orquestra auto-fill; Kitchen 3.0 canónico de projecto; autoLayout/smartLayout 3D como adapters. Tag `z-01-2-4-autofill`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.20 | **Z-01.2.5 executado:** `ProjectLoader` + `ProjectFormatAdapter`; identidade PIMO; gancho GLB; DXF/IFC/STEP só detecção. Tag `z-01-2-5-loader-adapter`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.21 | **Z-01.2.6 executado:** superfície pública unificada em `PimoViewerApi`; `window.viewerCore` só ponte; `viewerCoreWindow.d.ts` encolhido. Tag `z-01-2-6-pimo-viewer-api`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1435,6 +1450,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **ViewerCore** | `loadGlbScene` no load GLB; `loadExternalProject` sem aplicar à cena |
 | **Intocado** | BoxBuilder, malha, RoomManager, SnapEngine, LayoutEngine, schema ProjectState, pipeline industrial |
 
+### 13.22 Changelog v1.20 → v1.21
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-01.2.6** | Runtime `pimoViewerRuntime`; consumidores de produto deixam `window.viewerCore` |
+| **API** | `PimoViewerApi` absorve a superfície pública; `viewerCoreWindow.d.ts` é ponte `PimoViewerApi` |
+| **Aliases** | `setBoxSpacing` / `updateBoxSpacing` saíram do `d.ts`; métodos vivos no ViewerCore **não** apagados |
+| **Intocado** | BoxBuilder, malha, RoomManager, SnapEngine, LayoutEngine, schema ProjectState, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1445,4 +1469,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.20).
+Fim do documento de planeamento (v1.21).
