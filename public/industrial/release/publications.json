@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-18T21:14:42.840Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix: qualidade 4K da captura e do modo Alta no Relatório Final",
+      "version": "v6.0818.2214"
+    },
+    {
       "publishedAt": "2026-08-18T20:32:26.049Z",
       "author": "pimo-pro",
       "commitMessage": "fix: corrigir tipos de emitFerragensTotalVisual (P3.28)",

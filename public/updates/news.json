@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-18T20:32:27.103Z",
+  "updatedAt": "2026-08-18T21:14:43.602Z",
   "news": [
+    {
+      "version": "v6.0818.2214",
+      "title": "fix: qualidade 4K da captura e do modo Alta no Relatório Final",
+      "description": "fix: qualidade 4K da captura e do modo Alta no Relatório Final",
+      "publishedAt": "2026-08-18T21:14:43.447Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "b5e873be"
+    },
     {
       "version": "v6.0818.2132",
       "title": "fix: corrigir tipos de emitFerragensTotalVisual (P3.28)",
       "description": "fix: corrigir tipos de emitFerragensTotalVisual (P3.28)",
-      "publishedAt": "2026-08-18T20:32:26.870Z",
+      "publishedAt": "2026-08-18T21:34:40+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "cb1544c8"
+      "commit": "0f28bb1"
     },
     {
       "version": "v6.0818.2129",
