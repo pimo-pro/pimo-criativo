@@ -103,7 +103,7 @@ export interface IViewerEventEngine {
   getOnBoxDoubleClick(): ((_boxId: string) => void) | null;
   getPointerActionForButton(_button: number): MouseButtonAction | null;
   shouldBlockPointerDownForSelection(_button: number): boolean;
-  /** Desativa/ativa OrbitControls. Deve ser false enquanto o utilizador arrasta um gizmo (TransformControls ou WallGizmo). */
+  /** Desliga orbit/pan enquanto um gizmo está a ser arrastado. O zoom da roda permanece activo. */
   setCameraControlsEnabled(_enabled: boolean): void;
   getInternalSelectionEnabled(): boolean;
   getInternalSelectionHit(_event: { clientX: number; clientY: number }): InternalSelectionState | null;

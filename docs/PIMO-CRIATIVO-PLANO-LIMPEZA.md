@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.29 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.4** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1–2.4 (painel de qualidade Baixa / Média / Alta) |
+| **Versão do plano** | 1.30 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1–2.5 (navegação Orbit/Pan/Zoom unificada no rato) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.5+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.6+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -1146,7 +1146,8 @@ Ordem proposta para gatilhos futuros (atómicos, reversíveis):
 | **Z-02.2** | **Executado** 18-08-2026: Escalar canónico activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais | Não alterar algoritmo de scale do gizmo; não tocar cutlist |
 | **Z-02.3** | **Executado** 18-08-2026: ícones SVG unificados na `UnifiedTopToolbar` (pedido do dono; proposta antiga de autosave adiada) | Não alterar `gerarESalvarDesign` nem lógica dos botões |
 | **Z-02.4** | **Executado** 18-08-2026: painel de qualidade simplificado para Baixa / Média / Alta; Ultra só no Photo Mode (pedido do dono; proposta antiga de CSS `.tools-3d-toolbar` adiada) | Não alterar LightingEngine, ComposerEngine, RoomManager, BoxBuilder nem schema ProjectState |
-| **Z-02.5** | Corrigir tooltip/aria da Sala; opcional: ícones câmara vs olho | Não alterar `RoomManager` nem criação de paredes |
+| **Z-02.5** | **Executado** 18-08-2026: Orbit/Pan/Zoom unificados no `MouseInputMapper` (pedido do dono; proposta antiga de tooltip da Sala adiada para Z-02.6) | Não alterar BoxBuilder, malha, RoomManager, ProjectState, SnapEngine, LayoutEngine |
+| **Z-02.6** | Corrigir tooltip/aria da Sala; opcional: ícones câmara vs olho | Não alterar `RoomManager` nem criação de paredes |
 
 ### 6.3.7 Sugestões de melhoria (texto only — **não executar**)
 
@@ -1265,6 +1266,33 @@ Photo: `photoModePanelOpen` → `setPhotoModeEnabled` (exposição) + `LeftPanel
 **Testes:** `tests/ui/displayQualityPresets.test.ts` (mapeamento Baixa/Média/Alta, sem WebGL).
 
 **Tag:** `z-02-4-quality-panel`.
+
+### 6.3.14 Relatório de execução — Z-02.5 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-02.5» / unificação completa de Orbit / Pan / Zoom no `MouseInputMapper`, aprovado pelo dono do produto.
+
+**Nota de ID:** a proposta original de Z-02.5 (tooltip/aria da Sala) **não** foi executada — o dono reatribuiu Z-02.5 à navegação do rato. O tooltip da Sala passa a **Z-02.6**.
+
+**Mapeamento canónico** (`CANONICAL_MOUSE_NAVIGATION`), igual para todos os presets persistidos (`cad` / `classic` / `orbitFriendly` / `mouseCentric`):
+
+| Gesto | Acção |
+|-------|--------|
+| Botão esquerdo | Orbit (`THREE.MOUSE.ROTATE`) |
+| Botão do meio | Pan |
+| Shift + esquerdo | Pan (nativo do OrbitControls quando LEFT = ROTATE) |
+| Roda | Zoom sempre |
+
+Não depende de `enabledTools` nem do tipo de peça (industrial vs GLB). `shouldBlockPointerDownForSelection` passa a `false`: a selecção fica no clique, o pointerdown esquerdo não interrompe o Orbit.
+
+**Zoom com gizmo/sala:** `applyCameraNavigationLock` desliga só rotate/pan; `enableZoom` permanece `true`. Botão do meio não entra no wall gizmo.
+
+**Toolbar:** `orbit` / `pan` removidos de `Tool3DId` e `TOOLS_3D_ITEMS` (já tinham saído da faixa na Z-02.1).
+
+**Intocado:** BoxBuilder, malha, RoomManager, schema ProjectState (`mousePreset` continua a existir mas a navegação ignora-o), SnapEngine, LayoutEngine, pipeline industrial.
+
+**Testes:** `tests/viewer/controls/MouseInputMapper.test.ts`; `enabledViewerTools.test.ts` garante que orbit/pan não voltam às ferramentas.
+
+**Tag:** `z-02-5-mouse-unification`.
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -1570,6 +1598,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.27 | **Z-02.2 executado:** Escalar activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais. Tag `z-02-2-scale-activation`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.28 | **Z-02.3 executado:** ícones SVG unificados na UnifiedTopToolbar. Tag `z-02-3-svg-icons`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.29 | **Z-02.4 executado:** painel de qualidade Baixa / Média / Alta; Ultra só no Photo Mode. Tag `z-02-4-quality-panel`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.30 | **Z-02.5 executado:** Orbit/Pan/Zoom unificados no MouseInputMapper. Tag `z-02-5-mouse-unification`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1867,6 +1896,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Persistência** | Reusa `materialQuality` + `enableReflections`; sem campos novos em ProjectState |
 | **Intocado** | LightingEngine, ComposerEngine, RoomManager, BoxBuilder, schema ProjectState, pipeline industrial |
 
+### 13.31 Changelog v1.29 → v1.30
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-02.5** | Orbit = esquerdo; Pan = meio e Shift+esquerdo; Zoom = roda sempre |
+| **Mapper** | Presets antigos deixam de alterar a navegação; `mousePreset` permanece no ProjectState |
+| **Toolbar** | IDs `orbit` / `pan` removidos de `TOOLS_3D_ITEMS` |
+| **Intocado** | BoxBuilder, malha, RoomManager, schema ProjectState, SnapEngine, LayoutEngine, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1877,4 +1915,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.29).
+Fim do documento de planeamento (v1.30).

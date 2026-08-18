@@ -10,10 +10,25 @@ export type MouseInputMapping = {
   wheelAction: "zoom";
 };
 
-/** Presets suportados pelo motor (inclui legado "orbital" → classic). */
+/** Presets persistidos em viewerSettings. A navegação canónica ignora-os (Z-02.5). */
 export type MouseInputPreset = "cad" | "classic" | "orbitFriendly" | "mouseCentric";
 
 const DISABLED_MOUSE = -1 as THREE.MOUSE;
+
+/**
+ * Navegação única do Viewer:
+ * - botão esquerdo → Orbit
+ * - botão do meio → Pan
+ * - Shift + esquerdo → Pan (nativo do OrbitControls quando LEFT = ROTATE)
+ * - roda → Zoom
+ * Independente de enabledTools, tipo de peça e modo (gizmo/sala/showcase/photo).
+ */
+export const CANONICAL_MOUSE_NAVIGATION: MouseInputMapping = {
+  leftClickAction: "orbit",
+  rightClickAction: "contextMenu",
+  middleClickAction: "pan",
+  wheelAction: "zoom",
+};
 
 export function normalizeMouseInputPreset(preset: string): MouseInputPreset {
   if (preset === "orbitFriendly" || preset === "mouseCentric") return preset;
@@ -21,38 +36,8 @@ export function normalizeMouseInputPreset(preset: string): MouseInputPreset {
   return "cad";
 }
 
-export function getMouseInputMapping(preset: MouseInputPreset): MouseInputMapping {
-  switch (preset) {
-    case "classic":
-      return {
-        leftClickAction: "orbit",
-        rightClickAction: "pan",
-        middleClickAction: "zoom",
-        wheelAction: "zoom",
-      };
-    case "orbitFriendly":
-      return {
-        leftClickAction: "select",
-        rightClickAction: "orbit",
-        middleClickAction: "pan",
-        wheelAction: "zoom",
-      };
-    case "mouseCentric":
-      return {
-        leftClickAction: "select",
-        rightClickAction: "contextMenu",
-        middleClickAction: "orbit",
-        wheelAction: "zoom",
-      };
-    case "cad":
-    default:
-      return {
-        leftClickAction: "pan",
-        rightClickAction: "orbit",
-        middleClickAction: "zoom",
-        wheelAction: "zoom",
-      };
-  }
+export function getMouseInputMapping(_preset?: MouseInputPreset): MouseInputMapping {
+  return { ...CANONICAL_MOUSE_NAVIGATION };
 }
 
 function actionToOrbitMouse(action: MouseButtonAction): THREE.MOUSE | typeof DISABLED_MOUSE {
@@ -71,13 +56,38 @@ function actionToOrbitMouse(action: MouseButtonAction): THREE.MOUSE | typeof DIS
   }
 }
 
+export type CameraNavigationLockTarget = {
+  enabled: boolean;
+  enableRotate: boolean;
+  enablePan: boolean;
+  enableZoom: boolean;
+};
+
+/**
+ * Durante o arrasto de um gizmo, desliga só orbit/pan.
+ * O zoom da roda permanece sempre activo.
+ */
+export function applyCameraNavigationLock(
+  controls: CameraNavigationLockTarget,
+  orbitPanEnabled: boolean
+): void {
+  controls.enabled = true;
+  controls.enableRotate = orbitPanEnabled;
+  controls.enablePan = orbitPanEnabled;
+  controls.enableZoom = true;
+}
+
 export function applyMouseInputMappingToOrbitControls(
   controls: OrbitControls,
-  mapping: MouseInputMapping
+  mapping: MouseInputMapping = CANONICAL_MOUSE_NAVIGATION
 ): void {
   controls.mouseButtons.LEFT = actionToOrbitMouse(mapping.leftClickAction);
   controls.mouseButtons.MIDDLE = actionToOrbitMouse(mapping.middleClickAction);
   controls.mouseButtons.RIGHT = actionToOrbitMouse(mapping.rightClickAction);
+  controls.enableRotate = true;
+  controls.enablePan = true;
+  controls.enableZoom = true;
+  controls.enabled = true;
 }
 
 export function getPointerActionForButton(
@@ -90,11 +100,10 @@ export function getPointerActionForButton(
   return null;
 }
 
-/** true quando pointerdown deve bloquear OrbitControls (seleção no pointerdown). */
+/** A selecção faz-se no clique; o pointerdown esquerdo não bloqueia o Orbit. */
 export function shouldBlockPointerDownForSelection(
-  mapping: MouseInputMapping,
-  button: number
+  _mapping: MouseInputMapping,
+  _button: number
 ): boolean {
-  const action = getPointerActionForButton(mapping, button);
-  return action === "select";
+  return false;
 }

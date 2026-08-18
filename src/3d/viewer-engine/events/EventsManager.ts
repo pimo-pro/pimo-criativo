@@ -320,66 +320,11 @@ export class EventsManager {
       this.isDraggingGizmo = false;
     }
 
-    if (event.button === 0 && e.getHighlightEnabled() && e.getHighlightManager()) {
-      if (e.shouldBlockPointerDownForSelection(event.button)) {
-        const hits = e.getHighlightIntersects(event);
-        const mesh = e.getHighlightManager()!.getSelectableMeshFromIntersects(hits);
-        if (mesh) {
-          const boxId = e.getBoxIdByMesh(mesh);
-          if (boxId != null) {
-            event.preventDefault();
-            event.stopPropagation();
-            e.getHighlightManager()!.setSelected(mesh);
-            e.setSelectedBox(boxId);
-            e.getOnRoomElementSelected()?.(null);
-            e.getOnWallSelected()?.(null);
-            e.setSuppressNextCanvasClick(true);
-            return;
-          }
-        }
-      }
-    }
-    if (event.button === 0 && e.shouldBlockPointerDownForSelection(event.button)) {
-      const divSepHit = e.getDivSepHitAtPointer(event);
-      if (divSepHit != null) {
-        event.preventDefault();
-        event.stopPropagation();
-        e.selectDivSep(divSepHit);
-        e.selectRemate(null);
-        e.setSuppressNextCanvasClick(true);
-        return;
-      }
-      const remateId = e.getRemateIdAtPointer(event);
-      if (remateId != null) {
-        event.preventDefault();
-        event.stopPropagation();
-        e.setHoveredRemate(remateId);
-        e.selectRemate(remateId);
-        e.getOnRemateSelected?.()?.(remateId);
-        e.setSuppressNextCanvasClick(true);
-        return;
-      }
-      const boxId = e.getBoxIdAtPointer(event);
-      if (import.meta.env.DEV) {
-        devLogger.debug("[SELECTION][EventsManager] pointerdown:boxId do raycast", {
-          boxId,
-          selectedBoxBeforeSet: e.getSelectedBoxId(),
-        });
-      }
-      if (boxId != null) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.selectBoxFromPointer(event, boxId);
-        e.setSuppressNextCanvasClick(true);
-        if (import.meta.env.DEV) {
-          devLogger.debug("[SELECTION][EventsManager] suppressNextCanvasClick=true", {
-            reason: "selected-box-on-pointerdown",
-            boxId,
-          });
-        }
-        e.logTransformDiagnostic("box-selected-pointerDown", { boxId });
-        return;
-      }
+    // Orbit/Pan/Zoom são do rato (MouseInputMapper). A selecção fica no clique, não no pointerdown.
+    if (event.button !== 0) {
+      this.isDraggingCamera = true;
+      this.isDraggingGizmo = false;
+      return;
     }
     if (e.getSelectedWallIndex() === null || !e.getWallGizmo()) {
       this.isDraggingCamera = true;

@@ -1,5 +1,6 @@
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as THREE from "three";
+import { applyMouseInputMappingToOrbitControls, getMouseInputMapping } from "./MouseInputMapper";
 
 export type ControlsOptions = {
   enableDamping?: boolean;
@@ -21,6 +22,7 @@ export class Controls {
     this.controls.maxDistance = options.maxDistance ?? 2000;
     if (options.minPolarAngle !== undefined) this.controls.minPolarAngle = options.minPolarAngle;
     if (options.maxPolarAngle !== undefined) this.controls.maxPolarAngle = options.maxPolarAngle;
+    applyMouseInputMappingToOrbitControls(this.controls, getMouseInputMapping());
   }
 
   update() {

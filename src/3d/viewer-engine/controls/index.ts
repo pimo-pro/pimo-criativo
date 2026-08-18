@@ -8,8 +8,10 @@ export {
   getMouseInputMapping,
   normalizeMouseInputPreset,
   applyMouseInputMappingToOrbitControls,
+  applyCameraNavigationLock,
   getPointerActionForButton,
   shouldBlockPointerDownForSelection,
+  CANONICAL_MOUSE_NAVIGATION,
 } from "./MouseInputMapper";
 export type {
   MouseButtonAction,

@@ -41,4 +41,18 @@ describe("resolveEnabledViewerTools (Z-02.2)", () => {
       })
     ).toEqual(["select"]);
   });
+
+  it("nunca inclui orbit/pan — navegação é do rato (Z-02.5)", () => {
+    const cases = [
+      { pieceLocked: false, remateSelected: false, nonIndustrialScalable: false },
+      { pieceLocked: false, remateSelected: false, nonIndustrialScalable: true },
+      { pieceLocked: true, remateSelected: false, nonIndustrialScalable: false },
+      { pieceLocked: false, remateSelected: true, nonIndustrialScalable: true },
+    ];
+    for (const input of cases) {
+      const tools = resolveEnabledViewerTools(input);
+      expect(tools).not.toContain("orbit");
+      expect(tools).not.toContain("pan");
+    }
+  });
 });

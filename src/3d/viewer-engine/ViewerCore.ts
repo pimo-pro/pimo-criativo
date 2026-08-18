@@ -27,6 +27,7 @@ import {
 } from "./composition/ViewerCompositionRoot";
 import {
   applyMouseInputMappingToOrbitControls,
+  applyCameraNavigationLock,
   getMouseInputMapping,
   getPointerActionForButton,
   normalizeMouseInputPreset,
@@ -2695,7 +2696,7 @@ export class ViewerCore {
     applyMouseInputMappingToOrbitControls(controls, mapping);
   }
 
-  /** Aplica o preset de botões do rato ao OrbitControls. Não bloqueia a órbita em nenhum modo (Selecionar, Mover, Rodar). */
+  /** Aplica o mapeamento canónico de Orbit/Pan/Zoom. Não depende da ferramenta activa. */
   private applyTransformControlsMouseGuard(): void {
     const controls = this.controls?.controls;
     if (!controls) return;
@@ -4886,7 +4887,9 @@ export class ViewerCore {
         return shouldBlockPointerDownForSelection(mapping, button);
       },
       setCameraControlsEnabled: (enabled) => {
-        if (this.controls?.controls) this.controls.controls.enabled = enabled;
+        if (this.controls?.controls) {
+          applyCameraNavigationLock(this.controls.controls, enabled);
+        }
       },
       getInternalSelectionEnabled: () => this.viewerState.getInternalSelectionEnabled(),
       getInternalSelectionHit: (e) => this.getInternalSelectionHit(e),
