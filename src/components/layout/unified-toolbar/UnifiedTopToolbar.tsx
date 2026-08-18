@@ -121,10 +121,14 @@ export default function UnifiedTopToolbar({
   useEffect(() => {
     viewerApiRef.current?.setPhotoModeEnabled?.(photoModePanelOpen);
     actionsRef.current.setViewerSettings({ photoModeEnabled: photoModePanelOpen });
+    if (!photoModePanelOpen) {
+      viewerApiRef.current?.setUltraPerformanceMode?.(false);
+    }
   }, [photoModePanelOpen]);
 
   useEffect(() => {
     return () => {
+      viewerApiRef.current?.setUltraPerformanceMode?.(false);
       viewerApiRef.current?.setPhotoModeEnabled?.(false);
       actionsRef.current.setViewerSettings({ photoModeEnabled: false });
       uiStore.getState().setPhotoModePanelOpen(false);

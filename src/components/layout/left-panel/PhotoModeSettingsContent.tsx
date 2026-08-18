@@ -52,6 +52,7 @@ export default function PhotoModeSettingsContent() {
   const [renderFormat, setRenderFormat] = useState<ViewerRenderFormat>("png");
   const [renderQuality, setRenderQuality] = useState<number>(0.92);
   const [advancedRealism, setAdvancedRealism] = useState<boolean>(false);
+  const [ultraEnabled, setUltraEnabled] = useState<boolean>(false);
   const [renderLoading, setRenderLoading] = useState(false);
   const [lineExportLoading, setLineExportLoading] = useState(false);
   const [lineDrawingBackground, setLineDrawingBackground] = useState<"white" | "transparent">("white");
@@ -62,6 +63,7 @@ export default function PhotoModeSettingsContent() {
     background: renderBackground,
     shadowIntensity: renderShadowIntensity,
     advancedRealism,
+    ultraEnabled,
     mode: renderMode,
   });
 
@@ -90,7 +92,7 @@ export default function PhotoModeSettingsContent() {
     shadowIntensity: renderShadowIntensity,
     format: renderFormat,
     quality: renderQuality,
-    advancedRealism,
+    advancedRealism: advancedRealism || ultraEnabled,
   });
 
   const handleDownload = async () => {
@@ -223,6 +225,19 @@ export default function PhotoModeSettingsContent() {
               <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{Math.round(renderShadowIntensity * 100)}%</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            className={`button ${ultraEnabled ? "" : "button-ghost"} photo-mode-option-button`}
+            aria-pressed={ultraEnabled}
+            onClick={() => setUltraEnabled((prev) => !prev)}
+          >
+            <span className="photo-mode-option-main">
+              <span className="modal-list-title">Ultra</span>
+              <span className="modal-list-meta">Preset máximo de iluminação e materiais. Só existe no Photo Mode.</span>
+            </span>
+            <span className="photo-mode-option-state">{ultraEnabled ? "ON" : "OFF"}</span>
+          </button>
 
           <button
             type="button"

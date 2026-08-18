@@ -44,6 +44,7 @@ import {
   toggleAllDrawersSequential,
   toggleDrawer,
 } from "../../../core/drawers/DrawerController";
+import { shouldEnableShowcaseForQualitySettings } from "../topbar/displayQualityPresets";
 
 type WorkspaceProps = {
   viewerBackground?: string;
@@ -722,21 +723,31 @@ const hasShownViewerReadyToastRef = useRef(false);
     viewerApi.setMousePreset?.(settings.mousePreset);
     if (!photoModePanelOpen) {
       viewerApi.setBackgroundMode?.(settings.backgroundMode);
+      // Ultra só no Photo Mode: desligar primeiro para não sobrescrever o preset com o restore do Ultra.
+      viewerApi.setUltraPerformanceModeOptions?.({
+        ...settings.ultraPerformanceModeOptions,
+        enabled: false,
+      });
+      viewerApi.setUltraPerformanceMode?.(false);
+      viewerApi.setMaterialQuality?.(settings.materialQuality);
+      viewerApi.setReflectionsEnabled?.(settings.enableReflections);
+      viewerApi.setShowcaseMode?.(
+        shouldEnableShowcaseForQualitySettings({
+          materialQuality: settings.materialQuality,
+          enableReflections: settings.enableReflections,
+        })
+      );
+      viewerApi.setGlobalLightIntensity?.(settings.globalLightIntensity);
+      viewerApi.setShadowIntensity?.(settings.shadowIntensity);
+      viewerApi.setGlossIntensity?.(settings.glossIntensity);
+      viewerApi.setMatteMode?.(settings.matteMode);
     }
-    viewerApi.setMaterialQuality?.(settings.materialQuality);
-    viewerApi.setReflectionsEnabled?.(settings.enableReflections);
     viewerApi.setPhotoModeEnabled?.(settings.photoModeEnabled);
     viewerApi.setExplodedViewEnabled?.(settings.explodedViewEnabled);
     viewerApi.setExplodedViewIntensity?.(settings.explodedViewIntensity);
     viewerApi.setHighlightEnabled?.(settings.highlightEnabled);
     // Régua unificada: um único modo canónico (`rulerEnabled` → MeasurementEngine.setEnabled).
     viewerApi.setMeasurementMode?.(settings.rulerEnabled);
-    viewerApi.setUltraPerformanceModeOptions?.(settings.ultraPerformanceModeOptions);
-    viewerApi.setUltraPerformanceMode?.(settings.ultraPerformanceModeOptions.enabled);
-    viewerApi.setGlobalLightIntensity?.(settings.globalLightIntensity);
-    viewerApi.setShadowIntensity?.(settings.shadowIntensity);
-    viewerApi.setGlossIntensity?.(settings.glossIntensity);
-    viewerApi.setMatteMode?.(settings.matteMode);
     viewerApi.setPanelRenderingEnabled?.(settings.panelRenderingEnabled);
   }, [project.viewerSettings, viewerApi, photoModePanelOpen]);
 

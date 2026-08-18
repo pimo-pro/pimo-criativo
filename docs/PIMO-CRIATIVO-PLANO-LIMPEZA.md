@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.28 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.3** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1–2.3 (ícones SVG unificados na toolbar) |
+| **Versão do plano** | 1.29 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.4** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1–2.4 (painel de qualidade Baixa / Média / Alta) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.4+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.5+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -1145,12 +1145,12 @@ Ordem proposta para gatilhos futuros (atómicos, reversíveis):
 | **Z-02.1** | **Executado** 18-08-2026: Orbit, Pan e 2.ª Scale removidos da faixa | Não alterar `OrbitControls` nem `MouseInputMapper` |
 | **Z-02.2** | **Executado** 18-08-2026: Escalar canónico activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais | Não alterar algoritmo de scale do gizmo; não tocar cutlist |
 | **Z-02.3** | **Executado** 18-08-2026: ícones SVG unificados na `UnifiedTopToolbar` (pedido do dono; proposta antiga de autosave adiada) | Não alterar `gerarESalvarDesign` nem lógica dos botões |
-| **Z-02.4** | CSS órfão `.tools-3d-toolbar`; config `enviar` / eventKeys mortos | Não ligar Events System nesta fase |
+| **Z-02.4** | **Executado** 18-08-2026: painel de qualidade simplificado para Baixa / Média / Alta; Ultra só no Photo Mode (pedido do dono; proposta antiga de CSS `.tools-3d-toolbar` adiada) | Não alterar LightingEngine, ComposerEngine, RoomManager, BoxBuilder nem schema ProjectState |
 | **Z-02.5** | Corrigir tooltip/aria da Sala; opcional: ícones câmara vs olho | Não alterar `RoomManager` nem criação de paredes |
 
 ### 6.3.7 Sugestões de melhoria (texto only — **não executar**)
 
-1. Painel de qualidade 100 % PT; separar «Qualidade standard» de «Ultra».
+1. Painel de qualidade 100 % PT; separar «Qualidade standard» de «Ultra». **Feito na Z-02.4** (Baixa/Média/Alta; Ultra no Photo Mode).
 2. Um único sítio para reflexos (qualidade **ou** visibilidade).
 3. Persistência de MC em `viewerSettings`.
 4. Decisão de produto: botão Zoom (dolly) vs só roda — hoje a API `setCameraZoom` está pronta.
@@ -1197,7 +1197,7 @@ Photo: `photoModePanelOpen` → `setPhotoModeEnabled` (exposição) + `LeftPanel
 **Confirmado:**
 - `enabledTools` continua `["select"]` se peça locked sem remate, senão `["select", "move", "rotate"]`.
 - `PRIMARY_3D_IDS` = `select, move, rotate, scale` (canónico intacto, ícone/tooltip inalterados).
-- `toolbarConfig.ts` / `Tool3DId` / ícones `orbit`/`pan` **não** alterados (consumidores activos da faixa = zero; config fica para Z-02.4).
+- `toolbarConfig.ts` / `Tool3DId` / ícones `orbit`/`pan` **não** alterados (consumidores activos da faixa = zero; config fica para fase posterior).
 - Motores A→E, BoxBuilder, malha, RoomManager, ProjectState, pipeline industrial: intocados.
 
 **Grep pós-remoção:** `item.id === "orbit"` / `"pan"` deixam de existir na UnifiedTopToolbar. Referências restantes: `toolbarConfig.ts` (definição), `IconGallery` / tipos de ícone, `MouseInputMapper` (rato — vivo).
@@ -1245,6 +1245,26 @@ Photo: `photoModePanelOpen` → `setPhotoModeEnabled` (exposição) + `LeftPanel
 **Intocado:** tooltips, `onClick`, motores A→E, BoxBuilder, malha, RoomManager, ProjectState, pipeline industrial, comportamento 3D.
 
 **Tag:** `z-02-3-svg-icons`.
+
+### 6.3.13 Relatório de execução — Z-02.4 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-02.4» / simplificação completa do botão Configuração de Qualidade, aprovado pelo dono do produto.
+
+**Nota de ID:** a proposta original de Z-02.4 (CSS órfão `.tools-3d-toolbar` e config `enviar`) **não** foi executada — o dono reatribuiu Z-02.4 ao painel de qualidade. O CSS órfão e os eventKeys mortos permanecem candidatos a fase posterior.
+
+**Painel (`DisplayMenuButton`):** apenas três presets — **Baixa** (luz simples, sem efeitos), **Média** (bloom leve via `setShowcaseMode`), **Alta** (bloom + reflexos via `enableReflections`). Removidos sliders de luz/sombra/gloss, Material Quality, Background, Modo Mate, perfil Ultra, «Quality» (que activava Ultra) e modo de escala padrão (o campo `defaultScalingMode` em `viewerSettings` permanece para o ContextMenu).
+
+**Persistência sem schema novo:** Baixa = `materialQuality: standard` + sem reflexos; Média = `premium` + sem reflexos; Alta = `premium` + reflexos. Ultra nunca fica `enabled` no trabalho diário.
+
+**Photo Mode:** toggle **Ultra** (sessão; APIs existentes `setUltraPerformanceMode`). Ao fechar o Photo Mode, Ultra desliga-se. «Realismo avançado» (showcase) mantém-se.
+
+**Sync:** `Workspace` aplica `setShowcaseMode` a partir do preset e força Ultra off fora do Photo Mode, para não lutar com o preview.
+
+**Intocado:** LightingEngine, ComposerEngine, RoomManager, BoxBuilder, schema ProjectState, pipeline industrial, `gerarESalvarDesign`.
+
+**Testes:** `tests/ui/displayQualityPresets.test.ts` (mapeamento Baixa/Média/Alta, sem WebGL).
+
+**Tag:** `z-02-4-quality-panel`.
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -1549,6 +1569,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.26 | **Z-02.1 executado:** Orbit, Pan e Escalar duplicado removidos da `UnifiedTopToolbar`. Escalar canónico mantido. Tag `z-02-1-remove-dead-buttons`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.27 | **Z-02.2 executado:** Escalar activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais. Tag `z-02-2-scale-activation`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.28 | **Z-02.3 executado:** ícones SVG unificados na UnifiedTopToolbar. Tag `z-02-3-svg-icons`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.29 | **Z-02.4 executado:** painel de qualidade Baixa / Média / Alta; Ultra só no Photo Mode. Tag `z-02-4-quality-panel`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1837,6 +1858,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Confirmado** | Photo Mode e Escalar já eram SVG |
 | **Intocado** | Tooltips, lógica, motores A→E, BoxBuilder, malha, pipeline |
 
+### 13.30 Changelog v1.28 → v1.29
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-02.4** | Painel de qualidade reduzido a Baixa / Média / Alta |
+| **Ultra** | Removido do painel; toggle só no Photo Mode (sessão) |
+| **Persistência** | Reusa `materialQuality` + `enableReflections`; sem campos novos em ProjectState |
+| **Intocado** | LightingEngine, ComposerEngine, RoomManager, BoxBuilder, schema ProjectState, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1847,4 +1877,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.28).
+Fim do documento de planeamento (v1.29).

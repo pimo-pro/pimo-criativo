@@ -23,6 +23,7 @@ export type PhotoModeLivePreviewParams = {
   background: ViewerRenderBackground;
   shadowIntensity: number;
   advancedRealism: boolean;
+  ultraEnabled?: boolean;
   mode: ViewerRenderMode;
 };
 
@@ -55,7 +56,7 @@ function clearSilhouetteSession(session: SilhouetteSession): void {
 }
 
 export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): void {
-  const { active, viewerApi, background, shadowIntensity, advancedRealism, mode } = params;
+  const { active, viewerApi, background, shadowIntensity, advancedRealism, ultraEnabled = false, mode } = params;
   const sessionRef = useRef<SessionBaseline | null>(null);
   const sceneMediaRef = useRef<{ environment: THREE.Texture | null; background: THREE.Color | THREE.Texture | null } | null>(
     null
@@ -79,6 +80,7 @@ export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): voi
       }
 
       if (viewer && sessionRef.current) {
+        viewerApi?.setUltraPerformanceMode?.(false);
         restoreLightBaseline(viewer, sessionRef.current.light);
         restoreChromeBaseline(viewer, sessionRef.current.chrome);
         viewerApi?.setBackgroundMode?.(sessionRef.current.backgroundMode);
@@ -109,12 +111,17 @@ export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): voi
     const session = sessionRef.current;
 
     const applyPreview = () => {
-      restoreLightBaseline(viewer, session.light);
       restoreChromeBaseline(viewer, session.chrome);
-
       viewerApi.setBackgroundMode?.(mapPhotoBackgroundToViewerMode(background));
-      viewerApi.setMode?.(advancedRealism ? "showcase" : "performance", false);
-      applyLightPreview(viewer, session.light, shadowIntensity, advancedRealism);
+      viewerApi.setMode?.(advancedRealism || ultraEnabled ? "showcase" : "performance", false);
+
+      if (ultraEnabled) {
+        viewerApi.setUltraPerformanceMode?.(true);
+      } else {
+        viewerApi.setUltraPerformanceMode?.(false);
+        restoreLightBaseline(viewer, session.light);
+        applyLightPreview(viewer, session.light, shadowIntensity, advancedRealism);
+      }
 
       if (background === "project-transparent") {
         applyProjectTransparentChrome(viewer, session.chrome);
@@ -173,6 +180,7 @@ export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): voi
     applyPreview();
 
     return () => {
+      viewerApi.setUltraPerformanceMode?.(false);
       restoreLightBaseline(viewer, session.light);
       restoreChromeBaseline(viewer, session.chrome);
       const scene = getScene(viewer);
@@ -188,5 +196,5 @@ export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): voi
       viewerApi.setBackgroundMode?.(session.backgroundMode);
       viewerApi.setMode?.(session.viewerMode, false);
     };
-  }, [active, viewerApi, background, shadowIntensity, advancedRealism, mode]);
+  }, [active, viewerApi, background, shadowIntensity, advancedRealism, ultraEnabled, mode]);
 }
