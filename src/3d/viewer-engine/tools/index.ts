@@ -4,3 +4,4 @@
 export { ViewerTools } from "./ViewerTools";
 export type { IViewerToolsEngine } from "./ToolsEngineTypes";
 export { GizmoEngine } from "./GizmoEngine";
+export { shouldAttachScaleGizmo, isIndustrialScaleTarget } from "./scaleGizmoPolicy";

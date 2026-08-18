@@ -44,6 +44,7 @@ const ICON_GROUPS: { id: string; label: string; names: IconName[] }[] = [
       "select",
       "move",
       "rotate",
+      "scale",
     ],
   },
   {

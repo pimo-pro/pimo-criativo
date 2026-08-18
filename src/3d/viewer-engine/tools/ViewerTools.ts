@@ -6,6 +6,7 @@
 import * as THREE from "three";
 import type { IViewerToolsEngine } from "./ToolsEngineTypes";
 import type { TransformControlsLike } from "./TransformControlsTypes";
+import { shouldAttachScaleGizmo } from "./scaleGizmoPolicy";
 
 type TransformControlsWithDragState = TransformControlsLike & {
   dragging?: boolean;
@@ -40,6 +41,10 @@ export class ViewerTools {
 
     const groupMemberIds = e.getGroupTransformMemberIds();
     const mode = e.getCurrentTool();
+    if (mode === "scale") {
+      this.attachScaleGizmo(e, controls);
+      return;
+    }
     if (groupMemberIds.length >= 2 && mode) {
       const members = groupMemberIds
         .map((id) => {
@@ -208,6 +213,48 @@ export class ViewerTools {
     e.applyTransformControlsMouseGuard();
     e.logTransformDiagnostic("detach-none", { reason: "no-selected-target-or-transform-mode" });
     e.setTransformHelperVisible(false);
+  }
+
+  /**
+   * Z-02.2 — gizmo de escala só em caixas cadOnly (GLB / modelos externos).
+   * Remates, rodapés, caixas industriais, sala e paredes nunca recebem modo scale.
+   */
+  private attachScaleGizmo(
+    e: IViewerToolsEngine,
+    controls: NonNullable<ReturnType<IViewerToolsEngine["getTransformControls"]>>
+  ): void {
+    const selectedBoxId = e.getSelectedBoxId();
+    const entry = selectedBoxId ? e.getBoxEntry(selectedBoxId) : undefined;
+    const allowed = shouldAttachScaleGizmo({
+      selectedRemateId: e.getSelectedRemateId(),
+      selectedRodapeId: e.getSelectedRodapeId(),
+      selectedHematiId: e.getSelectedHematiId(),
+      selectedDivSep: e.getSelectedDivSep(),
+      selectedWallIndex: e.getSelectedWallIndex(),
+      selectedRoomElementId: e.getSelectedRoomElementId(),
+      selectedRoomUtilityId: e.getSelectedRoomUtilityId(),
+      groupMemberCount: e.getGroupTransformMemberIds().length,
+      boxEntry: entry,
+    });
+    if (!allowed || !selectedBoxId || !entry) {
+      e.applyTransformControlsMouseGuard();
+      e.logTransformDiagnostic("detach-scale-blocked", { boxId: selectedBoxId ?? undefined });
+      e.setTransformHelperVisible(false);
+      return;
+    }
+    entry.mesh.matrixAutoUpdate = true;
+    entry.mesh.updateMatrixWorld(true);
+    controls.detach();
+    controls.attach(entry.mesh);
+    controls.setMode("scale");
+    controls.showX = true;
+    controls.showY = true;
+    controls.showZ = true;
+    controls.setSpace("world");
+    controls.setSize(e.getTransformGizmoSizeForBox(entry));
+    e.applyTransformControlsMouseGuard();
+    e.logTransformDiagnostic("attach-scale-cadOnly", { boxId: selectedBoxId, attachedUuid: entry.mesh.uuid });
+    e.setTransformHelperVisible(true);
   }
 
   /** Atualiza o outline de seleção/hover (cor e visibilidade). */

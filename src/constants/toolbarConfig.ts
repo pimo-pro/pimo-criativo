@@ -44,7 +44,7 @@ export const TOOLS_3D_ITEMS: Array<{
   { id: "select", label: "Selecionar", iconName: "select", tooltip: "Selecionar", eventKey: "tool:select" },
   { id: "move", label: "Mover", iconName: "move", tooltip: "Mover", eventKey: "tool:move" },
   { id: "rotate", label: "Rodar", iconName: "rotate", tooltip: "Rodar", eventKey: "tool:rotate" },
-  { id: "scale", label: "Escalar", iconName: "adminSettings", tooltip: "Escalar remate/peças", eventKey: "tool:scale" },
+  { id: "scale", label: "Escalar", iconName: "scale", tooltip: "Escalar modelo (GLB / externos)", eventKey: "tool:scale" },
   { id: "orbit", label: "Orbit", iconName: "orbit", tooltip: "Orbit (futuro)", eventKey: "tool:orbit" },
   { id: "pan", label: "Pan", iconName: "pan", tooltip: "Pan (futuro)", eventKey: "tool:pan" },
 ];

@@ -7,6 +7,7 @@ import { resolveCostaAtivaForBox, resolveNoBackPanel } from "../core/box/backPan
 import { doorLayerItemsForViewer } from "../core/box/doorLayerItemsForViewer";
 import type { DoorLayerItem } from "../models/BoxLayers";
 import { isPiBaseCabinetId } from "../data/moveisUnificados/pi/models";
+import { isCadOnlyWorkspaceBox } from "../core/viewer/isCadOnlyWorkspaceBox";
 import { getSettings } from "../core/settings/settingsService";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
 import { mmToM } from "../utils/units";
@@ -372,11 +373,7 @@ export const useCalculadoraSync = (
         materialName ??
         "mdf_branco";
       const resolvedMaterialName = getViewerMaterialId(effectiveMaterial);
-      const cadOnly =
-        !isPiBaseCabinetId(wsBox.baseCabinetId) &&
-        (wsBox.models?.length ?? 0) > 0 &&
-        wsBox.prateleiras === 0 &&
-        wsBox.gavetas === 0;
+      const cadOnly = isCadOnlyWorkspaceBox(wsBox);
 
       const shelves = Number.isFinite(wsBox.prateleiras) ? Math.max(0, wsBox.prateleiras) : undefined;
       const cabinetType = wsBox?.cabinetType === "lower" || wsBox?.cabinetType === "upper" ? wsBox.cabinetType : undefined;

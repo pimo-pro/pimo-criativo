@@ -11,6 +11,7 @@ export class GizmoEngine {
     this.tools = tools;
   }
 
+  /** Inclui modo scale: ViewerTools só anexa gizmo em caixas cadOnly (Z-02.2). */
   refreshAttachment(): void {
     this.tools.updateTransformControlsAttachment();
   }

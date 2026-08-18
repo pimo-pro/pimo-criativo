@@ -252,3 +252,30 @@ export const IconRotate: FC<IconProps> = ({
     <path d="M12 5V2l3 3-3 3" />
   </svg>
 );
+
+export const IconScale: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <path d="M15 3h6v6" />
+    <path d="M21 3l-7 7" />
+    <path d="M9 21H3v-6" />
+    <path d="M3 21l7-7" />
+  </svg>
+);

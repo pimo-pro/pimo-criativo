@@ -1,7 +1,7 @@
 /**
  * Barra superior unificada do Workspace (evolução incremental).
  * «Salvar e Gerar Design»: executa gerarESalvarDesign (persistir + gerar) e só depois abre o painel.
- * Ferramentas 3D selecionar / mover / rodar (toolbar unificada).
+ * Ferramentas 3D selecionar / mover / rodar / escalar (toolbar unificada).
  */
 
 import { useState, useRef, useEffect } from "react";
@@ -20,6 +20,8 @@ import { resolveLRemateCompositeLeadId } from "../../../core/remate/remateLGeome
 import DisplayMenuButton from "../topbar/DisplayMenuButton";
 import RoomIconButton from "../../viewer/toolbar/RoomIconButton";
 import WorkspaceToolbar from "../workspace/WorkspaceToolbar";
+import { isCadOnlyWorkspaceBox } from "../../../core/viewer/isCadOnlyWorkspaceBox";
+import { resolveEnabledViewerTools } from "./enabledViewerTools";
 
 const cfgNovo = VIEWER_TOOLBAR_ITEMS.find((i) => i.id === "novo");
 const cfgProjeto = VIEWER_TOOLBAR_ITEMS.find((i) => i.id === "projeto");
@@ -140,8 +142,13 @@ export default function UnifiedTopToolbar({
     ? (project.remates ?? []).find((r) => r.id === selectedRemateId)
     : undefined;
   const isPieceLocked = selectedBox?.locked === true;
-  const enabledTools: Tool3DId[] =
-    isPieceLocked && !selectedRemateId ? ["select"] : ["select", "move", "rotate"];
+  const nonIndustrialScalable =
+    !selectedRemateId && selectedBox != null && !isPieceLocked && isCadOnlyWorkspaceBox(selectedBox);
+  const enabledTools: Tool3DId[] = resolveEnabledViewerTools({
+    pieceLocked: isPieceLocked,
+    remateSelected: Boolean(selectedRemateId),
+    nonIndustrialScalable,
+  });
   const panelRenderingEnabled = project.viewerSettings.panelRenderingEnabled === true;
 
   const [rotationMenuOpen, setRotationMenuOpen] = useState(false);
@@ -181,6 +188,13 @@ export default function UnifiedTopToolbar({
     if (id !== "rotate") setRotationMenuOpen(false);
     onToolSelect(id, eventKey);
   };
+
+  const scaleEnabled = enabledTools.includes("scale");
+  useEffect(() => {
+    if (activeTool === "scale" && !scaleEnabled) {
+      onToolSelect("select", "tool:select");
+    }
+  }, [activeTool, scaleEnabled, onToolSelect]);
 
   const togglePhotoMenu = () => {
     setPhotoModePanelOpen(!photoModePanelOpen);

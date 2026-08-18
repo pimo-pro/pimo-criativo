@@ -28,7 +28,14 @@ export interface IViewerToolsEngine {
   getHematiMesh(_hematiId: string): THREE.Object3D | null;
   getRodapeMesh(_rodapeId: string): THREE.Object3D | null;
   getRemateMesh(_remateId: string): THREE.Object3D | null;
-  getBoxEntry(_id: string): { mesh: THREE.Object3D; width: number; height: number; depth: number; locked?: boolean } | undefined;
+  getBoxEntry(_id: string): {
+    mesh: THREE.Object3D;
+    width: number;
+    height: number;
+    depth: number;
+    locked?: boolean;
+    cadOnly?: boolean;
+  } | undefined;
   getSelectedWallIndex(): number | null;
   getRoomBoxWalls(): { id: number; mesh: THREE.Mesh }[];
   getSelectedRoomElementId(): string | null;

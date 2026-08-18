@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.26 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** auditada; **Z-02.1** executado em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1 (botões mortos Orbit/Pan/Scale duplicado removidos da faixa) |
+| **Versão do plano** | 1.27 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** auditada; **Z-02.1** e **Z-02.2** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1 e Z-02.2 (Escalar activo só em GLB/cadOnly) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.2+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.3+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -1143,7 +1143,7 @@ Ordem proposta para gatilhos futuros (atómicos, reversíveis):
 | Gatilho | Acção proposta | Não fazer |
 |---------|----------------|-----------|
 | **Z-02.1** | **Executado** 18-08-2026: Orbit, Pan e 2.ª Scale removidos da faixa | Não alterar `OrbitControls` nem `MouseInputMapper` |
-| **Z-02.2** | Uma Scale só: enabled com remate ou caixa seleccionada; ícone de escala (não engrenagem); ligar a `setTransformMode("scale")` | Não alterar algoritmo de scale do gizmo; não tocar cutlist |
+| **Z-02.2** | **Executado** 18-08-2026: Escalar canónico activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais | Não alterar algoritmo de scale do gizmo; não tocar cutlist |
 | **Z-02.3** | Extrair autosave + modal de `ViewerToolbar` para um hook; deixar de montar a faixa vazia | Não alterar `gerarESalvarDesign` |
 | **Z-02.4** | CSS órfão `.tools-3d-toolbar`; config `enviar` / eventKeys mortos | Não ligar Events System nesta fase |
 | **Z-02.5** | Corrigir tooltip/aria da Sala; opcional: ícones câmara vs olho | Não alterar `RoomManager` nem criação de paredes |
@@ -1203,6 +1203,22 @@ Photo: `photoModePanelOpen` → `setPhotoModeEnabled` (exposição) + `LeftPanel
 **Grep pós-remoção:** `item.id === "orbit"` / `"pan"` deixam de existir na UnifiedTopToolbar. Referências restantes: `toolbarConfig.ts` (definição), `IconGallery` / tipos de ícone, `MouseInputMapper` (rato — vivo).
 
 **Tag:** `z-02-1-remove-dead-buttons`.
+
+### 6.3.11 Relatório de execução — Z-02.2 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-02.2» / activar e unificar o botão Escalar, aprovado pelo dono do produto.
+
+**Cadeia:** clique Escalar → `handleToolSelect("scale")` → `setActiveTool` → adapter `setTool` → `setTransformMode("scale")` → `GizmoEngine.refreshAttachment` → `ViewerTools.attachScaleGizmo`.
+
+**Política industrial:** `shouldAttachScaleGizmo` só permite caixas `cadOnly` (GLB / modelos externos). Bloqueia remate, rodapé, hemati, DIV/SEP, parede, elementos de sala, grupos e caixas paramétricas.
+
+**UI:** `enabledTools` = `select/move/rotate` em peças industriais; inclui `scale` só em GLB cadOnly. Ícone `scale` (SVG de expansão) substitui `adminSettings`. Botão canónico em `PRIMARY_3D_IDS` (duplicado já removido na Z-02.1). Se a selecção deixar de ser escalável, a ferramenta volta a `select`.
+
+**Testes:** `scaleGizmoPolicy.test.ts`, `ViewerTools.scale.test.ts`, `isCadOnlyWorkspaceBox.test.ts`, `enabledViewerTools.test.ts`.
+
+**Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, RoomManager, SnapEngine, LayoutEngine, comportamento visual de peças industriais (move/rotate iguais).
+
+**Tag:** `z-02-2-scale-activation`.
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -1505,6 +1521,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.24 | **Z-01.2.9 executado:** lazy-init de motores pesados; constructor do ViewerCore já não os instancia. Tag `z-01-2-9-lazy-init`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.25 | **Z-02.0 executado (diagnóstico only):** auditoria da toolbar superior do Viewer; 23 controlos mapeados; Orbit/Pan/Scale mortos na UI; sem alteração de `src/`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.26 | **Z-02.1 executado:** Orbit, Pan e Escalar duplicado removidos da `UnifiedTopToolbar`. Escalar canónico mantido. Tag `z-02-1-remove-dead-buttons`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.27 | **Z-02.2 executado:** Escalar activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais. Tag `z-02-2-scale-activation`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1774,6 +1791,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Mantido** | Escalar canónico em `PRIMARY_3D_IDS`; `enabledTools` = select/move/rotate |
 | **Intocado** | `OrbitControls`, `MouseInputMapper`, motores A→E, BoxBuilder, malha, RoomManager, ProjectState, pipeline, `toolbarConfig.ts` |
 
+### 13.28 Changelog v1.26 → v1.27
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-02.2** | Escalar canónico chama `setTransformMode("scale")`; gizmo só em `cadOnly` |
+| **Ícone** | `IconScale` SVG; deixa de usar `adminSettings` |
+| **Protecção** | Sem gizmo de escala em caixa industrial, remate, rodapé, sala, paredes |
+| **Intocado** | BoxBuilder, malha, RoomManager, SnapEngine, LayoutEngine, ProjectState, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1784,4 +1810,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.26).
+Fim do documento de planeamento (v1.27).

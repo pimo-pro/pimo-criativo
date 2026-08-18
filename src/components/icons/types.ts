@@ -34,6 +34,7 @@ export type IconName =
   | "select"
   | "move"
   | "rotate"
+  | "scale"
   | "delete"
   | "rename"
   | "duplicate"
