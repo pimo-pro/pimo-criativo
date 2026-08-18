@@ -38,6 +38,13 @@ export class ManufacturingReportEngine {
     });
   }
 
+  static ensure(
+    current: ManufacturingReportEngine | null,
+    deps: ManufacturingReportEngineDeps
+  ): ManufacturingReportEngine {
+    return current ?? new ManufacturingReportEngine(deps);
+  }
+
   scanProject(): ManufacturingScanResult {
     const scan = this.analysis.scanProject(this.deps.getContext());
     this.lastScan = scan;

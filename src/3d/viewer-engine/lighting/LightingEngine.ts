@@ -57,6 +57,14 @@ export class LightingEngine {
     this.base = base;
   }
 
+  static ensure(
+    current: LightingEngine | null,
+    lights: Lights,
+    base: BaseLightIntensities
+  ): LightingEngine {
+    return current ?? new LightingEngine(lights, base);
+  }
+
   applyGlobalIntensity(value: number, ultraActive: boolean): number {
     this.globalIntensity = clampGlobalLightIntensity(value);
     if (ultraActive && this.ultraLightTarget && this.ultraLightState) {

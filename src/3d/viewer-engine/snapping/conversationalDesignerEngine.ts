@@ -46,6 +46,13 @@ export class ConversationalDesignerEngine {
     this.deps = deps;
   }
 
+  static ensure(
+    current: ConversationalDesignerEngine | null,
+    deps: ConversationalDesignerDeps
+  ): ConversationalDesignerEngine {
+    return current ?? new ConversationalDesignerEngine(deps);
+  }
+
   getConversationState(): DesignConversationState {
     return this.deps.conversation;
   }

@@ -1,6 +1,6 @@
 /**
- * DesignerEngine (Z-01.2.7 D) — fachada sobre IntelligentDesignerEngine.
- * Lazy-init real fica para Z-01.2.9; aqui o ensure() só encapsula a construção.
+ * DesignerEngine (Z-01.2.9) — fachada sobre IntelligentDesignerEngine com lazy-init.
+ * `ensure()` só constrói o motor pesado na primeira chamada da API (PainelSala).
  */
 import {
   IntelligentDesignerEngine,

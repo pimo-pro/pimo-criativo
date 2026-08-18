@@ -67,7 +67,7 @@ import {
   isDrawerClickTargetGhost,
   isKitchenFeetNode,
 } from "./materials/boxMaterialHelpers";
-import { createClonedMaterialWithDetailMaps } from "./materials/MaterialEngine";
+import { createClonedMaterialWithDetailMaps, ensureMaterialEngine } from "./materials/MaterialEngine";
 import {
   describeMeshMaterial,
   isDrawerFrontExteriorMesh,
@@ -179,7 +179,7 @@ import { getEntityWorldBoxAabb } from "./snapping/smartAlignSnapAabb";
 import type { AutoLayoutBridge, AutoLayoutOpeningMm, AutoLayoutRoomBoundsMm, AutoStackShelvesOptions } from "./autoLayout/autoLayoutTypes";
 import { LayoutEngine } from "./layout/LayoutEngine";
 import { buildPredictiveLayoutResult } from "./snapping/predictiveLayoutEngine";
-import { IntelligentDesignerEngine } from "./snapping/intelligentDesignerEngine";
+import type { IntelligentDesignerEngine } from "./snapping/intelligentDesignerEngine";
 import { ConversationalDesignerEngine } from "./snapping/conversationalDesignerEngine";
 import { DesignConversationState } from "./snapping/designConversationState";
 import type { ConversationTurnResult } from "./snapping/conversationalDesignerEngine";
@@ -262,14 +262,14 @@ export class ViewerCore {
   private controls: Controls | null;
   private readonly boxManager = new ViewerBoxManager();
   private readonly boxSceneController = new BoxSceneController();
-  private readonly boxEngine = new BoxEngine(this.boxSceneController);
+  private boxEngine: BoxEngine | null = null;
   private sceneEngine!: SceneEngine;
-  private lightingEngine!: LightingEngine;
-  private composerEngine!: ComposerEngine;
+  private lightingEngine: LightingEngine | null = null;
+  private composerEngine: ComposerEngine | null = null;
   private cameraEngine!: CameraEngine;
   private selectionEngine!: SelectionEngine;
   private readonly designerEngine = new DesignerEngine();
-  private readonly viewerRoomEngine = new ViewerRoomEngine(() => this.roomManager);
+  private viewerRoomEngine: ViewerRoomEngine | null = null;
   get boxes(): Map<string, ViewerBoxEntry> {
     return this.boxManager.getBoxes();
   }
@@ -493,11 +493,10 @@ export class ViewerCore {
   };
   private layoutEngine!: LayoutEngine;
   private smartLayoutBridge: SmartLayoutBridge | null = null;
-  private intelligentDesignerEngine!: IntelligentDesignerEngine;
   private readonly designConversationState = new DesignConversationState();
-  private conversationalDesignerEngine!: ConversationalDesignerEngine;
-  private manufacturingReportEngine!: ManufacturingReportEngine;
-  private costReportEngine!: CostReportEngine;
+  private conversationalDesignerEngine: ConversationalDesignerEngine | null = null;
+  private manufacturingReportEngine: ManufacturingReportEngine | null = null;
+  private costReportEngine: CostReportEngine | null = null;
   private orlaVisualizer = new OrlaVisualizer();
   private remateVisualizer = new RematePieceVisualizer();
   private tampoVisualizer = new TampoPieceVisualizer();
@@ -603,15 +602,8 @@ export class ViewerCore {
     this.rendererManager = foundation.rendererManager;
     this.lights = foundation.lights;
     this.baseLightIntensities = foundation.baseLightIntensities;
-    this.lightingEngine = new LightingEngine(this.lights, this.baseLightIntensities);
-    this.composerEngine = new ComposerEngine({
-      getRenderer: () => this.rendererManager.renderer,
-      getScene: () => this.sceneManager.scene,
-      getCamera: () => this.cameraManager.camera,
-      getContainer: () => this.container,
-    });
     this.display = createViewerDisplayFacade({
-      getShadowIntensity: () => this.lightingEngine.shadowIntensity,
+      getShadowIntensity: () => this.lightingEngine?.shadowIntensity ?? 1,
       updateShadowIntensity: (value) => this.updateShadowIntensity(value),
     });
     this.defaultPixelRatio = foundation.defaultPixelRatio;
@@ -773,78 +765,6 @@ export class ViewerCore {
       getBoxEntry: (boxId) => this.boxes.get(boxId),
     });
     this.layoutEngine = new LayoutEngine(smartLayoutDeps);
-    this.intelligentDesignerEngine = this.designerEngine.ensure({
-      getBridge: () => this.smartLayoutBridge,
-      getRoomLabelHint: () => this.smartLayoutBridge?.getRoomLabelHint?.(),
-    });
-    this.manufacturingReportEngine = new ManufacturingReportEngine({
-      getContext: () => this.buildManufacturingScanContext(),
-      applyPlan: (plan) => {
-        this.smartLayoutBridge?.applyPlan(plan);
-      },
-      distribute: (boxIds) => this.layoutEngine.autoDistribute(boxIds),
-      isSmartSnapEnabled: () => false,
-    });
-    this.costReportEngine = new CostReportEngine({
-      getContext: () => this.buildCostScanContext(),
-      getDesigner: () => this.intelligentDesignerEngine,
-      getSeedBoxId: () => this.resolveCostSeedBoxId(),
-    });
-    this.conversationalDesignerEngine = new ConversationalDesignerEngine({
-      designer: this.intelligentDesignerEngine,
-      conversation: this.designConversationState,
-      previewPlan: (plan, label, previewId) => {
-        const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, plan, label);
-        this.layoutEngine.predictive.previewDesigns([{ id: previewId, plan, label }]);
-        this.smartAlignOverlay.setState(overlay);
-      },
-      applyPlan: (plan, meta) => {
-        const ok = this.intelligentDesignerEngine.applyPlanDirect(plan, {
-          designId: meta.designId,
-          variationKind: meta.variationKind,
-        });
-        if (ok) {
-          this.designConversationState.recordApplied({
-            plan,
-            label: meta.label,
-            designId: meta.designId,
-            variationKind: meta.variationKind,
-          });
-          this.clearSmartAlignSnapOverlay();
-        }
-        return ok;
-      },
-      acceptPending: () => this.acceptConversationalPending(),
-      rejectPending: () => {
-        this.layoutEngine.predictive.rejectPending();
-        this.designConversationState.clearPending();
-        this.clearSmartAlignSnapOverlay();
-      },
-      optimizeWallPreview: (wallId, seedBoxId) => this.previewSmartWallFill(wallId, seedBoxId),
-      getManufacturingReport: () => this.manufacturingReportEngine.generateReport(),
-      previewManufacturingFixes: () => this.previewManufacturingFixes(),
-      applyManufacturingFixes: () => {
-        const result = this.manufacturingReportEngine.autoFix();
-        return { ok: result.ok, message: result.message };
-      },
-      getCostReport: (seedBoxId) => {
-        this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.costReportEngine.generateCostReport();
-      },
-      previewCostSuggestion: (suggestion) => this.previewCostSuggestion(suggestion),
-      buildCostSuggestion: (tier, seedBoxId, reducePercent) => {
-        this.designConversationState.setSeedBoxId(seedBoxId);
-        this.costReportEngine.scanProject();
-        if (tier === "cheaper") {
-          return reducePercent != null
-            ? this.costReportEngine.suggestReduceCostPercent(reducePercent)
-            : this.costReportEngine.suggestCheaperAlternative();
-        }
-        if (tier === "premium") return this.costReportEngine.suggestPremiumAlternative();
-        return this.costReportEngine.suggestBalancedAlternative();
-      },
-    });
-
     this.autoLayout = {
       fillWallWithModule: (wallId, moduleBoxId) =>
         this.layoutEngine.fillWallWithModule(wallId, moduleBoxId),
@@ -871,30 +791,30 @@ export class ViewerCore {
       generateVariations: () => this.generateIntelligentVariations(),
       previewDesign: (id) => this.previewIntelligentDesign(id),
       applyDesign: (id) => this.applyIntelligentDesign(id),
-      refineLayout: () => this.intelligentDesignerEngine.refineLastLayout(),
-      learnPreferences: () => this.intelligentDesignerEngine.learnPreferencesSummary(),
-      explainDecision: (id) => this.intelligentDesignerEngine.explainDecision(id),
+      refineLayout: () => this.ensureIntelligentDesigner().refineLastLayout(),
+      learnPreferences: () => this.ensureIntelligentDesigner().learnPreferencesSummary(),
+      explainDecision: (id) => this.ensureIntelligentDesigner().explainDecision(id),
       previewStyle: (styleId, seedBoxId) => this.previewIntelligentStyle(styleId, seedBoxId),
       applyStyle: (styleId, seedBoxId) => this.applyIntelligentStyle(styleId, seedBoxId),
-      explainStyle: (styleId) => this.intelligentDesignerEngine.explainStyle(styleId),
+      explainStyle: (styleId) => this.ensureIntelligentDesigner().explainStyle(styleId),
       listStyles: () => listStyleProfiles().map((p) => ({ id: p.id, label: p.label })),
     };
     this.conversationalDesigner = {
-      sendMessage: (text, seedBoxId) => this.conversationalDesignerEngine.processInput(text, seedBoxId),
+      sendMessage: (text, seedBoxId) => this.ensureConversationalDesignerEngine().processInput(text, seedBoxId),
       quickAction: (action, seedBoxId) =>
-        this.conversationalDesignerEngine.processQuickAction(action, seedBoxId),
+        this.ensureConversationalDesignerEngine().processQuickAction(action, seedBoxId),
       getHistory: () => this.designConversationState.getHistory(),
       explain: () =>
-        this.intelligentDesignerEngine.explainDecision(
-          this.intelligentDesignerEngine.getLastAppliedDesignId() ?? undefined
+        this.ensureIntelligentDesigner().explainDecision(
+          this.ensureIntelligentDesigner().getLastAppliedDesignId() ?? undefined
         ),
     };
     this.manufacturing = {
-      generateReport: () => this.manufacturingReportEngine.generateReport(),
-      getReport: () => this.manufacturingReportEngine.getUiReport(),
-      score: () => this.manufacturingReportEngine.score(),
+      generateReport: () => this.ensureManufacturingReportEngine().generateReport(),
+      getReport: () => this.ensureManufacturingReportEngine().getUiReport(),
+      score: () => this.ensureManufacturingReportEngine().score(),
       autoFix: () => {
-        const result = this.manufacturingReportEngine.autoFix();
+        const result = this.ensureManufacturingReportEngine().autoFix();
         return { ok: result.ok, message: result.message, score: result.scan.score };
       },
       previewFixes: () => this.previewManufacturingFixes(),
@@ -903,19 +823,19 @@ export class ViewerCore {
     this.costEstimator = {
       generateCostReport: (seedBoxId) => {
         if (seedBoxId) this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.costReportEngine.generateCostReport();
+        return this.ensureCostReportEngine().generateCostReport();
       },
       summarizeForUI: (seedBoxId) => {
         if (seedBoxId) this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.costReportEngine.summarizeCostForUI();
+        return this.ensureCostReportEngine().summarizeCostForUI();
       },
-      score: () => this.costReportEngine.score(),
+      score: () => this.ensureCostReportEngine().score(),
       compareDesigns: (seedBoxId) => {
         this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.costReportEngine.compareDesignsCost(seedBoxId);
+        return this.ensureCostReportEngine().compareDesignsCost(seedBoxId);
       },
-      compareStyles: () => this.costReportEngine.compareStylesCost(),
-      estimateChangeImpact: (change) => this.costReportEngine.estimateChangeImpact(change),
+      compareStyles: () => this.ensureCostReportEngine().compareStylesCost(),
+      estimateChangeImpact: (change) => this.ensureCostReportEngine().estimateChangeImpact(change),
       suggestCheaper: (seedBoxId) => this.previewCostSuggestionByTier(seedBoxId, "cheaper"),
       suggestPremium: (seedBoxId) => this.previewCostSuggestionByTier(seedBoxId, "premium"),
       suggestBalanced: (seedBoxId) => this.previewCostSuggestionByTier(seedBoxId, "balanced"),
@@ -1086,17 +1006,17 @@ export class ViewerCore {
       getDimensionsOverlayGroup: () => this.dimensionsOverlay.group,
       getWallGizmoGroup: () => this.wallGizmo?.group ?? null,
       ensureShowcaseComposer: () => {
-        this.composerEngine.ensureShowcase();
+        this.ensureComposerEngine().ensureShowcase();
       },
       ensureMainComposer: () => {
-        this.composerEngine.ensureMain();
+        this.ensureComposerEngine().ensureMain();
       },
-      getShowcaseComposer: () => this.composerEngine.showcase,
-      getMainComposer: () => this.composerEngine.main,
-      getShowcaseBloomPass: () => this.composerEngine.bloom,
-      getMainBloomPass: () => this.composerEngine.mainBloom,
-      updateShowcaseComposerSize: () => this.composerEngine.updateShowcaseSize(),
-      updateMainComposerSize: () => this.composerEngine.updateMainSize(),
+      getShowcaseComposer: () => this.composerEngine?.showcase ?? null,
+      getMainComposer: () => this.composerEngine?.main ?? null,
+      getShowcaseBloomPass: () => this.composerEngine?.bloom ?? null,
+      getMainBloomPass: () => this.composerEngine?.mainBloom ?? null,
+      updateShowcaseComposerSize: () => this.composerEngine?.updateShowcaseSize(),
+      updateMainComposerSize: () => this.composerEngine?.updateMainSize(),
       updateCanvasSize: () => this.updateCanvasSize(),
     });
     this.runtimeLoop = new ViewerRuntimeLoop({
@@ -1109,13 +1029,13 @@ export class ViewerCore {
       updateCameraProjection: () => this.cameraManager.camera.updateProjectionMatrix(),
       getContainer: () => this.container,
       ensureMainComposer: () => {
-        this.composerEngine.ensureMain();
+        this.ensureComposerEngine().ensureMain();
       },
-      getShowcaseComposer: () => this.composerEngine.showcase,
-      getMainComposer: () => this.composerEngine.main,
-      getBokehPass: () => this.composerEngine.bokeh,
-      updateShowcaseComposerSize: () => this.composerEngine.updateShowcaseSize(),
-      updateMainComposerSize: () => this.composerEngine.updateMainSize(),
+      getShowcaseComposer: () => this.composerEngine?.showcase ?? null,
+      getMainComposer: () => this.composerEngine?.main ?? null,
+      getBokehPass: () => this.composerEngine?.bokeh ?? null,
+      updateShowcaseComposerSize: () => this.composerEngine?.updateShowcaseSize(),
+      updateMainComposerSize: () => this.composerEngine?.updateMainSize(),
       getCurrentMode: () => this.viewerState.getCurrentMode(),
       isUltraPerformanceMode: () => this.ultraPerformanceMode,
       isTurntableEnabled: () => this.turntableEnabled && this.viewerState.getCurrentMode() === "showcase",
@@ -1143,6 +1063,127 @@ export class ViewerCore {
 
   getCurrentMode(): "performance" | "showcase" {
     return this.viewerState.getCurrentMode();
+  }
+
+  private ensureLightingEngine(): LightingEngine {
+    const engine = LightingEngine.ensure(this.lightingEngine, this.lights, this.baseLightIntensities);
+    this.lightingEngine = engine;
+    return engine;
+  }
+
+  private ensureComposerEngine(): ComposerEngine {
+    const engine = ComposerEngine.ensure(this.composerEngine, {
+      getRenderer: () => this.rendererManager.renderer,
+      getScene: () => this.sceneManager.scene,
+      getCamera: () => this.cameraManager.camera,
+      getContainer: () => this.container,
+    });
+    this.composerEngine = engine;
+    return engine;
+  }
+
+  private ensureBoxEngine(): BoxEngine {
+    const engine = BoxEngine.ensure(this.boxEngine, this.boxSceneController);
+    this.boxEngine = engine;
+    return engine;
+  }
+
+  private ensureViewerRoomEngine(): ViewerRoomEngine {
+    const engine = ViewerRoomEngine.ensure(this.viewerRoomEngine, () => this.roomManager);
+    this.viewerRoomEngine = engine;
+    return engine;
+  }
+
+  private ensureIntelligentDesigner(): IntelligentDesignerEngine {
+    return this.designerEngine.ensure({
+      getBridge: () => this.smartLayoutBridge,
+      getRoomLabelHint: () => this.smartLayoutBridge?.getRoomLabelHint?.(),
+    });
+  }
+
+  private ensureManufacturingReportEngine(): ManufacturingReportEngine {
+    const engine = ManufacturingReportEngine.ensure(this.manufacturingReportEngine, {
+      getContext: () => this.buildManufacturingScanContext(),
+      applyPlan: (plan) => {
+        this.smartLayoutBridge?.applyPlan(plan);
+      },
+      distribute: (boxIds) => this.layoutEngine.autoDistribute(boxIds),
+      isSmartSnapEnabled: () => false,
+    });
+    this.manufacturingReportEngine = engine;
+    return engine;
+  }
+
+  private ensureCostReportEngine(): CostReportEngine {
+    const engine = CostReportEngine.ensure(this.costReportEngine, {
+      getContext: () => this.buildCostScanContext(),
+      getDesigner: () => this.ensureIntelligentDesigner(),
+      getSeedBoxId: () => this.resolveCostSeedBoxId(),
+    });
+    this.costReportEngine = engine;
+    return engine;
+  }
+
+  private ensureConversationalDesignerEngine(): ConversationalDesignerEngine {
+    const engine = ConversationalDesignerEngine.ensure(
+      this.conversationalDesignerEngine,
+      {
+        designer: this.ensureIntelligentDesigner(),
+        conversation: this.designConversationState,
+        previewPlan: (plan, label, previewId) => {
+          const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, plan, label);
+          this.layoutEngine.predictive.previewDesigns([{ id: previewId, plan, label }]);
+          this.smartAlignOverlay.setState(overlay);
+        },
+        applyPlan: (plan, meta) => {
+          const ok = this.ensureIntelligentDesigner().applyPlanDirect(plan, {
+            designId: meta.designId,
+            variationKind: meta.variationKind,
+          });
+          if (ok) {
+            this.designConversationState.recordApplied({
+              plan,
+              label: meta.label,
+              designId: meta.designId,
+              variationKind: meta.variationKind,
+            });
+            this.clearSmartAlignSnapOverlay();
+          }
+          return ok;
+        },
+        acceptPending: () => this.acceptConversationalPending(),
+        rejectPending: () => {
+          this.layoutEngine.predictive.rejectPending();
+          this.designConversationState.clearPending();
+          this.clearSmartAlignSnapOverlay();
+        },
+        optimizeWallPreview: (wallId, seedBoxId) => this.previewSmartWallFill(wallId, seedBoxId),
+        getManufacturingReport: () => this.ensureManufacturingReportEngine().generateReport(),
+        previewManufacturingFixes: () => this.previewManufacturingFixes(),
+        applyManufacturingFixes: () => {
+          const result = this.ensureManufacturingReportEngine().autoFix();
+          return { ok: result.ok, message: result.message };
+        },
+        getCostReport: (seedBoxId) => {
+          this.designConversationState.setSeedBoxId(seedBoxId);
+          return this.ensureCostReportEngine().generateCostReport();
+        },
+        previewCostSuggestion: (suggestion) => this.previewCostSuggestion(suggestion),
+        buildCostSuggestion: (tier, seedBoxId, reducePercent) => {
+          this.designConversationState.setSeedBoxId(seedBoxId);
+          this.ensureCostReportEngine().scanProject();
+          if (tier === "cheaper") {
+            return reducePercent != null
+              ? this.ensureCostReportEngine().suggestReduceCostPercent(reducePercent)
+              : this.ensureCostReportEngine().suggestCheaperAlternative();
+          }
+          if (tier === "premium") return this.ensureCostReportEngine().suggestPremiumAlternative();
+          return this.ensureCostReportEngine().suggestBalancedAlternative();
+        },
+      }
+    );
+    this.conversationalDesignerEngine = engine;
+    return engine;
   }
 
   /** True após inicialização completa (eventos, loop, boxes). Único sinal para expor a API pública. */
@@ -1509,9 +1550,9 @@ export class ViewerCore {
     this.turntableEnabled = mode === "showcase" && turntable;
     this.lights.setShadowMapSize(this.isMobile ? 1024 : 4096);
     if (mode === "showcase") {
-      this.composerEngine.setMode("showcase");
+      this.ensureComposerEngine().setMode("showcase");
     } else {
-      this.composerEngine.setMode("performance");
+      this.composerEngine?.setMode("performance");
     }
   }
 
@@ -1524,11 +1565,11 @@ export class ViewerCore {
   }
 
   setGlobalLightIntensity(value: number): void {
-    this.lightingEngine.applyGlobalIntensity(value, this.ultraPerformanceMode);
+    this.ensureLightingEngine().applyGlobalIntensity(value, this.ultraPerformanceMode);
   }
 
   getGlobalLightIntensity(): number {
-    return this.lightingEngine.globalIntensity;
+    return this.lightingEngine?.globalIntensity ?? 1;
   }
 
   setShadowIntensity(value: number): void {
@@ -1536,14 +1577,14 @@ export class ViewerCore {
   }
 
   getShadowIntensity(): number {
-    return this.lightingEngine.shadowIntensity;
+    return this.lightingEngine?.shadowIntensity ?? 1;
   }
 
   /**
    * Aplica intensidade das sombras na luz principal (Three.js `shadow.intensity`) e agenda render.
    */
   updateShadowIntensity(value: number): void {
-    this.lightingEngine.applyShadowIntensity(value);
+    this.ensureLightingEngine().applyShadowIntensity(value);
     this.requestRender();
   }
 
@@ -1560,7 +1601,7 @@ export class ViewerCore {
     const isFlat2 = mode === "flat2";
 
     if (active) {
-      this.lightingEngine.beginUltraLights(isAggressive);
+      this.ensureLightingEngine().beginUltraLights(isAggressive);
       this.reflectionUpdateIntervalFrames = this.isMobile ? 30 : 18;
 
       if (!this.ultraRenderState) {
@@ -1581,7 +1622,7 @@ export class ViewerCore {
       this.rendererManager.renderer.setPixelRatio(optimizedRatio);
       this.applyUltraMaterialProfile(isFlat2, false);
     } else {
-      this.lightingEngine.endUltraLights();
+      this.lightingEngine?.endUltraLights();
       this.reflectionUpdateIntervalFrames = this.isMobile ? 36 : 24;
       if (this.ultraRenderState) {
         this.setMaterialQuality(this.ultraRenderState.materialQuality);
@@ -1624,7 +1665,7 @@ export class ViewerCore {
   }
 
   private lerpLightsToTarget(): void {
-    this.lightingEngine.lerpToTarget();
+    this.lightingEngine?.lerpToTarget();
   }
 
   getUltraPerformanceMode(): boolean {
@@ -2224,11 +2265,11 @@ export class ViewerCore {
   }
 
   private disposeComposer(): void {
-    this.composerEngine.disposeShowcase();
+    this.composerEngine?.disposeShowcase();
   }
 
   private disposeMainComposer(): void {
-    this.composerEngine.disposeMain();
+    this.composerEngine?.disposeMain();
   }
 
   loadMaterialSet(materialConfig?: MaterialSet) {
@@ -3144,7 +3185,7 @@ export class ViewerCore {
         "ViewerCore not ready: boxes/boxManager not initialized. Ensure viewerReady is true before calling addBox."
       );
     }
-    return this.boxEngine.addBox({
+    return this.ensureBoxEngine().addBox({
       id,
       options,
       boxes: this.boxes,
@@ -3232,7 +3273,7 @@ export class ViewerCore {
     }
 
     // Atualização apenas de posição/rotação (ex.: após drag ou sync do projeto). Não fazer rebuild (updateBoxGroup/createDoorObject).
-    const structurePlan = this.boxEngine.createUpdateBoxStructurePlan(entry, opts);
+    const structurePlan = this.ensureBoxEngine().createUpdateBoxStructurePlan(entry, opts);
     const { onlyTransform, hasStructureOpts } = structurePlan;
     if (onlyTransform && !hasStructureOpts) {
       if (import.meta.env.DEV) {
@@ -3244,7 +3285,7 @@ export class ViewerCore {
       const isActiveDragForThisBox =
         this.viewerState.getTransformControlsDragging() &&
         this.viewerState.getSelectedBox() === id;
-      return this.boxEngine.applyOnlyTransformUpdate({
+      return this.ensureBoxEngine().applyOnlyTransformUpdate({
         entry,
         opts,
         isActiveDragForThisBox,
@@ -3265,7 +3306,7 @@ export class ViewerCore {
       return true;
     }
     if (structureChanged) {
-      this.boxEngine.applyStructuralUpdate({
+      this.ensureBoxEngine().applyStructuralUpdate({
         id,
         entry,
         opts,
@@ -3404,7 +3445,7 @@ export class ViewerCore {
    * Internamente este método converte `RoomConfig` para dimensões e delega em `createRoomWithDimensions`.
    */
   createRoom(config: RoomConfig): void {
-    if (!this.viewerRoomEngine.createRoomFromConfig(config)) {
+    if (!this.ensureViewerRoomEngine().createRoomFromConfig(config)) {
       this.removeRoom();
     }
   }
@@ -3417,49 +3458,49 @@ export class ViewerCore {
     numWalls?: 3 | 4,
     wallThicknessM?: number
   ): void {
-    this.viewerRoomEngine.createRoomWithDimensions(width, depth, height, numWalls, wallThicknessM);
+    this.ensureViewerRoomEngine().createRoomWithDimensions(width, depth, height, numWalls, wallThicknessM);
   }
 
   removeRoom(): void {
-    if (!this.viewerRoomEngine.removeRoom()) {
+    if (!this.ensureViewerRoomEngine().removeRoom()) {
       this.clearRoomBounds();
     }
   }
 
   setRoomDimensions(width: number, depth: number, height: number): void {
-    this.viewerRoomEngine.setRoomDimensions(width, depth, height);
+    this.ensureViewerRoomEngine().setRoomDimensions(width, depth, height);
   }
 
   addExtraWall(): void {
-    this.viewerRoomEngine.addExtraWall();
+    this.ensureViewerRoomEngine().addExtraWall();
   }
 
   setRoomLocked(locked: boolean): void {
-    this.viewerRoomEngine.setRoomLocked(locked);
+    this.ensureViewerRoomEngine().setRoomLocked(locked);
   }
 
   getRoomExists(): boolean {
-    return this.viewerRoomEngine.getRoomExists();
+    return this.ensureViewerRoomEngine().getRoomExists();
   }
 
   getRoomLocked(): boolean {
-    return this.viewerRoomEngine.getRoomLocked();
+    return this.ensureViewerRoomEngine().getRoomLocked();
   }
 
   getRoomDimensions(): { width: number; depth: number; height: number } | null {
-    return this.viewerRoomEngine.getRoomDimensions();
+    return this.ensureViewerRoomEngine().getRoomDimensions();
   }
 
   hideRoom(): void {
-    this.viewerRoomEngine.hideRoom();
+    this.ensureViewerRoomEngine().hideRoom();
   }
 
   showRoom(): void {
-    this.viewerRoomEngine.showRoom();
+    this.ensureViewerRoomEngine().showRoom();
   }
 
   getRoomVisible(): boolean {
-    return this.viewerRoomEngine.getRoomVisible();
+    return this.ensureViewerRoomEngine().getRoomVisible();
   }
 
   private clearRoomBox(): void {
@@ -5404,7 +5445,7 @@ export class ViewerCore {
   }
 
   private generateIntelligentDesigns(seedBoxId: string): boolean {
-    const designs = this.intelligentDesignerEngine.buildDesigns(seedBoxId);
+    const designs = this.ensureIntelligentDesigner().buildDesigns(seedBoxId);
     if (!designs.length) return false;
     const overlays = this.layoutEngine.predictive.previewDesigns(
       designs.map((d) => ({ id: d.id, plan: d.plan, label: d.label }))
@@ -5425,7 +5466,7 @@ export class ViewerCore {
   }
 
   private applyIntelligentDesign(id: DesignVariantId): boolean {
-    const ok = this.intelligentDesignerEngine.applyDesign(id);
+    const ok = this.ensureIntelligentDesigner().applyDesign(id);
     if (ok) this.clearSmartAlignSnapOverlay();
     return ok;
   }
@@ -5438,7 +5479,7 @@ export class ViewerCore {
     const ok = this.layoutEngine.predictive.applyPending();
     if (ok) {
       if (activeEntry && isEnvironmentStyleId(activeEntry.id)) {
-        this.intelligentDesignerEngine.getBehaviorStore().learnStylePreference(activeEntry.id);
+        this.ensureIntelligentDesigner().getBehaviorStore().learnStylePreference(activeEntry.id);
       }
       this.clearSmartAlignSnapOverlay();
     }
@@ -5459,7 +5500,7 @@ export class ViewerCore {
   }
 
   private previewIntelligentStyle(styleId: EnvironmentStyleId, seedBoxId: string): boolean {
-    const result = this.intelligentDesignerEngine.buildStyleDesign(styleId, seedBoxId);
+    const result = this.ensureIntelligentDesigner().buildStyleDesign(styleId, seedBoxId);
     if (!result) return false;
     const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, result.plan, result.label);
     this.layoutEngine.predictive.previewDesigns([{ id: styleId, plan: result.plan, label: result.label }]);
@@ -5468,7 +5509,7 @@ export class ViewerCore {
   }
 
   private applyIntelligentStyle(styleId: EnvironmentStyleId, seedBoxId: string): boolean {
-    const ok = this.intelligentDesignerEngine.applyStyle(styleId, seedBoxId);
+    const ok = this.ensureIntelligentDesigner().applyStyle(styleId, seedBoxId);
     if (ok) this.clearSmartAlignSnapOverlay();
     return ok;
   }
@@ -5510,13 +5551,13 @@ export class ViewerCore {
     tier: "cheaper" | "premium" | "balanced"
   ): boolean {
     this.designConversationState.setSeedBoxId(seedBoxId);
-    this.costReportEngine.scanProject();
+    this.ensureCostReportEngine().scanProject();
     const suggestion =
       tier === "cheaper"
-        ? this.costReportEngine.suggestCheaperAlternative()
+        ? this.ensureCostReportEngine().suggestCheaperAlternative()
         : tier === "premium"
-          ? this.costReportEngine.suggestPremiumAlternative()
-          : this.costReportEngine.suggestBalancedAlternative();
+          ? this.ensureCostReportEngine().suggestPremiumAlternative()
+          : this.ensureCostReportEngine().suggestBalancedAlternative();
     if (!suggestion) return false;
     this.previewCostSuggestion(suggestion);
     return true;
@@ -5537,7 +5578,7 @@ export class ViewerCore {
   }
 
   private previewManufacturingFixes(): boolean {
-    const fixPlan = this.manufacturingReportEngine.buildFixPreview();
+    const fixPlan = this.ensureManufacturingReportEngine().buildFixPreview();
     if (!fixPlan || !fixPlan.plan.moveBoxes.length) return false;
     const { overlay } = buildPredictiveLayoutResult(
       this.layoutEngine.predictive,
@@ -5556,12 +5597,12 @@ export class ViewerCore {
     if (pending?.label.includes("Auto-Manufacturing")) {
       return this.acceptPredictiveLayoutPending();
     }
-    const result = this.manufacturingReportEngine.autoFix();
+    const result = this.ensureManufacturingReportEngine().autoFix();
     return result.ok;
   }
 
   private generateIntelligentVariations(): boolean {
-    const variations = this.intelligentDesignerEngine.generateVariations();
+    const variations = this.ensureIntelligentDesigner().generateVariations();
     if (!variations.length) return false;
     const overlays = this.layoutEngine.predictive.previewDesigns(
       variations.map((v, i) => ({
@@ -6074,6 +6115,7 @@ export class ViewerCore {
   }
 
   private loadMaterial(materialName: string): LoadedWoodMaterial | null {
+    ensureMaterialEngine();
     return this.materialPipeline.loadMaterial(materialName, this.materialQuality);
   }
 

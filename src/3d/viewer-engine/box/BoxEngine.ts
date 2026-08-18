@@ -11,6 +11,10 @@ export class BoxEngine {
     this.controller = controller;
   }
 
+  static ensure(current: BoxEngine | null, controller: BoxSceneController): BoxEngine {
+    return current ?? new BoxEngine(controller);
+  }
+
   addBox(params: Parameters<BoxSceneController["addBox"]>[0]): boolean {
     return this.controller.addBox(params);
   }

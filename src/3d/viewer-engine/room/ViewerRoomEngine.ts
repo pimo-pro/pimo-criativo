@@ -49,6 +49,13 @@ export class ViewerRoomEngine {
     this.getManager = getManager;
   }
 
+  static ensure(
+    current: ViewerRoomEngine | null,
+    getManager: () => ViewerRoomManagerLike | null | undefined
+  ): ViewerRoomEngine {
+    return current ?? new ViewerRoomEngine(getManager);
+  }
+
   createRoomWithDimensions(
     width: number,
     depth: number,

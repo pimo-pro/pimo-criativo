@@ -30,6 +30,10 @@ export class ComposerEngine {
     this.deps = deps;
   }
 
+  static ensure(current: ComposerEngine | null, deps: ComposerEngineDeps): ComposerEngine {
+    return current ?? new ComposerEngine(deps);
+  }
+
   setMode(mode: ComposerEngineMode): void {
     if (mode === "showcase") {
       this.ensureShowcase();

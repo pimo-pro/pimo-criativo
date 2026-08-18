@@ -40,6 +40,10 @@ export class CostReportEngine {
     });
   }
 
+  static ensure(current: CostReportEngine | null, deps: CostReportEngineDeps): CostReportEngine {
+    return current ?? new CostReportEngine(deps);
+  }
+
   scanProject(): CostScanResult {
     const scan = this.estimator.scanProject(this.deps.getContext());
     this.lastScan = scan;

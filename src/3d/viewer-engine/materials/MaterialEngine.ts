@@ -23,6 +23,16 @@ import { getDefaultOfficialMaterial } from "../../../core/materials/materials.ap
 
 /** Modo global (default: performance para manter comportamento atual). */
 let currentMode: MaterialMode = "performance";
+let materialEngineEnsured = false;
+
+/** Z-01.2.9 — marca o motor de materiais como activo na primeira chamada de API. */
+export function ensureMaterialEngine(): void {
+  materialEngineEnsured = true;
+}
+
+export function isMaterialEngineEnsured(): boolean {
+  return materialEngineEnsured;
+}
 
 /**
  * Lacado (MeshPhysical + clearcoat): sincronizado pelo ViewerCore com `materialQuality === "lacquered"`.
@@ -43,6 +53,7 @@ export function getMaterialMode(): MaterialMode {
 }
 
 export function setMaterialMode(mode: MaterialMode): void {
+  ensureMaterialEngine();
   currentMode = mode;
   invalidateOfficialMaterialCache();
 }
@@ -208,6 +219,7 @@ export function loadMaterial(
   mode: MaterialMode = currentMode,
   buildOptions?: BuildMaterialOptions
 ): LoadedMaterialResult | null {
+  ensureMaterialEngine();
   const preset = getPreset(materialId) ?? getDefaultPreset();
   const useClearcoat =
     buildOptions?.useLacqueredClearcoat !== undefined
