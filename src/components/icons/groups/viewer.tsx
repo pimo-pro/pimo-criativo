@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import type { IconProps } from "../types";
 
-/** Câmera — caminhos extraídos da toolbar do Viewer. */
+/** Vistas da câmara — corpo de câmara (presets), distinto do Photo Mode. */
 export const IconCamera: FC<IconProps> = ({
   size,
   color = "currentColor",
@@ -22,12 +22,14 @@ export const IconCamera: FC<IconProps> = ({
     aria-hidden={ariaHidden}
   >
     {title ? <title>{title}</title> : null}
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
+    <path d="M3 8h13v11H3z" />
+    <path d="M16 11.5 21 8.5v10l-5-3z" />
+    <circle cx="9.5" cy="13.5" r="2.25" />
+    <path d="M7 8V6h6v2" />
   </svg>
 );
 
-/** Highlight — caminhos extraídos da toolbar do Viewer. */
+/** Highlight — brilho de selecção. */
 export const IconHighlight: FC<IconProps> = ({
   size,
   color = "currentColor",
@@ -48,8 +50,9 @@ export const IconHighlight: FC<IconProps> = ({
     aria-hidden={ariaHidden}
   >
     {title ? <title>{title}</title> : null}
-    <path d="M12 3l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" />
-    <circle cx="12" cy="12" r="2" />
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 3.5v2.5M12 18v2.5M3.5 12h2.5M18 12h2.5" />
+    <path d="M6.4 6.4l1.8 1.8M15.8 15.8l1.8 1.8M17.6 6.4l-1.8 1.8M8.2 15.8l-1.8 1.8" />
   </svg>
 );
 
@@ -102,7 +105,7 @@ export const IconGrid: FC<IconProps> = ({
   </svg>
 );
 
-/** Planta de sala: U aberto para cima */
+/** Planta de sala isométrica. */
 export const IconRoom: FC<IconProps> = ({
   size,
   color = "currentColor",
@@ -123,8 +126,10 @@ export const IconRoom: FC<IconProps> = ({
     aria-hidden={ariaHidden}
   >
     {title ? <title>{title}</title> : null}
-    <path d="M5 8v10h14V8" />
-    <path d="M5 8h14" />
+    <path d="M4 18V9l8-4.5L20 9v9" />
+    <path d="M4 9l8 4.5L20 9" />
+    <path d="M12 13.5V21" />
+    <path d="M4 18h16" />
   </svg>
 );
 
@@ -277,5 +282,87 @@ export const IconScale: FC<IconProps> = ({
     <path d="M21 3l-7 7" />
     <path d="M9 21H3v-6" />
     <path d="M3 21l7-7" />
+  </svg>
+);
+
+/** Peças individuais — três painéis. */
+export const IconPieces: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <path d="M5 6h3.5v12H5z" />
+    <path d="M10.25 4h3.5v16h-3.5z" />
+    <path d="M15.5 7h3.5v10H15.5z" />
+  </svg>
+);
+
+/** Medidas do conjunto — caixa com cotas. */
+export const IconDimensions: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <path d="M8 8h10v10H8z" />
+    <path d="M8 4.5h10M8 3.5v2M18 3.5v2" />
+    <path d="M4.5 8v10M3.5 8h2M3.5 18h2" />
+  </svg>
+);
+
+/** Design Industrial — cubo com furo. */
+export const IconIndustrialDesign: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5z" />
+    <path d="M12 3.5V12" />
+    <path d="M4 8l8 4 8-4" />
+    <circle cx="12" cy="16" r="2" />
   </svg>
 );

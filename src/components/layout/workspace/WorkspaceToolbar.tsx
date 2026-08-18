@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from "react";
-import { IconIndustrialDesign } from "@/components/icons/IconIndustrialDesign";
+import { Icon } from "@/components/icons";
 import { usePimoViewerContext } from "@/hooks/usePimoViewerContext";
 import { useUiStore } from "@/stores/uiStore";
 import {
@@ -60,6 +60,7 @@ export function IndustrialDesignToolbarButton() {
         ...TOOLBAR_BTN,
         background: isActive ? "rgba(59, 130, 246, 0.18)" : "transparent",
         boxShadow: isActive ? "inset 0 0 0 1px rgba(59, 130, 246, 0.45)" : undefined,
+        color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
         opacity: viewerReady ? 1 : 0.45,
         cursor: viewerReady ? "pointer" : "not-allowed",
       }}
@@ -70,7 +71,7 @@ export function IndustrialDesignToolbarButton() {
         e.currentTarget.style.background = isActive ? "rgba(59, 130, 246, 0.18)" : "transparent";
       }}
     >
-      <IconIndustrialDesign size={22} color={isActive ? ACTIVE_COLOR : INACTIVE_COLOR} />
+      <Icon name="industrialDesign" size={24} aria-hidden />
     </button>
   );
 }

@@ -29,6 +29,9 @@ import {
   IconMove,
   IconRotate,
   IconScale,
+  IconPieces,
+  IconDimensions,
+  IconIndustrialDesign,
 } from "./groups/viewer";
 import {
   IconDelete,
@@ -100,6 +103,9 @@ export const iconRegistry: Record<IconName, FC<IconProps>> = {
   move: IconMove,
   rotate: IconRotate,
   scale: IconScale,
+  pieces: IconPieces,
+  dimensions: IconDimensions,
+  industrialDesign: IconIndustrialDesign,
   delete: IconDelete,
   rename: IconRename,
   duplicate: IconDuplicate,

@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.27 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** auditada; **Z-02.1** e **Z-02.2** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1 e Z-02.2 (Escalar activo só em GLB/cadOnly) |
+| **Versão do plano** | 1.28 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.3** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1–2.3 (ícones SVG unificados na toolbar) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.3+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.4+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -1144,7 +1144,7 @@ Ordem proposta para gatilhos futuros (atómicos, reversíveis):
 |---------|----------------|-----------|
 | **Z-02.1** | **Executado** 18-08-2026: Orbit, Pan e 2.ª Scale removidos da faixa | Não alterar `OrbitControls` nem `MouseInputMapper` |
 | **Z-02.2** | **Executado** 18-08-2026: Escalar canónico activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais | Não alterar algoritmo de scale do gizmo; não tocar cutlist |
-| **Z-02.3** | Extrair autosave + modal de `ViewerToolbar` para um hook; deixar de montar a faixa vazia | Não alterar `gerarESalvarDesign` |
+| **Z-02.3** | **Executado** 18-08-2026: ícones SVG unificados na `UnifiedTopToolbar` (pedido do dono; proposta antiga de autosave adiada) | Não alterar `gerarESalvarDesign` nem lógica dos botões |
 | **Z-02.4** | CSS órfão `.tools-3d-toolbar`; config `enviar` / eventKeys mortos | Não ligar Events System nesta fase |
 | **Z-02.5** | Corrigir tooltip/aria da Sala; opcional: ícones câmara vs olho | Não alterar `RoomManager` nem criação de paredes |
 
@@ -1219,6 +1219,32 @@ Photo: `photoModePanelOpen` → `setPhotoModeEnabled` (exposição) + `LeftPanel
 **Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, RoomManager, SnapEngine, LayoutEngine, comportamento visual de peças industriais (move/rotate iguais).
 
 **Tag:** `z-02-2-scale-activation`.
+
+### 6.3.12 Relatório de execução — Z-02.3 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-02.3» / unificação dos ícones SVG da `UnifiedTopToolbar`, aprovado pelo dono do produto.
+
+**Nota de ID:** a proposta original de Z-02.3 (extrair autosave da `ViewerToolbar`) **não** foi executada — o dono reatribuiu Z-02.3 aos ícones. O autosave permanece candidato a fase posterior.
+
+**Traço comum:** viewBox 24×24, `fill="none"`, `strokeWidth={1.5}`, `round` caps/joins.
+
+| Botão | Antes | Depois |
+|-------|-------|--------|
+| Escalar | `IconScale` (já SVG) | Confirmado; traço unificado |
+| Vistas | Olho (`IconCamera`) | Corpo de câmara (presets) |
+| Peças | Texto «Peças» | `IconPieces` (três painéis) |
+| Sala | U 2D | Sala isométrica (tooltip intacto) |
+| Qualidade | Raio | Cursores/sliders |
+| Mostrar/Ocultar | Olho | Camadas |
+| Design Industrial | Cubo+lápis 22 px fora do registry | `industrialDesign` no registry (cubo+furo) |
+| MC | Texto «MC» | `IconDimensions` (caixa + cotas) |
+| Exploded | Cubo único | Peças separadas |
+| Highlight | Estrela irregular | Brilho radial |
+| Photo Mode | SLR SVG | **Confirmado** — sem alteração de glifo |
+
+**Intocado:** tooltips, `onClick`, motores A→E, BoxBuilder, malha, RoomManager, ProjectState, pipeline industrial, comportamento 3D.
+
+**Tag:** `z-02-3-svg-icons`.
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -1522,6 +1548,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.25 | **Z-02.0 executado (diagnóstico only):** auditoria da toolbar superior do Viewer; 23 controlos mapeados; Orbit/Pan/Scale mortos na UI; sem alteração de `src/`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.26 | **Z-02.1 executado:** Orbit, Pan e Escalar duplicado removidos da `UnifiedTopToolbar`. Escalar canónico mantido. Tag `z-02-1-remove-dead-buttons`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.27 | **Z-02.2 executado:** Escalar activo em GLB/cadOnly; ícone de escala; gizmo bloqueado em peças industriais. Tag `z-02-2-scale-activation`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.28 | **Z-02.3 executado:** ícones SVG unificados na UnifiedTopToolbar. Tag `z-02-3-svg-icons`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1800,6 +1827,16 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Protecção** | Sem gizmo de escala em caixa industrial, remate, rodapé, sala, paredes |
 | **Intocado** | BoxBuilder, malha, RoomManager, SnapEngine, LayoutEngine, ProjectState, pipeline industrial |
 
+### 13.29 Changelog v1.27 → v1.28
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-02.3** | Ícones SVG unificados na `UnifiedTopToolbar` (24×24, stroke 1.5) |
+| **Novos** | `pieces`, `dimensions`, `industrialDesign` no registry |
+| **Actualizados** | vistas, sala, qualidade, visibilidade, exploded, highlight |
+| **Confirmado** | Photo Mode e Escalar já eram SVG |
+| **Intocado** | Tooltips, lógica, motores A→E, BoxBuilder, malha, pipeline |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1810,4 +1847,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.27).
+Fim do documento de planeamento (v1.28).

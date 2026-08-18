@@ -45,6 +45,9 @@ const ICON_GROUPS: { id: string; label: string; names: IconName[] }[] = [
       "move",
       "rotate",
       "scale",
+      "pieces",
+      "dimensions",
+      "industrialDesign",
     ],
   },
   {

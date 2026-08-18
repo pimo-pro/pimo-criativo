@@ -465,7 +465,7 @@ export default function UnifiedTopToolbar({
           aria-pressed={panelRenderingEnabled}
           onClick={() => actions.setViewerSettings({ panelRenderingEnabled: !panelRenderingEnabled })}
           style={{
-            width: 44,
+            width: 28,
             height: 28,
             display: "flex",
             alignItems: "center",
@@ -474,7 +474,7 @@ export default function UnifiedTopToolbar({
             borderRadius: 4,
             background: panelRenderingEnabled ? "var(--toolbar-pressed-bg)" : "transparent",
             color: "var(--text-main)",
-            fontSize: 11,
+            fontSize: 12,
             cursor: "pointer",
             marginLeft: 3,
           }}
@@ -487,7 +487,7 @@ export default function UnifiedTopToolbar({
             e.currentTarget.style.background = panelRenderingEnabled ? "var(--toolbar-pressed-bg)" : "transparent";
           }}
         >
-          Peças
+          <Icon name="pieces" size={24} aria-hidden />
         </button>
         {onToggleLock != null && (
           <button
@@ -678,8 +678,6 @@ export default function UnifiedTopToolbar({
             boxShadow: dimensionsOverlayOn
               ? "inset 0 0 0 1px rgba(148, 163, 184, 0.45)"
               : undefined,
-            minWidth: 28,
-            padding: "0 4px",
           }}
           onMouseEnter={(e) => {
             if (!dimensionsOverlayOn) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
@@ -688,7 +686,7 @@ export default function UnifiedTopToolbar({
             if (!dimensionsOverlayOn) e.currentTarget.style.background = "transparent";
           }}
         >
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.01em", color: "#cbd5e1" }}>MC</span>
+          <Icon name="dimensions" size={24} aria-hidden />
         </button>
         {cfgImagem ? (
           <button

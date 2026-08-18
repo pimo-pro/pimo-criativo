@@ -148,7 +148,10 @@ export const IconDisplayMenu: FC<IconProps> = ({
     aria-hidden={ariaHidden}
   >
     {title ? <title>{title}</title> : null}
-    <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" />
+    <path d="M4 7h16M4 12h16M4 17h16" />
+    <circle cx="8" cy="7" r="2" />
+    <circle cx="15" cy="12" r="2" />
+    <circle cx="10" cy="17" r="2" />
   </svg>
 );
 
@@ -172,8 +175,9 @@ export const IconDisplayCheck: FC<IconProps> = ({
     aria-hidden={ariaHidden}
   >
     {title ? <title>{title}</title> : null}
-    <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
-    <circle cx="12" cy="12" r="2.5" />
+    <path d="M12 4 20 8.5 12 13 4 8.5 12 4z" />
+    <path d="M4 12.25 12 16.75 20 12.25" />
+    <path d="M4 16 12 20.5 20 16" />
   </svg>
 );
 
@@ -223,7 +227,8 @@ export const IconExploded: FC<IconProps> = ({
     aria-hidden={ariaHidden}
   >
     {title ? <title>{title}</title> : null}
-    <path d="M12 4l6 3.5v7L12 18l-6-3.5v-7L12 4z" />
-    <path d="M12 4v7l6 3.5M12 11L6 7.5" opacity="0.9" />
+    <path d="M12 2.5 17.5 5.5 12 8.5 6.5 5.5 12 2.5z" />
+    <path d="M4 10.5 9 13.5v7l-5-3v-7z" />
+    <path d="M20 10.5 15 13.5v7l5-3v-7z" />
   </svg>
 );
