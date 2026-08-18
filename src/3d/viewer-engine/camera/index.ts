@@ -4,3 +4,5 @@
  */
 export { CameraManager } from "./CameraManager";
 export type { CameraOptions } from "./CameraManager";
+export { CameraEngine } from "./CameraEngine";
+export type { CameraViewPreset } from "./CameraEngine";

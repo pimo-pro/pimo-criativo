@@ -4,6 +4,7 @@
  */
 export { ViewerCore } from "./ViewerCore";
 export type { ViewerOptions } from "./ViewerCore";
+export { ViewerFacade } from "./ViewerFacade";
 export { CameraManager } from "./camera";
 export type { CameraOptions } from "./camera";
 export { Controls } from "./controls";

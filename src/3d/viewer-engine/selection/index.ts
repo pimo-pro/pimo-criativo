@@ -9,3 +9,4 @@ export type {
 } from "./internalSelectionTypes";
 export { cloneInternalSelectionState } from "./internalSelectionTypes";
 export { InternalSelectionOutline } from "./InternalSelectionOutline";
+export { SelectionEngine } from "./SelectionEngine";

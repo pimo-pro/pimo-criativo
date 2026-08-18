@@ -16,9 +16,9 @@ export const VIEWER_CORE_AUDIT: ViewerCoreAuditItem[] = [
   {
     id: "monolith-size",
     severity: "medium",
-    area: "ViewerCore.ts (~4500 linhas)",
-    finding: "Orquestrador concentra sala, boxes, snapping, overlays e export.",
-    recommendation: "Extrair subsistemas já modularizados (runtime, overlays, cache) sem mover API pública.",
+    area: "ViewerCore.ts (fachada Z-01.2.7; motores A→E extraídos)",
+    finding: "A API pública permanece no ViewerCore; cena, luz, composer, câmara, selecção, sala, caixa e finish sync delegam para motores.",
+    recommendation: "Z-01.2.8 testes de fachada; Z-01.2.9 lazy-init das engines pesadas. Não mover malha nem BoxBuilder.",
     touchedInPass: true,
   },
   {
@@ -26,7 +26,7 @@ export const VIEWER_CORE_AUDIT: ViewerCoreAuditItem[] = [
     severity: "medium",
     area: "PimoViewerApi (window.viewerCore só ponte)",
     finding: "Consumidores de produto usam PimoViewerApi / getActiveViewerCore(); o global é ponte HMR.",
-    recommendation: "Manter a ponte até Z-01.2.7; não reintroduzir chamadas de produto a window.viewerCore.",
+    recommendation: "Ponte mantida após Z-01.2.7; não reintroduzir chamadas de produto a window.viewerCore.",
     touchedInPass: true,
   },
   {

@@ -1,17 +1,22 @@
 import * as THREE from "three";
-import { Vector2 } from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 
 import { SceneManager } from "./scene";
+import { SceneEngine } from "./scene/SceneEngine";
 import { CameraManager } from "./camera";
+import { CameraEngine } from "./camera/CameraEngine";
 import { RendererManager } from "./renderer";
 import { Lights } from "./lighting";
+import { LightingEngine } from "./lighting/LightingEngine";
+import { ComposerEngine } from "./lighting/ComposerEngine";
+import { SelectionEngine } from "./selection/SelectionEngine";
+import { GizmoEngine } from "./tools/GizmoEngine";
+import { BoxEngine } from "./box/BoxEngine";
+import { ViewerRoomEngine } from "./room/ViewerRoomEngine";
+import { DesignerEngine } from "./designer/DesignerEngine";
+import { createFinishSyncFlags, requestFinishSync, flushPendingFinishSync } from "./finish/ViewerFinishSync";
 import { Controls } from "./controls";
 import {
   createViewerControls,
@@ -218,7 +223,6 @@ import { PointerPickingFacade } from "./input/PointerPickingFacade";
 import { clearCompetingSelectionsFor } from "./input/neutralSelection";
 import { shouldProcessTransformDragEnd } from "./transforms/transformDragLifecycle";
 import {
-  applyAlignment,
   type AlignmentType,
   type AlignableObject,
 } from "./commands/alignmentCommands";
@@ -258,6 +262,14 @@ export class ViewerCore {
   private controls: Controls | null;
   private readonly boxManager = new ViewerBoxManager();
   private readonly boxSceneController = new BoxSceneController();
+  private readonly boxEngine = new BoxEngine(this.boxSceneController);
+  private sceneEngine!: SceneEngine;
+  private lightingEngine!: LightingEngine;
+  private composerEngine!: ComposerEngine;
+  private cameraEngine!: CameraEngine;
+  private selectionEngine!: SelectionEngine;
+  private readonly designerEngine = new DesignerEngine();
+  private readonly viewerRoomEngine = new ViewerRoomEngine(() => this.roomManager);
   get boxes(): Map<string, ViewerBoxEntry> {
     return this.boxManager.getBoxes();
   }
@@ -351,9 +363,6 @@ export class ViewerCore {
   private reflectionUpdateIntervalFrames = 24;
   private photoModeEnabled = false;
   private readonly baseToneMappingExposure: number;
-  private globalLightIntensity = 1;
-  /** Intensidade das sombras (0–1); espelha `THREE.DirectionalLight.shadow.intensity`. */
-  private shadowIntensityValue = 1;
   private readonly baseLightIntensities: {
     ambient: number;
     hemisphere: number;
@@ -393,12 +402,7 @@ export class ViewerCore {
   private lights: Lights;
   /** Grupo com um wireframe L×A×P de layout (contorno azul de seleção). */
   private selectionOutline!: SelectionOutlineController;
-  private readonly pendingViewerVisualSync = {
-    orla: false,
-    remate: false,
-    hemati: false,
-    rodape: false,
-  };
+  private readonly pendingViewerVisualSync = createFinishSyncFlags();
   private readonly pendingBoxStructureUpdates = new Map<string, Partial<BoxOptions>>();
   /** Contexto transitório para sync de frentes independentes durante updateBox(materialName).
    * frenteFixaMaterialId: string = override; null = seguir corpo; undefined = preservar mesh/entry.
@@ -420,9 +424,17 @@ export class ViewerCore {
   private debugMode = false;
   private eventsManager: EventsManager | null = null;
   private readonly viewerTools = new ViewerTools(() => this.getToolsEngineApi());
+  private readonly gizmoEngine = new GizmoEngine(this.viewerTools);
 
   /** Vista escolhida pelo utilizador (Selecionar Vista). Quando definida, updateCameraTarget/ToBox só atualizam o alvo, não a orientação. */
-  private cameraViewPreset: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric" | null = null;
+  private get cameraViewPreset() {
+    return this.cameraEngine?.preset ?? null;
+  }
+  private set cameraViewPreset(value: "top" | "bottom" | "front" | "back" | "right" | "left" | "isometric" | null) {
+    if (!this.cameraEngine) return;
+    if (value == null) this.cameraEngine.clearPreset();
+    else this.cameraEngine.preset = value;
+  }
 
   /** Gestor da sala única (4 paredes principais + extras + piso + lock). */
   private roomManager: RoomManager | null = null;
@@ -431,12 +443,6 @@ export class ViewerCore {
   /** Overlay de debug do snapping (somente DEV). */
   private snapDebugOverlay: SnapDebugOverlay | null = null;
   private lastSnapDebugData: SnapDebugData | null = null;
-  private composer: EffectComposer | null = null;
-  private bloomPass: UnrealBloomPass | null = null;
-  private bokehPass: BokehPass | null = null;
-  /** Compositor principal: RenderPass + bloom muito suave (modo atual). */
-  private mainComposer: EffectComposer | null = null;
-  private mainBloomPass: UnrealBloomPass | null = null;
   private ultraPerformanceMode = false;
   private ultraPerformanceModeOptions: UltraPerformanceModeOptions = {
     enabled: false,
@@ -444,28 +450,11 @@ export class ViewerCore {
   };
   private defaultPixelRatio: number;
   private defaultGroundSize: number;
-  private ultraLightState: {
-    key: number;
-    fill: number;
-    ambient: number;
-    rim: number;
-    castShadow: boolean;
-    shadowRadius: number;
-  } | null = null;
   private ultraRenderState: {
     materialQuality: ViewerMaterialQuality;
     reflectionsEnabled: boolean;
     toneMappingExposure: number;
-  } | null = null;
-  private ultraLightTarget: {
-    key: number;
-    fill: number;
-    ambient: number;
-    rim: number;
-    castShadow: boolean;
-    shadowRadius: number;
-  } | null = null;
-  private readonly LIGHT_LERP_FACTOR = 0.14;
+    } | null = null;
   private materialPipeline!: MaterialPipelineFacade;
   private displayMaterials!: DisplayMaterialController;
   private ultraMaterials!: UltraMaterialController;
@@ -607,13 +596,22 @@ export class ViewerCore {
     this.container = container;
     const foundation = createViewerFoundation(container, options, this.isMobile);
     this.sceneManager = foundation.sceneManager;
+    this.sceneEngine = new SceneEngine(this.sceneManager);
     this.defaultGroundSize = foundation.defaultGroundSize;
     this.cameraManager = foundation.cameraManager;
+    this.cameraEngine = new CameraEngine(this.cameraManager);
     this.rendererManager = foundation.rendererManager;
     this.lights = foundation.lights;
     this.baseLightIntensities = foundation.baseLightIntensities;
+    this.lightingEngine = new LightingEngine(this.lights, this.baseLightIntensities);
+    this.composerEngine = new ComposerEngine({
+      getRenderer: () => this.rendererManager.renderer,
+      getScene: () => this.sceneManager.scene,
+      getCamera: () => this.cameraManager.camera,
+      getContainer: () => this.container,
+    });
     this.display = createViewerDisplayFacade({
-      getShadowIntensity: () => this.shadowIntensityValue,
+      getShadowIntensity: () => this.lightingEngine.shadowIntensity,
       updateShadowIntensity: (value) => this.updateShadowIntensity(value),
     });
     this.defaultPixelRatio = foundation.defaultPixelRatio;
@@ -628,9 +626,18 @@ export class ViewerCore {
     this.edgeOutlineSystem = selectionSystems.edgeOutlineSystem;
     this.internalSelectionOutline = selectionSystems.internalSelectionOutline;
     this.multiSelectionOutline = selectionSystems.multiSelectionOutline;
+    this.selectionEngine = new SelectionEngine({
+      syncMultiOutlines: (encodedIds) =>
+        this.multiSelectionOutline?.sync(encodedIds, (encoded) => this.resolveMultiOutlineTarget(encoded)),
+      setGroupMemberIds: (ids) => this.viewerState.setGroupTransformMemberIds(ids),
+      clearGroupMemberIds: () => this.viewerState.clearGroupTransformMemberIds(),
+      refreshGizmo: () => this.gizmoEngine.refreshAttachment(),
+      getSelectedObjects: (multiBoxIds) => this.getSelectedObjects(multiBoxIds),
+      notifyAligned: (obj) => this.notifyAlignableTransform(obj),
+    });
 
     this.roomBuilder = new RoomBuilder(() => this.roomBoxWalls.map((w) => w.mesh));
-    this.sceneManager.add(this.roomBuilder.getGroup());
+    this.sceneEngine.add(this.roomBuilder.getGroup());
 
     this.raycastSystem = new ViewerRaycastSystem({
       raycaster: this.raycaster,
@@ -766,7 +773,7 @@ export class ViewerCore {
       getBoxEntry: (boxId) => this.boxes.get(boxId),
     });
     this.layoutEngine = new LayoutEngine(smartLayoutDeps);
-    this.intelligentDesignerEngine = new IntelligentDesignerEngine({
+    this.intelligentDesignerEngine = this.designerEngine.ensure({
       getBridge: () => this.smartLayoutBridge,
       getRoomLabelHint: () => this.smartLayoutBridge?.getRoomLabelHint?.(),
     });
@@ -1068,10 +1075,10 @@ export class ViewerCore {
         ambient: this.lights.ambient,
         rimLight: this.lights.rimLight,
       }),
-      getGroundVisible: () => this.sceneManager.getGroundVisible(),
-      setGroundVisible: (visible) => this.sceneManager.setGroundVisible(visible),
-      getGridVisible: () => this.sceneManager.getGridVisible(),
-      setGridVisible: (visible) => this.sceneManager.setGridVisible(visible),
+      getGroundVisible: () => this.sceneEngine.getGroundVisible(),
+      setGroundVisible: (visible) => this.sceneEngine.setGroundVisible(visible),
+      getGridVisible: () => this.sceneEngine.getGridVisible(),
+      setGridVisible: (visible) => this.sceneEngine.setGridVisible(visible),
       getRoomGroup: () => this.roomBuilder.getGroup(),
       getRoomWalls: () => this.roomBoxWalls,
       getSelectionOutline: () => this.selectionOutline.getGroup(),
@@ -1079,17 +1086,17 @@ export class ViewerCore {
       getDimensionsOverlayGroup: () => this.dimensionsOverlay.group,
       getWallGizmoGroup: () => this.wallGizmo?.group ?? null,
       ensureShowcaseComposer: () => {
-        if (!this.composer) this.initShowcaseComposer();
+        this.composerEngine.ensureShowcase();
       },
       ensureMainComposer: () => {
-        if (!this.mainComposer) this.initMainComposer();
+        this.composerEngine.ensureMain();
       },
-      getShowcaseComposer: () => this.composer,
-      getMainComposer: () => this.mainComposer,
-      getShowcaseBloomPass: () => this.bloomPass,
-      getMainBloomPass: () => this.mainBloomPass,
-      updateShowcaseComposerSize: () => this.updateShowcaseComposerSize(),
-      updateMainComposerSize: () => this.updateMainComposerSize(),
+      getShowcaseComposer: () => this.composerEngine.showcase,
+      getMainComposer: () => this.composerEngine.main,
+      getShowcaseBloomPass: () => this.composerEngine.bloom,
+      getMainBloomPass: () => this.composerEngine.mainBloom,
+      updateShowcaseComposerSize: () => this.composerEngine.updateShowcaseSize(),
+      updateMainComposerSize: () => this.composerEngine.updateMainSize(),
       updateCanvasSize: () => this.updateCanvasSize(),
     });
     this.runtimeLoop = new ViewerRuntimeLoop({
@@ -1102,13 +1109,13 @@ export class ViewerCore {
       updateCameraProjection: () => this.cameraManager.camera.updateProjectionMatrix(),
       getContainer: () => this.container,
       ensureMainComposer: () => {
-        if (!this.mainComposer) this.initMainComposer();
+        this.composerEngine.ensureMain();
       },
-      getShowcaseComposer: () => this.composer,
-      getMainComposer: () => this.mainComposer,
-      getBokehPass: () => this.bokehPass,
-      updateShowcaseComposerSize: () => this.updateShowcaseComposerSize(),
-      updateMainComposerSize: () => this.updateMainComposerSize(),
+      getShowcaseComposer: () => this.composerEngine.showcase,
+      getMainComposer: () => this.composerEngine.main,
+      getBokehPass: () => this.composerEngine.bokeh,
+      updateShowcaseComposerSize: () => this.composerEngine.updateShowcaseSize(),
+      updateMainComposerSize: () => this.composerEngine.updateMainSize(),
       getCurrentMode: () => this.viewerState.getCurrentMode(),
       isUltraPerformanceMode: () => this.ultraPerformanceMode,
       isTurntableEnabled: () => this.turntableEnabled && this.viewerState.getCurrentMode() === "showcase",
@@ -1203,25 +1210,21 @@ export class ViewerCore {
   }
 
   syncOrlaVisuals(): void {
-    if (this.viewerState.getTransformControlsDragging()) {
-      this.pendingViewerVisualSync.orla = true;
-      return;
-    }
-    for (const [boxId, entry] of this.boxes.entries()) {
-      if (entry?.mesh) this.orlaVisualizer.syncBoxRoot(boxId, entry.mesh);
-    }
-    this.refreshViewerAttachmentsAfterMeshMutation();
+    requestFinishSync(this.pendingViewerVisualSync, "orla", this.viewerState.getTransformControlsDragging(), () => {
+      for (const [boxId, entry] of this.boxes.entries()) {
+        if (entry?.mesh) this.orlaVisualizer.syncBoxRoot(boxId, entry.mesh);
+      }
+      this.refreshViewerAttachmentsAfterMeshMutation();
+    });
   }
 
   private syncOrlaForBox(boxId: string): void {
-    if (this.viewerState.getTransformControlsDragging()) {
-      this.pendingViewerVisualSync.orla = true;
-      return;
-    }
-    const entry = this.boxes.get(boxId);
-    if (!entry?.mesh) return;
-    this.orlaVisualizer.syncBoxRoot(boxId, entry.mesh);
-    this.refreshViewerAttachmentsAfterMeshMutation();
+    requestFinishSync(this.pendingViewerVisualSync, "orla", this.viewerState.getTransformControlsDragging(), () => {
+      const entry = this.boxes.get(boxId);
+      if (!entry?.mesh) return;
+      this.orlaVisualizer.syncBoxRoot(boxId, entry.mesh);
+      this.refreshViewerAttachmentsAfterMeshMutation();
+    });
   }
 
   bindRemateBridge(bridge: RematePieceVisualBridge | null): void {
@@ -1233,20 +1236,18 @@ export class ViewerCore {
 
   /** Sync visual de remates — aplica apenas transform guardado no estado (sem re-snap à caixa). */
   syncRemateVisuals(): void {
-    if (this.viewerState.getTransformControlsDragging()) {
-      this.pendingViewerVisualSync.remate = true;
-      return;
-    }
-    this.remateVisualizer.syncAll();
-    this.tampoVisualizer.syncAll();
-    for (const [, entry] of this.boxes.entries()) {
-      if (!entry?.mesh) continue;
-      this.clearBoxChildrenRemateLegacy(entry.mesh);
-      this.applyPanelVisibilityForObject(entry.mesh);
-    }
-    this.applyPanelVisibilityForObject(this.remateVisualizer.getRoot());
-    this.applyPanelVisibilityForObject(this.tampoVisualizer.getRoot());
-    this.refreshViewerAttachmentsAfterMeshMutation();
+    requestFinishSync(this.pendingViewerVisualSync, "remate", this.viewerState.getTransformControlsDragging(), () => {
+      this.remateVisualizer.syncAll();
+      this.tampoVisualizer.syncAll();
+      for (const [, entry] of this.boxes.entries()) {
+        if (!entry?.mesh) continue;
+        this.clearBoxChildrenRemateLegacy(entry.mesh);
+        this.applyPanelVisibilityForObject(entry.mesh);
+      }
+      this.applyPanelVisibilityForObject(this.remateVisualizer.getRoot());
+      this.applyPanelVisibilityForObject(this.tampoVisualizer.getRoot());
+      this.refreshViewerAttachmentsAfterMeshMutation();
+    });
   }
 
   private clearBoxChildrenRemateLegacy(boxRoot: THREE.Object3D): void {
@@ -1410,13 +1411,11 @@ export class ViewerCore {
   }
 
   syncHematiVisuals(): void {
-    if (this.viewerState.getTransformControlsDragging()) {
-      this.pendingViewerVisualSync.hemati = true;
-      return;
-    }
-    this.hematiVisualizer.syncAll();
-    this.applyPanelVisibilityForObject(this.hematiVisualizer.getRoot());
-    this.refreshViewerAttachmentsAfterMeshMutation();
+    requestFinishSync(this.pendingViewerVisualSync, "hemati", this.viewerState.getTransformControlsDragging(), () => {
+      this.hematiVisualizer.syncAll();
+      this.applyPanelVisibilityForObject(this.hematiVisualizer.getRoot());
+      this.refreshViewerAttachmentsAfterMeshMutation();
+    });
   }
 
   bindRodapeBridge(bridge: RodapeVisualBridge | null): void {
@@ -1427,13 +1426,11 @@ export class ViewerCore {
 
   /** Sync visual de rodapés — aplica apenas transform guardado no estado (sem re-snap à caixa). */
   syncRodapeVisuals(): void {
-    if (this.viewerState.getTransformControlsDragging()) {
-      this.pendingViewerVisualSync.rodape = true;
-      return;
-    }
-    this.rodapeVisualizer.syncAll();
-    this.applyPanelVisibilityForObject(this.rodapeVisualizer.getRoot());
-    this.refreshViewerAttachmentsAfterMeshMutation();
+    requestFinishSync(this.pendingViewerVisualSync, "rodape", this.viewerState.getTransformControlsDragging(), () => {
+      this.rodapeVisualizer.syncAll();
+      this.applyPanelVisibilityForObject(this.rodapeVisualizer.getRoot());
+      this.refreshViewerAttachmentsAfterMeshMutation();
+    });
   }
 
   getHematiMesh(hematiId: string): THREE.Object3D | null {
@@ -1512,11 +1509,9 @@ export class ViewerCore {
     this.turntableEnabled = mode === "showcase" && turntable;
     this.lights.setShadowMapSize(this.isMobile ? 1024 : 4096);
     if (mode === "showcase") {
-      if (!this.composer) {
-        this.initShowcaseComposer();
-      }
+      this.composerEngine.setMode("showcase");
     } else {
-      this.disposeComposer();
+      this.composerEngine.setMode("performance");
     }
   }
 
@@ -1528,43 +1523,12 @@ export class ViewerCore {
     return this.viewerState.getCurrentMode() === "showcase";
   }
 
-  private clampGlobalLightIntensity(value: number): number {
-    return Math.min(1.4, Math.max(0.6, Number.isFinite(value) ? value : 1));
-  }
-
-  private getScaledLightProfile(profile: {
-    key: number;
-    fill: number;
-    ambient: number;
-    rim: number;
-    castShadow: boolean;
-    shadowRadius: number;
-  }) {
-    const factor = this.globalLightIntensity;
-    return {
-      ...profile,
-      key: profile.key * factor,
-      fill: profile.fill * factor,
-      ambient: profile.ambient * factor,
-      rim: profile.rim * factor,
-    };
-  }
-
   setGlobalLightIntensity(value: number): void {
-    this.globalLightIntensity = this.clampGlobalLightIntensity(value);
-    if (this.ultraPerformanceMode && this.ultraLightTarget && this.ultraLightState) {
-      this.ultraLightTarget = this.getScaledLightProfile(this.ultraLightState);
-      return;
-    }
-    this.lights.ambient.intensity = this.baseLightIntensities.ambient * this.globalLightIntensity;
-    this.lights.hemisphere.intensity = this.baseLightIntensities.hemisphere * this.globalLightIntensity;
-    this.lights.keyLight.intensity = this.baseLightIntensities.key * this.globalLightIntensity;
-    this.lights.fillLight.intensity = this.baseLightIntensities.fill * this.globalLightIntensity;
-    this.lights.rimLight.intensity = this.baseLightIntensities.rim * this.globalLightIntensity;
+    this.lightingEngine.applyGlobalIntensity(value, this.ultraPerformanceMode);
   }
 
   getGlobalLightIntensity(): number {
-    return this.globalLightIntensity;
+    return this.lightingEngine.globalIntensity;
   }
 
   setShadowIntensity(value: number): void {
@@ -1572,16 +1536,14 @@ export class ViewerCore {
   }
 
   getShadowIntensity(): number {
-    return this.shadowIntensityValue;
+    return this.lightingEngine.shadowIntensity;
   }
 
   /**
    * Aplica intensidade das sombras na luz principal (Three.js `shadow.intensity`) e agenda render.
    */
   updateShadowIntensity(value: number): void {
-    const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 1));
-    this.shadowIntensityValue = clamped;
-    this.lights.keyLight.shadow.intensity = clamped;
+    this.lightingEngine.applyShadowIntensity(value);
     this.requestRender();
   }
 
@@ -1598,19 +1560,7 @@ export class ViewerCore {
     const isFlat2 = mode === "flat2";
 
     if (active) {
-      if (!this.ultraLightState) {
-        this.ultraLightState = {
-          key: this.baseLightIntensities.key * (isAggressive ? 1.08 : 1.18),
-          fill: this.baseLightIntensities.fill * (isAggressive ? 1.03 : 1.12),
-          ambient: this.baseLightIntensities.ambient * (isAggressive ? 1.02 : 1.08),
-          rim: this.baseLightIntensities.rim * (isAggressive ? 0.95 : 1.2),
-          castShadow: this.lights.keyLight.castShadow,
-          shadowRadius: isAggressive ? 4.5 : 6.5,
-        };
-      }
-      this.ultraLightTarget = this.getScaledLightProfile(this.ultraLightState);
-      this.lights.keyLight.castShadow = true;
-      this.lights.keyLight.shadow.radius = this.ultraLightTarget.shadowRadius;
+      this.lightingEngine.beginUltraLights(isAggressive);
       this.reflectionUpdateIntervalFrames = this.isMobile ? 30 : 18;
 
       if (!this.ultraRenderState) {
@@ -1631,13 +1581,8 @@ export class ViewerCore {
       this.rendererManager.renderer.setPixelRatio(optimizedRatio);
       this.applyUltraMaterialProfile(isFlat2, false);
     } else {
-      if (this.ultraLightState) {
-        this.ultraLightTarget = this.getScaledLightProfile(this.ultraLightState);
-      } else {
-        this.ultraLightTarget = null;
-      }
+      this.lightingEngine.endUltraLights();
       this.reflectionUpdateIntervalFrames = this.isMobile ? 36 : 24;
-      this.ultraLightState = null;
       if (this.ultraRenderState) {
         this.setMaterialQuality(this.ultraRenderState.materialQuality);
         this.setReflectionsEnabled(this.ultraRenderState.reflectionsEnabled);
@@ -1679,37 +1624,7 @@ export class ViewerCore {
   }
 
   private lerpLightsToTarget(): void {
-    if (!this.ultraLightTarget) return;
-    const t = this.LIGHT_LERP_FACTOR;
-    const key = this.lights.keyLight.intensity;
-    const fill = this.lights.fillLight.intensity;
-    const ambient = this.lights.ambient.intensity;
-    const rim = this.lights.rimLight.intensity;
-    const radius = this.lights.keyLight.shadow.radius;
-
-    this.lights.keyLight.intensity = key + (this.ultraLightTarget.key - key) * t;
-    this.lights.fillLight.intensity = fill + (this.ultraLightTarget.fill - fill) * t;
-    this.lights.ambient.intensity = ambient + (this.ultraLightTarget.ambient - ambient) * t;
-    this.lights.rimLight.intensity = rim + (this.ultraLightTarget.rim - rim) * t;
-    this.lights.keyLight.shadow.radius = radius + (this.ultraLightTarget.shadowRadius - radius) * t;
-
-    const snap = 0.002;
-    if (
-      Math.abs(this.lights.keyLight.intensity - this.ultraLightTarget.key) < snap &&
-      Math.abs(this.lights.fillLight.intensity - this.ultraLightTarget.fill) < snap &&
-      Math.abs(this.lights.ambient.intensity - this.ultraLightTarget.ambient) < snap &&
-      Math.abs(this.lights.rimLight.intensity - this.ultraLightTarget.rim) < snap
-    ) {
-      this.lights.keyLight.intensity = this.ultraLightTarget.key;
-      this.lights.fillLight.intensity = this.ultraLightTarget.fill;
-      this.lights.ambient.intensity = this.ultraLightTarget.ambient;
-      this.lights.rimLight.intensity = this.ultraLightTarget.rim;
-      this.lights.keyLight.castShadow = this.ultraLightTarget.castShadow;
-      this.lights.keyLight.shadow.radius = this.ultraLightTarget.shadowRadius;
-      this.ultraLightTarget = null;
-    } else {
-      this.lights.keyLight.castShadow = this.ultraLightTarget.castShadow;
-    }
+    this.lightingEngine.lerpToTarget();
   }
 
   getUltraPerformanceMode(): boolean {
@@ -1797,12 +1712,11 @@ export class ViewerCore {
   }
 
   setMultiSelectionOutlines(encodedIds: string[]): void {
-    this.multiSelectionOutline?.sync(encodedIds, (encoded) => this.resolveMultiOutlineTarget(encoded));
+    this.selectionEngine.setMultiSelectionOutlines(encodedIds);
   }
 
   setGroupTransformMembers(encodedIds: string[]): void {
-    this.viewerState.setGroupTransformMemberIds(encodedIds);
-    this.viewerTools.updateTransformControlsAttachment();
+    this.selectionEngine.setGroupTransformMembers(encodedIds);
   }
 
   getGroupTransformMembers(): string[] {
@@ -1810,8 +1724,7 @@ export class ViewerCore {
   }
 
   clearGroupTransformMembers(): void {
-    this.viewerState.clearGroupTransformMemberIds();
-    this.viewerTools.updateTransformControlsAttachment();
+    this.selectionEngine.clearGroupTransformMembers();
   }
 
   setOnTransformDragStart(callback: (() => void) | null): void {
@@ -2114,15 +2027,7 @@ export class ViewerCore {
 
   /** Alinha objetos selecionados (referência = primeiro). */
   align(type: AlignmentType, multiBoxIds?: string[]): boolean {
-    const selected = this.getSelectedObjects(multiBoxIds);
-    const applied = applyAlignment(type, selected);
-    if (!applied) return false;
-
-    for (let i = 1; i < selected.length; i += 1) {
-      this.notifyAlignableTransform(selected[i]!);
-    }
-    this.refreshTransformControlsAttachment?.();
-    return true;
+    return this.selectionEngine.align(type, multiBoxIds);
   }
 
   private notifyAlignableTransform(obj: AlignableObject): void {
@@ -2318,82 +2223,12 @@ export class ViewerCore {
     return this.dimensionsOverlay.getPrintReadyDimensions();
   }
 
-  private initShowcaseComposer(): void {
-    const renderer = this.rendererManager.renderer;
-    const scene = this.sceneManager.scene;
-    const camera = this.cameraManager.camera;
-    const w = this.container?.clientWidth ?? 1;
-    const h = this.container?.clientHeight ?? 1;
-
-    this.composer = new EffectComposer(renderer);
-    this.composer.addPass(new RenderPass(scene, camera));
-    this.bloomPass = new UnrealBloomPass(new Vector2(w, h), 0.18, 0.35, 0.9);
-    this.composer.addPass(this.bloomPass);
-    this.bokehPass = new BokehPass(scene, camera, {
-      focus: 5,
-      aperture: 0.02,
-      maxblur: 0.004,
-    });
-    this.composer.addPass(this.bokehPass);
-    this.updateShowcaseComposerSize();
-  }
-
-  private updateShowcaseComposerSize(): void {
-    if (!this.composer || !this.container) return;
-    const w = this.container.clientWidth || 1;
-    const h = this.container.clientHeight || 1;
-    this.composer.setSize(w, h);
-    this.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    if (this.bloomPass) {
-      this.bloomPass.resolution.set(w, h);
-    }
-  }
-
-  private initMainComposer(): void {
-    if (this.mainComposer || !this.container) return;
-    const renderer = this.rendererManager.renderer;
-    const scene = this.sceneManager.scene;
-    const camera = this.cameraManager.camera;
-    const w = this.container.clientWidth || 1;
-    const h = this.container.clientHeight || 1;
-    this.mainComposer = new EffectComposer(renderer);
-    this.mainComposer.addPass(new RenderPass(scene, camera));
-    this.mainBloomPass = new UnrealBloomPass(new Vector2(w, h), 0.05, 0.4, 0.85);
-    this.mainComposer.addPass(this.mainBloomPass);
-    this.mainComposer.setSize(w, h);
-    this.mainComposer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  }
-
-  private updateMainComposerSize(): void {
-    if (!this.mainComposer || !this.container) return;
-    const w = this.container.clientWidth || 1;
-    const h = this.container.clientHeight || 1;
-    this.mainComposer.setSize(w, h);
-    this.mainComposer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    if (this.mainBloomPass) {
-      this.mainBloomPass.resolution.set(w, h);
-    }
-  }
-
   private disposeComposer(): void {
-    if (!this.composer) return;
-    if ("renderTarget1" in this.composer && "renderTarget2" in this.composer) {
-      (this.composer.renderTarget1 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
-      (this.composer.renderTarget2 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
-    }
-    this.composer = null;
-    this.bloomPass = null;
-    this.bokehPass = null;
+    this.composerEngine.disposeShowcase();
   }
 
   private disposeMainComposer(): void {
-    if (!this.mainComposer) return;
-    if ("renderTarget1" in this.mainComposer && "renderTarget2" in this.mainComposer) {
-      (this.mainComposer.renderTarget1 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
-      (this.mainComposer.renderTarget2 as THREE.WebGLRenderTarget | undefined)?.dispose?.();
-    }
-    this.mainComposer = null;
-    this.mainBloomPass = null;
+    this.composerEngine.disposeMain();
   }
 
   loadMaterialSet(materialConfig?: MaterialSet) {
@@ -2873,7 +2708,7 @@ export class ViewerCore {
       woodFloor: "#f8fafc",
     };
     const clearColor = sceneBackgroundByMode[mode];
-    this.sceneManager.setBackground(clearColor);
+    this.sceneEngine.setBackground(clearColor);
     renderer.setClearColor(clearColor, 1);
 
     if (mode === "woodFloor") {
@@ -3309,7 +3144,7 @@ export class ViewerCore {
         "ViewerCore not ready: boxes/boxManager not initialized. Ensure viewerReady is true before calling addBox."
       );
     }
-    return this.boxSceneController.addBox({
+    return this.boxEngine.addBox({
       id,
       options,
       boxes: this.boxes,
@@ -3322,7 +3157,7 @@ export class ViewerCore {
       getFixedYForCabinet: (entry) => this.getFixedYForCabinet(entry),
       applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
       syncFeetVisualForBox: (entry) => this.syncFeetVisualForBox(entry),
-      sceneAdd: (object) => this.sceneManager.add(object),
+      sceneAdd: (object) => this.sceneEngine.add(object),
       applyPanelIdsToBox: (root, boxId, panelIds, materialPresetId) =>
         this.applyPanelIdsToBox(root, boxId, panelIds, materialPresetId),
       applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
@@ -3397,7 +3232,7 @@ export class ViewerCore {
     }
 
     // Atualização apenas de posição/rotação (ex.: após drag ou sync do projeto). Não fazer rebuild (updateBoxGroup/createDoorObject).
-    const structurePlan = this.boxSceneController.createUpdateBoxStructurePlan(entry, opts);
+    const structurePlan = this.boxEngine.createUpdateBoxStructurePlan(entry, opts);
     const { onlyTransform, hasStructureOpts } = structurePlan;
     if (onlyTransform && !hasStructureOpts) {
       if (import.meta.env.DEV) {
@@ -3409,7 +3244,7 @@ export class ViewerCore {
       const isActiveDragForThisBox =
         this.viewerState.getTransformControlsDragging() &&
         this.viewerState.getSelectedBox() === id;
-      return this.boxSceneController.applyOnlyTransformUpdate({
+      return this.boxEngine.applyOnlyTransformUpdate({
         entry,
         opts,
         isActiveDragForThisBox,
@@ -3430,7 +3265,7 @@ export class ViewerCore {
       return true;
     }
     if (structureChanged) {
-      this.boxSceneController.applyStructuralUpdate({
+      this.boxEngine.applyStructuralUpdate({
         id,
         entry,
         opts,
@@ -3569,25 +3404,9 @@ export class ViewerCore {
    * Internamente este método converte `RoomConfig` para dimensões e delega em `createRoomWithDimensions`.
    */
   createRoom(config: RoomConfig): void {
-    const { walls, numWalls } = config;
-    if (!walls?.length || walls.length < 3) {
+    if (!this.viewerRoomEngine.createRoomFromConfig(config)) {
       this.removeRoom();
-      return;
     }
-    const w0 = walls[0]?.lengthMm ?? 3000;
-    const w2 = walls[Math.min(2, walls.length - 1)]?.lengthMm ?? w0;
-    const w1 = walls[1]?.lengthMm ?? w0;
-    const w3 = walls.length >= 4 ? (walls[3]?.lengthMm ?? w1) : w1;
-    const widthM = Math.max(0.1, (w0 + w2) / 2 / 1000);
-    const depthM = Math.max(0.1, (w1 + w3) / 2 / 1000);
-    const heightM = Math.max(
-      0.1,
-      ...walls.map((w) => (w.heightMm ?? 2800) / 1000),
-      2.8
-    );
-    const n: 3 | 4 =
-      numWalls === 3 || walls.length === 3 ? 3 : walls.length >= 4 ? 4 : 3;
-    this.createRoomWithDimensions(widthM, depthM, heightM, n);
   }
 
   /** Cria a sala com o sistema RoomManager. numWalls: 4 = fechada, 3 = sala de estar (aberta, sem parede traseira). */
@@ -3598,53 +3417,49 @@ export class ViewerCore {
     numWalls?: 3 | 4,
     wallThicknessM?: number
   ): void {
-    this.roomManager?.createRoom(width, depth, height, numWalls ?? 4, wallThicknessM);
+    this.viewerRoomEngine.createRoomWithDimensions(width, depth, height, numWalls, wallThicknessM);
   }
 
   removeRoom(): void {
-    if (this.roomManager?.room) {
-      this.roomManager.removeRoom();
-    } else {
+    if (!this.viewerRoomEngine.removeRoom()) {
       this.clearRoomBounds();
     }
   }
 
   setRoomDimensions(width: number, depth: number, height: number): void {
-    this.roomManager?.setDimensions(width, depth, height);
+    this.viewerRoomEngine.setRoomDimensions(width, depth, height);
   }
 
   addExtraWall(): void {
-    this.roomManager?.addExtraWall();
+    this.viewerRoomEngine.addExtraWall();
   }
 
   setRoomLocked(locked: boolean): void {
-    this.roomManager?.setLocked(locked);
+    this.viewerRoomEngine.setRoomLocked(locked);
   }
 
   getRoomExists(): boolean {
-    return Boolean(this.roomManager?.room);
+    return this.viewerRoomEngine.getRoomExists();
   }
 
   getRoomLocked(): boolean {
-    return this.roomManager?.locked ?? false;
+    return this.viewerRoomEngine.getRoomLocked();
   }
 
   getRoomDimensions(): { width: number; depth: number; height: number } | null {
-    if (!this.roomManager?.room) return null;
-    const r = this.roomManager.room;
-    return { width: r.width, depth: r.depth, height: r.height };
+    return this.viewerRoomEngine.getRoomDimensions();
   }
 
   hideRoom(): void {
-    this.roomManager?.hideRoom();
+    this.viewerRoomEngine.hideRoom();
   }
 
   showRoom(): void {
-    this.roomManager?.showRoom();
+    this.viewerRoomEngine.showRoom();
   }
 
   getRoomVisible(): boolean {
-    return this.roomManager?.visible ?? false;
+    return this.viewerRoomEngine.getRoomVisible();
   }
 
   private clearRoomBox(): void {
@@ -4041,40 +3856,17 @@ export class ViewerCore {
       dist = 2.5;
     }
 
-    this.cameraManager.setTarget(cx, cy, cz);
-
-    switch (preset) {
-      case "front":
-        this.cameraManager.setPosition(cx, cy, cz + dist);
-        break;
-      case "back":
-        this.cameraManager.setPosition(cx, cy, cz - dist);
-        break;
-      case "left":
-        this.cameraManager.setPosition(cx - dist, cy, cz);
-        break;
-      case "right":
-        this.cameraManager.setPosition(cx + dist, cy, cz);
-        break;
-      case "top":
-        this.cameraManager.setPosition(cx, cy + dist, cz);
-        break;
-      case "bottom":
-        this.cameraManager.setPosition(cx, cy - dist, cz);
-        break;
-      case "isometric":
-      default: {
-        const d = dist * 0.9;
-        this.cameraManager.setPosition(cx + d, cy + d * 0.8, cz + d);
-        break;
-      }
-    }
-
-    if (this.controls) {
-      this.syncCameraTarget(new THREE.Vector3(cx, cy, cz), { updateLookAt: false });
-    }
-
-    this.cameraViewPreset = preset;
+    this.cameraEngine.applyPreset(
+      preset,
+      { x: cx, y: cy, z: cz },
+      dist,
+      this.controls
+        ? {
+            set: (x, y, z) =>
+              this.syncCameraTarget(new THREE.Vector3(x, y, z), { updateLookAt: false }),
+          }
+        : null
+    );
   }
 
   /** Aplica apenas a vista frontal padrão e limpa o preset (permite que auto-follow volte a atuar). */
@@ -4234,9 +4026,9 @@ export class ViewerCore {
     this.applyTransformControlsMouseGuard();
   }
 
-  /** Delega ao ViewerTools. */
+  /** Delega ao GizmoEngine / ViewerTools. */
   private refreshTransformControlsAttachment(): void {
-    this.viewerTools.updateTransformControlsAttachment();
+    this.gizmoEngine.refreshAttachment();
   }
 
   /**
@@ -4256,15 +4048,6 @@ export class ViewerCore {
     this.validateViewerMeshLifecycle("mesh-mutation");
   }
 
-  private hasPendingViewerVisualSyncs(): boolean {
-    return (
-      this.pendingViewerVisualSync.orla ||
-      this.pendingViewerVisualSync.remate ||
-      this.pendingViewerVisualSync.hemati ||
-      this.pendingViewerVisualSync.rodape
-    );
-  }
-
   private flushDeferredBoxStructureUpdates(): void {
     if (this.viewerState.getTransformControlsDragging()) return;
     if (this.pendingBoxStructureUpdates.size === 0) return;
@@ -4276,18 +4059,16 @@ export class ViewerCore {
   }
 
   private flushDeferredViewerVisualSyncs(): void {
-    if (this.viewerState.getTransformControlsDragging()) return;
-    if (!this.hasPendingViewerVisualSyncs()) return;
-    const pending = { ...this.pendingViewerVisualSync };
-    this.pendingViewerVisualSync.orla = false;
-    this.pendingViewerVisualSync.remate = false;
-    this.pendingViewerVisualSync.hemati = false;
-    this.pendingViewerVisualSync.rodape = false;
-
-    if (pending.orla) this.syncOrlaVisuals();
-    if (pending.remate) this.syncRemateVisuals();
-    if (pending.hemati) this.syncHematiVisuals();
-    if (pending.rodape) this.syncRodapeVisuals();
+    flushPendingFinishSync(
+      this.pendingViewerVisualSync,
+      this.viewerState.getTransformControlsDragging(),
+      {
+        orla: () => this.syncOrlaVisuals(),
+        remate: () => this.syncRemateVisuals(),
+        hemati: () => this.syncHematiVisuals(),
+        rodape: () => this.syncRodapeVisuals(),
+      }
+    );
   }
 
   private isObjectAttachedToScene(object: THREE.Object3D | null | undefined): boolean {
