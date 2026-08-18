@@ -75,6 +75,8 @@ export type ReportFinanceiroDetalhe = {
   quantidade: number;
   precoUnitario: number;
   total: number;
+  /** Id de catálogo (ferragens). */
+  ferragemId?: string;
   /** Espessura em mm (chapas / painéis). */
   espessuraMm?: number;
   /** Comprimento da peça (mm) — preço linear. */
@@ -179,7 +181,26 @@ export type ProjectReportFinanceiro = {
    * Usado para badges «valor oficial» e para não perder o SSOT na camada visual.
    */
   officialSnapshot?: Partial<Record<FinanceiroCustoKey | "subtotal" | "ivaValor" | "totalProjeto" | "ivaPct", number>>;
+  /**
+   * Overrides de item (camada visual). Não alteram o motor Unificado.
+   * Ferragens: chave = id da linha visual (`ferr-${ferragemId}` ou id manual).
+   */
+  overrides?: {
+    ferragens?: ReportFerragensOverridesMap;
+  };
 };
+
+export type ReportFerragemItemOverride = {
+  tipo?: string;
+  quantidade?: number;
+  precoUnitario?: number;
+  total?: number;
+  observacoes?: string;
+  added?: boolean;
+  removed?: boolean;
+};
+
+export type ReportFerragensOverridesMap = Record<string, ReportFerragemItemOverride>;
 
 export type ReportHistoryEntry = {
   id: string;
@@ -222,6 +243,15 @@ export type ProjectReport = {
   history: ReportHistoryEntry[];
   notas: ReportNota[];
   qualidade: ProjectReportQualidade;
+  /** Contagens do Painel gráfico (camada visual; persistidas no relatório). */
+  painelContagens?: RelatorioPainelContagensPersistidas;
+};
+
+export type RelatorioPainelContagensPersistidas = {
+  pecas: number;
+  modulos: number;
+  portas: number;
+  gavetas: number;
 };
 
 export const PROJECT_REPORT_STORAGE_KEY = "pimo_project_reports_v1";

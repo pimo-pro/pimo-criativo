@@ -24,6 +24,7 @@ import {
 } from "../reportStyles";
 import { R } from "../uiLabels";
 import PaineisAccordion from "./PaineisAccordion";
+import FerragensAccordion from "./FerragensAccordion";
 import LinhaDetalheAccordion from "./LinhaDetalheAccordion";
 
 type Props = {
@@ -230,6 +231,19 @@ export default function FinanceiroBlock({
                               detalhe={linha.detalhe ?? []}
                               totalOficial={official}
                               badgeLabel={badge}
+                              onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
+                              onApplyVisualAsOverride={
+                                onLineOverride
+                                  ? (v) => onLineOverride(key, v)
+                                  : undefined
+                              }
+                            />
+                          ) : key === "ferragens" ? (
+                            <FerragensAccordion
+                              detalhe={linha.detalhe ?? []}
+                              totalOficial={official}
+                              hasOverride={hasOverride}
+                              itemOverrides={value.overrides?.ferragens}
                               onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
                               onApplyVisualAsOverride={
                                 onLineOverride

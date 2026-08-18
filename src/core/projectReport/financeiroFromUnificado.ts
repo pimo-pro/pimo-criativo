@@ -23,7 +23,14 @@ import {
   resolvePaineisOrigem,
   type ReportLineOverrides,
 } from "./financeiroOverrides";
+import {
+  buildFerragensVisual,
+  collectUnificadoFerragens,
+  persistFerragensVisual,
+  visualToDetalhe,
+} from "./financeiroFerragensEngine";
 import { buildPaineisChapasDetalhe, withPaineisChapasDetalhe } from "./paineisChapasDetalhe";
+import { buildRelatorioPainelContagens } from "./relatorioPainelContagens";
 import {
   FINANCEIRO_REPORT_LABELS,
   PROJECT_REPORT_IVA_DEFAULT,
@@ -31,6 +38,7 @@ import {
   type ProjectReportFinanceiro,
   type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
+  type ReportFerragensOverridesMap,
 } from "./types";
 
 function round2(n: number): number {
@@ -138,6 +146,8 @@ export type BuildLiveReportFinanceiroOptions = {
    * Se a key tiver detalhe, não é regenerado a partir do nesting.
    */
   preserveDetalheByKey?: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>>;
+  /** Overrides de item Ferragens (camada visual). */
+  ferragensOverrides?: ReportFerragensOverridesMap | null;
 };
 
 /** Financeiro do Relatório sempre live a partir do Unificado (P3.25–P3.27). */
@@ -170,7 +180,9 @@ export function buildLiveReportFinanceiro(
       fin = {
         ...fin,
         linhas: fin.linhas.map((l) => {
-          if (l.key === "iva" || l.key === "total" || l.key === "paineis") return l;
+          if (l.key === "iva" || l.key === "total" || l.key === "paineis" || l.key === "ferragens") {
+            return l;
+          }
           const key = l.key as FinanceiroCustoKey;
           const preserved = opts.preserveDetalheByKey?.[key];
           if (preserved && preserved.length > 0) {
@@ -179,6 +191,21 @@ export function buildLiveReportFinanceiro(
           return l;
         }),
       };
+    }
+
+    const ferragensOv = opts.ferragensOverrides ?? fin.overrides?.ferragens;
+    const preservedFerragens = opts.preserveDetalheByKey?.ferragens;
+    const unificadoFerragens = collectUnificadoFerragens(state);
+    const hasFerragensOv = Boolean(ferragensOv && Object.keys(ferragensOv).length > 0);
+    if (preservedFerragens && (preservedFerragens.length > 0 || hasFerragensOv)) {
+      fin = persistFerragensVisual(
+        { ...fin, overrides: { ...(fin.overrides ?? {}), ferragens: ferragensOv } },
+        preservedFerragens,
+        unificadoFerragens
+      );
+    } else if (unificadoFerragens.length > 0) {
+      const visual = buildFerragensVisual(unificadoFerragens, ferragensOv);
+      fin = persistFerragensVisual(fin, visualToDetalhe(visual), unificadoFerragens);
     }
 
     const overrides = normalizeReportLineOverrides(
@@ -218,9 +245,11 @@ export function withLiveFinanceiro(
     attachChapasDetalhe: true,
     projectId: report.projectId,
     preserveDetalheByKey: collectPreservedDetalhe(report),
+    ferragensOverrides: report.financeiro?.overrides?.ferragens,
   });
   return {
     ...report,
     financeiro: live,
+    painelContagens: buildRelatorioPainelContagens(report, state),
   };
 }

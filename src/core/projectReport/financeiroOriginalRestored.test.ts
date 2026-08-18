@@ -71,6 +71,13 @@ describe("P3.25 Financeiro original SSOT", () => {
       expect(display.some((l) => l.key === key)).toBe(true);
     }
     expect(display.some((l) => l.key === "chapasReais")).toBe(false);
-    expect(page.linhas.every((l) => (l.detalhe?.length ?? 0) === 0)).toBe(true);
+    expect(
+      page.linhas
+        .filter((l) => l.key !== "ferragens" && l.key !== "paineis" && l.key !== "chapasReais")
+        .every((l) => (l.detalhe?.length ?? 0) === 0)
+    ).toBe(true);
+    expect(page.linhas.find((l) => l.key === "ferragens")?.total).toBe(
+      Math.round((snap.custosEffective.ferragens || 0) * 100) / 100
+    );
   });
 });

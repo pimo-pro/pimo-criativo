@@ -162,6 +162,13 @@ export const R = {
     "Lista edit\u00e1vel de chapas (camada visual). O total oficial de Pain\u00e9is vem do Unificado.",
   semChapasNesting: "Sem chapas. Adicione manualmente ou abra um projeto com nesting real.",
   areaM2: "\u00c1rea (m\u00b2)",
+  adicionarFerragem: "Adicionar ferragem",
+  nomeFerragem: "Nome da ferragem",
+  ferragensAccordionHint:
+    "Lista edit\u00e1vel de ferragens (camada visual). O total oficial vem do Unificado.",
+  semFerragens: "Sem ferragens. Adicione manualmente ou abra um projeto com ferragens.",
+  substituirFerragem: "Substituir ferragem",
+  tooltipOrigemPrecoFerragem: "Origem do pre\u00e7o (cat\u00e1logo B / fallback A / Unificado / override).",
 
   notasProjeto: "5. Notas do Projeto",
   adicionarNota: "Adicionar nota",

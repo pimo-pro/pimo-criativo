@@ -12,7 +12,9 @@ import { buildChartMetrics } from "./chartMetrics";
 import { deriveMetricas } from "./deriveMetricas";
 import { isOfficialTotalLockedKey } from "./financeReportCalc";
 import { getFerragensDetalhe } from "./materiaisSync";
+import { getFerragensOverrides, origemPrecoLabel, resolveOrigemPrecoLinha } from "./financeiroFerragensEngine";
 import { joinTextoItems } from "./migrateReport";
+import { buildRelatorioPainelContagens } from "./relatorioPainelContagens";
 import { FINANCEIRO_REPORT_LABELS, type ProjectReport, type ReportTextoItem } from "./types";
 
 /** Garante PDF sem qtd/unit sticky em keys oficiais (anti-preço legado). */
@@ -103,6 +105,23 @@ export function exportProjectReportPdf(reportInput: ProjectReport): void {
     startY: y,
     head: [["Indicador", "Valor"]],
     body: metrics.map((m) => [m.label, String(m.value)]),
+    styles: { fontSize: 8 },
+    margin: { left: 14, right: 14 },
+  });
+  y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
+
+  y = ensureSpace(doc, y);
+  y = sectionTitle(doc, "Painel grafico (resumo visual)", y);
+  const contagens = report.painelContagens ?? buildRelatorioPainelContagens(report);
+  autoTable(doc, {
+    startY: y,
+    head: [["Indicador", "Valor"]],
+    body: [
+      ["Modulos", String(contagens.modulos)],
+      ["Pecas", String(contagens.pecas)],
+      ["Portas", String(contagens.portas)],
+      ["Gavetas", String(contagens.gavetas)],
+    ],
     styles: { fontSize: 8 },
     margin: { left: 14, right: 14 },
   });
@@ -225,18 +244,30 @@ export function exportProjectReportPdf(reportInput: ProjectReport): void {
 
   // Ferragens (detalhe) — dentro do Financeiro, sem secção Materiais separada
   const ferragens = getFerragensDetalhe(report.financeiro);
+  const ferragensOv = getFerragensOverrides(report.financeiro);
   if (ferragens.length > 0) {
     y = ensureSpace(doc, y, 30);
     y = sectionTitle(doc, "Ferragens", y);
     autoTable(doc, {
       startY: y,
-      head: [["Tipo", "Qtd", "Preco unit.", "Total"]],
-      body: ferragens.map((m) => [
-        m.tipo,
-        String(m.quantidade),
-        m.precoUnitario.toFixed(2),
-        (m.quantidade * m.precoUnitario).toFixed(2),
-      ]),
+      head: [["Tipo", "Qtd", "Preco unit.", "Observacoes", "Total", "Nota"]],
+      body: ferragens.map((m) => {
+        const origem = resolveOrigemPrecoLinha(m, ferragensOv);
+        const isOv = origem === "override" || origem === "manual";
+        const officialUnit = ferragensOv[m.id]?.precoUnitario;
+        return [
+          m.tipo,
+          String(m.quantidade),
+          m.precoUnitario.toFixed(2),
+          m.dimensoes || "-",
+          (Number(m.total) || m.quantidade * m.precoUnitario).toFixed(2),
+          isOv
+            ? `override (${origemPrecoLabel(origem)}${
+                typeof officialUnit === "number" ? `; unit ${officialUnit.toFixed(2)}` : ""
+              })`
+            : origemPrecoLabel(origem),
+        ];
+      }),
       styles: { fontSize: 7 },
       margin: { left: 14, right: 14 },
     });

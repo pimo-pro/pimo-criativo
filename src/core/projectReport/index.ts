@@ -1,5 +1,8 @@
 export type {
   ProjectReport,
+  RelatorioPainelContagensPersistidas,
+  ReportFerragemItemOverride,
+  ReportFerragensOverridesMap,
   ReportStyle,
   ReportOperador,
   ReportCaixa,
@@ -122,6 +125,9 @@ export {
 } from "./financeiroDisplay";
 export {
   buildRelatorioPainelContagens,
+  countGavetasModulo,
+  countPainelFromBoxes,
+  countPortasModulo,
 } from "./relatorioPainelContagens";
 export type { RelatorioPainelContagens } from "./relatorioPainelContagens";
 export { buildChartMetrics, buildCircleChartMetrics } from "./chartMetrics";
@@ -145,6 +151,31 @@ export {
   getFerragensDetalhe,
   materiaisFromFerragensDetalhe,
 } from "./materiaisSync";
+
+export {
+  applyOverride as applyFerragemOverride,
+  applyFerragemCatalogOpt,
+  buildFerragensVisual,
+  calcTotal as calcFerragemTotal,
+  collectUnificadoFerragens,
+  createEmptyFerragemDetalhe,
+  detalheToOverrides,
+  emitFerragensTotalVisual,
+  getFerragensOverrides,
+  listCatalogoFerragens,
+  origemPrecoLabel,
+  persistFerragensVisual,
+  rebuildFerragemDetalhe,
+  resolveOrigemPrecoLinha,
+  visualFerragemId,
+  visualToDetalhe,
+  withFerragensDetalhe,
+} from "./financeiroFerragensEngine";
+export type {
+  FerragemOrigemPreco,
+  FerragemUnificadoLine,
+  FerragemVisualItem,
+} from "./financeiroFerragensEngine";
 
 export { buildOrlaDetalheFromState, recalcOrlaDetalhe } from "./orlaReport";
 

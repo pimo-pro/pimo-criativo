@@ -13,6 +13,9 @@ import {
   setLinhaDetalheVisual,
   setReportStyle,
   setReportLineOverride,
+  persistFerragensVisual,
+  collectUnificadoFerragens,
+  emitFerragensTotalVisual,
   withDerivedMetricas,
   withHistoryForPath,
   withLiveFinanceiro,
@@ -144,6 +147,7 @@ export function useProjectReport(projectKey: string | undefined) {
           attachChapasDetalhe: true,
           projectId: prev.projectId,
           preserveDetalheByKey: preserveDetalheMap(prev),
+          ferragensOverrides: prev.financeiro.overrides?.ferragens,
         });
         const withOverride = setReportLineOverride(live, key, value);
         return withDerivedMetricas({
@@ -171,8 +175,25 @@ export function useProjectReport(projectKey: string | undefined) {
             ...preserveDetalheMap(prev),
             [key]: detalhe,
           },
+          ferragensOverrides: prev.financeiro.overrides?.ferragens,
         });
-        const withDetalhe = setLinhaDetalheVisual(live, key, detalhe, key === "paineis");
+        let withDetalhe =
+          key === "ferragens"
+            ? persistFerragensVisual(
+                live,
+                detalhe,
+                collectUnificadoFerragens(projectState)
+              )
+            : setLinhaDetalheVisual(live, key, detalhe, key === "paineis");
+        if (key === "ferragens") {
+          const visual = emitFerragensTotalVisual(detalhe);
+          const official = Number(withDetalhe.officialSnapshot?.ferragens) || 0;
+          withDetalhe = setReportLineOverride(
+            withDetalhe,
+            key,
+            Math.abs(visual - official) > 0.009 ? visual : null
+          );
+        }
         return withDerivedMetricas({
           ...prev,
           financeiro: withDetalhe,
@@ -220,6 +241,7 @@ export function useProjectReport(projectKey: string | undefined) {
         attachChapasDetalhe: true,
         projectId: report.projectId,
         preserveDetalheByKey: preserveDetalheMap(report),
+        ferragensOverrides: report.financeiro.overrides?.ferragens,
       })
     : null;
 

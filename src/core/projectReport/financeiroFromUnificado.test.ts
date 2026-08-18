@@ -151,7 +151,11 @@ describe("P3.25 buildLiveReportFinanceiro == ADMIN", () => {
       round2(snap.custosEffective.montagem)
     );
 
-    // Sem detalhe / sem itens extra
-    expect(report.linhas.every((l) => (l.detalhe?.length ?? 0) === 0)).toBe(true);
+    // P3.28: detalhe visual de Ferragens permitido; totais continuam SSOT
+    expect(
+      report.linhas
+        .filter((l) => l.key !== "ferragens" && l.key !== "paineis" && l.key !== "chapasReais")
+        .every((l) => (l.detalhe?.length ?? 0) === 0)
+    ).toBe(true);
   });
 });

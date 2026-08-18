@@ -94,7 +94,7 @@ describe("P3.18 financeiroDisplay", () => {
 });
 
 describe("P3.18 painel contagens", () => {
-  it("conta caixas/peças/módulos/portas/gavetas sem tempo", () => {
+  it("conta peças/módulos/portas/gavetas sem tempo (fallback sem estado)", () => {
     const report = {
       producao: {
         ...emptyProducao(),
@@ -163,11 +163,44 @@ describe("P3.18 painel contagens", () => {
     } as ProjectReport;
 
     const c = buildRelatorioPainelContagens(report);
-    expect(c.caixas).toBe(2);
     expect(c.modulos).toBe(2);
     expect(c.portas).toBe(1);
     expect(c.gavetas).toBe(2);
     expect(c.pecas).toBe(3);
     expect("tempo" in c).toBe(false);
+  });
+
+  it("Antunes: portas=15 e gavetas=3 a partir das caixas Unificado (não peças)", () => {
+    const boxes = [
+      ...Array.from({ length: 13 }, (_, i) => ({
+        id: `p${i}`,
+        portaTipo: "porta_simples" as const,
+        doorsLayer: [{ width: 400, height: 700 }],
+        drawersLayer: [],
+        gavetas: 0,
+      })),
+      {
+        id: "dupla",
+        portaTipo: "porta_dupla" as const,
+        doorsLayer: [{ width: 300, height: 700 }, { width: 300, height: 700 }],
+        drawersLayer: [],
+        gavetas: 0,
+      },
+      {
+        id: "gav",
+        portaTipo: "sem_porta" as const,
+        doorsLayer: [],
+        drawersLayer: [{ id: "d1" }, { id: "d2" }, { id: "d3" }],
+        gavetas: 3,
+      },
+    ];
+    const report = {
+      producao: { ...emptyProducao(), pecas: [] },
+      financeiro: emptyFinanceiro(),
+    } as ProjectReport;
+    const c = buildRelatorioPainelContagens(report, { boxes } as never);
+    expect(c.portas).toBe(15);
+    expect(c.gavetas).toBe(3);
+    expect(c.modulos).toBe(15);
   });
 });

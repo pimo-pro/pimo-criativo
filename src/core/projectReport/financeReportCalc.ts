@@ -186,6 +186,8 @@ export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFin
     totalProjeto,
     lineOverrides: fin.lineOverrides,
     paineisOrigem: fin.paineisOrigem,
+    officialSnapshot: fin.officialSnapshot,
+    overrides: fin.overrides,
   };
 }
 
@@ -257,5 +259,7 @@ export function ensureFinanceiroShape(
     totalProjeto: 0,
     lineOverrides: partial?.lineOverrides,
     paineisOrigem: partial?.paineisOrigem,
+    officialSnapshot: partial?.officialSnapshot,
+    overrides: partial?.overrides,
   });
 }

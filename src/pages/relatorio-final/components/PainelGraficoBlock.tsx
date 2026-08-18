@@ -9,6 +9,7 @@ import {
   type ProjectReportMetricas,
   type ReportStyle,
 } from "@/core/projectReport";
+import type { ProjectState } from "@/context/projectTypes";
 import { reportSection, reportSectionTitle } from "../reportStyles";
 import { R } from "../uiLabels";
 import ProgressCircle from "./ProgressCircle";
@@ -17,6 +18,7 @@ type Props = {
   style: ReportStyle;
   metricas: ProjectReportMetricas;
   report: ProjectReport;
+  projectState?: ProjectState | null;
 };
 
 type DashCard = {
@@ -37,20 +39,6 @@ const iconWrap = (color: string): CSSProperties => ({
   color,
   flexShrink: 0,
 });
-
-function IconBox() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path d="M12 12v8M4 8.5l8 3.5 8-3.5" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
 
 function IconPieces() {
   return (
@@ -129,22 +117,15 @@ function StatCard({ label, value, color, icon }: Omit<DashCard, "key">) {
   );
 }
 
-export default function PainelGraficoBlock({ style, metricas, report }: Props) {
-  const contagens = buildRelatorioPainelContagens(report);
+export default function PainelGraficoBlock({ style, metricas, report, projectState }: Props) {
+  const contagens = buildRelatorioPainelContagens(report, projectState);
 
   const cards: DashCard[] = [
-    {
-      key: "caixas",
-      label: R.caixas,
-      value: contagens.caixas,
-      color: "#7c3aed",
-      icon: <IconBox />,
-    },
     {
       key: "pecas",
       label: R.pecas,
       value: contagens.pecas,
-      color: "#2563eb",
+      color: "#0891b2",
       icon: <IconPieces />,
     },
     {
@@ -158,14 +139,14 @@ export default function PainelGraficoBlock({ style, metricas, report }: Props) {
       key: "portas",
       label: R.portasCount,
       value: contagens.portas,
-      color: "#16a34a",
+      color: "#0891b2",
       icon: <IconDoor />,
     },
     {
       key: "gavetas",
       label: R.gavetasCount,
       value: contagens.gavetas,
-      color: "#ea580c",
+      color: "#0891b2",
       icon: <IconDrawer />,
     },
   ];

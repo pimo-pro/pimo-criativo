@@ -27,6 +27,7 @@ export default function RelatorioFinalProjeto() {
   const identity = useMemo(() => resolveProjectIdentity(urlKey), [urlKey]);
   const {
     report,
+    projectState,
     loading,
     saving,
     error,
@@ -151,7 +152,12 @@ export default function RelatorioFinalProjeto() {
           onChange={(gerais, path) => updateReport((r) => ({ ...r, gerais }), path)}
         />
 
-        <PainelGraficoBlock style={style} metricas={metricas} report={report} />
+        <PainelGraficoBlock
+          style={style}
+          metricas={metricas}
+          report={report}
+          projectState={projectState}
+        />
 
         <EstadoProjetoBlock
           style={style}
