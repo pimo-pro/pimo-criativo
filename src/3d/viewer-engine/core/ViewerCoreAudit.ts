@@ -18,7 +18,7 @@ export const VIEWER_CORE_AUDIT: ViewerCoreAuditItem[] = [
     severity: "medium",
     area: "ViewerCore.ts (fachada Z-01.2.7; motores A→E extraídos)",
     finding: "A API pública permanece no ViewerCore; cena, luz, composer, câmara, selecção, sala, caixa e finish sync delegam para motores.",
-    recommendation: "Z-01.2.8 testes de fachada; Z-01.2.9 lazy-init das engines pesadas. Não mover malha nem BoxBuilder.",
+    recommendation: "Z-01.2.8 testes de fachada em tests/viewer; Z-01.2.9 lazy-init das engines pesadas. Não mover malha nem BoxBuilder.",
     touchedInPass: true,
   },
   {
