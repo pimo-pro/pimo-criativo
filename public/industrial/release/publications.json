@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-18T08:07:18.111Z",
+      "author": "pimo-pro",
+      "commitMessage": "Regeneração das Work Orders antigas com N-QR v5 unificado",
+      "version": "v6.0818.0907"
+    },
+    {
       "publishedAt": "2026-08-18T07:21:13.146Z",
       "author": "pimo-pro",
       "commitMessage": "Auto deploy",

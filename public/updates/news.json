@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-18T07:21:14.076Z",
+  "updatedAt": "2026-08-18T08:07:18.897Z",
   "news": [
     {
       "version": "industrial-nqr-v5-prod-20260818-090336",
@@ -20,14 +20,24 @@
       "icon": "feature"
     },
     {
-      "version": "v6.0818.0821",
-      "title": "Auto deploy",
-      "description": "Auto deploy",
-      "publishedAt": "2026-08-18T07:21:13.925Z",
+      "version": "v6.0818.0907",
+      "title": "Regeneração das Work Orders antigas com N-QR v5 unificado",
+      "description": "Regeneração das Work Orders antigas com N-QR v5 unificado",
+      "publishedAt": "2026-08-18T08:07:18.753Z",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "c1f7bdd6"
+      "commit": "3d4c224e"
+    },
+    {
+      "version": "v6.0818.0821",
+      "title": "Auto deploy",
+      "description": "Auto deploy",
+      "publishedAt": "2026-08-18T08:22:56+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "dd3d4e1"
     },
     {
       "version": "v6.0817.1203",
