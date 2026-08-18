@@ -475,50 +475,6 @@ export default function UnifiedTopToolbar({
         >
           Peças
         </button>
-        {TOOLS_3D_ITEMS.filter(
-          (item) => item.id === "scale" || item.id === "orbit" || item.id === "pan"
-        ).map((item) => {
-          const isActive = activeTool === item.id;
-          const isEnabled = enabledTools.includes(item.id);
-          const title = !isEnabled && isPieceLocked ? "Peça bloqueada" : item.tooltip;
-          return (
-            <div key={item.id}>
-              <button
-                type="button"
-                title={title}
-                aria-label={title}
-                aria-pressed={isActive}
-                disabled={!isEnabled}
-                onClick={() => {
-                  if (!isEnabled) return;
-                  emitToolSelect(item.id, item.eventKey);
-                }}
-                style={{
-                  width: 28,
-                  height: 28,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "none",
-                  borderRadius: 4,
-                  background: isActive ? "var(--toolbar-pressed-bg)" : "transparent",
-                  color: isEnabled ? "var(--text-main)" : "var(--text-muted)",
-                  fontSize: 12,
-                  cursor: isEnabled ? "pointer" : "default",
-                  opacity: isEnabled ? 1 : 0.5,
-                }}
-                onMouseEnter={(e) => {
-                  if (isEnabled) e.currentTarget.style.background = isActive ? "var(--toolbar-pressed-bg)" : "var(--viewer-toolbar-hover-bg)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = isActive ? "var(--toolbar-pressed-bg)" : "transparent";
-                }}
-              >
-                <Icon name={item.iconName} size={24} aria-hidden />
-              </button>
-            </div>
-          );
-        })}
         {onToggleLock != null && (
           <button
             type="button"

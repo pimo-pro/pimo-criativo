@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.24 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L- e Z-01.2 (campanha de fachada Viewer concluída) |
+| **Versão do plano** | 1.26 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** auditada; **Z-02.1** executado em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1 (botões mortos Orbit/Pan/Scale duplicado removidos da faixa) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-01.2 concluído. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.2+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -440,12 +440,13 @@ Critério: chamada, rota ou documentação sem implementação efectiva ou efeit
 
 ## 6. Zonas `Z-` — auditoria obrigatória antes de remover ou fatiar
 
-Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01 foi reatribuído pelo dono do produto** à auditoria do expositor geral do Viewer (código **vivo**). A antiga Z-01 (integration UI industrial) passou a **Z-04**. Z-02 e Z-03 mantêm o significado original (dormidas).
+Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01 foi reatribuído pelo dono do produto** à auditoria do expositor geral do Viewer (código **vivo**). A antiga Z-01 (integration UI industrial) passou a **Z-04**. **Z-02 (dashboard)** e **Z-03** mantêm o significado original (dormidas). **Z-02.0** (v1.25) é uma campanha **nova** de auditoria do chrome UI do Viewer — **não** substitui o dashboard Z-02.
 
 | ID | Item | Caminho | Evidência | Porque não é L- |
 |----|------|---------|-----------|-----------------|
 | **Z-01** | **Expositor geral do Viewer** | `src/3d/viewer-engine/ViewerCore.ts` | **6112 linhas** — maior ficheiro TS/TSX de `src/`; orquestra cena, boxes, sala, snap, régua, materiais e engines de layout | **Vivo e crítico** — auditoria §6.1; plano de modularização **§6.2 (Z-01.2)**; **não apagar** |
 | Z-02 | Dashboard + analytics | `industrial/core/dashboard/*`, `analytics/stats.ts` | Cadeia interna metrics→dashboard; sem UI | Pode alimentar supervisor futuro |
+| **Z-02.0** | **Toolbar superior do Viewer** | `UnifiedTopToolbar.tsx` + `ViewerToolbar.tsx` | Chrome UI **vivo**; 20 controlos visíveis + faixa vazia + popovers | **Auditoria §6.3** — diagnóstico only; **não apagar** sem gatilho Z-02.1+ |
 | Z-03 | Adapter WO legado | `legacyWorkflowWorkOrderAdapter.ts` | Exportado; documentado como ponte read-only | Transição TRAK (D-03) |
 | **Z-04** | Integration UI industrial (**ex-Z-01**) | `src/industrial/integration/ui/*` | Zero imports em `src/app` | Tipos re-exportados; possível uso futuro TRAK |
 
@@ -991,6 +992,218 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 
 **Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, RoomManager, SnapEngine, LayoutEngine, comportamento visual.
 
+## 6.3 Z-02.0 — Auditoria completa da toolbar superior do Viewer 3D
+
+| Campo | Valor |
+|-------|--------|
+| **Estado** | Auditoria **concluída** (18-08-2026). Código **não** alterado. |
+| **Gatilho de código** | Nenhum. Qualquer limpeza futura exige pedido explícito (ex.: «aplica Z-02.1 — ocultar Orbit/Pan»). |
+| **Alvo** | Chrome UI da faixa **acima do canvas 3D** (não o Header da app, não a LeftToolbar, não o Showroom, não `/v4`) |
+| **Ficheiro principal** | `src/components/layout/unified-toolbar/UnifiedTopToolbar.tsx` |
+| **Contentor** | `Workspace.tsx` → `.workspace-toolbars` monta `UnifiedTopToolbar` + `ViewerToolbar` |
+| **Config** | `src/constants/toolbarConfig.ts` (`VIEWER_TOOLBAR_ITEMS` + `TOOLS_3D_ITEMS`) |
+| **Exclusões** | BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, RoomManager (algoritmo), SnapEngine, LayoutEngine, medidas industriais, comportamento visual |
+
+### 6.3.1 Identificação e arquitectura
+
+A toolbar superior do Viewer **não** é um único componente.
+
+| Camada | Ficheiro | Papel real |
+|--------|----------|------------|
+| Fachada visível | `src/components/layout/unified-toolbar/UnifiedTopToolbar.tsx` | **Todos** os botões 3D + Novo/Projetos/Salvar |
+| Faixa residual | `src/components/layout/viewer-toolbar/ViewerToolbar.tsx` | **Zero botões** renderizados; autosave 10 s + modal «Novo projecto» + toasts de sync |
+| Qualidade | `src/components/layout/topbar/DisplayMenuButton.tsx` | Popover de presets / luz / sombras / mate / escala default |
+| Vistas | `src/components/layout/viewer-toolbar/CameraViewMenu.tsx` | 7 presets de câmara |
+| Sala | `src/components/viewer/toolbar/RoomIconButton.tsx` | Criar sala 4×3×2,4 m **ou** alternar tab SALA/HOME — **não remove** a sala |
+| Design industrial | `src/components/layout/workspace/WorkspaceToolbar.tsx` | Um botão: `IndustrialDesignToolbarButton` |
+| Wiring | `Workspace.tsx` `handleToolSelect` + `useViewerUiActions.setActiveTool` | Ferramentas 3D → `ProjectState.activeViewerTool` → `viewerSync.setActiveTool` → adapter `setTool` → `ViewerCore.setTransformMode` |
+| Ícones | `src/components/icons/groups/viewer.tsx` e `groups/toolbar.tsx` | SVG inline React (`<svg>`), não ficheiros `.svg` soltos |
+
+`Tools3DToolbar.tsx` **já não existe no disco** (removido em Z-01.2.1). CSS `.tools-3d-toolbar` em `src/index.css` ficou órfão.
+
+**Undo/Redo** saíram desta faixa: vivem em `HeaderUndoRedoButtons.tsx` + atalho Ctrl+Z no `Workspace`. Config ainda lista `desfazer`/`refazer` em `VIEWER_TOOLBAR_ITEMS`, mas a `ViewerToolbar` filtra-os.
+
+**Zoom:** não há botão. Zoom = roda do rato (`MouseInputMapper.wheelAction = "zoom"` → `OrbitControls` DOLLY). Existe `PimoViewerApi.setCameraZoom` / `useViewerCamera`, **sem** consumidor na toolbar.
+
+**Remate:** não há botão «Remate». Remate selecciona-se na cena; o popover de rotação aplica-se ao remate. «Escalar remate» é o botão Scale (morto na UI — ver tabela).
+
+**Motor A→E** (referência Z-01.2.7): A Cena (`LightingEngine`, `ComposerEngine`); B Interacção (`CameraEngine`, `SelectionEngine`, `GizmoEngine`, `MeasurementEngine`); C Dados (`BoxEngine`, `ViewerRoomEngine`, `MaterialEngine`); D Layout (`DesignerEngine` — **não** usado por esta toolbar); E Runtime (`ViewerState`, `ViewerPanelVisibility`, loop).
+
+### 6.3.2 Tabela industrial — todos os botões (esquerda → direita)
+
+Veredicto: **Manter** / **Melhorar** / **Remover** = proposta **sem execução**.
+
+| # | Botão (UI) | Ficheiro / hook | Ícone actual | Função chamada | Motor A→E | Estado | Duplicado | Utilidade real | Veredicto |
+|---|----------------|-----------------|--------------|----------------|-----------|--------|-----------|----------------|-----------|
+| 1 | Selecionar | `UnifiedTopToolbar` + `Workspace.handleToolSelect` | SVG `IconSelect` (`name="select"`) — cursor | `actions.setActiveTool("select")` → `setTransformMode(null)` | B `SelectionEngine` + `GizmoEngine` (desanexa gizmo) | **Activo** | Não | Sim — modo canónico | **Manter** |
+| 2 | Mover | idem | SVG `IconMove` | `setActiveTool("move")` → `setTransformMode("translate")` | B `GizmoEngine` / `ViewerTools` + Snap no Core | **Activo** (desactiva se peça `locked`) | Não | Sim | **Manter** |
+| 3 | Rodar | idem + popover XYZ | SVG `IconRotate` | `setActiveTool("rotate")` → `setTransformMode("rotate")`; popover: `updateWorkspaceBoxTransform` / `updateRemate` | B `GizmoEngine`; estado em ProjectContext (não DesignerEngine) | **Activo** | Não | Sim — gizmo + ângulos numéricos | **Manter** |
+| 4 | Escalar (1.ª instância) | `PRIMARY_3D_IDS` inclui `"scale"` | SVG **`IconAdminSettings`** (engrenagem) — **ícone errado** | Clique **impossível**: `enabledTools` nunca inclui `"scale"` | B `GizmoEngine` **teria** `setTransformMode("scale")` se o botão estivesse enabled | **Morto na UI** (sempre `disabled`) | **Sim — #6** | Backend existe; UI bloqueia | **Melhorar** (activar com remate/peça) **ou Remover** da PRIMARY |
+| 5 | Peças | `UnifiedTopToolbar` texto «Peças» | **Sem SVG** — label 11 px | `actions.setViewerSettings({ panelRenderingEnabled })` → `viewerApi.setPanelRenderingEnabled` | E `ViewerPanelVisibility` (não `BoxEngine`; **não** cria malha) | **Activo** | Sobreposição parcial com Design Industrial (também liga peças/arestas) | Sim — explodir painéis individuais | **Manter**; alinhar copy «Ver Peças» vs label fixa «Peças» |
+| 6 | Escalar (2.ª instância) | 2.º `map` de `TOOLS_3D_ITEMS` (`scale\|orbit\|pan`) | Mesma engrenagem | Idem #4 — sempre disabled | Idem #4 | **Morto** | **Duplicado de #4** | Nenhuma enquanto disabled | **Remover** duplicado |
+| 7 | Orbit | `toolbarConfig` tooltip «Orbit (futuro)» | SVG `IconOrbit` | Clique **impossível** (`enabledTools` sem `"orbit"`). `handleToolSelect` **ignora** orbit (só select/move/rotate/scale) | Orbit **real** está no rato: `MouseInputMapper` → `OrbitControls` (B `CameraEngine`) | **Morto** (placeholder) | Conceito duplicado com o rato (não com outro botão) | **Não** — orbit já funciona pelo pointer | **Remover** da toolbar (não do rato) |
+| 8 | Pan | tooltip «Pan (futuro)» | SVG `IconPan` | Idem orbit: sempre disabled; `handleToolSelect` ignora | Pan **real** = botão do rato via `OrbitControls` | **Morto** | Conceito duplicado com o rato | **Não** | **Remover** da toolbar |
+| 9 | Lock 3D | `onToggleLock` → `Workspace.toggleLock` | SVG `IconLock3D` | `viewerSync.setLockEnabled` | Core / colisão (não A→E nomeado); impede overlap caixa/parede/chão | **Activo** | Não | Sim | **Manter** |
+| 10 | Vistas da câmara | `CameraViewMenu` | SVG `IconCamera` — **olho** (fácil de confundir com #18) | `viewerApi.setCameraView(preset)` | B `CameraEngine.applyPreset` | **Activo** | Presets também no Photo Mode (front/top/iso) | Sim — 7 vistas | **Manter**; ícone de câmara em vez de olho |
+| 11 | Exploded View | popover local | SVG `IconExploded` | `setViewerSettings` + `setExplodedViewEnabled` / `setExplodedViewIntensity` | E `ViewerPanelVisibility` | **Activo** | Não | Sim | **Manter** |
+| 12 | Highlight | `actions.toggleHighlight` | SVG `IconHighlight` (estrela) | `viewerApi.setHighlightEnabled` | E `HighlightManager` + `ViewerState` | **Activo** | Não | Sim | **Manter** |
+| 13 | Régua | `actions.toggleRuler` | SVG `IconRuler` | `viewerSettings.rulerEnabled` → `Workspace` → `setMeasurementMode` | B `MeasurementEngine.setEnabled` (unificado Z-01.2.2) | **Activo** | ContextMenu «Régua interna» já removido | Sim | **Manter** |
+| 14 | MC (Medidas do Conjunto) | estado local `dimensionsOverlayOn` | **Texto «MC»** — sem SVG | `viewerApi.toggleDimensionsOverlay()` | Overlay de dimensões no Core (não MeasurementEngine da régua) | **Activo** (estado **não** persistido em ProjectState) | Conceito próximo da régua, motor diferente | Sim | **Manter**; persistir flag se for produto |
+| 15 | Photo Mode | `uiStore.photoModePanelOpen` | SVG `IconPhotoMode` (câmara fotográfica) | `setPhotoModeEnabled` + painel esquerdo `PhotoModeSettingsContent` | A `ComposerEngine` (showcase/realista via preview); A `LightingEngine`; B `CameraEngine`; captura `renderScene` | **Activo** | Não | Sim — captura + preview | **Manter** |
+| 16 | Reset Camera | `VIEWER_TOOLBAR_ITEMS` `reset-camera` | SVG `IconResetCamera` (mira + cruz) | `viewerApi.resetCamera()` → `setCameraView("front")` + limpa preset | B `CameraEngine` | **Activo** | Próximo de #10 «Vista Frontal» | Sim — atalho frontal | **Manter** |
+| 17 | Qualidade de exibição | `DisplayMenuButton` | SVG `IconDisplayMenu` (**raio**) | Popover: `setUltraPerformanceMode`, `setMaterialQuality`, `setBackgroundMode`, luz/sombra/gloss/mate | A `LightingEngine` + `ComposerEngine` (ultra); C `MaterialEngine` (qualidade PBR) | **Activo** | Reflexos também no menu #18 | Sim — mas UX confusa (ver §6.3.4) | **Melhorar** copy/ícone; **não** remover |
+| 18 | Mostrar/ocultar | popover visibilidade | SVG `IconDisplayCheck` — **olho** (igual família de #10) | arestas / esconder painéis / tecto / edição paredes / reflexos | E `ViewerPanelVisibility`; sala tecto via Room; reflexos A cena | **Activo** | Reflexos duplicados com #17 | Sim | **Manter**; ícone distinto da câmara |
+| 19 | Design Industrial | `WorkspaceToolbar` | `IconIndustrialDesign` (componente próprio) | `applyIndustrialDesignToolbarToggle` → modo furos + painel + peças/arestas ON | E `IndustrialDesignWorkspaceMode` (não DesignerEngine D) | **Activo** (disabled até `viewerReady`) | Liga `panelRenderingEnabled` como #5 | Sim — furos no viewer | **Manter** |
+| 20 | Sala | `RoomIconButton` | SVG `IconRoom` | Sem sala: `wallStore.setRoomLayoutFromMeters(4,3,2.4)` + tab HOME; com sala: **toggle** SALA↔HOME | C `ViewerRoomEngine` **indirecto** (sync paredes → `createRoomWithDimensions`); **não** chama `removeRoom` | **Activo com tooltip mentiroso** | Painel Sala na LeftToolbar | Sim — atalho de sala | **Melhorar** tooltip/aria («Remover sala» é **falso**) |
+| 21 | Novo | direita da Unified | SVG `adminDocs` | `onNovo` → modal ou `createNewProject` | Fora A→E (ProjectContext) | **Activo** | Handler também em `ViewerToolbar.handleAction("novo")` — **não visível** | Sim | **Manter** |
+| 22 | Projetos | direita | SVG `projects` | `openModal("projects")` | Fora A→E | **Activo** | Idem ViewerToolbar morto | Sim | **Manter** |
+| 23 | Salvar e Gerar Design | botão texto primary | Sem ícone | `gerarESalvarDesign()` + `UnifiedExportPanel` | Pipeline industrial **só disparada**; esta fase **não** a altera | **Activo** | `VIEWER_TOOLBAR_ITEMS.enviar` está morto | Sim | **Manter** (não tocar na pipeline) |
+
+**Sub-controlos dos popovers** (não são botões da faixa, mas fazem parte da toolbar):
+
+| Contentor | Controlos | Motor | Notas |
+|-----------|-----------|-------|-------|
+| #3 Rodar | 90° direita; XYZ graus | ProjectContext transform | Remate usa `placementMode: "FREE"` |
+| #10 Câmara | top / bottom / front / back / right / left / isometric | B `CameraEngine` | Clique no trigger **só abre** (`setShowCameraMenu(true)`), não toggle |
+| #11 Exploded | checkbox + slider 0–100 % | E panel visibility | |
+| #17 Qualidade | botão **«Quality»** (EN) chama `enableUltraQualityMode` — **rótulo errado**; toggle Ultra; perfil balanced/flat2/aggressive; material standard/premium/lacado; fundo studio/white/dark/woodFloor; luz 60–140 %; sombra; mate; gloss; **modo de escala default** (additive/ratio — usado pelo ContextMenu, **não** pelo botão Scale); Restaurar visual | A+C | Mix PT/EN |
+| #18 Visibilidade | arestas; esconder painéis; tecto; edição paredes; reflexos probe | E + Room + A | |
+
+### 6.3.3 O que o utilizador pediu e não existe como botão
+
+| Pedido | Achado |
+|--------|--------|
+| **Zoom** | Sem botão. Roda + `setCameraZoom` na API sem UI. |
+| **Remate** | Sem botão. Selecção na cena + rotação no #3. |
+| **Escalar Remate** | Botões #4 e #6 — **sempre disabled**. Backend `setTransformMode("scale")` está pronto. `defaultScalingMode` no menu qualidade alimenta o **ContextMenu**, não estes botões. |
+| **Orbit / Pan** | Botões visíveis mas mortos. Orbit/pan **vivos** no mapeamento do rato (`cad` default: esquerdo=pan, direito=orbit). |
+
+### 6.3.4 Botões sem função, APIs antigas, duplicados, ícones errados
+
+**Sem função na faixa (visíveis mas inertes):**
+
+1. Orbit (#7) — `disabled={!enabledTools.includes("orbit")}` e `enabledTools` ∈ {select, move, rotate}.
+2. Pan (#8) — idem.
+3. Scale ×2 (#4 e #6) — idem; `handleToolSelect` até **aceitaria** `"scale"`, mas o `disabled` impede o clique.
+
+**Faixa morta (sem botões, com efeitos colaterais):**
+
+- `ViewerToolbar`: filtra **todos** os `VIEWER_TOOLBAR_ITEMS` (`novo`, `projeto`, `desfazer`, `refazer`, `imagem`, `reset-camera`, `enviar`) → `map` vazio. Continua: intervalo de autosave 10 s (`gerarESalvarDesign`), `subscribeProjectsSyncStatus` (toasts), `ConfirmNewProjectModal`. Ocupa padding CSS (`.viewer-toolbar` 2 px).
+
+**Config / APIs antigas sem UI nesta toolbar:**
+
+| Símbolo | Onde | Estado |
+|---------|------|--------|
+| `TOOLS_3D_ITEMS.eventKey` (`tool:select` etc.) | `toolbarConfig.ts` | Passado a `onToolSelect` e **descartado** (`_eventKey`). Events System no-op (feature flag). |
+| `VIEWER_TOOLBAR_ITEMS.enviar` | config | Nunca renderizado; exporto vai por «Salvar e Gerar Design» |
+| `VIEWER_TOOLBAR_ITEMS.desfazer/refazer` | config | UI no **Header**, não no Viewer |
+| `setCameraZoom` | `PimoViewerApi` | Sem botão |
+| `Tools3DToolbar` | disco | **Ausente** (Z-01.2.1); CSS órfão |
+| `createRoom` deprecated | ViewerCore | RoomIconButton **não** o chama; usa `wallStore` |
+
+**Duplicados:**
+
+| Par | Tipo |
+|-----|------|
+| Scale #4 e #6 | Dois botões iguais, ambos mortos |
+| Olho #10 (vistas) vs olho #18 (visibilidade) | Ícones da mesma família |
+| Reflexos #17 e #18 | Dois sítios para o mesmo `enableReflections` |
+| Peças #5 vs Design Industrial #19 | Ambos ligam `panelRenderingEnabled` |
+| Reset #16 vs Vista frontal no menu #10 | Dois caminhos para front; Reset ainda limpa o preset (auto-follow) |
+| Photo Mode vistas vs menu #10 | `PhotoModeSettingsContent` também chama `setCameraView` |
+
+**Ícones errados / enganadores:**
+
+| Botão | Ícone | Problema |
+|-------|-------|----------|
+| Scale | `adminSettings` (engrenagem) | Não comunica escala; parece Definições |
+| Vistas | `camera` = olho | Não é câmara; choca com visibilidade |
+| Qualidade | raio | Aceitável para «potência», mas o botão interno chama-se Quality e activa **Ultra** |
+| Sala | casa/sala | Tooltip «Remover sala» quando a sala existe — a acção **não remove** |
+| Peças | texto | Inconsistente com o resto (tudo SVG 24 px) |
+
+### 6.3.5 Riscos (diagnóstico — sem mitigação de código)
+
+| ID | Risco | Severidade | Evidência |
+|----|-------|------------|-----------|
+| Z20-R1 | Operador clica Orbit/Pan/Scale e nada acontece (opacity 0.5) | Média UX | `enabledTools` omite os três IDs |
+| Z20-R2 | Tooltip da Sala promete remoção | Média UX / confiança | `title` vs `handleClick` só muda tab |
+| Z20-R3 | Botão «Quality» activa Ultra | Média UX | `onClick={enableUltraQualityMode}` |
+| Z20-R4 | `ViewerToolbar` vazia ainda dispara autosave | Baixa processo | `setInterval` 10 s independente da faixa visível |
+| Z20-R5 | Estado MC não persiste | Baixa | `useState` local; refresh perde overlay |
+| Z20-R6 | Confundir motores D vs industrial design | Baixa manutenção | Botão #19 **não** é `DesignerEngine` |
+| Z20-R7 | Tocar nestes botões sem diagnóstico | Alta industrial | Pode partir gizmos, régua, photo, cutlist via «Salvar e Gerar» |
+
+**Não é risco desta fase:** BoxBuilder, malha, TCN/DRILL/PI, medidas. A toolbar só **dispara** `gerarESalvarDesign` no botão 23.
+
+### 6.3.6 Sugestões de limpeza (texto only — **não executar**)
+
+Ordem proposta para gatilhos futuros (atómicos, reversíveis):
+
+| Gatilho | Acção proposta | Não fazer |
+|---------|----------------|-----------|
+| **Z-02.1** | **Executado** 18-08-2026: Orbit, Pan e 2.ª Scale removidos da faixa | Não alterar `OrbitControls` nem `MouseInputMapper` |
+| **Z-02.2** | Uma Scale só: enabled com remate ou caixa seleccionada; ícone de escala (não engrenagem); ligar a `setTransformMode("scale")` | Não alterar algoritmo de scale do gizmo; não tocar cutlist |
+| **Z-02.3** | Extrair autosave + modal de `ViewerToolbar` para um hook; deixar de montar a faixa vazia | Não alterar `gerarESalvarDesign` |
+| **Z-02.4** | CSS órfão `.tools-3d-toolbar`; config `enviar` / eventKeys mortos | Não ligar Events System nesta fase |
+| **Z-02.5** | Corrigir tooltip/aria da Sala; opcional: ícones câmara vs olho | Não alterar `RoomManager` nem criação de paredes |
+
+### 6.3.7 Sugestões de melhoria (texto only — **não executar**)
+
+1. Painel de qualidade 100 % PT; separar «Qualidade standard» de «Ultra».
+2. Um único sítio para reflexos (qualidade **ou** visibilidade).
+3. Persistência de MC em `viewerSettings`.
+4. Decisão de produto: botão Zoom (dolly) vs só roda — hoje a API `setCameraZoom` está pronta.
+5. Se o produto quiser «Remate» na faixa: atalho de ferramenta/camada, **não** um segundo BoxBuilder.
+6. Trigger das vistas: toggle abrir/fechar (hoje só abre).
+7. Harmonizar altura: `ViewerToolbar` residual + `UnifiedTopToolbar` são duas linhas visuais (a de baixo quase vazia).
+
+### 6.3.8 Cadeia de chamada (ferramentas vivas)
+
+```
+UnifiedTopToolbar.onClick
+  → Workspace.handleToolSelect(select|move|rotate|scale)
+  → actions.setActiveTool
+  → ProjectState.activeViewerTool
+  → viewerSync.setActiveTool
+  → createViewerApiAdapter.setTool
+  → PimoViewerApi.setTransformMode(null|translate|rotate|scale)
+  → ViewerState.setCurrentTool
+  → GizmoEngine.refreshAttachment → ViewerTools (TransformControls)
+```
+
+Régua: `toggleRuler` → `rulerEnabled` → `setMeasurementMode` → `MeasurementEngine.setEnabled`.
+
+Photo: `photoModePanelOpen` → `setPhotoModeEnabled` (exposição) + `LeftPanel` / `usePhotoModeLivePreview` (pode pedir Composer showcase).
+
+### 6.3.9 Regras respeitadas nesta auditoria
+
+- Nenhuma alteração a BoxBuilder, malha, pipeline industrial, ProjectState, RoomManager, SnapEngine, LayoutEngine, comportamento visual.
+- Nenhum botão removido **nesta auditoria** (Z-02.0). Remoções da faixa: **Z-02.1**.
+- `tsc` / Viewer **não** foram executados como gate de código (não houve diff de `src/` na Z-02.0).
+
+### 6.3.10 Relatório de execução — Z-02.1 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-02.1» / remoção de botões mortos da `UnifiedTopToolbar`, aprovado pelo dono do produto.
+
+**Diff:** um único bloco JSX removido em `UnifiedTopToolbar.tsx` — o segundo `map` de `TOOLS_3D_ITEMS` filtrado a `scale | orbit | pan`.
+
+| Removido da faixa | Motivo | O que ficou |
+|-------------------|--------|-------------|
+| Orbit | Sempre `disabled`; orbit real = rato / `OrbitControls` | `MouseInputMapper` intocado |
+| Pan | Sempre `disabled`; pan real = rato / `OrbitControls` | `MouseInputMapper` intocado |
+| Escalar duplicado (2.ª instância) | Mesmo ID `scale` já renderizado em `PRIMARY_3D_IDS` | Escalar **canónico** mantido (ainda disabled via `enabledTools`) |
+
+**Confirmado:**
+- `enabledTools` continua `["select"]` se peça locked sem remate, senão `["select", "move", "rotate"]`.
+- `PRIMARY_3D_IDS` = `select, move, rotate, scale` (canónico intacto, ícone/tooltip inalterados).
+- `toolbarConfig.ts` / `Tool3DId` / ícones `orbit`/`pan` **não** alterados (consumidores activos da faixa = zero; config fica para Z-02.4).
+- Motores A→E, BoxBuilder, malha, RoomManager, ProjectState, pipeline industrial: intocados.
+
+**Grep pós-remoção:** `item.id === "orbit"` / `"pan"` deixam de existir na UnifiedTopToolbar. Referências restantes: `toolbarConfig.ts` (definição), `IconGallery` / tipos de ícone, `MouseInputMapper` (rato — vivo).
+
+**Tag:** `z-02-1-remove-dead-buttons`.
+
 ## 7. Riscos técnicos e de segurança (`R-`)
 
 | ID | Risco | Evidência | Severidade | Notas |
@@ -1290,6 +1503,8 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.22 | **Z-01.2.7 executado:** motores A→E extraídos do ViewerCore (cena, interacção, dados, layout, runtime). Nome público `ViewerCore` mantido. Tag `z-01-2-7-engines`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.23 | **Z-01.2.8 executado:** suite `tests/viewer/` (fachada, PimoViewerApi, motores A→E) sem WebGL. Tag `z-01-2-8-tests`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.24 | **Z-01.2.9 executado:** lazy-init de motores pesados; constructor do ViewerCore já não os instancia. Tag `z-01-2-9-lazy-init`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.25 | **Z-02.0 executado (diagnóstico only):** auditoria da toolbar superior do Viewer; 23 controlos mapeados; Orbit/Pan/Scale mortos na UI; sem alteração de `src/`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.26 | **Z-02.1 executado:** Orbit, Pan e Escalar duplicado removidos da `UnifiedTopToolbar`. Escalar canónico mantido. Tag `z-02-1-remove-dead-buttons`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1541,6 +1756,24 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Leves** | Snap, Layout, Measurement, Camera, Selection, Gizmo permanecem no arranque |
 | **Intocado** | BoxBuilder, malha, RoomManager, SnapEngine, LayoutEngine, ProjectState, pipeline industrial |
 
+### 13.26 Changelog v1.24 → v1.25
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-02.0** | Auditoria da toolbar superior do Viewer (`UnifiedTopToolbar` + resíduos `ViewerToolbar`) |
+| **Mapa** | 20 botões visíveis + popovers; Zoom e Remate **não** existem como botões |
+| **Mortos na UI** | Orbit, Pan, Scale×2 (sempre disabled); faixa `ViewerToolbar` sem ícones |
+| **Ícones** | Scale = engrenagem; vistas = olho; Quality activa Ultra; tooltip Sala mente |
+| **Execução** | Nenhuma em `src/` — só diagnóstico no plano |
+
+### 13.27 Changelog v1.25 → v1.26
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-02.1** | Remoção atómica do segundo `map` (Orbit, Pan, Scale duplicado) em `UnifiedTopToolbar.tsx` |
+| **Mantido** | Escalar canónico em `PRIMARY_3D_IDS`; `enabledTools` = select/move/rotate |
+| **Intocado** | `OrbitControls`, `MouseInputMapper`, motores A→E, BoxBuilder, malha, RoomManager, ProjectState, pipeline, `toolbarConfig.ts` |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1551,4 +1784,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.24).
+Fim do documento de planeamento (v1.26).
