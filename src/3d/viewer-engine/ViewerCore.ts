@@ -116,7 +116,8 @@ import type {
   ViewerRenderOptions,
   ViewerRenderResult,
 } from "../../context/projectTypes";
-import { loadGLB } from "../../core/glb/glbLoader";
+import { ProjectLoader } from "../../core/viewer/formats/ProjectLoader";
+import type { ProjectLoadInput, ProjectLoadResult } from "../../core/viewer/formats/normalizedProject";
 import { snapHorizontalOffset } from "../../utils/openingConstraints";
 import type { ProjectRoomUtility, RoomFloorMode } from "./room/roomEngineTypes";
 import { devLogger } from "../../utils/devLogger";
@@ -481,6 +482,7 @@ export class ViewerCore {
   private renderExporter!: ViewerRenderExporter;
   private constraints!: TransformConstraints;
   private snapEngine!: SnapEngine;
+  private readonly projectLoader = new ProjectLoader();
   /**
    * Fronteiras de integração extraídas do core:
    * - measurementEngine: régua unificada (único motor de medição).
@@ -4394,6 +4396,14 @@ export class ViewerCore {
     this.setSelectedBox(id);
   }
 
+  /**
+   * Orquestra formatos externos via ProjectLoader (Z-01.2.5).
+   * Não aplica o resultado à cena — o ProjectState continua a ser a SSOT do Workspace.
+   */
+  loadExternalProject(input: ProjectLoadInput): ProjectLoadResult {
+    return this.projectLoader.load(input);
+  }
+
   addModelToBox(boxId: string, modelPath: string, modelId?: string): boolean {
     const entry = this.boxes.get(boxId);
     if (!entry) return false;
@@ -4941,7 +4951,7 @@ export class ViewerCore {
 
   private loadModelObject(path: string, extension: string): Promise<THREE.Object3D> {
     if (extension === "glb" || extension === "gltf") {
-      return loadGLB(path);
+      return this.projectLoader.loadGlbScene(path);
     }
     if (extension === "obj") {
       const loader = new OBJLoader();

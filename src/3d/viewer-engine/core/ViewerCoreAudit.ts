@@ -54,6 +54,14 @@ export const VIEWER_CORE_AUDIT: ViewerCoreAuditItem[] = [
     touchedInPass: true,
   },
   {
+    id: "project-format-loader",
+    severity: "low",
+    area: "ProjectLoader + ProjectFormatAdapter",
+    finding: "Formatos externos orquestrados em core/viewer/formats; GLB usa loadGLB; PIMO identidade.",
+    recommendation: "Não aplicar NormalizedProject à cena sem ProjectState; DXF/IFC/STEP só em Z-01.3+.",
+    touchedInPass: true,
+  },
+  {
     id: "overlay-zindex",
     severity: "low",
     area: "Measurement / InternalRuler / SmartSnapping overlays",
