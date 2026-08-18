@@ -291,10 +291,33 @@ export function useStationPage(station: IndustrialStation, options: UseStationPa
       if (!trimmed) return null;
       const parsed = parseBarcode(trimmed);
       const pieceId = parsed?.entityType === 'piece' ? parsed.id : trimmed;
+      const needle = trimmed.toLowerCase();
+      const nameWithoutSeq = trimmed.replace(/-\d+$/, '').toLowerCase();
+
+      const matchesDisplay = (task: IndustrialWorkOrderTask): boolean => {
+        const d = task.display;
+        if (!d) return false;
+        const candidates = [d.nqrCode, d.fullIndustrialName, d.pieceCode, d.projectCode, d.boxCode];
+        return candidates.some((value) => {
+          const v = String(value ?? '').trim();
+          if (!v) return false;
+          const lower = v.toLowerCase();
+          return (
+            v === trimmed ||
+            v === pieceId ||
+            lower === needle ||
+            lower === nameWithoutSeq ||
+            trimmed.startsWith(`${v}-`) ||
+            v.startsWith(`${trimmed}-`)
+          );
+        });
+      };
+
       return (
         activeTasks.find((t) => t.pieceId === pieceId) ??
         activeTasks.find((t) => t.pieceId.includes(pieceId) || pieceId.includes(t.pieceId)) ??
         activeTasks.find((t) => t.display?.nqrCode === trimmed || t.display?.nqrCode === pieceId) ??
+        activeTasks.find(matchesDisplay) ??
         null
       );
     },

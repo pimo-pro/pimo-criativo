@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-08-17T11:03:22.925Z",
+  "updatedAt": "2026-08-18T08:15:10.000Z",
   "news": [
+    {
+      "version": "industrial-nqr-v5-20260818-081510",
+      "title": "N-QR v5 unificado em todas as camadas industriais",
+      "description": "N-QR v5 unificado em todas as camadas do runtime industrial.\n\n• Identidade N-QR alinhada com etiquetas v5 (display + payload QR canónico)\n• Metadata industrial das Work Orders antigas regenerada com resolveAuthoritativeLabelNumber\n• Leitor QR activo em todas as páginas industriais (operador, supervisor, tracking, qualidade, etc.)\n• Fluxo PIMO TRAK consistente com etiquetas impressas — todas as páginas reconhecem o N-QR real",
+      "publishedAt": "2026-08-18T08:15:10.000Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature"
+    },
     {
       "version": "v6.0817.1203",
       "title": "Integração industrial completa do TAMPO",

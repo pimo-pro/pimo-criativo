@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import { PROJETOS_PIECE_OPERATIONS } from '@/industrial/integration/projetos/types';
 import { resolveOperationUiStatus } from '@/industrial/operador/operationMapping';
 import {
@@ -91,6 +93,13 @@ export default function OperatorPiecesTable({ state }: Props) {
                       {operationSummary(piece)}
                     </td>
                     <td style={{ padding: '4px 6px' }}>
+                      <Link
+                        to={`/industrial/piece/${encodeURIComponent(piece.pieceId)}`}
+                        onClick={(event) => event.stopPropagation()}
+                        style={{ color: '#38bdf8', marginRight: 8 }}
+                      >
+                        Ficha
+                      </Link>
                       <button
                         type="button"
                         onClick={(event) => {

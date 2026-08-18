@@ -6,8 +6,9 @@ import {
   resolveProjetosFocusFromSegments,
 } from "@/app/PROJETOS/projetosFocusSlug";
 import { resolveIndustrialPieceRef } from "@/core/cutlayout/cutLayoutProPieceNaming";
-import { buildEtiquetaQrPayloadV5 } from "@/core/etiquetas/qr/etiquetaCodeV5";
+import { buildEtiquetaCodeV5, buildEtiquetaQrPayloadV5 } from "@/core/etiquetas/qr/etiquetaCodeV5";
 import { resolveNomeIndustrialForEtiqueta } from "@/core/etiquetas/industrialDisplayName";
+import { resolveAuthoritativeLabelNumber } from "@/core/qrcode/panelLabelNumber";
 import { buildCutlistItemsForIndustrialExport } from "@/core/fabrication/buildCutlistItemsForIndustrialExport";
 import type { SavedProjectRecord } from "@/core/projects/types";
 import type { CutListItemComPreco } from "@/core/types";
@@ -69,9 +70,18 @@ export function resolveProjetosIndustrialRef(
         ? catalog?.rows.find((r) => r.boxId === focus.boxId && !r.pieceId)?.label
         : undefined;
       const nomeIndustrial = resolveNomeIndustrialForEtiqueta(item, projectName, boxNome);
-      etiquetaCode = nomeIndustrial || etiquetaCode;
+      const pieceSeq = resolveAuthoritativeLabelNumber(item) ?? 1;
+      const piecesInBox =
+        catalog?.rows.filter((r) => r.boxId === focus.boxId && r.pieceId).length || 1;
+      etiquetaCode = buildEtiquetaCodeV5({
+        projectName,
+        boxName: boxNome ?? "",
+        nomeIndustrial,
+        pieceSeq,
+        totalPiecesInSheet: piecesInBox,
+      });
       const industrialRef = resolveIndustrialPieceRef(item, boxNome, projectName);
-      qrPayload = buildEtiquetaQrPayloadV5({ industrialPieceRef: industrialRef, pieceSeq: 1 });
+      qrPayload = buildEtiquetaQrPayloadV5({ industrialPieceRef: industrialRef, pieceSeq });
     }
   }
 

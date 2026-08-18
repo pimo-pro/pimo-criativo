@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { generateEtiquetaCode } from '@/core/qrcode/qrcodeService';
+import { resolveIndustrialPieceRef } from '@/core/cutlayout/cutLayoutProPieceNaming';
+import { buildEtiquetaQrPayloadV5 } from '@/core/etiquetas/qr/etiquetaCodeV5';
+import { resolveAuthoritativeLabelNumber } from '@/core/qrcode/panelLabelNumber';
 import { useAuth } from '@/auth/useAuth';
 import {
   loadPieceOperations,
@@ -132,8 +134,18 @@ function persistedTimeToEntries(
     .filter((item): item is TimeTrackingEntry => item !== null);
 }
 
-function buildQrPayload(pieceId: string, projectName?: string, boxName?: string, pieceName?: string): string {
-  return generateEtiquetaCode(projectName ?? 'pimo', boxName ?? 'bx', pieceName ?? pieceId, 1);
+function buildQrPayload(
+  pieceId: string,
+  context: ReturnType<typeof resolvePieceContext>,
+): string {
+  const item = context.cutlistItem;
+  const projectName = context.projectName ?? 'PROJETO';
+  const boxName = context.boxName;
+  const pieceSeq = item ? resolveAuthoritativeLabelNumber(item) ?? 1 : 1;
+  const industrialRef = item
+    ? resolveIndustrialPieceRef(item, boxName, projectName)
+    : (context.piece.name || pieceId);
+  return buildEtiquetaQrPayloadV5({ industrialPieceRef: industrialRef, pieceSeq });
 }
 
 function transformsFromPersisted(rows: Awaited<ReturnType<typeof loadPieceTransforms>>): PieceTransformMap {
@@ -234,7 +246,7 @@ export function usePieceData(pieceId: string | undefined): PieceDataState {
         projectId: context.projectId,
         projectName: context.projectName,
         boxName: context.boxName,
-        qrPayload: buildQrPayload(pieceId, context.projectName, context.boxName, context.piece.name),
+        qrPayload: buildQrPayload(pieceId, context),
       });
 
       const running = timeEntries.find((entry) => !entry.stoppedAt);

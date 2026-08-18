@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { resolveProjectIdentity } from '@/core/projects/projectIdentity';
+import {
+  resolvePieceByCode,
+  resolvePieceByCodeAsync,
+} from '@/industrial/operador/resolvePieceByCode';
 import { loadSupervisorDashboardSnapshot } from '@/industrial/persistence/supervisor/loadSupervisorData';
 import type { SupervisorDashboardSnapshot } from '@/industrial/persistence/supervisor/types';
 import { useIndustrialRealtime } from '@/industrial/realtime';
@@ -19,7 +23,8 @@ export type UseSupervisorDashboardOptions = {
 
 export function useSupervisorDashboard(options: UseSupervisorDashboardOptions = {}) {
   useIndustrialPageState();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const stationFromQuery = searchParams.get('station');
   const pieceFromQuery = searchParams.get('piece');
   const initialIdentity = useMemo(
@@ -161,6 +166,54 @@ export function useSupervisorDashboard(options: UseSupervisorDashboardOptions = 
     else setMainMode('info');
   }, []);
 
+  const submitNqr = useCallback(
+    async (raw: string) => {
+      const code = raw.trim();
+      if (!code) return;
+
+      const lookup = resolvePieceByCode(code) ?? (await resolvePieceByCodeAsync(code));
+      const pieceKey = lookup?.pieceId ?? lookup?.etiquetaCode ?? code;
+      const task =
+        snapshot?.tasks.find(
+          (t) =>
+            t.pieceId === pieceKey ||
+            t.display?.nqrCode === code ||
+            t.display?.nqrCode === pieceKey ||
+            t.display?.fullIndustrialName === code,
+        ) ?? null;
+
+      if (task) {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('piece', pieceKey);
+            return next;
+          },
+          { replace: true },
+        );
+        setSelectedTaskId(task.id);
+        setRailView('overview');
+        setMainMode('info');
+        return;
+      }
+
+      if (lookup?.pieceId) {
+        navigate(`/industrial/piece/${encodeURIComponent(lookup.pieceId)}`);
+        return;
+      }
+
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('piece', code);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [navigate, setSearchParams, snapshot?.tasks],
+  );
+
   return {
     snapshot,
     loading,
@@ -195,6 +248,7 @@ export function useSupervisorDashboard(options: UseSupervisorDashboardOptions = 
     sendRealtimeChat: realtime.sendChatMessage,
     sendRealtimeTyping: realtime.sendTyping,
     mergeChatConversations: realtime.mergeChatConversations,
+    submitNqr,
   };
 }
 

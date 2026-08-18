@@ -1,5 +1,9 @@
+import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
+
 import IndustrialSpriteIcon from '@/components/icons/IndustrialSpriteIcon';
-import { industrialListItemStyle, industrialSectionTitleStyle } from '@/industrial/ui/layouts/industrialStyles';
+import { useOperatorQrScanner } from '@/app/industrial/operador/hooks/useOperatorQrScanner';
+import { industrialBtnStyle, industrialListItemStyle, industrialSectionTitleStyle } from '@/industrial/ui/layouts/industrialStyles';
 import { INDUSTRIAL_STATIONS, STATION_LABELS } from '@/industrial/work-orders/types';
 import type { SupervisorDashboardSnapshot } from '@/industrial/persistence/supervisor/types';
 import {
@@ -7,7 +11,6 @@ import {
   resolveProjectDisplayName,
 } from '@/industrial/integration/projetos/projetosProjectLinks';
 import { orderProjectCode } from '@/industrial/persistence/supervisor/supervisorTaskDisplay';
-import { Link } from 'react-router-dom';
 
 import type { UseSupervisorDashboardReturn } from '../hooks/useSupervisorDashboard';
 
@@ -28,9 +31,90 @@ export default function SupervisorFiltersPanel({ snapshot, state }: SupervisorFi
   const orders = snapshot?.orders ?? [];
   const projects = snapshot?.projectKpis ?? [];
   const alerts = state.alerts;
+  const [nqrInput, setNqrInput] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const submitCode = (code: string) => {
+    void state.submitNqr(code);
+    setNqrInput('');
+  };
+
+  const scanner = useOperatorQrScanner({
+    enabled: scannerOpen,
+    continuous: true,
+    onScan: submitCode,
+  });
+
+  const onSubmitNqr = (event: FormEvent) => {
+    event.preventDefault();
+    if (nqrInput.trim()) submitCode(nqrInput);
+  };
 
   return (
     <aside style={{ display: 'grid', gap: 14, alignContent: 'start', overflow: 'auto', maxHeight: 'calc(100vh - 240px)' }}>
+      <section style={{ display: 'grid', gap: 6 }}>
+        <h3 style={industrialSectionTitleStyle}>N-QR / peça</h3>
+        <form onSubmit={onSubmitNqr} style={{ display: 'grid', gap: 6 }}>
+          <input
+            value={nqrInput}
+            onChange={(e) => setNqrInput(e.target.value)}
+            placeholder="N-QR / QR / PC-…"
+            autoComplete="off"
+            data-operator-usb-capture="1"
+            style={{
+              padding: '6px 8px',
+              borderRadius: 6,
+              border: '1px solid var(--border, #334155)',
+              background: 'rgba(255,255,255,0.04)',
+              color: '#f8fafc',
+              fontSize: 12,
+            }}
+          />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button type="submit" style={industrialBtnStyle(false)}>
+              Procurar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (scanner.cameraActive) {
+                  scanner.stopCamera();
+                  setScannerOpen(false);
+                  return;
+                }
+                setScannerOpen(true);
+                void scanner.startCamera();
+              }}
+              style={industrialBtnStyle(scanner.cameraActive)}
+            >
+              {scanner.cameraActive ? 'Parar câmara' : 'Câmara'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (scanner.usbCaptureActive) {
+                  scanner.stopUsbCapture();
+                  return;
+                }
+                setScannerOpen(true);
+                scanner.startUsbCapture();
+              }}
+              style={industrialBtnStyle(scanner.usbCaptureActive)}
+            >
+              {scanner.usbCaptureActive ? 'USB activo' : 'USB'}
+            </button>
+          </div>
+        </form>
+        {scanner.cameraActive ? (
+          <video
+            ref={scanner.videoRef}
+            muted
+            playsInline
+            style={{ width: '100%', display: 'block', background: '#000', borderRadius: 6, maxHeight: 140 }}
+          />
+        ) : null}
+        {scanner.error ? <p style={{ margin: 0, fontSize: 11, color: '#f87171' }}>{scanner.error}</p> : null}
+      </section>
       <section style={{ display: 'grid', gap: 6 }}>
         <h3 style={industrialSectionTitleStyle}>Projetos</h3>
         <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 4 }}>

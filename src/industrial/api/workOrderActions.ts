@@ -1,5 +1,22 @@
+import {
+  asObject,
+  buildPimoProjectDataFromRequest,
+  nowIso,
+  toMetaFromProjectData,
+  toRecordFromProjectData,
+} from '@/core/projects/projectsMappers';
+import { remoteLoadProjectRecord } from '@/core/projects/projectsApi';
+import { supabase } from '@/industrial/infra/db';
 import { createWorkOrdersForProject } from '@/industrial/work-orders/createWorkOrdersForProject';
+import { resolveProjectCutlist } from '@/industrial/work-orders/resolveProjectCutlist';
+import { resolveProjectCutlistFromRecord } from '@/industrial/work-orders/resolveProjectCutlistFromRecord';
+import {
+  buildWorkOrderDisplayMapFromContext,
+  displayToTaskMetadata,
+  readDisplayFromMetadata,
+} from '@/industrial/work-orders/resolveWorkOrderPiece';
 import type { IndustrialStation, WorkOrderTaskStatus } from '@/industrial/work-orders/types';
+import { WORK_ORDER_TABLES } from '@/industrial/persistence/work-orders/tables';
 import {
   loadTaskById,
   loadTasksByPiece,
@@ -19,6 +36,7 @@ import {
   assignTaskOperator,
   syncWorkOrderStatusFromTasks,
   syncWorkOrdersStatusFromTasks,
+  patchWorkOrderTaskMetadata,
   updateTaskState,
   updateWorkOrderStatus,
 } from '@/industrial/persistence/work-orders/updateTaskState';
@@ -549,4 +567,212 @@ export async function executeWorkOrderTask(input: ExecuteTaskInput) {
   if (input.action === 'start') return startTask(input.taskId, input.operatorId);
   if (input.action === 'complete') return finishTask(input.taskId, input.operatorId);
   return rejectTask(input.taskId, input.reason, input.operatorId);
+}
+
+const projectsApiDeps = {
+  buildPimoProjectDataFromRequest,
+  asObject,
+  toMetaFromProjectData,
+  toRecordFromProjectData,
+  nowIso,
+};
+
+export type NqrMetadataRegenTaskUpdate = {
+  taskId: string;
+  workOrderId: string;
+  pieceId: string;
+  beforeNqr: string;
+  afterNqr: string;
+};
+
+export type NqrMetadataRegenProjectReport = {
+  projectId: string;
+  projectName: string;
+  workOrderIds: string[];
+  updatedTasks: NqrMetadataRegenTaskUpdate[];
+  skippedTasks: number;
+};
+
+export type NqrMetadataRegenReport = {
+  affectedProjects: NqrMetadataRegenProjectReport[];
+  regeneratedWorkOrderIds: string[];
+  finalMetadataSamples: Array<{ taskId: string; nqrCode: string; fullIndustrialName: string }>;
+  failures: Array<{ projectId: string; reason: string }>;
+};
+
+function mergeTaskMetadata(
+  existing: Record<string, unknown> | null | undefined,
+  patch: Record<string, string>,
+): Record<string, unknown> {
+  return { ...(existing ?? {}), ...patch };
+}
+
+function isStaleNqrMetadata(storedNqr: string, expectedNqr: string): boolean {
+  const stored = storedNqr.trim();
+  const expected = expectedNqr.trim();
+  if (!stored || !expected) return stored !== expected;
+  if (stored === expected) return false;
+
+  const storedSeq = stored.match(/-(\d+)$/)?.[1];
+  const expectedSeq = expected.match(/-(\d+)$/)?.[1];
+  if (storedSeq === '1' && expectedSeq && expectedSeq !== '1') return true;
+
+  return stored !== expected;
+}
+
+async function resolveCutlistContextForNqrRegen(projectId: string) {
+  const local = resolveProjectCutlist(projectId);
+  if (local) return local;
+
+  const record = await remoteLoadProjectRecord(projectId, projectsApiDeps);
+  if (!record) return null;
+  return resolveProjectCutlistFromRecord(record);
+}
+
+/** Regenera metadata N‑QR v5 das tasks de um projeto (preserva estado operacional). */
+export async function regenerateProjectWorkOrderNqrMetadata(
+  projectId: string,
+): Promise<NqrMetadataRegenProjectReport | null> {
+  const context = await resolveCutlistContextForNqrRegen(projectId);
+  if (!context) return null;
+
+  const displayByPieceId = buildWorkOrderDisplayMapFromContext(context);
+
+  const { data: orders, error: ordersError } = await supabase
+    .from(WORK_ORDER_TABLES.orders)
+    .select('id, station, status')
+    .eq('project_id', projectId)
+    .neq('status', 'cancelled');
+
+  if (ordersError) throw new Error(ordersError.message);
+
+  const workOrderIds = (orders ?? []).map((row) => String(row.id));
+  if (workOrderIds.length === 0) {
+    return {
+      projectId,
+      projectName: context.projectName,
+      workOrderIds: [],
+      updatedTasks: [],
+      skippedTasks: 0,
+    };
+  }
+
+  const { data: taskRows, error: tasksError } = await supabase
+    .from(WORK_ORDER_TABLES.tasks)
+    .select('id, work_order_id, piece_id, metadata')
+    .in('work_order_id', workOrderIds);
+
+  if (tasksError) throw new Error(tasksError.message);
+
+  const updatedTasks: NqrMetadataRegenTaskUpdate[] = [];
+  let skippedTasks = 0;
+
+  for (const row of taskRows ?? []) {
+    const taskId = String(row.id);
+    const pieceId = String(row.piece_id ?? '');
+    const workOrderId = String(row.work_order_id ?? '');
+    const display = displayByPieceId.get(pieceId);
+    if (!display) {
+      skippedTasks += 1;
+      continue;
+    }
+
+    const expected = displayToTaskMetadata(display);
+    const currentMeta = asObject(row.metadata) ?? {};
+    const currentDisplay = readDisplayFromMetadata(currentMeta);
+    const beforeNqr = currentDisplay?.nqrCode ?? String(currentMeta.nqr_code ?? '');
+
+    const needsUpdate =
+      isStaleNqrMetadata(beforeNqr, expected.nqr_code) ||
+      String(currentMeta.full_industrial_name ?? '').trim() !== expected.full_industrial_name;
+
+    if (!needsUpdate) {
+      skippedTasks += 1;
+      continue;
+    }
+
+    await patchWorkOrderTaskMetadata(taskId, mergeTaskMetadata(currentMeta, expected));
+    updatedTasks.push({
+      taskId,
+      workOrderId,
+      pieceId,
+      beforeNqr,
+      afterNqr: expected.nqr_code,
+    });
+  }
+
+  return {
+    projectId,
+    projectName: context.projectName,
+    workOrderIds,
+    updatedTasks,
+    skippedTasks,
+  };
+}
+
+/** Regenera metadata N‑QR v5 de todas as WOs activas com seq legado incorrecto. */
+export async function regenerateAllStaleWorkOrderNqrMetadata(): Promise<NqrMetadataRegenReport> {
+  const { data: orderRows, error } = await supabase
+    .from(WORK_ORDER_TABLES.orders)
+    .select('id, project_id')
+    .neq('status', 'cancelled');
+
+  if (error) throw new Error(error.message);
+
+  const projectIds = Array.from(
+    new Set((orderRows ?? []).map((row) => String(row.project_id ?? '')).filter(Boolean)),
+  );
+
+  const affectedProjects: NqrMetadataRegenProjectReport[] = [];
+  const regeneratedWorkOrderIds = new Set<string>();
+  const finalMetadataSamples: NqrMetadataRegenReport['finalMetadataSamples'] = [];
+  const failures: NqrMetadataRegenReport['failures'] = [];
+
+  for (const projectId of projectIds) {
+    try {
+      const report = await regenerateProjectWorkOrderNqrMetadata(projectId);
+      if (!report) {
+        failures.push({ projectId, reason: 'Cutlist indisponível (offline + remoto).' });
+        continue;
+      }
+      if (report.updatedTasks.length === 0) continue;
+
+      affectedProjects.push(report);
+      for (const woId of report.workOrderIds) regeneratedWorkOrderIds.add(woId);
+      for (const update of report.updatedTasks.slice(0, 2)) {
+        finalMetadataSamples.push({
+          taskId: update.taskId,
+          nqrCode: update.afterNqr,
+          fullIndustrialName: '',
+        });
+      }
+    } catch (err) {
+      failures.push({
+        projectId,
+        reason: err instanceof Error ? err.message : 'Falha desconhecida.',
+      });
+    }
+  }
+
+  // Amostra final com nome industrial completo
+  if (finalMetadataSamples.length > 0) {
+    const taskIds = finalMetadataSamples.map((row) => row.taskId);
+    const { data: refreshed } = await supabase
+      .from(WORK_ORDER_TABLES.tasks)
+      .select('id, metadata')
+      .in('id', taskIds);
+    for (const row of refreshed ?? []) {
+      const sample = finalMetadataSamples.find((item) => item.taskId === String(row.id));
+      if (!sample) continue;
+      const meta = asObject(row.metadata);
+      sample.fullIndustrialName = String(meta?.full_industrial_name ?? '').trim();
+    }
+  }
+
+  return {
+    affectedProjects,
+    regeneratedWorkOrderIds: Array.from(regeneratedWorkOrderIds),
+    finalMetadataSamples,
+    failures,
+  };
 }

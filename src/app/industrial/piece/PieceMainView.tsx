@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 
 import { useAuth } from '@/auth/useAuth';
 import { IndustrialLayout } from '@/industrial/ui/components';
+import QrScannerPanel from '@/app/industrial/work-orders/components/QrScannerPanel';
 
 import PieceCanvas from './components/PieceCanvas';
 import PieceControlPanel from './components/PieceControlPanel';
@@ -55,7 +56,10 @@ export default function PieceMainView() {
   if (data.loading) {
     return (
       <IndustrialLayout title="Peça industrial" description="A carregar dados operacionais…">
-        <div style={{ padding: 24, color: 'var(--text-muted, #94a3b8)' }}>A carregar peça…</div>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <QrScannerPanel />
+          <div style={{ padding: 24, color: 'var(--text-muted, #94a3b8)' }}>A carregar peça…</div>
+        </div>
       </IndustrialLayout>
     );
   }
@@ -63,7 +67,10 @@ export default function PieceMainView() {
   if (data.error || !data.piece) {
     return (
       <IndustrialLayout title="Peça industrial" description="Erro ao carregar a peça.">
-        <div style={{ padding: 24, color: '#f87171' }}>{data.error ?? 'Peça não encontrada.'}</div>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <QrScannerPanel />
+          <div style={{ padding: 24, color: '#f87171' }}>{data.error ?? 'Peça não encontrada.'}</div>
+        </div>
       </IndustrialLayout>
     );
   }
@@ -73,14 +80,16 @@ export default function PieceMainView() {
       title={data.piece.name}
       description={`Peça ${data.piece.id} · ${data.projectName ?? 'Projeto'} · ${data.boxName ?? 'Caixa'}`}
     >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: interaction.sidebarOpen ? '260px 300px 1fr' : '300px 1fr',
-          gap: 16,
-          minHeight: 'calc(100vh - 220px)',
-        }}
-      >
+      <div style={{ display: 'grid', gap: 16 }}>
+        <QrScannerPanel />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: interaction.sidebarOpen ? '260px 300px 1fr' : '300px 1fr',
+            gap: 16,
+            minHeight: 'calc(100vh - 220px)',
+          }}
+        >
         {interaction.sidebarOpen ? (
           <div style={panelStyle}>
             <PieceSidebar
@@ -153,6 +162,7 @@ export default function PieceMainView() {
           onClearSelection={interaction.clearSelection}
           onApplyMatrix={transform.applyMatrix}
         />
+        </div>
       </div>
     </IndustrialLayout>
   );

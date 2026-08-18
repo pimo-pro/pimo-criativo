@@ -106,3 +106,22 @@ export async function syncWorkOrdersStatusFromTasks(workOrderIds: string[]): Pro
     await syncWorkOrderStatusFromTasks(id);
   }
 }
+
+/** Reescreve metadata industrial da tarefa (N‑QR v5, nome completo, códigos). */
+export async function patchWorkOrderTaskMetadata(
+  taskId: string,
+  metadata: Record<string, unknown>,
+): Promise<IndustrialWorkOrderTask> {
+  const { data, error } = await supabase
+    .from(WORK_ORDER_TABLES.tasks)
+    .update({
+      metadata,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', taskId)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? 'Falha ao actualizar metadata da tarefa.');
+  return mapTaskRow(data);
+}

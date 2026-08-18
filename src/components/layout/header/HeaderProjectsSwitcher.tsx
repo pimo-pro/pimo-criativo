@@ -7,7 +7,7 @@ type SwitcherItem =
 
 const PIMO_PROJECTS: SwitcherItem[] = [
   { id: "pro", label: "PIMO PRO", path: "/" },
-  { id: "trak", label: "PIMO TRAK", path: "/industrial/tracking" },
+  { id: "trak", label: "PIMO TRAK", path: "/industrial/work-orders" },
   { id: "projetos", label: "PIMO PROJETOS", path: "/PROJETOS" },
   { id: "nesting", label: "PIMO NESTING", path: "/nesting_v3" },
   { id: "industrial", label: "PIMO Industrial", path: "/industrial" },

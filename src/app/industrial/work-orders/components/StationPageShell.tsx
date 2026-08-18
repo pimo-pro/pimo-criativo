@@ -91,6 +91,7 @@ export default function StationPageShell({
           codeInput={page.codeInput}
           onCodeInputChange={page.setCodeInput}
           onCodeSubmit={page.handleCodeSubmit}
+          onCodeScanned={(code) => page.addCodeToSelection(code)}
           codeInputRef={page.codeInputRef}
           selectedTask={page.selectedTask}
           selectedTaskIds={page.selectedTaskIds}

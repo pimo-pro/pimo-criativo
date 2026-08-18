@@ -6,6 +6,7 @@ type MenuItem =
   | { type: 'submenu'; label: string; items: Array<{ label: string; path: string }> };
 
 const MENU_ITEMS: MenuItem[] = [
+  { type: 'link', label: 'Operador', path: '/industrial/operador' },
   { type: 'link', label: 'Tracking', path: '/industrial/tracking' },
   { type: 'link', label: 'Work Orders', path: '/industrial/work-orders' },
   { type: 'link', label: 'Supervisor', path: '/industrial/supervisor' },

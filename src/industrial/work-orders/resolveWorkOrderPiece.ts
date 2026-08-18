@@ -8,6 +8,7 @@ import {
   sanitizeIndustrialSegment,
 } from '@/core/etiquetas/industrialDisplayName';
 import { buildEtiquetaCodeV5 } from '@/core/etiquetas/qr/etiquetaCodeV5';
+import { resolveAuthoritativeLabelNumber } from '@/core/qrcode/panelLabelNumber';
 import { readOfflineProjects } from '@/core/projects/projectsOfflineStore';
 import type { CutListItem } from '@/core/types';
 
@@ -138,12 +139,13 @@ function buildDisplayFromCutlistItem(
   const pieceCode = pieceCodeFromItem(item);
   const fullIndustrialName = buildV5BottomStripIndustrialName(projectName, boxName, nomeIndustrial);
   const piecesInBox = cutlist.filter((row) => row.boxId === item.boxId).length || 1;
+  const pieceSeq = resolveAuthoritativeLabelNumber(item) ?? 1;
 
   const nqrCode = buildEtiquetaCodeV5({
     projectName,
     boxName,
     nomeIndustrial,
-    pieceSeq: 1,
+    pieceSeq,
     totalPiecesInSheet: piecesInBox,
   });
 

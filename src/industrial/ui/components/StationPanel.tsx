@@ -1,5 +1,6 @@
-import type { CSSProperties, FormEvent, ReactNode, Ref } from 'react';
+import { useState, type CSSProperties, type FormEvent, type ReactNode, type Ref } from 'react';
 
+import { useOperatorQrScanner } from '@/app/industrial/operador/hooks/useOperatorQrScanner';
 import type { IndustrialWorkOrderTask } from '@/industrial/work-orders/types';
 import {
   INDUSTRIAL_LIST_ITEM_CLASS,
@@ -9,6 +10,8 @@ import {
   ensureIndustrialInteractionStyles,
   industrialActionBtnStyle,
   industrialActionBtnStyleLight,
+  industrialBtnStyle,
+  industrialBtnStyleLight,
   industrialConfirmBtnStyle,
   industrialListItemStyle,
   industrialListItemStyleLight,
@@ -36,6 +39,7 @@ interface StationPanelProps {
   codeInput: string;
   onCodeInputChange: (value: string) => void;
   onCodeSubmit: (event: FormEvent) => void;
+  onCodeScanned?: (code: string) => void;
   codeInputRef?: Ref<HTMLInputElement>;
   selectedTask: IndustrialWorkOrderTask | null;
   selectedTaskIds: string[];
@@ -99,6 +103,7 @@ export default function StationPanel({
   codeInput,
   onCodeInputChange,
   onCodeSubmit,
+  onCodeScanned,
   codeInputRef,
   selectedTask,
   selectedTaskIds,
@@ -126,6 +131,14 @@ export default function StationPanel({
   tone: toneProp,
 }: StationPanelProps) {
   const themeTone = useIndustrialTone();
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const scanner = useOperatorQrScanner({
+    enabled: scannerOpen,
+    continuous: true,
+    onScan: (code) => {
+      onCodeScanned?.(code);
+    },
+  });
   const tone = toneProp ?? themeTone;
   const isLight = tone === 'light';
   const textPrimary = isLight ? '#1e1e1e' : '#f1f5f9';
@@ -154,6 +167,26 @@ export default function StationPanel({
       ? 'válido'
       : 'pendente';
   const qrColor = qrVisual === 'válido' ? '#16a34a' : qrVisual === 'inválido' ? '#f87171' : '#f59e0b';
+  const scannerBtnStyle = isLight ? industrialBtnStyleLight : industrialBtnStyle;
+
+  const toggleCamera = () => {
+    if (scanner.cameraActive) {
+      scanner.stopCamera();
+      setScannerOpen(false);
+      return;
+    }
+    setScannerOpen(true);
+    void scanner.startCamera();
+  };
+
+  const toggleUsb = () => {
+    if (scanner.usbCaptureActive) {
+      scanner.stopUsbCapture();
+      return;
+    }
+    setScannerOpen(true);
+    scanner.startUsbCapture();
+  };
 
   return (
     <section
@@ -207,23 +240,25 @@ export default function StationPanel({
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
-          <h3 style={sectionTitleStyle}>Leitura QR / Barcode</h3>
+          <h3 style={sectionTitleStyle}>Leitura N-QR / QR</h3>
           <span style={chipStyle(true, qrColor, isLight)}>
             {selectionCount > 0 ? `${selectionCount} seleccionada(s)` : `QR ${qrVisual}`}
           </span>
         </div>
         <p style={{ margin: 0, fontSize: 11, color: textMuted, lineHeight: 1.4 }}>
-          Introduza códigos um a um (Enter adiciona automaticamente) ou cole vários separados por linha/vírgula.
+          Introduza o N-QR, o payload do QR ou o nome industrial (Enter adiciona). Câmara e USB também lêem.
         </p>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <input
             ref={codeInputRef}
             value={codeInput}
             onChange={(e) => onCodeInputChange(e.target.value)}
-            placeholder="Código da peça · Enter = adicionar"
+            placeholder="N-QR / QR / nome industrial · Enter = adicionar"
             autoComplete="off"
+            data-operator-usb-capture="1"
             style={{
               flex: 1,
+              minWidth: 140,
               padding: '8px 10px',
               borderRadius: 6,
               border: `1px solid ${qrVisual === 'inválido' ? '#f87171' : qrVisual === 'válido' ? 'rgba(59,130,246,0.55)' : borderCol}`,
@@ -238,7 +273,33 @@ export default function StationPanel({
           <button type="submit" style={{ ...industrialConfirmBtnStyle, background: '#334155', padding: '8px 12px' }}>
             Ler
           </button>
+          <button type="button" onClick={toggleCamera} style={scannerBtnStyle(scanner.cameraActive)}>
+            {scanner.cameraActive ? 'Parar câmara' : 'Ler QR (câmara)'}
+          </button>
+          <button type="button" onClick={toggleUsb} style={scannerBtnStyle(scanner.usbCaptureActive)}>
+            {scanner.usbCaptureActive ? 'USB activo' : 'Leitor USB'}
+          </button>
         </div>
+        {scanner.cameraActive ? (
+          <div
+            style={{
+              borderRadius: 8,
+              overflow: 'hidden',
+              border: `1px solid ${borderCol}`,
+              maxHeight: 180,
+            }}
+          >
+            <video
+              ref={scanner.videoRef}
+              muted
+              playsInline
+              style={{ width: '100%', display: 'block', background: '#000' }}
+            />
+          </div>
+        ) : null}
+        {scanner.error ? (
+          <p style={{ margin: 0, fontSize: 11, color: '#f87171' }}>{scanner.error}</p>
+        ) : null}
       </form>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>

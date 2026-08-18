@@ -4,20 +4,25 @@ import { resolveProjetosIndustrialRef } from '@/industrial/integration/projetos/
 import { parseBarcode } from '@/industrial/core/barcode/actions';
 import { readOfflineProjects } from '@/core/projects/projectsOfflineStore';
 import { toSavedRecordFromOffline } from '@/core/projects/projectsMappers';
+import { supabase } from '@/industrial/infra/db';
+import { INDUSTRIAL_VIEW_TABLES } from '@/industrial/persistence/work-orders/tables';
 import { loadTasksByPiece } from '@/industrial/persistence/work-orders/loadWorkOrders';
 import type { SavedProjectRecord } from '@/core/projects/types';
 
 import { normalizeIndustrialCode, splitIndustrialCodeList } from './normalizeIndustrialCode';
 import type { OperatorPieceLookupResult } from './types';
+
 function matchesCode(candidate: string | null | undefined, code: string): boolean {
   if (!candidate) return false;
   const normalized = candidate.trim();
   if (!normalized) return false;
+  if (normalized === code || normalized.toLowerCase() === code.toLowerCase()) return true;
+  const codeWithoutSeq = code.replace(/-\d+$/, '');
+  const candidateWithoutSeq = normalized.replace(/-\d+$/, '');
   return (
-    normalized === code ||
-    normalized.toLowerCase() === code.toLowerCase() ||
-    normalized.includes(code) ||
-    code.includes(normalized)
+    code.startsWith(`${normalized}-`) ||
+    normalized.startsWith(`${code}-`) ||
+    (codeWithoutSeq !== code && candidateWithoutSeq === codeWithoutSeq)
   );
 }
 
@@ -66,24 +71,89 @@ function lookupInProject(record: SavedProjectRecord, code: string): OperatorPiec
   return null;
 }
 
+type ViewLookupRow = {
+  piece_id: string;
+  project_id?: string | null;
+  nqr_code?: string | null;
+  full_industrial_name?: string | null;
+  box_code?: string | null;
+  piece_code?: string | null;
+  project_code?: string | null;
+};
+
+function mapViewRowToLookup(row: ViewLookupRow): OperatorPieceLookupResult {
+  const nqr = String(row.nqr_code ?? '').trim();
+  const fullName = String(row.full_industrial_name ?? '').trim();
+  return {
+    pieceId: String(row.piece_id),
+    projectId: String(row.project_id ?? ''),
+    projectName: String(row.project_code ?? '').trim() || '—',
+    boxName: String(row.box_code ?? '').trim() || undefined,
+    pieceName: String(row.piece_code ?? fullName).trim() || undefined,
+    etiquetaCode: nqr || fullName || row.piece_id,
+    qrPayload: fullName || null,
+  };
+}
+
+async function fetchViewByColumn(
+  column: 'nqr_code' | 'full_industrial_name' | 'piece_id',
+  value: string,
+): Promise<OperatorPieceLookupResult | null> {
+  if (!value) return null;
+  const { data, error } = await supabase
+    .from(INDUSTRIAL_VIEW_TABLES.tasksView)
+    .select('piece_id, project_id, nqr_code, full_industrial_name, box_code, piece_code, project_code')
+    .eq(column, value)
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapViewRowToLookup(data as ViewLookupRow);
+}
+
 async function lookupRemoteByPieceId(pieceId: string): Promise<OperatorPieceLookupResult | null> {
   try {
     const tasks = await loadTasksByPiece(pieceId);
     if (tasks.length === 0) return null;
+    const display = tasks[0]?.display;
     return {
       pieceId,
       projectId: '',
-      projectName: '—',
-      etiquetaCode: pieceId,
+      projectName: display?.projectCode ?? '—',
+      boxName: display?.boxCode,
+      pieceName: display?.pieceCode,
+      etiquetaCode: display?.nqrCode ?? pieceId,
+      qrPayload: display?.fullIndustrialName ?? null,
     };
   } catch {
     return null;
   }
 }
 
+async function lookupRemoteByCode(code: string): Promise<OperatorPieceLookupResult | null> {
+  const barcode = parseBarcode(code);
+  const pieceId = barcode?.entityType === 'piece' ? barcode.id : code;
+  const nameWithoutSeq = code.replace(/-\d+$/, '');
+
+  const fromNqr = await fetchViewByColumn('nqr_code', code);
+  if (fromNqr) return fromNqr;
+
+  const fromName = await fetchViewByColumn('full_industrial_name', code);
+  if (fromName) return fromName;
+
+  if (nameWithoutSeq !== code) {
+    const fromNameSeq = await fetchViewByColumn('full_industrial_name', nameWithoutSeq);
+    if (fromNameSeq) return fromNameSeq;
+  }
+
+  const fromPieceId = await fetchViewByColumn('piece_id', pieceId);
+  if (fromPieceId) return fromPieceId;
+
+  return lookupRemoteByPieceId(pieceId);
+}
+
 /**
- * Resolve peça por NQR, código de etiqueta, barcode PC-* ou piece_id.
- * Pesquisa projectos offline; fallback Supabase por piece_id.
+ * Resolve peça por N-QR v5, payload QR, nome industrial, barcode PC-* ou piece_id.
+ * Pesquisa projectos offline; fallback na view industrial (nqr_code / full_industrial_name).
  */
 export async function resolvePieceByCodeAsync(rawCode: string): Promise<OperatorPieceLookupResult | null> {
   const sync = resolvePieceByCode(rawCode);
@@ -92,16 +162,12 @@ export async function resolvePieceByCodeAsync(rawCode: string): Promise<Operator
   const code = normalizeIndustrialCode(rawCode);
   if (!code) return null;
 
-  const barcode = parseBarcode(code);
-  if (barcode?.entityType === 'piece' && barcode.id) {
-    return lookupRemoteByPieceId(barcode.id);
-  }
-
-  return lookupRemoteByPieceId(code);
+  return lookupRemoteByCode(code);
 }
 
 export function resolvePieceByCode(rawCode: string): OperatorPieceLookupResult | null {
-  const code = normalizeIndustrialCode(rawCode);  if (!code) return null;
+  const code = normalizeIndustrialCode(rawCode);
+  if (!code) return null;
 
   const barcode = parseBarcode(code);
   if (barcode?.entityType === 'piece' && barcode.id) {

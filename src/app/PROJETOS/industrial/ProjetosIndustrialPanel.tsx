@@ -12,6 +12,7 @@ import {
 } from "@/industrial/api/projetosIndustrialActions";
 import { iniciarProducaoHandler } from "@/industrial/api/iniciarProducaoHandler";
 import { resolveProjetosIndustrialRef } from "@/industrial/integration/projetos/resolveProjetosIndustrialRef";
+import QrScannerPanel from "@/app/industrial/work-orders/components/QrScannerPanel";
 import { projectCodeFromName } from "@/industrial/work-orders/resolveWorkOrderPiece";
 import { PROJETOS_PIECE_OPERATIONS } from "@/industrial/integration/projetos/types";
 import { useAuth } from "@/auth/useAuth";
@@ -285,6 +286,7 @@ export default function ProjetosIndustrialPanel({
       </div>
 
       <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
+        <QrScannerPanel />
         {focusLevel === "project" ? (
           <Button
             variant="primary"
