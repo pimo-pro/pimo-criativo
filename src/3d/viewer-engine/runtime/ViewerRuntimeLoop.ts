@@ -77,20 +77,23 @@ export class ViewerRuntimeLoop {
     const mode = this.deps.getCurrentMode();
     const composer = this.deps.getShowcaseComposer();
     const bokeh = this.deps.getBokehPass();
-    if (mode === "showcase" && composer && bokeh) {
-      const boxEntries = this.deps.getBoxes();
-      const roots = Array.from(boxEntries.values()).map((e) => e.mesh);
-      runWithAllLayoutBoundsProxiesVisible(roots, () => {
-        this.boundingBox.makeEmpty();
-        boxEntries.forEach((entry) => {
-          this.boundingBox.expandByObject(entry.mesh);
+    if (mode === "showcase" && composer) {
+      if (bokeh?.enabled) {
+        const boxEntries = this.deps.getBoxes();
+        const roots = Array.from(boxEntries.values()).map((e) => e.mesh);
+        runWithAllLayoutBoundsProxiesVisible(roots, () => {
+          this.boundingBox.makeEmpty();
+          boxEntries.forEach((entry) => {
+            this.boundingBox.expandByObject(entry.mesh);
+          });
         });
-      });
-      this.boundingBox.getCenter(this.center);
-      const cam = this.deps.getCamera();
-      const focusDist = cam.position.distanceTo(this.center);
-      (bokeh as unknown as { uniforms: Record<string, { value: number }> }).uniforms["focus"].value = focusDist;
+        this.boundingBox.getCenter(this.center);
+        const cam = this.deps.getCamera();
+        const focusDist = cam.position.distanceTo(this.center);
+        (bokeh as unknown as { uniforms: Record<string, { value: number }> }).uniforms["focus"].value = focusDist;
+      }
 
+      const cam = this.deps.getCamera();
       if (this.deps.isTurntableEnabled()) {
         const target = this.deps.getTurntableTarget();
         if (target) {

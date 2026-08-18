@@ -6,8 +6,11 @@ import * as THREE from "three";
 import { Vector2 } from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
+import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
+import { LIVE_MAIN_BLOOM, LIVE_SHOWCASE_BLOOM } from "../export/renderExportQuality";
 
 export type ComposerEngineMode = "performance" | "showcase" | "ultra";
 
@@ -18,12 +21,29 @@ export type ComposerEngineDeps = {
   getContainer: () => HTMLElement | null;
 };
 
+function livePixelRatio(): number {
+  return Math.min(window.devicePixelRatio || 1, 2);
+}
+
+function syncFxaa(pass: ShaderPass | null, width: number, height: number, pixelRatio: number): void {
+  if (!pass) return;
+  const w = Math.max(1, width * pixelRatio);
+  const h = Math.max(1, height * pixelRatio);
+  const uniform = pass.material.uniforms["resolution"];
+  if (uniform?.value) {
+    uniform.value.x = 1 / w;
+    uniform.value.y = 1 / h;
+  }
+}
+
 export class ComposerEngine {
   showcase: EffectComposer | null = null;
   bloom: UnrealBloomPass | null = null;
   bokeh: BokehPass | null = null;
+  showcaseFxaa: ShaderPass | null = null;
   main: EffectComposer | null = null;
   mainBloom: UnrealBloomPass | null = null;
+  mainFxaa: ShaderPass | null = null;
   private readonly deps: ComposerEngineDeps;
 
   constructor(deps: ComposerEngineDeps) {
@@ -42,6 +62,10 @@ export class ComposerEngine {
     this.disposeShowcase();
   }
 
+  setBokehEnabled(enabled: boolean): void {
+    if (this.bokeh) this.bokeh.enabled = enabled;
+  }
+
   ensureShowcase(): EffectComposer | null {
     if (this.showcase) return this.showcase;
     const container = this.deps.getContainer();
@@ -53,14 +77,22 @@ export class ComposerEngine {
 
     this.showcase = new EffectComposer(renderer);
     this.showcase.addPass(new RenderPass(scene, camera));
-    this.bloom = new UnrealBloomPass(new Vector2(w, h), 0.18, 0.35, 0.9);
+    this.bloom = new UnrealBloomPass(
+      new Vector2(w, h),
+      LIVE_SHOWCASE_BLOOM.strength,
+      LIVE_SHOWCASE_BLOOM.radius,
+      LIVE_SHOWCASE_BLOOM.threshold
+    );
     this.showcase.addPass(this.bloom);
     this.bokeh = new BokehPass(scene, camera, {
       focus: 5,
       aperture: 0.02,
       maxblur: 0.004,
     });
+    this.bokeh.enabled = false;
     this.showcase.addPass(this.bokeh);
+    this.showcaseFxaa = new ShaderPass(FXAAShader);
+    this.showcase.addPass(this.showcaseFxaa);
     this.updateShowcaseSize();
     return this.showcase;
   }
@@ -76,11 +108,38 @@ export class ComposerEngine {
     const h = container.clientHeight || 1;
     this.main = new EffectComposer(renderer);
     this.main.addPass(new RenderPass(scene, camera));
-    this.mainBloom = new UnrealBloomPass(new Vector2(w, h), 0.05, 0.4, 0.85);
+    this.mainBloom = new UnrealBloomPass(
+      new Vector2(w, h),
+      LIVE_MAIN_BLOOM.strength,
+      LIVE_MAIN_BLOOM.radius,
+      LIVE_MAIN_BLOOM.threshold
+    );
     this.main.addPass(this.mainBloom);
-    this.main.setSize(w, h);
-    this.main.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.mainFxaa = new ShaderPass(FXAAShader);
+    this.main.addPass(this.mainFxaa);
+    this.updateMainSize();
     return this.main;
+  }
+
+  /**
+   * Dimensiona o composer para a captura (não usa o CSS do viewport).
+   */
+  setExportSize(width: number, height: number, pixelRatio = 1): void {
+    const w = Math.max(1, Math.round(width));
+    const h = Math.max(1, Math.round(height));
+    const pr = Math.max(0.5, pixelRatio);
+    if (this.showcase) {
+      this.showcase.setSize(w, h);
+      this.showcase.setPixelRatio(pr);
+      if (this.bloom) this.bloom.resolution.set(w * pr, h * pr);
+      syncFxaa(this.showcaseFxaa, w, h, pr);
+    }
+    if (this.main) {
+      this.main.setSize(w, h);
+      this.main.setPixelRatio(pr);
+      if (this.mainBloom) this.mainBloom.resolution.set(w * pr, h * pr);
+      syncFxaa(this.mainFxaa, w, h, pr);
+    }
   }
 
   updateShowcaseSize(): void {
@@ -89,11 +148,13 @@ export class ComposerEngine {
     if (!container) return;
     const w = container.clientWidth || 1;
     const h = container.clientHeight || 1;
+    const pr = livePixelRatio();
     this.showcase.setSize(w, h);
-    this.showcase.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.showcase.setPixelRatio(pr);
     if (this.bloom) {
-      this.bloom.resolution.set(w, h);
+      this.bloom.resolution.set(w * pr, h * pr);
     }
+    syncFxaa(this.showcaseFxaa, w, h, pr);
   }
 
   updateMainSize(): void {
@@ -102,11 +163,13 @@ export class ComposerEngine {
     if (!container) return;
     const w = container.clientWidth || 1;
     const h = container.clientHeight || 1;
+    const pr = livePixelRatio();
     this.main.setSize(w, h);
-    this.main.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.main.setPixelRatio(pr);
     if (this.mainBloom) {
-      this.mainBloom.resolution.set(w, h);
+      this.mainBloom.resolution.set(w * pr, h * pr);
     }
+    syncFxaa(this.mainFxaa, w, h, pr);
   }
 
   disposeShowcase(): void {
@@ -118,6 +181,7 @@ export class ComposerEngine {
     this.showcase = null;
     this.bloom = null;
     this.bokeh = null;
+    this.showcaseFxaa = null;
   }
 
   disposeMain(): void {
@@ -128,6 +192,7 @@ export class ComposerEngine {
     }
     this.main = null;
     this.mainBloom = null;
+    this.mainFxaa = null;
   }
 
   dispose(): void {

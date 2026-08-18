@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import type { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import type { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
 import { applyLogoPiPhotoWatermark } from "../../../utils/watermark";
 import { createCabinetSilhouetteLines, disposeSilhouetteObject } from "../../../core/viewer/photoModeSilhouette";
 import type {
@@ -13,12 +14,21 @@ import type {
 } from "../../../context/projectTypes";
 import type { ViewerBoxEntry } from "../types";
 import { runWithAllLayoutBoundsProxiesVisible } from "../box/boxAabbUtils";
+import {
+  CAPTURE_MAIN_BLOOM,
+  CAPTURE_SHOWCASE_BLOOM,
+  PHOTO_CAPTURE_LIGHT,
+  VIEWER_RENDER_SIZE_MAP,
+  clampExportDimension,
+  resolveExportRenderSize,
+} from "./renderExportQuality";
 
 type LightState = {
   keyLight: THREE.DirectionalLight;
   fillLight: THREE.Light;
   ambient: THREE.Light;
   rimLight: THREE.Light;
+  hemisphere?: THREE.Light;
 };
 
 type ViewerRenderExporterDeps = {
@@ -44,10 +54,86 @@ type ViewerRenderExporterDeps = {
   getMainComposer: () => EffectComposer | null;
   getShowcaseBloomPass: () => UnrealBloomPass | null;
   getMainBloomPass: () => UnrealBloomPass | null;
+  getBokehPass?: () => BokehPass | null;
+  setComposerExportSize?: (_width: number, _height: number, _pixelRatio?: number) => void;
   updateShowcaseComposerSize: () => void;
   updateMainComposerSize: () => void;
   updateCanvasSize: () => void;
 };
+
+type BloomSnapshot = { strength: number; radius: number; threshold: number };
+
+type MaterialSnapshot = {
+  material: THREE.MeshStandardMaterial;
+  roughness: number;
+  metalness: number;
+  envMapIntensity: number;
+};
+
+function snapshotBloom(pass: UnrealBloomPass | null): BloomSnapshot | null {
+  if (!pass) return null;
+  return { strength: pass.strength, radius: pass.radius, threshold: pass.threshold };
+}
+
+function restoreBloom(pass: UnrealBloomPass | null, snap: BloomSnapshot | null): void {
+  if (!pass || !snap) return;
+  pass.strength = snap.strength;
+  pass.radius = snap.radius;
+  pass.threshold = snap.threshold;
+}
+
+function applyBloomPreset(pass: UnrealBloomPass | null, preset: { strength: number; radius: number; threshold: number }): void {
+  if (!pass) return;
+  pass.strength = preset.strength;
+  pass.radius = preset.radius;
+  pass.threshold = preset.threshold;
+}
+
+function boostMaterialsForCapture(scene: THREE.Scene): MaterialSnapshot[] {
+  const snaps: MaterialSnapshot[] = [];
+  scene.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const list = Array.isArray(node.material) ? node.material : [node.material];
+    list.forEach((material) => {
+      if (!(material instanceof THREE.MeshStandardMaterial)) return;
+      snaps.push({
+        material,
+        roughness: material.roughness,
+        metalness: material.metalness,
+        envMapIntensity: material.envMapIntensity,
+      });
+      material.roughness = Math.max(0.14, material.roughness * 0.9);
+      material.metalness = Math.min(0.45, material.metalness * 1.04);
+      material.envMapIntensity = Math.min(1.28, Math.max(material.envMapIntensity, 0.88) * 1.12);
+      material.needsUpdate = true;
+    });
+  });
+  return snaps;
+}
+
+function restoreMaterials(snaps: MaterialSnapshot[]): void {
+  snaps.forEach((snap) => {
+    snap.material.roughness = snap.roughness;
+    snap.material.metalness = snap.metalness;
+    snap.material.envMapIntensity = snap.envMapIntensity;
+    snap.material.needsUpdate = true;
+  });
+}
+
+function copyRendererToCanvas(renderer: THREE.WebGLRenderer, destW: number, destH: number): HTMLCanvasElement | null {
+  const snapCanvas = renderer.domElement;
+  const srcW = Math.max(1, snapCanvas.width || destW);
+  const srcH = Math.max(1, snapCanvas.height || destH);
+  const offscreen = document.createElement("canvas");
+  offscreen.width = destW;
+  offscreen.height = destH;
+  const ctx = offscreen.getContext("2d");
+  if (!ctx) return null;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(snapCanvas, 0, 0, srcW, srcH, 0, 0, destW, destH);
+  return offscreen;
+}
 
 export class ViewerRenderExporter {
   private readonly deps: ViewerRenderExporterDeps;
@@ -57,12 +143,6 @@ export class ViewerRenderExporter {
   }
 
   async renderScene(options: ViewerRenderOptions): Promise<ViewerRenderResult | null> {
-    const sizeMap: Record<Exclude<ViewerRenderOptions["size"], "viewport">, [number, number]> = {
-      small: [1280, 720],
-      medium: [1600, 900],
-      large: [1920, 1080],
-      "4k": [3840, 2160],
-    };
     const rendererForSize = this.deps.getRenderer();
     let width: number;
     let height: number;
@@ -75,10 +155,10 @@ export class ViewerRenderExporter {
         cw = Math.round((el.width || 960) / pr);
         ch = Math.round((el.height || 540) / pr);
       }
-      width = Math.max(2, Math.floor(cw));
-      height = Math.max(2, Math.floor(ch));
+      width = clampExportDimension(cw, 1920);
+      height = clampExportDimension(ch, 1080);
     } else {
-      const tuple = sizeMap[options.size] ?? sizeMap.medium;
+      const tuple = VIEWER_RENDER_SIZE_MAP[options.size] ?? VIEWER_RENDER_SIZE_MAP.medium;
       width = tuple[0];
       height = tuple[1];
     }
@@ -100,9 +180,7 @@ export class ViewerRenderExporter {
     const quality = format === "jpg" ? (advancedRealism ? Math.max(qualityBase, 0.97) : qualityBase) : 1;
     const shadowBase = THREE.MathUtils.clamp(options.shadowIntensity ?? 1, 0, 1);
     const shadowFactor = advancedRealism ? Math.max(shadowBase, 0.86) : shadowBase;
-    const supersampleScale = advancedRealism ? 1.5 : 1;
-    const renderWidth = Math.max(1, Math.round(width * supersampleScale));
-    const renderHeight = Math.max(1, Math.round(height * supersampleScale));
+    const { renderWidth, renderHeight } = resolveExportRenderSize(width, height, advancedRealism);
     const renderer = rendererForSize;
     const scene = this.deps.getScene();
     const camera = this.deps.getCamera();
@@ -120,8 +198,10 @@ export class ViewerRenderExporter {
       fill: lights.fillLight.intensity,
       ambient: lights.ambient.intensity,
       rim: lights.rimLight.intensity,
+      hemisphere: lights.hemisphere?.intensity ?? 0,
       castShadow: lights.keyLight.castShadow,
       shadowRadius: lights.keyLight.shadow.radius,
+      shadowBias: lights.keyLight.shadow.bias,
     };
     const originalRendererState = {
       toneMappingExposure: renderer.toneMappingExposure,
@@ -190,18 +270,20 @@ export class ViewerRenderExporter {
 
     const applyShadowIntensity = () => {
       const eased = 0.55 + shadowFactor * 0.45;
-      const photoExposure = 1.22;
       if (advancedRealism) {
-        lights.keyLight.intensity = originalLightState.key * (eased * 1.25);
-        lights.fillLight.intensity = originalLightState.fill * (0.85 + shadowFactor * 0.3);
-        lights.ambient.intensity = originalLightState.ambient * (0.95 + shadowFactor * 0.15);
-        lights.rimLight.intensity = originalLightState.rim * (0.9 + shadowFactor * 0.25);
+        lights.keyLight.intensity = originalLightState.key * (eased * PHOTO_CAPTURE_LIGHT.keyMul);
+        lights.fillLight.intensity = originalLightState.fill * (PHOTO_CAPTURE_LIGHT.fillBase + shadowFactor * PHOTO_CAPTURE_LIGHT.fillSpan);
+        lights.ambient.intensity = originalLightState.ambient * (PHOTO_CAPTURE_LIGHT.ambientBase + shadowFactor * PHOTO_CAPTURE_LIGHT.ambientSpan);
+        lights.rimLight.intensity = originalLightState.rim * (PHOTO_CAPTURE_LIGHT.rimBase + shadowFactor * PHOTO_CAPTURE_LIGHT.rimSpan);
+        if (lights.hemisphere) {
+          lights.hemisphere.intensity = originalLightState.hemisphere * PHOTO_CAPTURE_LIGHT.hemisphereMul;
+        }
         lights.keyLight.castShadow = true;
         lights.keyLight.shadow.radius = Math.max(4, originalLightState.shadowRadius * 1.6);
         lights.keyLight.shadow.bias = -0.0001;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMappingExposure = Math.max(originalRendererState.toneMappingExposure, photoExposure);
+        renderer.toneMappingExposure = Math.max(originalRendererState.toneMappingExposure, PHOTO_CAPTURE_LIGHT.exposure);
       } else {
         lights.keyLight.intensity = originalLightState.key * (eased * 1.12);
         lights.fillLight.intensity = originalLightState.fill * (0.75 + shadowFactor * 0.4);
@@ -242,6 +324,11 @@ export class ViewerRenderExporter {
     const prevClearAlpha = renderer.getClearAlpha();
     const prevBackground = scene.background;
     const prevEnvironment = scene.environment;
+    const bokehPass = this.deps.getBokehPass?.() ?? null;
+    const prevBokehEnabled = bokehPass?.enabled ?? false;
+    const showcaseBloomSnap = snapshotBloom(this.deps.getShowcaseBloomPass());
+    const mainBloomSnap = snapshotBloom(this.deps.getMainBloomPass());
+    let materialSnaps: MaterialSnapshot[] = [];
 
     const renderTarget = new THREE.WebGLRenderTarget(renderWidth, renderHeight, {
       depthBuffer: true,
@@ -274,6 +361,8 @@ export class ViewerRenderExporter {
             silhouetteLines.push(sil);
           }
         });
+      } else if (advancedRealism) {
+        materialSnaps = boostMaterialsForCapture(scene);
       }
 
       let exportCanvas: HTMLCanvasElement;
@@ -283,37 +372,25 @@ export class ViewerRenderExporter {
         renderer.setSize(renderWidth, renderHeight, false);
         camera.aspect = renderWidth / Math.max(1, renderHeight);
         camera.updateProjectionMatrix();
-        this.deps.updateShowcaseComposerSize();
-        this.deps.updateMainComposerSize();
+        this.deps.setComposerExportSize?.(renderWidth, renderHeight, 1);
+        if (bokehPass) bokehPass.enabled = false;
 
         if (advancedRealism) {
           this.deps.ensureShowcaseComposer();
-          const bloomPass = this.deps.getShowcaseBloomPass();
-          if (bloomPass) {
-            bloomPass.strength = 0.16;
-            bloomPass.radius = 0.34;
-            bloomPass.threshold = 0.88;
-          }
+          applyBloomPreset(this.deps.getShowcaseBloomPass(), CAPTURE_SHOWCASE_BLOOM);
+          if (bokehPass) bokehPass.enabled = false;
+          this.deps.setComposerExportSize?.(renderWidth, renderHeight, 1);
           this.deps.getShowcaseComposer()?.render();
         } else {
           this.deps.ensureMainComposer();
-          const mainBloomPass = this.deps.getMainBloomPass();
-          if (mainBloomPass) {
-            mainBloomPass.strength = 0.06;
-            mainBloomPass.radius = 0.4;
-            mainBloomPass.threshold = 0.86;
-          }
+          applyBloomPreset(this.deps.getMainBloomPass(), CAPTURE_MAIN_BLOOM);
+          this.deps.setComposerExportSize?.(renderWidth, renderHeight, 1);
           this.deps.getMainComposer()?.render();
         }
 
-        const snapCanvas = renderer.domElement;
-        const offscreen = document.createElement("canvas");
-        offscreen.width = renderWidth;
-        offscreen.height = renderHeight;
-        const offscreenCtx = offscreen.getContext("2d");
-        if (!offscreenCtx) return null;
-        offscreenCtx.drawImage(snapCanvas, 0, 0, renderWidth, renderHeight);
-        exportCanvas = offscreen;
+        const copied = copyRendererToCanvas(renderer, renderWidth, renderHeight);
+        if (!copied) return null;
+        exportCanvas = copied;
       } else {
         renderer.setRenderTarget(renderTarget);
         renderer.render(scene, camera);
@@ -336,7 +413,9 @@ export class ViewerRenderExporter {
         exportCanvas = canvas;
       }
 
-      if (advancedRealism && (renderWidth !== width || renderHeight !== height)) {
+      const keepNativeSupersample =
+        options.size === "large" || options.size === "4k" || options.size === "viewport";
+      if (!keepNativeSupersample && (renderWidth !== width || renderHeight !== height)) {
         const downscaled = document.createElement("canvas");
         downscaled.width = width;
         downscaled.height = height;
@@ -361,8 +440,12 @@ export class ViewerRenderExporter {
         format === "jpg"
           ? exportCanvas.toDataURL("image/jpeg", quality)
           : exportCanvas.toDataURL("image/png", 1);
-      return { dataUrl, width, height };
+      return { dataUrl, width: exportCanvas.width, height: exportCanvas.height };
     } finally {
+      restoreMaterials(materialSnaps);
+      restoreBloom(this.deps.getShowcaseBloomPass(), showcaseBloomSnap);
+      restoreBloom(this.deps.getMainBloomPass(), mainBloomSnap);
+      if (bokehPass) bokehPass.enabled = prevBokehEnabled;
       camera.position.copy(originalCameraPosition);
       camera.quaternion.copy(originalCameraQuaternion);
       camera.zoom = originalCameraZoom;
@@ -375,8 +458,10 @@ export class ViewerRenderExporter {
       lights.fillLight.intensity = originalLightState.fill;
       lights.ambient.intensity = originalLightState.ambient;
       lights.rimLight.intensity = originalLightState.rim;
+      if (lights.hemisphere) lights.hemisphere.intensity = originalLightState.hemisphere;
       lights.keyLight.castShadow = originalLightState.castShadow;
       lights.keyLight.shadow.radius = originalLightState.shadowRadius;
+      lights.keyLight.shadow.bias = originalLightState.shadowBias;
       renderer.toneMappingExposure = originalRendererState.toneMappingExposure;
       renderer.shadowMap.enabled = originalRendererState.shadowEnabled;
       renderer.shadowMap.type = originalRendererState.shadowType;

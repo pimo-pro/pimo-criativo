@@ -126,12 +126,12 @@ export async function captureWorkspaceProjectThumbnail(
   renderScene: ProjectThumbnailRenderScene
 ): Promise<Blob | null> {
   const result = await renderScene({
-    size: "small",
+    size: "medium",
     mode: "pbr",
     background: "project-transparent",
     preset: "iso1",
     format: "jpg",
-    quality: 0.88,
+    quality: 0.92,
     advancedRealism: true,
     watermark: false,
   });

@@ -995,6 +995,7 @@ export class ViewerCore {
         fillLight: this.lights.fillLight,
         ambient: this.lights.ambient,
         rimLight: this.lights.rimLight,
+        hemisphere: this.lights.hemisphere,
       }),
       getGroundVisible: () => this.sceneEngine.getGroundVisible(),
       setGroundVisible: (visible) => this.sceneEngine.setGroundVisible(visible),
@@ -1016,6 +1017,10 @@ export class ViewerCore {
       getMainComposer: () => this.composerEngine?.main ?? null,
       getShowcaseBloomPass: () => this.composerEngine?.bloom ?? null,
       getMainBloomPass: () => this.composerEngine?.mainBloom ?? null,
+      getBokehPass: () => this.composerEngine?.bokeh ?? null,
+      setComposerExportSize: (width, height, pixelRatio) => {
+        this.composerEngine?.setExportSize(width, height, pixelRatio);
+      },
       updateShowcaseComposerSize: () => this.composerEngine?.updateShowcaseSize(),
       updateMainComposerSize: () => this.composerEngine?.updateMainSize(),
       updateCanvasSize: () => this.updateCanvasSize(),

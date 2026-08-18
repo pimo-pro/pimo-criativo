@@ -71,7 +71,34 @@ function itemsText(items: ReportTextoItem[] | undefined): string {
   return joined || "-";
 }
 
-export function exportProjectReportPdf(reportInput: ProjectReport): void {
+export type ExportProjectReportPdfOptions = {
+  coverImageDataUrl?: string | null;
+};
+
+function imageFormatFromDataUrl(dataUrl: string): "PNG" | "JPEG" | null {
+  if (dataUrl.startsWith("data:image/png")) return "PNG";
+  if (dataUrl.startsWith("data:image/jpeg") || dataUrl.startsWith("data:image/jpg")) return "JPEG";
+  return null;
+}
+
+function addCoverImage(doc: jsPDF, dataUrl: string, y: number): number {
+  const fmt = imageFormatFromDataUrl(dataUrl);
+  if (!fmt) return y;
+  const pageW = doc.internal.pageSize.getWidth();
+  const maxW = pageW - 28;
+  const imgH = (maxW * 9) / 16;
+  try {
+    doc.addImage(dataUrl, fmt, 14, y, maxW, imgH, undefined, "FAST");
+    return y + imgH + 8;
+  } catch {
+    return y;
+  }
+}
+
+export function exportProjectReportPdf(
+  reportInput: ProjectReport,
+  options?: ExportProjectReportPdfOptions
+): void {
   const report = sanitizeFinanceiroForPdf(reportInput);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   let y = 16;
@@ -98,6 +125,12 @@ export function exportProjectReportPdf(reportInput: ProjectReport): void {
     y
   );
   y += 8;
+
+  const cover = String(options?.coverImageDataUrl ?? "").trim();
+  if (cover.startsWith("data:image/")) {
+    y = ensureSpace(doc, y, 70);
+    y = addCoverImage(doc, cover, y);
+  }
 
   y = sectionTitle(doc, "Metricas", y);
   const metrics = buildChartMetrics(metricas);

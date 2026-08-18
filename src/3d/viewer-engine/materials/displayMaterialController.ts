@@ -56,9 +56,9 @@ export class DisplayMaterialController {
           metalness = Math.max(base.metalness, 0.1);
           envMapIntensity = Math.max(base.envMapIntensity, 1.1);
         } else if (state.materialQuality === "premium") {
-          roughness = Math.max(0.24, base.roughness * 0.8);
-          metalness = Math.max(0.04, base.metalness * 1.1);
-          envMapIntensity = Math.max(base.envMapIntensity, 0.78);
+          roughness = Math.max(0.18, base.roughness * 0.72);
+          metalness = Math.min(0.28, Math.max(0.03, base.metalness * 1.06));
+          envMapIntensity = Math.max(base.envMapIntensity, 0.95);
         }
 
         if (!state.matteMode) {

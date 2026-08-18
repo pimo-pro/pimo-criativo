@@ -34,20 +34,20 @@ export class Lights {
     // Ambient suave: iluminação base sem "lavar" as cores do MDF
     this.ambient = new THREE.AmbientLight(
       0xffffff,
-      options.ambientIntensity ?? 0.4
+      options.ambientIntensity ?? 0.46
     );
 
     // Hemisphere: equilíbrio céu/chão, sem sombras duras
     this.hemisphere = new THREE.HemisphereLight(
       options.hemisphereSkyColor ?? 0xe8eeff,
       options.hemisphereGroundColor ?? 0xebeef2,
-      options.hemisphereIntensity ?? 0.48
+      options.hemisphereIntensity ?? 0.56
     );
 
     // Key light: frontal diagonal, intensidade moderada para evitar brilho excessivo; projeta sombra
     this.keyLight = new THREE.DirectionalLight(
       options.keyLightColor ?? 0xfff8f0,
-      options.keyLightIntensity ?? 0.48
+      options.keyLightIntensity ?? 0.52
     );
     this.keyLight.position.set(5, 6, 5);
     this.keyLight.target.position.set(0, 0.5, 0);
@@ -69,12 +69,12 @@ export class Lights {
     // Fill light: suave, reduz áreas escuras, sem sombras
     this.fillLight = new THREE.DirectionalLight(
       options.fillLightColor ?? 0xe8ecf1,
-      options.fillLightIntensity ?? 0.24
+      options.fillLightIntensity ?? 0.3
     );
     this.fillLight.position.set(-3, 3, 2.5);
 
     // Rim light: atrás do módulo, destaca bordas
-    const rimIntensity = options.rimLightIntensity ?? 0.14;
+    const rimIntensity = options.rimLightIntensity ?? 0.16;
     this.rimLight = new THREE.DirectionalLight(0xffffff, rimIntensity);
     this.rimLight.position.set(-2, 2.5, -4);
 

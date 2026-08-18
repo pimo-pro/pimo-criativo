@@ -19,7 +19,7 @@ export class RendererManager {
     const dpr = window.devicePixelRatio || 1;
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-    this.renderer.setPixelRatio(Math.min(dpr, isMobile ? 1.1 : 1.6));
+    this.renderer.setPixelRatio(Math.min(dpr, isMobile ? 1.1 : 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight, false);
 
     // --- Qualidade visual: gamma, contraste, sombras, antialiasing ---

@@ -220,6 +220,8 @@ export {
 } from "./history";
 
 export { exportProjectReportPdf } from "./exportPdf";
+export type { ExportProjectReportPdfOptions } from "./exportPdf";
+export { getReportCoverImage, resolveReportCoverImage, setReportCoverImage } from "./reportCoverImageCache";
 
 export {
   importTrakSnapshot,

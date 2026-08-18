@@ -7,6 +7,7 @@ import {
   cutlistComPrecoFromBoxes,
   ferragensFromBoxes,
 } from "../core/manufacturing/cutlistFromBoxes";
+import { setReportCoverImage } from "../core/projectReport/reportCoverImageCache";
 import {
   calcularPrecoTotalPecas,
   calcularPrecoTotalProjeto,
@@ -178,7 +179,7 @@ export function useSendProjectPackage() {
     }
     try {
       const result = await viewerApi.renderScene({
-        size: "large",
+        size: "4k",
         preset: "current",
         background: "white",
         mode: "pbr",
@@ -190,6 +191,9 @@ export function useSendProjectPackage() {
       });
       if (result?.dataUrl) {
         setPhotoCaptureUrl(result.dataUrl);
+        [project.currentProjectId, project.projectName].forEach((key) => {
+          if (key) setReportCoverImage(String(key), result.dataUrl);
+        });
         showToast("Captura pronta para envio.", "info", 1400);
       } else {
         showToast("Não foi possível capturar a imagem do Viewer.", "warning");
@@ -197,7 +201,7 @@ export function useSendProjectPackage() {
     } catch {
       showToast("Erro ao gerar imagem para envio.", "error");
     }
-  }, [viewerApi, showToast]);
+  }, [viewerApi, showToast, project.currentProjectId, project.projectName]);
 
   return {
     sendMethod,

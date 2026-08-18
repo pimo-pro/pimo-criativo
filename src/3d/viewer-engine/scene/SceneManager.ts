@@ -102,7 +102,7 @@ export class SceneManager {
   private ensureReflectionProbe(renderer: THREE.WebGLRenderer) {
     if (this.reflectionCubeCamera && this.reflectionCubeTarget) return;
     const isWebGL2 = renderer.capabilities.isWebGL2;
-    const size = isWebGL2 ? 256 : 128;
+    const size = isWebGL2 ? 512 : 128;
     this.reflectionCubeTarget = new THREE.WebGLCubeRenderTarget(size, {
       type: isWebGL2 ? THREE.HalfFloatType : THREE.UnsignedByteType,
       generateMipmaps: true,

@@ -77,6 +77,13 @@ function getInternals(viewer: Viewer): ViewerInternals | null {
   };
 }
 
+export function setViewerBokehEnabled(viewer: Viewer, enabled: boolean): void {
+  const v = viewer as unknown as { composerEngine?: { bokeh?: { enabled: boolean } | null } };
+  if (v.composerEngine?.bokeh) {
+    v.composerEngine.bokeh.enabled = enabled;
+  }
+}
+
 export function getViewerFromWindow(): Viewer | null {
   return (getActiveViewerCore() as unknown as Viewer | null) ?? null;
 }
@@ -106,12 +113,12 @@ export function applyLightPreview(viewer: Viewer, base: PhotoModeLightBaseline, 
   const { lights, rendererManager } = core;
   const renderer = rendererManager.renderer;
   const eased = 0.55 + THREE.MathUtils.clamp(shadowFactor, 0, 1) * 0.45;
-  const photoExposure = 1.22;
+  const photoExposure = 1.34;
   if (advancedRealism) {
-    lights.keyLight.intensity = base.key * (eased * 1.25);
-    lights.fillLight.intensity = base.fill * (0.85 + shadowFactor * 0.3);
-    lights.ambient.intensity = base.ambient * (0.95 + shadowFactor * 0.15);
-    lights.rimLight.intensity = base.rim * (0.9 + shadowFactor * 0.25);
+    lights.keyLight.intensity = base.key * (eased * 1.32);
+    lights.fillLight.intensity = base.fill * (1.05 + shadowFactor * 0.28);
+    lights.ambient.intensity = base.ambient * (1.18 + shadowFactor * 0.12);
+    lights.rimLight.intensity = base.rim * (1.02 + shadowFactor * 0.22);
     lights.keyLight.castShadow = true;
     lights.keyLight.shadow.radius = Math.max(4, base.shadowRadius * 1.6);
     lights.keyLight.shadow.bias = -0.0001;

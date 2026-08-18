@@ -7,9 +7,10 @@ import {
   deriveMetricas,
   emptyQualidade,
   exportProjectReportPdf,
+  resolveReportCoverImage,
   type ReportStyle,
 } from "@/core/projectReport";
-import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
+import { findOfflineProjectByAnyKey, resolveProjectIdentity } from "@/core/projects/projectIdentity";
 import { printHideClass, reportPageShell, reportSection, reportSectionTitle } from "./reportStyles";
 import { useProjectReport } from "./useProjectReport";
 import { R } from "./uiLabels";
@@ -70,7 +71,19 @@ export default function RelatorioFinalProjeto() {
 
   const handleExportPdf = () => {
     try {
-      exportProjectReportPdf(report);
+      const offline = findOfflineProjectByAnyKey(urlKey);
+      const coverImageDataUrl =
+        resolveReportCoverImage([
+          report.projectId,
+          identity?.persistenceId,
+          identity?.slug,
+          identity?.remoteId,
+          identity?.localId,
+          urlKey,
+        ]) ??
+        offline?.thumbnailDataUrl ??
+        null;
+      exportProjectReportPdf(report, { coverImageDataUrl });
       setPdfMsg(R.pdfOk);
     } catch (err) {
       setPdfMsg(err instanceof Error ? err.message : R.pdfFail);

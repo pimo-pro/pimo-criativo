@@ -116,15 +116,15 @@ export function useDesignActions(ctx: ProjectActionsExecutionContext): DesignAct
       let thumbnailDataUrl: string | null = null;
       try {
         const render = await viewerSync.renderScene({
-          size: "small",
+          size: "medium",
           background: "white",
           mode: "pbr",
           preset: "iso1",
           watermark: false,
           shadowIntensity: 1,
           format: "jpg",
-          quality: 0.72,
-          advancedRealism: false,
+          quality: 0.9,
+          advancedRealism: true,
         });
         const raw = render?.dataUrl ?? null;
         thumbnailDataUrl = raw && isValidThumbnailDataUrl(raw) ? raw : null;

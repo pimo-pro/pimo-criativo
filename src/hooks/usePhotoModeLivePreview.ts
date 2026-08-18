@@ -12,6 +12,7 @@ import {
   mapPhotoBackgroundToViewerMode,
   restoreChromeBaseline,
   restoreLightBaseline,
+  setViewerBokehEnabled,
   type PhotoModeChromeBaseline,
   type PhotoModeLightBaseline,
 } from "../core/viewer/photoModeViewerBridge";
@@ -114,6 +115,7 @@ export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): voi
       restoreChromeBaseline(viewer, session.chrome);
       viewerApi.setBackgroundMode?.(mapPhotoBackgroundToViewerMode(background));
       viewerApi.setMode?.(advancedRealism || ultraEnabled ? "showcase" : "performance", false);
+      setViewerBokehEnabled(viewer, Boolean(advancedRealism || ultraEnabled));
 
       if (ultraEnabled) {
         viewerApi.setUltraPerformanceMode?.(true);
@@ -195,6 +197,7 @@ export function usePhotoModeLivePreview(params: PhotoModeLivePreviewParams): voi
       sceneMediaRef.current = null;
       viewerApi.setBackgroundMode?.(session.backgroundMode);
       viewerApi.setMode?.(session.viewerMode, false);
+      setViewerBokehEnabled(viewer, false);
     };
   }, [active, viewerApi, background, shadowIntensity, advancedRealism, ultraEnabled, mode]);
 }

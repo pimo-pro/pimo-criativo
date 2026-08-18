@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useToast } from "../../../context/ToastContext";
+import { useProject } from "../../../context/useProject";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import { usePhotoModeLivePreview } from "../../../hooks/usePhotoModeLivePreview";
 import { useUiStore } from "../../../stores/uiStore";
+import { setReportCoverImage } from "../../../core/projectReport/reportCoverImageCache";
 import type { PimoViewerApi } from "../../../context/PimoViewerContextCore";
 import type {
   ViewerCameraPreset,
@@ -41,6 +43,7 @@ async function callRenderScene(
  */
 export default function PhotoModeSettingsContent() {
   const { viewerApi } = usePimoViewerContext();
+  const { project } = useProject();
   const setPhotoModePanelOpen = useUiStore((s) => s.setPhotoModePanelOpen);
   const { startLoading, stopLoading, showToast } = useToast();
 
@@ -84,7 +87,7 @@ export default function PhotoModeSettingsContent() {
   };
 
   const buildCaptureOptions = (): ViewerRenderOptions => ({
-    size: "viewport",
+    size: "4k",
     preset: renderPreset,
     background: renderBackground,
     mode: renderMode,
@@ -105,6 +108,9 @@ export default function PhotoModeSettingsContent() {
         return;
       }
       triggerDownloadFromDataUrl(result.dataUrl, result.width, result.height);
+      [project.currentProjectId, project.projectName].forEach((key) => {
+        if (key) setReportCoverImage(String(key), result.dataUrl);
+      });
       showToast("Download iniciado.", "info", 1200);
     } catch {
       showToast("Erro ao gerar imagem.", "error");

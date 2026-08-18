@@ -48,7 +48,7 @@ const LIGHTS_RESET = {
  *
  * Baixa — luz simples, sem efeitos (performance, sem reflexos).
  * Média — bloom leve via showcase; persistido com materialQuality premium.
- * Alta — bloom + reflexos moderados.
+ * Alta — bloom contido, reflexos, luz global mais forte e materiais premium.
  * Ultra fica fora deste painel (só Photo Mode).
  */
 export function buildDisplayQualitySettingsPatch(level: DisplayQualityLevel): DisplayQualitySettingsPatch {
@@ -70,6 +70,9 @@ export function buildDisplayQualitySettingsPatch(level: DisplayQualityLevel): Di
         ...LIGHTS_RESET,
         materialQuality: "premium",
         enableReflections: true,
+        globalLightIntensity: 1.18,
+        shadowIntensity: 1,
+        glossIntensity: 1,
       };
   }
 }
