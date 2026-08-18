@@ -10,7 +10,8 @@ import {
 import type { AutoWallFillOptions, SmartLayoutEngineDeps } from "./smartLayoutTypes";
 
 /**
- * Auto-Wall-Fill — preenche parede com gaps iguais e refinamento via Smart Align & Snap.
+ * Auto-Wall-Fill 3D — adapter do LayoutEngine (smartLayout).
+ * Preenche parede com gaps iguais; preview opcional via overlay.
  */
 export class AutoWallFillEngine {
   private readonly deps: SmartLayoutEngineDeps;

@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.18 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1**, **Z-01.2.2** e **Z-01.2.3** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2.1–Z-01.2.3; restante Z-01.2 em **planeamento** |
+| **Versão do plano** | 1.19 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.4** executados em 18 de Agosto de 2026 |
+| **Modo actual** | Pós-execução L-, Z-01.2.1–Z-01.2.4; restante Z-01.2 em **planeamento** |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Próximo código Viewer: **Z-01.2.4** (unificar auto-fill) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Próximo código Viewer: **Z-01.2.5** (`ProjectLoader` + `ProjectFormatAdapter`) só com gatilho. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -534,7 +534,7 @@ O próprio ficheiro declara-se orquestrador (linhas ~248–254) e ponto único d
 | Duplicação | Evidência | Risco |
 |------------|-----------|--------|
 | **Triplo snap** | Unificado em Z-01.2.3: `SnapEngine` orquestra SmartAlign → TransformConstraints/ModelWallSnap; `SmartSnapping` só overlay | Resolvido (algoritmos intactos; D-10) |
-| **autoLayout vs smartLayout vs `core/autoRoomFill`** | Três pipelines de preencher parede/sala; ContextMenu expõe os dois primeiros; PainelSala usa Kitchen Layout 3.0 | Menus que parecem iguais, planos diferentes |
+| **autoLayout vs smartLayout vs `core/autoRoomFill`** | Unificado em Z-01.2.4: `LayoutEngine` orquestra; Kitchen 3.0 = projecto; 3D = adapters (menus intactos) | Resolvido (algoritmos intactos) |
 | **`composer` vs `mainComposer`** | Dois EffectComposers no RAF | Custo GPU; não é morto |
 | **`window.viewerCore` vs `PimoViewerApi`** | Workspace atribui o global em `setOnViewerReady`; contexto React relê o mesmo objecto | Dois caminhos, tipagem frouxa |
 | **Régua vs Régua interna** | Toolbar: `toggleRuler` → `setMeasurementMode` — **unificado** em Z-01.2.2 (ContextMenu duplicado removido) | Resolvido |
@@ -713,7 +713,7 @@ Os nomes A–E são o vocabulário Z-01.2. A extração **reutiliza** ficheiros 
 | Módulo Z-01.2 | Caminho alvo | Estado actual | Responsabilidade |
 |---------------|--------------|---------------|------------------|
 | `SnapEngine.ts` | **novo** `snap/SnapEngine.ts` (pipeline única) | Triplo: SmartAlign + ModelWallSnap + SmartSnapping overlay | Um `applyDuringTranslate`; outros viram estratégias internas |
-| `LayoutEngine.ts` | **novo** fachada sobre `core/autoRoomFill` + um dos engines 3D | Triplo auto-fill | Um auto-fill de produto; o outro 3D vira adapter |
+| `LayoutEngine.ts` | **executado** `viewer-engine/layout/LayoutEngine.ts` — fachada sobre `core/autoRoomFill` + adapters 3D | Triplo auto-fill | Um auto-fill de produto; o outro 3D vira adapter |
 | `DesignerEngine.ts` | lazy sobre intelligent / conversational / cost / manufacturing | Constructor eager | Fora do hot path; **não** substitui cutlist industrial |
 
 #### E) Núcleo de runtime
@@ -761,7 +761,7 @@ Nenhum passo avança sem: `aplica Z-01 — extrair módulo X` (X = ID da linha).
 | **Z-01.2.1** | Remover NO-OPs sem consumidores | `setOnRulerTick`, `setRulerEnabled`, `updateBoxDimensions`, `setCameraFrontView`, wiring `syncDrawerFrontMaterialsForBox`, `events.emit`, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar` | `createRoom` (ainda usado por `useViewerSync`); BoxBuilder | **Executado** 18-08-2026 |
 | **Z-01.2.2** | Unificar régua | Um botão / uma API `setMeasurementMode`; ContextMenu deixa de duplicar «Régua interna»; fachada `MeasurementEngine.ts` | Novo motor de medição (reutiliza `UnifiedMeasurementEngine`) | **Executado** 18-08-2026 |
 | **Z-01.2.3** | Unificar snap | `SnapEngine.applyDuringTranslate` / `applyBoxTranslatePipeline`; ordem SmartAlign → TransformConstraints; SmartSnapping overlay-only | Alterar tolerâncias de produto sem testes de drag | **Executado** 18-08-2026 |
-| **Z-01.2.4** | Unificar auto-fill | Uma fachada `LayoutEngine`; Kitchen 3.0 (`core/autoRoomFill`) é o canónico de **projecto**; 3D preview opcional | Apagar `core/autoRoomFill` | PainelSala + ContextMenu |
+| **Z-01.2.4** | Unificar auto-fill | Uma fachada `LayoutEngine`; Kitchen 3.0 (`core/autoRoomFill`) é o canónico de **projecto**; 3D preview opcional | Apagar `core/autoRoomFill` | **Executado** 18-08-2026 |
 | **Z-01.2.5** | `ProjectLoader` + `ProjectFormatAdapter` | Esqueleto + adapter `pimo-project` + gancho GLB existente | Parsers DXF/IFC/STEP; qualquer gerador industrial | SSOT `ProjectState` |
 | **Z-01.2.6** | Migrar API global → `PimoViewerApi` | ContextMenu e remates deixam `window.viewerCore`; tipos em `viewerCoreWindow.d.ts` encolhem | Remover o global no mesmo passo se HMR/Workspace ainda o atribuir | Adapter já existe |
 | **Z-01.2.7** | Extrair módulos A → E | Lighting, Composer, Selection, Room API, Box fachada, Finish sync, Camera presets | Mudança de comportamento visual | 2.1–2.4 estáveis |
@@ -817,7 +817,7 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 7. `events.emit` (F-08) — **removido** em Z-01.2.1; Events System continua F-05 (sem código).
 8. Documentar `industrialReady: false` em qualquer import CAD na UI, para o operador não exportar CNC de malha não paramétrica.
 
-**Z-01.2.1, Z-01.2.2 e Z-01.2.3 executados** em 18-08-2026. Próximo código possível: **Z-01.2.4** (unificar auto-fill).
+**Z-01.2.1 a Z-01.2.4 executados** em 18-08-2026. Próximo código possível: **Z-01.2.5** (`ProjectLoader` + `ProjectFormatAdapter`).
 
 ### 6.2.10 Relatório de execução — Z-01.2.1 (18 de Agosto de 2026)
 
@@ -880,6 +880,30 @@ Finish (orla/remate/hemati/rodapé): extração de **sync visual** no passo 2.7;
 **Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState, mm industriais, RoomManager, LayoutEngine, algoritmos de SmartAlign/ModelWallSnap.
 
 **Testes D-10:** `SnapEngine.test.ts` — ordem align→constraints; limiar 250 mm; posição em mm inalterada quando os motores mock não movem.
+
+### 6.2.13 Relatório de execução — Z-01.2.4 (18 de Agosto de 2026)
+
+**Gatilho:** «Aplicar Z-01.2.4» — unificação do auto-fill, aprovado pelo dono do produto.
+
+**Motor canónico:** `src/3d/viewer-engine/layout/LayoutEngine.ts` (orquestrador; **não** funde Kitchen 3.0 com os planos 3D).
+
+**Canais (UX intacta):**
+1. **Projecto** — Kitchen 3.0 (`runProjectKitchenLayout` → `runKitchenLayout30OnState`); PainelSala e `Workspace.bindAutoLayoutBridge.runProjectRoomFill`
+2. **3D Ferramentas** — `autoLayout.*` → `AutoLayoutEngine` (preencher parede / estender / distribuir / prateleiras)
+3. **3D Smart Layout** — `smartLayout.*` → Auto-Wall-Fill / Auto-Room-Fill 3D (este último delega a Kitchen 3.0 quando o bridge existe)
+
+**Pontos de entrada mapeados:**
+- PainelSala / `useAutoRoomFillActions` — Kitchen 3.0 e auto-room legado de projecto
+- ContextMenu `ferramentas.fillWall` → `viewerApi.autoLayout`
+- ContextMenu `smartLayout.*` → `window.viewerCore.smartLayout`
+- `BoxSceneController` — **sem** auto-fill
+- Workspace — só `bindAutoLayoutBridge` (Kitchen 3.0 no `runProjectRoomFill`)
+
+**Grep:** `runKitchenLayout30OnState` / `runAutoRoomFillOnState` só em `core/autoRoomFill` (definição) e `LayoutEngine` (único wrapper). ViewerCore **não** instancia AutoLayout/AutoWallFill/AutoRoomFill.
+
+**Intocado:** BoxBuilder, malha, PDF/XLSX/TCN/DRILL/PI, ProjectState schema, mm industriais, RoomManager, SnapEngine, menus do ContextMenu e botões do PainelSala.
+
+**Testes:** `LayoutEngine.test.ts` — Kitchen 3.0 vs legado; posições `_mm` no fill 3D; adapters autoLayout ≠ smartLayout.
 
 ---
 
@@ -1176,6 +1200,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.16 | **Z-01.2.1 executado:** remoção de NO-OPs (`events.emit`, régua legada, aliases, sync drawer NO-OP, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar`). `createRoom` e BoxBuilder intocados. Tag `z-01-2-1-noops`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.17 | **Z-01.2.2 executado:** régua unificada via `MeasurementEngine`; botão duplicado do ContextMenu removido; aliases públicos da régua interna apagados. Tag `z-01-2-2-ruler`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.18 | **Z-01.2.3 executado:** `SnapEngine` orquestra SmartAlign → TransformConstraints/ModelWallSnap; SmartSnapping overlay-only. Tag `z-01-2-3-snap`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.19 | **Z-01.2.4 executado:** `LayoutEngine` orquestra auto-fill; Kitchen 3.0 canónico de projecto; autoLayout/smartLayout 3D como adapters. Tag `z-01-2-4-autofill`. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1372,6 +1397,14 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **D-10** | Limiar 250 mm testado; algoritmos de alinhamento/parede **não** fundidos |
 | **Intocado** | BoxBuilder, malha, RoomManager, LayoutEngine, ProjectState, pipeline industrial |
 
+### 13.20 Changelog v1.18 → v1.19
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-01.2.4** | `LayoutEngine` como orquestrador canónico; Kitchen 3.0 = projecto; 3D = adapters autoLayout/smartLayout |
+| **Hooks** | `useAutoRoomFillActions` deixa de chamar `core/autoRoomFill` directamente |
+| **Intocado** | BoxBuilder, malha, RoomManager, SnapEngine, schema ProjectState, menus UX, pipeline industrial |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1382,4 +1415,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.18).
+Fim do documento de planeamento (v1.19).

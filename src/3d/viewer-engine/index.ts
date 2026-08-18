@@ -46,6 +46,7 @@ export { createDisabledSmartLayoutDeps } from "./snapping/smartLayoutDepsFactory
 export type { SnappingFacade } from "./snapping/snappingFacade";
 export { SnapEngine, SNAP_WALL_THRESHOLD_MM } from "./snapping/SnapEngine";
 export type { SnapAlignTarget, SnapEngineDeps } from "./snapping/SnapEngine";
+export { LayoutEngine } from "./layout/LayoutEngine";
 export type {
   ViewerIndustrialSurface,
   ViewerMaterialSyncSurface,

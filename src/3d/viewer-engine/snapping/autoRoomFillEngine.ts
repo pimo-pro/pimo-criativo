@@ -4,7 +4,8 @@ import { AutoWallFillEngine } from "./autoWallFillEngine";
 import type { SmartLayoutEngineDeps } from "./smartLayoutTypes";
 
 /**
- * Auto-Room-Fill — orquestra preenchimento multi-parede ou delega ao motor de cozinha (read-only).
+ * Auto-Room-Fill 3D — adapter do LayoutEngine.
+ * Delega ao Kitchen 3.0 (`runProjectRoomFill`) quando o bridge de projecto está ligado.
  */
 export class AutoRoomFillEngine {
   private readonly deps: SmartLayoutEngineDeps;

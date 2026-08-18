@@ -170,13 +170,9 @@ import {
 import type { SmartAlignSnapContext, SmartSnapEntity } from "./snapping/smartAlignSnapTypes";
 import { DEFAULT_UNIFIED_CAPTURE_MM, DEFAULT_UNIFIED_MAGNET } from "./snapping/smartAlignSnapTypes";
 import { getEntityWorldBoxAabb } from "./snapping/smartAlignSnapAabb";
-import { AutoLayoutEngine } from "./autoLayout/AutoLayoutEngine";
 import type { AutoLayoutBridge, AutoLayoutOpeningMm, AutoLayoutRoomBoundsMm, AutoStackShelvesOptions } from "./autoLayout/autoLayoutTypes";
-import { AutoWallFillEngine } from "./snapping/autoWallFillEngine";
-import { AutoRoomFillEngine } from "./snapping/autoRoomFillEngine";
-import { AutoDistributionEngine } from "./snapping/autoDistributionEngine";
-import { AutoStackShelvesEngine } from "./snapping/autoStackShelvesEngine";
-import { PredictiveLayoutEngine, buildPredictiveLayoutResult } from "./snapping/predictiveLayoutEngine";
+import { LayoutEngine } from "./layout/LayoutEngine";
+import { buildPredictiveLayoutResult } from "./snapping/predictiveLayoutEngine";
 import { IntelligentDesignerEngine } from "./snapping/intelligentDesignerEngine";
 import { ConversationalDesignerEngine } from "./snapping/conversationalDesignerEngine";
 import { DesignConversationState } from "./snapping/designConversationState";
@@ -504,13 +500,8 @@ export class ViewerCore {
   readonly settings = {
     enableSmartAlignSnap: true,
   };
-  private autoLayoutEngine!: AutoLayoutEngine;
+  private layoutEngine!: LayoutEngine;
   private smartLayoutBridge: SmartLayoutBridge | null = null;
-  private autoWallFillEngine!: AutoWallFillEngine;
-  private autoRoomFillEngine!: AutoRoomFillEngine;
-  private autoDistributionEngine!: AutoDistributionEngine;
-  private autoStackShelvesEngine!: AutoStackShelvesEngine;
-  private predictiveLayoutEngine!: PredictiveLayoutEngine;
   private intelligentDesignerEngine!: IntelligentDesignerEngine;
   private readonly designConversationState = new DesignConversationState();
   private conversationalDesignerEngine!: ConversationalDesignerEngine;
@@ -767,17 +758,12 @@ export class ViewerCore {
       clearSmartAlignSnapOverlay: () => this.clearSmartAlignSnapOverlay(),
     });
 
-    this.autoLayoutEngine = new AutoLayoutEngine();
     const smartLayoutDeps = createDisabledSmartLayoutDeps({
       getBridge: () => this.smartLayoutBridge,
       buildSnapContext: () => this.buildDisabledSmartSnapContext(),
       getBoxEntry: (boxId) => this.boxes.get(boxId),
     });
-    this.autoWallFillEngine = new AutoWallFillEngine(smartLayoutDeps);
-    this.autoRoomFillEngine = new AutoRoomFillEngine(smartLayoutDeps);
-    this.autoDistributionEngine = new AutoDistributionEngine(smartLayoutDeps);
-    this.autoStackShelvesEngine = new AutoStackShelvesEngine(smartLayoutDeps);
-    this.predictiveLayoutEngine = new PredictiveLayoutEngine(smartLayoutDeps);
+    this.layoutEngine = new LayoutEngine(smartLayoutDeps);
     this.intelligentDesignerEngine = new IntelligentDesignerEngine({
       getBridge: () => this.smartLayoutBridge,
       getRoomLabelHint: () => this.smartLayoutBridge?.getRoomLabelHint?.(),
@@ -787,13 +773,7 @@ export class ViewerCore {
       applyPlan: (plan) => {
         this.smartLayoutBridge?.applyPlan(plan);
       },
-      distribute: (boxIds) => this.autoDistributionEngine.distribute({
-        boxIds,
-        alignTop: true,
-        alignFront: true,
-        alignDepth: true,
-        useHistorySpacing: true,
-      }),
+      distribute: (boxIds) => this.layoutEngine.autoDistribute(boxIds),
       isSmartSnapEnabled: () => false,
     });
     this.costReportEngine = new CostReportEngine({
@@ -805,8 +785,8 @@ export class ViewerCore {
       designer: this.intelligentDesignerEngine,
       conversation: this.designConversationState,
       previewPlan: (plan, label, previewId) => {
-        const { overlay } = buildPredictiveLayoutResult(this.predictiveLayoutEngine, plan, label);
-        this.predictiveLayoutEngine.previewDesigns([{ id: previewId, plan, label }]);
+        const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, plan, label);
+        this.layoutEngine.predictive.previewDesigns([{ id: previewId, plan, label }]);
         this.smartAlignOverlay.setState(overlay);
       },
       applyPlan: (plan, meta) => {
@@ -827,7 +807,7 @@ export class ViewerCore {
       },
       acceptPending: () => this.acceptConversationalPending(),
       rejectPending: () => {
-        this.predictiveLayoutEngine.rejectPending();
+        this.layoutEngine.predictive.rejectPending();
         this.designConversationState.clearPending();
         this.clearSmartAlignSnapOverlay();
       },
@@ -858,32 +838,24 @@ export class ViewerCore {
 
     this.autoLayout = {
       fillWallWithModule: (wallId, moduleBoxId) =>
-        this.autoLayoutEngine.fillWallWithModule(wallId, moduleBoxId),
-      extendAlongWallFromBox: (boxId) => this.autoLayoutEngine.extendAlongWallFromBox(boxId),
-      distributeBoxesEvenly: (boxIds) => this.autoLayoutEngine.distributeBoxesEvenly(boxIds),
+        this.layoutEngine.fillWallWithModule(wallId, moduleBoxId),
+      extendAlongWallFromBox: (boxId) => this.layoutEngine.extendAlongWallFromBox(boxId),
+      distributeBoxesEvenly: (boxIds) => this.layoutEngine.distributeBoxesEvenly(boxIds),
       autoStackShelvesInBox: (boxId, options) =>
-        this.autoLayoutEngine.autoStackShelvesInBox(boxId, options),
+        this.layoutEngine.autoStackShelvesInBox(boxId, options),
     };
     this.smartLayout = {
-      autoWallFill: (wallId, moduleBoxId) =>
-        this.autoWallFillEngine.fillWall({ wallId, moduleBoxId, alignTop: true, alignFront: true }),
+      autoWallFill: (wallId, moduleBoxId) => this.layoutEngine.autoWallFill(wallId, moduleBoxId),
       previewAutoWallFill: (wallId, moduleBoxId) => this.previewSmartWallFill(wallId, moduleBoxId),
-      autoRoomFill: (seedBoxId) => this.autoRoomFillEngine.fillRoom(seedBoxId),
-      autoDistribute: (boxIds) =>
-        this.autoDistributionEngine.distribute({
-          boxIds,
-          alignTop: true,
-          alignFront: true,
-          alignDepth: true,
-          useHistorySpacing: true,
-        }),
-      autoStackShelves: (boxId, options) => this.autoStackShelvesEngine.stackShelves(boxId, options),
+      autoRoomFill: (seedBoxId) => this.layoutEngine.autoRoomFill(seedBoxId),
+      autoDistribute: (boxIds) => this.layoutEngine.autoDistribute(boxIds),
+      autoStackShelves: (boxId, options) => this.layoutEngine.autoStackShelves(boxId, options),
       applyPredictiveLayout: () => this.acceptPredictiveLayoutPending(),
       rejectPredictiveLayout: () => {
-        this.predictiveLayoutEngine.rejectPending();
+        this.layoutEngine.predictive.rejectPending();
         this.clearSmartAlignSnapOverlay();
       },
-      hasPredictiveLayout: () => this.predictiveLayoutEngine.getPending() !== null,
+      hasPredictiveLayout: () => this.layoutEngine.predictive.getPending() !== null,
     };
     this.intelligentDesigner = {
       generateDesigns: (seedBoxId) => this.generateIntelligentDesigns(seedBoxId),
@@ -1219,7 +1191,7 @@ export class ViewerCore {
       runProjectRoomFill: bridge.runProjectRoomFill,
       getRoomLabelHint: bridge.getRoomLabelHint,
     };
-    this.autoLayoutEngine.bindBridge(this.smartLayoutBridge);
+    this.layoutEngine.bindBridge(this.smartLayoutBridge);
   }
 
   bindOrlaBridge(bridge: Pick<OrlaVisualBridge, "getBoxOrlaConfig"> | null): void {
@@ -5643,19 +5615,19 @@ export class ViewerCore {
   private generateIntelligentDesigns(seedBoxId: string): boolean {
     const designs = this.intelligentDesignerEngine.buildDesigns(seedBoxId);
     if (!designs.length) return false;
-    const overlays = this.predictiveLayoutEngine.previewDesigns(
+    const overlays = this.layoutEngine.predictive.previewDesigns(
       designs.map((d) => ({ id: d.id, plan: d.plan, label: d.label }))
     );
     if (overlays[0]) {
       this.smartAlignOverlay.setState(
-        this.predictiveLayoutEngine.showDesignPreview(0) ?? { visible: false, mode: "predictive", guides: [] }
+        this.layoutEngine.predictive.showDesignPreview(0) ?? { visible: false, mode: "predictive", guides: [] }
       );
     }
     return true;
   }
 
   private previewIntelligentDesign(id: DesignVariantId): boolean {
-    const state = this.predictiveLayoutEngine.showDesignById(id);
+    const state = this.layoutEngine.predictive.showDesignById(id);
     if (!state) return false;
     this.smartAlignOverlay.setState(state);
     return true;
@@ -5668,11 +5640,11 @@ export class ViewerCore {
   }
 
   private acceptPredictiveLayoutPending(): boolean {
-    const pending = this.predictiveLayoutEngine.getPending();
+    const pending = this.layoutEngine.predictive.getPending();
     if (!pending) return false;
-    const previews = this.predictiveLayoutEngine.getDesignPreviews();
-    const activeEntry = previews[this.predictiveLayoutEngine.getActiveDesignIndex()];
-    const ok = this.predictiveLayoutEngine.applyPending();
+    const previews = this.layoutEngine.predictive.getDesignPreviews();
+    const activeEntry = previews[this.layoutEngine.predictive.getActiveDesignIndex()];
+    const ok = this.layoutEngine.predictive.applyPending();
     if (ok) {
       if (activeEntry && isEnvironmentStyleId(activeEntry.id)) {
         this.intelligentDesignerEngine.getBehaviorStore().learnStylePreference(activeEntry.id);
@@ -5683,7 +5655,7 @@ export class ViewerCore {
   }
 
   private acceptConversationalPending(): boolean {
-    const pending = this.predictiveLayoutEngine.getPending();
+    const pending = this.layoutEngine.predictive.getPending();
     if (!pending) return false;
     const ok = this.acceptPredictiveLayoutPending();
     if (ok) {
@@ -5698,8 +5670,8 @@ export class ViewerCore {
   private previewIntelligentStyle(styleId: EnvironmentStyleId, seedBoxId: string): boolean {
     const result = this.intelligentDesignerEngine.buildStyleDesign(styleId, seedBoxId);
     if (!result) return false;
-    const { overlay } = buildPredictiveLayoutResult(this.predictiveLayoutEngine, result.plan, result.label);
-    this.predictiveLayoutEngine.previewDesigns([{ id: styleId, plan: result.plan, label: result.label }]);
+    const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, result.plan, result.label);
+    this.layoutEngine.predictive.previewDesigns([{ id: styleId, plan: result.plan, label: result.label }]);
     this.smartAlignOverlay.setState(overlay);
     return true;
   }
@@ -5732,11 +5704,11 @@ export class ViewerCore {
 
   private previewCostSuggestion(suggestion: CostSuggestion): void {
     const { overlay } = buildPredictiveLayoutResult(
-      this.predictiveLayoutEngine,
+      this.layoutEngine.predictive,
       suggestion.plan,
       suggestion.label
     );
-    this.predictiveLayoutEngine.previewDesigns([
+    this.layoutEngine.predictive.previewDesigns([
       { id: `cost-${suggestion.kind}`, plan: suggestion.plan, label: suggestion.label },
     ]);
     this.smartAlignOverlay.setState(overlay);
@@ -5777,11 +5749,11 @@ export class ViewerCore {
     const fixPlan = this.manufacturingReportEngine.buildFixPreview();
     if (!fixPlan || !fixPlan.plan.moveBoxes.length) return false;
     const { overlay } = buildPredictiveLayoutResult(
-      this.predictiveLayoutEngine,
+      this.layoutEngine.predictive,
       fixPlan.plan,
       fixPlan.label
     );
-    this.predictiveLayoutEngine.previewDesigns([
+    this.layoutEngine.predictive.previewDesigns([
       { id: "manufacturing-fix", plan: fixPlan.plan, label: fixPlan.label },
     ]);
     this.smartAlignOverlay.setState(overlay);
@@ -5789,7 +5761,7 @@ export class ViewerCore {
   }
 
   private applyManufacturingSuggestedFixes(): boolean {
-    const pending = this.predictiveLayoutEngine.getPending();
+    const pending = this.layoutEngine.predictive.getPending();
     if (pending?.label.includes("Auto-Manufacturing")) {
       return this.acceptPredictiveLayoutPending();
     }
@@ -5800,7 +5772,7 @@ export class ViewerCore {
   private generateIntelligentVariations(): boolean {
     const variations = this.intelligentDesignerEngine.generateVariations();
     if (!variations.length) return false;
-    const overlays = this.predictiveLayoutEngine.previewDesigns(
+    const overlays = this.layoutEngine.predictive.previewDesigns(
       variations.map((v, i) => ({
         id: `V${i + 1}`,
         plan: v.plan,
@@ -5809,7 +5781,7 @@ export class ViewerCore {
     );
     if (overlays[0]) {
       this.smartAlignOverlay.setState(
-        this.predictiveLayoutEngine.showDesignPreview(0) ?? { visible: false, mode: "predictive", guides: [] }
+        this.layoutEngine.predictive.showDesignPreview(0) ?? { visible: false, mode: "predictive", guides: [] }
       );
     }
     return true;
@@ -5820,15 +5792,10 @@ export class ViewerCore {
   }
 
   private previewSmartWallFill(wallId: string | number, moduleBoxId: string): boolean {
-    const plan = this.autoWallFillEngine.buildPlan({
-      wallId,
-      moduleBoxId,
-      alignTop: true,
-      alignFront: true,
-    });
+    const plan = this.layoutEngine.buildWallFillPlan(wallId, moduleBoxId);
     if (!plan) return false;
     const { overlay } = buildPredictiveLayoutResult(
-      this.predictiveLayoutEngine,
+      this.layoutEngine.predictive,
       plan,
       "Auto-Wall-Fill sugerido"
     );
@@ -6501,7 +6468,7 @@ export class ViewerCore {
       this.transformControls.dispose();
       this.transformControls = null;
     }
-    this.autoLayoutEngine?.bindBridge(null);
+    this.layoutEngine?.bindBridge(null);
     this.orlaVisualizer.bindBridge(null);
     this.orlaVisualizer.dispose();
     this.remateVisualBridge = null;

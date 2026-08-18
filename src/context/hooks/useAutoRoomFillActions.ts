@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ProjectActions } from "../projectTypes";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
-import { runAutoRoomFillOnState, runKitchenLayout30OnState } from "../../core/autoRoomFill";
+import { LayoutEngine } from "../../3d/viewer-engine/layout/LayoutEngine";
 import { detectKitchenLayout } from "../../core/autoRoomFill/layoutDetection";
 import {
   EMPTY_ALLOW_UPPER,
@@ -79,7 +79,7 @@ export function useAutoRoomFillActions(ctx: ProjectActionsExecutionContext): Aut
         updateProject(
           (prev) => {
             if (!prev.room) return prev;
-            const result = runAutoRoomFillOnState(prev);
+            const result = LayoutEngine.runProjectAutoRoomFill(prev);
             return result?.state ?? prev;
           },
           true
@@ -90,7 +90,7 @@ export function useAutoRoomFillActions(ctx: ProjectActionsExecutionContext): Aut
         updateProject(
           (prev) => {
             if (!prev.room) return prev;
-            const result = runKitchenLayout30OnState(prev);
+            const result = LayoutEngine.runProjectKitchenLayout(prev);
             return result?.state ?? prev;
           },
           true

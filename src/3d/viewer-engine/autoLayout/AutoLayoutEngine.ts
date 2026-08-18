@@ -16,7 +16,8 @@ import {
 } from "./autoLayoutRoomGeometry";
 
 /**
- * Motor Auto-Layout — preenchimento de parede, extensão, distribuição e prateleiras.
+ * Motor Auto-Layout 3D — adapter do LayoutEngine (menu Ferramentas).
+ * Não é o auto-fill de projecto (Kitchen 3.0).
  */
 export class AutoLayoutEngine {
   private bridge: AutoLayoutBridge | null = null;

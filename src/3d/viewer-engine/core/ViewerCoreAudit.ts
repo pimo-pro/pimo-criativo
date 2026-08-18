@@ -46,6 +46,14 @@ export const VIEWER_CORE_AUDIT: ViewerCoreAuditItem[] = [
     touchedInPass: true,
   },
   {
+    id: "triple-auto-fill",
+    severity: "low",
+    area: "LayoutEngine (Kitchen 3.0 + autoLayout/smartLayout 3D)",
+    finding: "Orquestrador único: projecto = Kitchen 3.0; Viewer 3D = adapters autoLayout/smartLayout.",
+    recommendation: "Manter canais separados; não fundir planos 3D com generateKitchenLayoutPlan.",
+    touchedInPass: true,
+  },
+  {
     id: "overlay-zindex",
     severity: "low",
     area: "Measurement / InternalRuler / SmartSnapping overlays",
