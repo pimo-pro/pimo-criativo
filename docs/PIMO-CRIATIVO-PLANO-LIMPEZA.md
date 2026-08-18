@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.30 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados em 18 de Agosto de 2026 |
-| **Modo actual** | Pós-execução L-, Z-01.2 e Z-02.1–2.5 (navegação Orbit/Pan/Zoom unificada no rato) |
+| **Versão do plano** | 1.31 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico RoomManager (18 de Agosto de 2026) |
+| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1 diagnóstico only (sem alteração de `src/`) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 18 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.6+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.6 / Z-03.2+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -448,6 +448,7 @@ Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01
 | Z-02 | Dashboard + analytics | `industrial/core/dashboard/*`, `analytics/stats.ts` | Cadeia interna metrics→dashboard; sem UI | Pode alimentar supervisor futuro |
 | **Z-02.0** | **Toolbar superior do Viewer** | `UnifiedTopToolbar.tsx` + `ViewerToolbar.tsx` | Chrome UI **vivo**; 20 controlos visíveis + faixa vazia + popovers | **Auditoria §6.3** — diagnóstico only; **não apagar** sem gatilho Z-02.1+ |
 | Z-03 | Adapter WO legado | `legacyWorkflowWorkOrderAdapter.ts` | Exportado; documentado como ponte read-only | Transição TRAK (D-03) |
+| **Z-03.1** | **Sala industrial / RoomManager** | `src/3d/room/*` + `RoomEngine` + `wallStore` + `ProjectState.room` | Sistema **vivo** e duplicado (D-09); não é o adapter WO | **Auditoria §6.4** — diagnóstico only; **não alterar** `src/` sem gatilho Z-03.2+ |
 | **Z-04** | Integration UI industrial (**ex-Z-01**) | `src/industrial/integration/ui/*` | Zero imports em `src/app` | Tipos re-exportados; possível uso futuro TRAK |
 
 **Contentor React (não é o alvo Z-01):** `src/components/layout/workspace/Workspace.tsx` (1439 linhas) monta o ViewerCore, liga bridges e overlays. É o casco UI, não o expositor 3D.
@@ -1294,6 +1295,332 @@ Não depende de `enabledTools` nem do tipo de peça (industrial vs GLB). `should
 
 **Tag:** `z-02-5-mouse-unification`.
 
+## 6.4 Z-03.1 — Diagnóstico RoomManager (sala industrial)
+
+| Campo | Valor |
+|-------|--------|
+| **Estado** | Diagnóstico **concluído** (18-08-2026). **Zero** alterações a `src/`. |
+| **Gatilho de código** | Nenhum. Correcção, reescrita ou Aedifex exigem pedido explícito (ex.: «aplica Z-03.2»). |
+| **Exclusões** | BoxBuilder, malha, SnapEngine, LayoutEngine (algoritmo), schema ProjectState, PDF/XLSX/TCN/DRILL/PI — **não tocados** |
+| **Nota de ID** | **Z-03** original = adapter WO legado (`legacyWorkflowWorkOrderAdapter.ts`). **Z-03.1** é campanha **nova** de auditoria da sala, no mesmo espírito de Z-02.0. Não substitui Z-03. |
+
+**Conclusão em uma frase:** não existe um tipo único `RoomState`. A «sala» vive em **três SSOT paralelos** (`ProjectState.room`, `wallStore`, meshes do `RoomManager`), com **três sistemas de unidades** (mm / cm / m), layout **só axis-aligned** (0°/90°), **uma sala por projecto**, e **paredes que não entram em cutlist/CNC**. O impacto industrial é **indirecto**: Auto-Room-Fill / Kitchen 3.0 usa a sala para **colocar caixas**; as caixas é que alimentam a pipeline.
+
+Não há ficheiros com os nomes pedidos `RoomGeometry`, `RoomConverter`, `RoomValidator`, `RoomUtils`, `RoomVisual` nem `RoomState`. Equivalentes reais:
+
+| Nome pedido | Equivalente no código |
+|-------------|------------------------|
+| RoomState | `ProjectRoomConfig` (`project.room`) + `wallStore` (`Wall[]`) + `RoomSnapshot` |
+| RoomGeometry | `Room.ts` + `roomCoordinates.ts` + `roomDynamicBounds.ts` + `autoLayoutRoomGeometry.ts` + `core/autoRoomFill/roomAnalysis.ts` |
+| RoomConverter | `RoomEngine.ts` (`projectRoomToWallStoreWalls` / `wallStoreToProjectRoom` / `normalizeProjectRoom`) + `roomMeshFromWallStore.ts` + `ViewerRoomEngine.roomConfigToDimensions` |
+| RoomValidator | `normalizeProjectRoom` / `normalizeOpening` / `normalizeUtility` + `openingConstraints` |
+| RoomUtils | `roomCoordinates.ts`, `roomWorkspaceBounds.ts`, `wallSnapping.ts`, `openingPlacement.ts` |
+| RoomVisual | `WallFactory.ts`, `RoomBuilder.ts`, `ViewerCore.rebuildRoomFloorAndCeiling`, `roomFloorOverlay.ts` |
+
+**Aedifex:** zero referências no repositório. Tratado abaixo só como motor externo hipotético.
+
+### 6.4.1 Diagrama de ficheiros e papéis
+
+```mermaid
+flowchart TB
+  subgraph persistencia ["Persistência"]
+    PR["ProjectState.room<br/>ProjectRoomConfig mm"]
+    RS["ProjectSnapshot.roomSnapshot<br/>Wall[] em cm"]
+    WS["wallStore Zustand<br/>Wall[] cm — runtime UI"]
+  end
+
+  subgraph orquestracao ["Orquestração Room 2.0"]
+    RE["RoomEngine.ts<br/>normalize / convert / sync"]
+    RC["roomCoordinates.ts<br/>layout centrado"]
+    MESH["roomMeshFromWallStore.ts"]
+  end
+
+  subgraph visual3d ["Visual 3D — RoomManager"]
+    VRE["ViewerRoomEngine.ts<br/>fachada C"]
+    RM["RoomManager.ts"]
+    ROOM["Room.ts AABB metros"]
+    WF["WallFactory.ts BoxGeometry"]
+    RB["RoomBuilder.ts portas/janelas"]
+    VC["ViewerCore piso/tecto Room 2.1"]
+  end
+
+  subgraph fill ["Preenchimento"]
+    ARF["core/autoRoomFill<br/>Kitchen 3.0 — projecto"]
+    LE["LayoutEngine<br/>adapters 3D"]
+  end
+
+  UI["PainelSala / RoomSettingsPanel"] --> PR
+  UI --> WS
+  PR <--> RE
+  RE --> WS
+  WS --> MESH
+  MESH --> VRE
+  VRE --> RM
+  RM --> ROOM
+  RM --> WF
+  RM --> VC
+  RB --> WF
+  PR --> ARF
+  ARF -->|"cria WorkspaceBox"| BOX["caixas → BoxBuilder / cutlist"]
+  LE -->|"3D fillWall / fillRoom"| VRE
+  RS -.->|"load/save sidecar"| WS
+```
+
+**Camadas (caminhos absolutos relativos a `src/`):**
+
+| Camada | Ficheiros | Papel |
+|--------|-----------|--------|
+| UI | `components/layout/left-panel/PainelSala.tsx`, `components/layout/room/RoomSettingsPanel.tsx`, `components/viewer/toolbar/RoomIconButton.tsx` | Criar/editar sala; Kitchen 3.0; aviso explícito «não entra em cutlist» |
+| Projecto | `context/hooks/useRoomActions.ts`, `context/projectTypes.ts` (`room`), `context/projectPersistence.ts` (`captureRoomSnapshot`) | SSOT de projecto + sidecar de snapshot |
+| Runtime paredes | `stores/wallStore.ts` | Lista viva de paredes (cm); `applyLayoutIfMissing` |
+| Room 2.0 orquestrador | `3d/viewer-engine/room/RoomEngine.ts`, `roomEngineTypes.ts` | Converter projecto ↔ wallStore; `syncProjectRoomToViewer` |
+| Coordenadas | `utils/roomCoordinates.ts`, `utils/roomWorkspaceBounds.ts`, `utils/wallSnapping.ts` | Centro do footprint; clamp de caixas; snap de extremos **legado** |
+| Mesh sync | `utils/roomMeshFromWallStore.ts` | Recria RoomManager a partir do wallStore |
+| Motor 3D | `3d/room/RoomManager.ts`, `Room.ts`, `WallFactory.ts`, `RoomBuilder.ts`, `openingPlacement.ts`, `roomDynamicBounds.ts` | Meshes BoxGeometry; portas/janelas filhas da parede |
+| Fachada Viewer | `3d/viewer-engine/room/ViewerRoomEngine.ts`, `ViewerCore` (sala / piso Room 2.1) | Delegação a RoomManager; chão global 25 m |
+| Fill projecto | `core/autoRoomFill/*`, `core/kitchenFinish/roomContext.ts` | Analisa `ProjectRoomConfig`; gera módulos |
+| Fill 3D | `3d/viewer-engine/layout/LayoutEngine.ts`, `autoLayout/autoLayoutRoomGeometry.ts`, `snapping/autoRoomFillEngine.ts` | Adapters; Kitchen 3.0 via bridge |
+| Paralelos (fora do fluxo canónico) | `v4/room/*`, `components/showroom/*` | Viewers derivados (D-07) — **não** o RoomManager do Workspace |
+
+### 6.4.2 Relação RoomManager / Room 2.0 / Room 2.1 / RoomEngine / Auto-Room-Fill
+
+| Nome no código | O que é de facto |
+|----------------|------------------|
+| **RoomManager** | Motor **visual 3D** de uma sala: cria `Room` em metros, meshes de parede, bounds dinâmicos. Comentário próprio: piso **não** é criado aqui. |
+| **Room 2.0** | Contrato de **projecto visual**: `ProjectRoomConfig` em mm, labels sul/este/norte/oeste, openings/utilities. Comentários: «não alimenta cutlist, CNC ou produção». |
+| **Room 2.1** | Só o **chão global fixo** (25 m) em `ViewerCore.ensureStaticSceneGround` — independente das bounds da sala. |
+| **RoomEngine.ts** | Orquestrador Room 2.0: normaliza, converte para wallStore, chama `roomMeshFromWallStore`. **Não** substitui RoomManager. |
+| **ViewerRoomEngine** | Fachada Z-01.2.7 C sobre RoomManager. Comentário: **não duplicar** RoomEngine. |
+| **wallStore** | Estado UI/runtime (cm). Workspace observa `roomMeshSyncToken` e reconstrói a mesh. |
+| **Auto-Room-Fill** | Lê `project.room` (`analyzeRoomWalls`). Escreve **caixas**, não paredes. Kitchen 3.0 é o canal canónico de projecto (`LayoutEngine.runProjectKitchenLayout`). |
+
+`useViewerRoom` ainda faz **bind duplo** (ViewerCore **e** RoomManager) — D-09 confirmado.
+
+### 6.4.3 Lógica de paredes
+
+**Representação:** cada parede é um `THREE.BoxGeometry(length, height, thickness)` posicionada pelo **centro** da mesh. Não há polilinha, CSG nem união de cantos: os cantos **sobrepor-se** (meia espessura para fora do interior).
+
+| Atributo | Onde vive | Notas |
+|----------|-----------|--------|
+| Origem / fim | Derivados do centro + `rotation` + `length/2` (`computeWallEndpoints` em cm) | Snap de extremos existe mas **não está ligado à UI** (`applySnapping` LEGACY) |
+| Espessura | `thicknessMm` / `thicknessCm` / `wallThicknessM` (módulo WallFactory) | Create usa uma só espessura; `updateWallFromConfig` permite por parede |
+| Altura | Por parede no store; `getRoomDimensionsCm` usa o **máximo**; `applyProjectRoomDimensions` força todas = `heightMm` |
+| Direcção | `rotationDeg` 0 (sul/norte) ou 90 (este/oeste) | Layout conectado **só** estes ângulos |
+| Labels | sul=0, este=1, norte=2, oeste=3 | «Frente» lógica = `mainWallIndex` (default 0 = sul) |
+
+**Fecho de sala:** 4 paredes = fechada; 3 = aberta (sem traseira, `numWalls === 3`). `createMainWalls` omite a parede back.
+
+**Paredes não rectas:** **não suportadas**. `computeCenteredConnectedLayoutCm` gera apenas 0°/90°. `roomAnalysis` assume rectângulo centrado e cantos 85°–95°.
+
+**Múltiplas salas:** **não suportadas**. Um `RoomManager.room`, um `project.room`.
+
+**Alturas / espessuras diferentes:** persistidas por parede, mas o footprint interior (`widthMm`/`depthMm`) é a **média** das paredes opostas (`getRoomDimensionsCm`). Assim, uma parede mais longa não define um polígono irregular — só distorce a média.
+
+**Intersecções / cantos:** Auto-fill usa `detectRoomCorners` (vértices esperados do rectângulo ±5 mm). Não há corte geométrico. `wallSnapping` alinha extremos se `snapEnabled`, mas `toggleSnap`/`applySnapping` não têm botão.
+
+**Duplicação RoomManager vs RoomEngine:**
+
+| Responsabilidade | RoomManager | RoomEngine |
+|------------------|-------------|------------|
+| Meshes 3D | Sim | Não (delega) |
+| Dimensões AABB metros | `Room` | Converte mm↔cm |
+| Layout sul/este/norte/oeste | WallFactory posições | `centeredWallPositionForLabel` (mesma ideia, outra unidade) |
+| Persistência | Não | Sim (`project.room` + wallStore) |
+| Openings | RoomBuilder filhos da mesh | Lista em `ProjectRoomOpening` |
+
+Dois cálculos de posição de parede (WallFactory em metros vs `centeredWallPositionForLabel` em mm) têm de permanecer alinhados; `roomMeshFromWallStore` volta a aplicar posições do wallStore por cima das meshes recém-criadas.
+
+### 6.4.4 Fluxo 2D → 3D
+
+Fluxo canónico actual (UI PainelSala):
+
+```
+createDefaultProjectRoom / updateProjectRoom
+  → ProjectState.room (mm)
+  → applyProjectRoomToWallStore
+  → wallStore.loadRoomConfig (cm)
+  → Workspace (roomMeshSyncToken / fingerprint)
+  → applyRoomMeshFromWallStore
+       createRoomWithDimensions (m) → ViewerRoomEngine → RoomManager.createRoom
+       updateWallFromConfig / addWallFromConfig (posição centrada)
+  → applyRoomOpeningsFromWallStore → addDoorToRoom / addWindowToRoom → RoomBuilder
+  → ViewerCore.setRoomFromManager → piso/tecto Room 2.1
+```
+
+**Restore de snapshot:** `roomSnapshot` (wallStore) **ou** `project.room`. `useProjectPersistence` carrega `roomSnapshot` no wallStore se `restored.room` estiver vazio. `projectsMappers` trata `roomSnapshot` e `state.room` como intercambiáveis no envelope do ficheiro — **tipos diferentes** (cm vs mm).
+
+**Lógica repetida / divergente:**
+
+1. Dimensões a partir de 4 comprimentos: `getRoomDimensionsCm`, `roomConfigToDimensions`, `wallStoreToProjectRoom` (este último usa só `w1` para depth, não a média w1/w3).
+2. Posição de parede: WallFactory vs `centeredWallPositionForLabel` vs layout wallStore.
+3. Defaults: `Room.ts` 4×**2.5**×2.6 m; `ROOM_20_DEFAULTS` 4000×**4000**×2600 mm; PainelSala 400×400×260 cm.
+4. `RoomBuilder.createRoom` / `updateRoom` são **no-op**; quem constrói paredes é o RoomManager.
+5. `ViewerCore.createRoom(RoomConfig)` está `@deprecated` e só extrai dimensões (perde posição por parede).
+6. `ViewerCore.createRoomBox` **não tem consumidores** (método morto).
+
+**Dependência viewer na lógica industrial:** `RoomEngine.syncProjectRoomToViewer` e `roomMeshFromWallStore` chamam `PimoViewerApi` — aceitável na orquestração visual. `core/autoRoomFill` e `kitchenFinish/roomContext` lêem só `ProjectRoomConfig` (mm) — **sem Three.js**. BoxBuilder **não importa** sala.
+
+### 6.4.5 Medidas industriais e pipeline
+
+| Consumidor | Usa geometria da sala? | Como |
+|------------|------------------------|------|
+| **Cutlist / BoxBuilder** | Não | Caixas `WorkspaceBox` / `BoxModule` |
+| **Técnico / PDF / XLSX** | Não (directo) | Peças; NQR via etiquetas da peça |
+| **Etiquetas / NQR** | Não | `buildEtiquetaCodeV5` / peça |
+| **TCN / DRILL / PI** | Não | Cutlist + furos da peça |
+| **Auto-Room-Fill / Kitchen 3.0** | **Sim** | `project.room` → posição/rotação das **caixas novas** |
+| **Rodapé / hemati FULL** | Parcial | `parentWallId` = `room.walls[0].id` se existir |
+| **Envelope do projecto** | Sidecar | `roomSnapshot` gravado em save/export (`captureRoomSnapshot`) — não é input de CNC |
+| **Paredes da sala** | Visual only | Comentário PainelSala / `roomEngineTypes.ts` |
+
+**Campos críticos para a indústria (indirectos):** `widthMm`, `depthMm`, `heightMm`, `walls[].id/label/position/rotationDeg/widthMm`, `openings[]` (folgas de preenchimento). Sem estes, Kitchen 3.0 coloca mal as caixas — e **essas** caixas é que vão a cutlist.
+
+**Não críticos para CNC:** `floorMode`, `ceilingVisible`, `hiddenWalls`, `utilities`, cor da parede, `locked`/`visible`, Room 2.1 ground.
+
+### 6.4.6 Tabela de campos («RoomState»)
+
+Não há `RoomState`. Inventário por estrutura.
+
+**A — `ProjectRoomConfig` (`project.room`) — SSOT de projecto**
+
+| Campo | Estado | Notas |
+|-------|--------|--------|
+| `widthMm` / `depthMm` / `heightMm` | **Activo** | Interior lógico; default 4000×4000×2600 |
+| `wallThicknessMm` | **Activo** | Default 200; WallFactory 0.2 m |
+| `locked` / `visible` | **Activo** | Viewer lock / hide |
+| `floorMode` | **Activo** | `full` \| `room` \| `hybrid` |
+| `ceilingVisible` | **Activo** | |
+| `hiddenWalls` | **Activo** | IDs a ocultar |
+| `walls[]` | **Activo** | |
+| `walls[].id` | **Activo** | `room-wall-{label}` |
+| `walls[].label` | **Activo** | sul/este/norte/oeste/extra |
+| `walls[].widthMm` | **Activo** | Comprimento visual |
+| `walls[].lengthMm` | **Duplicado / compat** | Espelha `widthMm` |
+| `walls[].heightMm` / `thicknessMm` | **Activo** | |
+| `walls[].position` {x,y,z} mm | **Activo** | Centro da mesh |
+| `walls[].rotationDeg` | **Activo** | |
+| `openings[]` | **Activo** | Lista plana (não aninhada na parede, no projecto) |
+| `openings[].xPosMm` | **Activo** | |
+| `openings[].horizontalOffsetMm` | **Duplicado / compat** | Espelha `xPosMm` |
+| `openings[].floorOffsetMm` | **Activo** | |
+| `openings[].verticalOffsetMm` | **Duplicado / compat** | Espelha `floorOffsetMm` |
+| `openings[].kind` | **Activo** | normal/correr |
+| `utilities[]` | **Activo visual** | Tomadas/água/esgoto; não CNC |
+
+**B — `wallStore.Wall` (runtime cm)**
+
+| Campo | Estado | Notas |
+|-------|--------|--------|
+| `lengthCm` / `heightCm` / `thicknessCm` | **Activo** | 1 cm = 10 mm |
+| `position` / `rotation` | **Activo** | cm; layout U centrado |
+| `openings[]` | **Activo** | Aninhadas na parede (ao contrário do projecto) |
+| `color` | **Activo visual** | |
+| `selectedWallId` / `mainWallIndex` | **Activo** | |
+| `isOpen` | UI painel | |
+| `roomMeshSyncToken` | Sync Workspace | |
+| `snapEnabled` / `snapThreshold` | **Legacy** | `toggleSnap` / `applySnapping` sem UI |
+| `createWall` offset 25 cm | Extra walls | Fora do U se >4 |
+
+**C — `RoomSnapshot` (sidecar persistência)**
+
+Espelho de **B** (cm), não de **A** (mm). Compatível com `loadRoomConfig`. **Não** é o mesmo objecto que `project.room`.
+
+**D — `Room` + `WallConfig` (`3d/room`) — viewer metros**
+
+`originX/originZ` = canto (−width/2, −depth/2). `WallConfig` (`3d/room/types.ts`) e `projectTypes.RoomConfig` são **terceiro** formato (mm + position em **metros**). Usado pelo `createRoom` deprecated.
+
+**Compatibilidade `room` ↔ `roomSnapshot` ↔ presets:**
+
+- Save grava **ambos** (estado serializado inclui `room`; envelope inclui `roomSnapshot` do wallStore).
+- Load pode aplicar só o sidecar cm se `project.room` vier vazio.
+- `wallStoreToProjectRoom` devolve `null` se `< 4` paredes → **sala em U de 3 paredes não redonda** para `ProjectRoomConfig`.
+- Presets `cad` / `classic` / `orbitFriendly` / `mouseCentric` são **rato** (Z-02.5), **não** afectam sala.
+
+### 6.4.7 Auto-Room-Fill e presets
+
+```
+PainelSala runKitchenLayout30
+  → LayoutEngine.runProjectKitchenLayout
+  → core/autoRoomFill.runKitchenLayout30OnState
+  → analyzeRoomWalls(project.room)
+  → applyAutoRoomFillPlan → WorkspaceBoxes
+```
+
+Canal 3D: `LayoutEngine.autoRoomFill` → `AutoRoomFillEngine.fillRoom` → `bridge.runProjectRoomFill` (Kitchen 3.0) ou fallback «4 paredes × módulo mais próximo».
+
+`runAutoRoomFill` legado de projecto **mantém-se** (`runProjectAutoRoomFill`) — não substitui Kitchen 3.0.
+
+Presets de rato: irrelevantes para paredes. Presets de sala = labels Kitchen I/L/U/ilha (`LAYOUT_OPTIONS` no PainelSala).
+
+Lógica antiga a não usar como fonte de verdade: `applySnapping` do wallStore; `RoomBuilder.createRoom` no-op; `createRoom(RoomConfig)` deprecated; `createRoomBox`; bind RoomManager directo em `useViewerRoom`.
+
+### 6.4.8 Integração potencial Aedifex (sem integrar)
+
+Nada no repo. Encaixe possível **mantendo** `ProjectRoomConfig` como contrato industrial/visual de projecto:
+
+| Substituir | Manter |
+|------------|--------|
+| Cálculo de posições/intersecções (`roomCoordinates`, WallFactory layout, `computeCenteredConnectedLayoutCm`) | `ProjectRoomConfig` + IDs de parede + openings em mm |
+| Conversão 2D→mesh (`roomMeshFromWallStore`, parte do RoomManager.create/update) | `normalizeProjectRoom` no limite do adapter |
+| Lógica de cantos/não-rectas (hoje inexistente de verdade) | Auto-fill a ler o **mesmo** `ProjectRoomConfig` |
+| Viewer meshes (RoomManager/WallFactory) | Kitchen 3.0, BoxBuilder, cutlist, TCN/DRILL/PI |
+
+**Core industrial (não substituir por Aedifex sem adapter):** `ProjectState.room` campos mm; `autoRoomFill` / Kitchen 3.0; caixas resultantes; envelope `roomSnapshot` (ou migrar com adapter).
+
+**Candidatas a substituição:** geometria 3D de paredes, fecho de polígono, multi-sala, paredes não axis-aligned, CSG de cantos, conversor wallStore↔mm (unificar unidades no adapter).
+
+Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 labels ou extra) e o inverso para round-trip. Sem isso, Kitchen 3.0 e persistência partem.
+
+### 6.4.9 Duplicações, riscos e problemas
+
+**Duplicações (além de D-09):**
+
+| ID local | Par | Efeito |
+|----------|-----|--------|
+| Z31-D1 | `ProjectRoomConfig` mm vs `wallStore` cm vs `Room` m | Drift de 10× / 1000× |
+| Z31-D2 | `widthMm` / `lengthMm`; `xPosMm` / `horizontalOffsetMm`; `floorOffsetMm` / `verticalOffsetMm` | Snapshots antigos; duas verdades |
+| Z31-D3 | Openings no projecto (lista plana) vs wallStore (por parede) | Conversão bidireccional |
+| Z31-D4 | Layout WallFactory vs `centeredWallPositionForLabel` vs wallStore | Posição aplicada 3 vezes |
+| Z31-D5 | Auto-fill `roomAnalysis.WALL_GEOM` vs `autoLayoutRoomGeometry.buildWallDef` | Dois modelos de «corrida» de parede |
+| Z31-D6 | `v4/room` + showroom | Salas paralelas (D-07) |
+
+**Riscos:**
+
+| ID | Risco | Severidade |
+|----|--------|------------|
+| Z31-R1 | Três SSOT (`room` / wallStore / meshes) dessincronizam após edição 3D (gizmo de parede) | Alta UX |
+| Z31-R2 | Sala de 3 paredes não converte para `ProjectRoomConfig` (`wallStoreToProjectRoom` exige 4) | Média Kitchen 3.0 |
+| Z31-R3 | Defaults 2.5 m vs 4.0 m de profundidade | Baixa (UI usa 4 m) |
+| Z31-R4 | Paredes extra / ângulos livres gravados mas o layout U **reimpoe** 0°/90° se faltar position | Média produto |
+| Z31-R5 | `roomSnapshot` cm misturado com `project.room` mm no mapper de ficheiros | Alta persistência se um lado faltar |
+| Z31-R6 | Auto-fill gera caixas industriais a partir de geometria **visual** — erro de sala = erro de cutlist **indirecto** | Alta industrial |
+| Z31-R7 | Tocar RoomManager/WallFactory sem adapter parte viewer e fill | Alta (Z20-R7 análogo) |
+
+**Lista de problemas (código actual, sem mitigação nesta fase):**
+
+1. Não há `RoomState` único nem validador industrial de polígono fechado.
+2. Cantos por sobreposição de caixas, não por união.
+3. Sem multi-sala, sem parede enviesada, sem altura de tecto por zona.
+4. Snap de extremos legado morto na UI; layout automático em U é o que manda.
+5. `createRoom(RoomConfig)` descarta geometria por parede.
+6. `RoomBuilder.createRoom` vazio — nome enganador.
+7. `createRoomBox` morto no ViewerCore.
+8. Comentários «sem impacto industrial» são verdadeiros para **paredes**, falsos para **caixas geradas pelo fill**.
+9. `useViewerRoom` ainda duplica o bind (D-09).
+10. Aedifex inexistente no repo — qualquer integração é trabalho novo + adapter.
+
+### 6.4.10 Opções futuras (texto only — **não executar**)
+
+| Opção | O que faria | Quando faz sentido | Custo / risco |
+|-------|-------------|--------------------|---------------|
+| **A — Corrigir o actual** | Um SSOT (`ProjectRoomConfig` mm); wallStore como vista; uma função de layout; matar aliases; round-trip 3 paredes; eliminar bind duplo | Produto continua rectângulo 3/4 paredes | Médio; reversível; não mexe BoxBuilder |
+| **B — Reescrever núcleo de geometria** | Novo `RoomKernel` polígono fechado, cantos correctos, multi-sala opcional; RoomManager só renderiza | Precisam de L, U irregular, paredes enviesadas | Alto; exige testes de fill + persistência |
+| **C — Aedifex + camada de compatibilidade** | Aedifex gera/edita geometria; adapter ↔ `ProjectRoomConfig`; Kitchen 3.0 e pipeline **inalterados** | Motor externo já cobre polígonos/aberturas melhor que BoxGeometry | Alto de integração; **proibido** sem adapter mm e sem manter IDs de parede |
+
+**Recomendação de leitura (não é execução):** A é pré-requisito de B ou C. Sem unificar mm/cm/m e o SSOT, um motor externo herda o drift.
+
+**Próximo gatilho possível:** Z-03.2 só com pedido explícito (não desta fase).
+
 ## 7. Riscos técnicos e de segurança (`R-`)
 
 | ID | Risco | Evidência | Severidade | Notas |
@@ -1599,6 +1926,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.28 | **Z-02.3 executado:** ícones SVG unificados na UnifiedTopToolbar. Tag `z-02-3-svg-icons`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.29 | **Z-02.4 executado:** painel de qualidade Baixa / Média / Alta; Ultra só no Photo Mode. Tag `z-02-4-quality-panel`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.30 | **Z-02.5 executado:** Orbit/Pan/Zoom unificados no MouseInputMapper. Tag `z-02-5-mouse-unification`. | Khaled (dono do produto) + execução Cursor |
+| 2026-08-18 | 1.31 | **Z-03.1 diagnóstico only:** sala / RoomManager mapeada em §6.4; zero alterações a `src/`. | Khaled (dono do produto) + auditoria Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -1905,6 +2233,16 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Toolbar** | IDs `orbit` / `pan` removidos de `TOOLS_3D_ITEMS` |
 | **Intocado** | BoxBuilder, malha, RoomManager, schema ProjectState, SnapEngine, LayoutEngine, pipeline industrial |
 
+### 13.32 Changelog v1.30 → v1.31
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.1** | Diagnóstico completo da sala / RoomManager em §6.4 |
+| **Código** | Nenhuma alteração a `src/` |
+| **Achado** | Três SSOT (`project.room` mm, wallStore cm, RoomManager m); paredes visuais; fill gera caixas industriais |
+| **Aedifex** | Ausente do repo; só pontos de encaixe documentados |
+| **Z-03 original** | Adapter WO legado — **não** substituído |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -1915,4 +2253,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.30).
+Fim do documento de planeamento (v1.31).
