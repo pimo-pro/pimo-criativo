@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-18T07:21:13.146Z",
+      "author": "pimo-pro",
+      "commitMessage": "Auto deploy",
+      "version": "v6.0818.0821"
+    },
+    {
       "publishedAt": "2026-08-17T11:03:22.129Z",
       "author": "pimo-pro",
       "commitMessage": "TAMPO — integração industrial completa (A–F): chapa 3660×630×30, geometria tipada, ponte cutlist→produção, PDF poligonal, TCN poligonal, XML excluído",

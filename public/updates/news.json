@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-18T08:15:10.000Z",
+  "updatedAt": "2026-08-18T07:21:14.076Z",
   "news": [
     {
       "version": "industrial-nqr-v5-20260818-081510",
@@ -11,14 +11,24 @@
       "icon": "feature"
     },
     {
+      "version": "v6.0818.0821",
+      "title": "Auto deploy",
+      "description": "Auto deploy",
+      "publishedAt": "2026-08-18T07:21:13.925Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "c1f7bdd6"
+    },
+    {
       "version": "v6.0817.1203",
       "title": "Integração industrial completa do TAMPO",
       "description": "Integração industrial completa do TAMPO\n\n• Integração industrial completa do TAMPO\n• Chapa MDB 3660×630×30 (Fase A)\n• Geometria tipada sem Three.js (Fase B)\n• Ponte cutlist→produção com outerPolygonMm + innerContours (Fase C)\n• PDF industrial com polígono e recortes (Fase D)\n• TCN industrial com contorno poligonal + interiores (Fase E)\n• XML excluído por design (fresagem, não furação)\n• Regressão caixaria 19 mm intacta",
-      "publishedAt": "2026-08-17T11:03:22.763Z",
+      "publishedAt": "2026-08-17T12:05:06+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
-      "commit": "72383780"
+      "commit": "3c24c1f"
     },
     {
       "version": "v6.0817.0950",
