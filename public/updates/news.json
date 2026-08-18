@@ -1,6 +1,16 @@
 {
-  "updatedAt": "2026-08-18T08:30:47.680Z",
+  "updatedAt": "2026-08-18T16:43:03.144Z",
   "news": [
+    {
+      "version": "v6.0818.1743",
+      "title": "Z-02.5: unificar Orbit, Pan e Zoom no MouseInputMapper.",
+      "description": "Z-02.5: unificar Orbit, Pan e Zoom no MouseInputMapper.",
+      "publishedAt": "2026-08-18T16:43:02.972Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "5fb619e3"
+    },
     {
       "version": "industrial-nqr-v5-prod-20260818-090336",
       "title": "N-QR v5 unificado em produção",
@@ -14,11 +24,11 @@
       "version": "v6.0818.0930",
       "title": "Regeneração das Work Orders antigas com N-QR v5 unificado",
       "description": "Regeneração das Work Orders antigas com N-QR v5 unificado",
-      "publishedAt": "2026-08-18T08:30:47.517Z",
+      "publishedAt": "2026-08-18T09:32:50+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "325d7701"
+      "commit": "e546d77"
     },
     {
       "version": "industrial-nqr-v5-20260818-081510",

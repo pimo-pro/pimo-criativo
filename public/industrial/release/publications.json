@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-18T16:43:02.345Z",
+      "author": "pimo-pro",
+      "commitMessage": "Z-02.5: unificar Orbit, Pan e Zoom no MouseInputMapper.",
+      "version": "v6.0818.1743"
+    },
+    {
       "publishedAt": "2026-08-18T08:30:46.824Z",
       "author": "pimo-pro",
       "commitMessage": "Publicação completa — versão estável antes da limpeza",
