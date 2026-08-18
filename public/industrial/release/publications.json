@@ -2,6 +2,18 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-18T20:32:26.049Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix: corrigir tipos de emitFerragensTotalVisual (P3.28)",
+      "version": "v6.0818.2132"
+    },
+    {
+      "publishedAt": "2026-08-18T20:29:57.204Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix: reativação da lista dinâmica de Ferragens no Financeiro (P3.28)",
+      "version": "v6.0818.2129"
+    },
+    {
       "publishedAt": "2026-08-18T16:43:02.345Z",
       "author": "pimo-pro",
       "commitMessage": "Z-02.5: unificar Orbit, Pan e Zoom no MouseInputMapper.",
