@@ -138,6 +138,7 @@ import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { ViewerRenderExporter } from "./export/ViewerRenderExporter";
 import { TransformConstraints, type ClampTransformContext } from "./constraints/TransformConstraints";
 import { SnapEngine, type SnapAlignTarget } from "./snapping/SnapEngine";
+import { ensureViewerSnapEngine } from "./engines/SnapEngine";
 import { applyFinishMovementConstraints } from "./constraints/finishCollision";
 import { MeasurementEngine } from "./measurement/MeasurementEngine";
 import { ensureViewerMeasurementEngine } from "./engines/MeasurementEngine";
@@ -978,7 +979,7 @@ export class ViewerCore {
     });
 
     this.constraints = new TransformConstraints();
-    this.snapEngine = new SnapEngine({
+    this.snapEngine = ensureViewerSnapEngine(null, {
       getAlignEngine: () => this.smartAlignSnapEngine,
       isAlignEnabled: () => this.settings.enableSmartAlignSnap,
       buildAlignContext: () => this.buildSmartAlignSnapContextForDrag(),
