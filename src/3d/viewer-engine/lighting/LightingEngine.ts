@@ -44,7 +44,15 @@ export function scaleLightProfile(
   };
 }
 
-type DisplayQualityLevel = "baixa" | "media" | "alta";
+export type DisplayQualityLevel = "baixa" | "media" | "alta";
+
+/**
+ * Baixa é "luz simples, sem efeitos": sem sombra projetada, o maior custo de GPU do
+ * pipeline padrão (shadow map + PCFSoftShadowMap). Média/Alta continuam com sombra.
+ */
+export function shouldCastKeyShadow(level: DisplayQualityLevel): boolean {
+  return level !== "baixa";
+}
 
 export class LightingEngine {
   globalIntensity = 1;

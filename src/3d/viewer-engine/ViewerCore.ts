@@ -11,7 +11,7 @@ import { CameraEngine } from "./camera/CameraEngine";
 import { ensureViewerCameraEngine } from "./engines/CameraEngine";
 import { RendererManager } from "./renderer";
 import { Lights } from "./lighting";
-import { LightingEngine } from "./lighting/LightingEngine";
+import { LightingEngine, shouldCastKeyShadow } from "./lighting/LightingEngine";
 import { ensureViewerLightingEngine } from "./engines/LightingEngine";
 import { ComposerEngine } from "./lighting/ComposerEngine";
 import { ensureViewerComposerEngine } from "./engines/ComposerEngine";
@@ -5327,7 +5327,14 @@ export class ViewerCore {
       const r = this.rendererManager.renderer;
       r.shadowMap.enabled = true;
       if (r.shadowMap.type !== THREE.PCFSoftShadowMap) r.shadowMap.type = THREE.PCFSoftShadowMap;
-      this.lights.keyLight.castShadow = true;
+      // Baixa não projeta sombra (luz simples, sem efeitos) — evita o custo do maior
+      // gargalo de GPU do pipeline padrão quando a qualidade pedida é a mais leve.
+      const displayQualityLevel = this.reflectionsEnabled
+        ? "alta"
+        : this.materialQuality === "standard"
+          ? "baixa"
+          : "media";
+      this.lights.keyLight.castShadow = shouldCastKeyShadow(displayQualityLevel);
     }
     this.lerpLightsToTarget();
     this.updateDimensionsOverlay();
