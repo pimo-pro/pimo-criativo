@@ -1,7 +1,7 @@
 {
   "phase": "after",
   "baselineCommit": "aecf802",
-  "generatedAt": "2026-08-07T13:14:31.151Z",
+  "generatedAt": "2026-08-19T14:16:03.573Z",
   "layoutOptions": "getDefaultCncLayoutOptions()",
   "scenarios": [
     {
@@ -9,7 +9,7 @@
       "description": "Projeto real importado (TEST 1.txt) — mix heterogéneo",
       "pieceCount": 2,
       "mode": "IMPORT",
-      "executionMs": 104.9,
+      "executionMs": 48.3,
       "totalSheets": 1,
       "avgWastePercent": 92.25,
       "totalMicroGapsLt5mm": 0,
@@ -49,25 +49,25 @@
       "description": "Pipeline industrial SPM — caixa completa",
       "pieceCount": 14,
       "mode": "SPM",
-      "executionMs": 130.2,
+      "executionMs": 87.9,
       "totalSheets": 3,
-      "avgWastePercent": 73.45,
+      "avgWastePercent": 74.69,
       "totalMicroGapsLt5mm": 0,
       "totalInternalIslands": 0,
-      "avgWasteScatterIndex": 0.895,
-      "utilizationPercent": 26.55,
+      "avgWasteScatterIndex": 0.755,
+      "utilizationPercent": 25.31,
       "selectedStrategy": "shelf",
       "selectedBinHeuristic": "bestFit",
       "perSheet": [
         {
           "sheetIndex": 1,
-          "usedAreaMm2": 2937896,
-          "wastePercent": 49.31,
+          "usedAreaMm2": 2753796,
+          "wastePercent": 52.49,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.795,
-          "bboxUsedMaxX": 2164,
-          "bboxUsedMaxY": 1628
+          "wasteScatterIndex": 0.37,
+          "bboxUsedMaxX": 2665,
+          "bboxUsedMaxY": 1752
         },
         {
           "sheetIndex": 2,
@@ -81,12 +81,12 @@
         },
         {
           "sheetIndex": 3,
-          "usedAreaMm2": 969508,
-          "wastePercent": 83.27,
+          "usedAreaMm2": 938092,
+          "wastePercent": 83.81,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.915,
-          "bboxUsedMaxX": 1337,
+          "wasteScatterIndex": 0.918,
+          "bboxUsedMaxX": 1295,
           "bboxUsedMaxY": 1031
         }
       ],
@@ -116,38 +116,28 @@
       "description": "Pipeline industrial MPM — duas caixas",
       "pieceCount": 24,
       "mode": "MPM",
-      "executionMs": 32047.8,
-      "totalSheets": 4,
-      "avgWastePercent": 66.21,
+      "executionMs": 32020,
+      "totalSheets": 3,
+      "avgWastePercent": 56.37,
       "totalMicroGapsLt5mm": 0,
       "totalInternalIslands": 0,
-      "avgWasteScatterIndex": 0.831,
-      "utilizationPercent": 33.79,
+      "avgWasteScatterIndex": 0.648,
+      "utilizationPercent": 43.63,
       "selectedStrategy": "guillotine",
       "selectedBinHeuristic": "bestFit",
       "perSheet": [
         {
           "sheetIndex": 1,
-          "usedAreaMm2": 2828946,
-          "wastePercent": 51.19,
+          "usedAreaMm2": 4472880,
+          "wastePercent": 22.83,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.807,
-          "bboxUsedMaxX": 2004,
-          "bboxUsedMaxY": 1698
+          "wasteScatterIndex": 0.292,
+          "bboxUsedMaxX": 2739,
+          "bboxUsedMaxY": 1975
         },
         {
           "sheetIndex": 2,
-          "usedAreaMm2": 1828034,
-          "wastePercent": 68.46,
-          "microGapsLt5mm": 0,
-          "internalIslands": 0,
-          "wasteScatterIndex": 0.923,
-          "bboxUsedMaxX": 1972,
-          "bboxUsedMaxY": 1082
-        },
-        {
-          "sheetIndex": 3,
           "usedAreaMm2": 1417152,
           "wastePercent": 75.55,
           "microGapsLt5mm": 0,
@@ -157,14 +147,14 @@
           "bboxUsedMaxY": 1097
         },
         {
-          "sheetIndex": 4,
-          "usedAreaMm2": 1759496,
-          "wastePercent": 69.64,
+          "sheetIndex": 3,
+          "usedAreaMm2": 1696664,
+          "wastePercent": 70.73,
           "microGapsLt5mm": 0,
           "internalIslands": 0,
-          "wasteScatterIndex": 0.771,
-          "bboxUsedMaxX": 1748,
-          "bboxUsedMaxY": 1536
+          "wasteScatterIndex": 0.828,
+          "bboxUsedMaxX": 1175,
+          "bboxUsedMaxY": 2043
         }
       ],
       "tcnRegression": {

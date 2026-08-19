@@ -46,7 +46,7 @@
       "nome": "Cozinha_Mono19_DIV_01",
       "tipo": "divisorio",
       "largura_mm": 536,
-      "altura_mm": 1762,
+      "altura_mm": 441,
       "espessura_mm": 19,
       "materialId": "mdf_branco"
     },
@@ -54,7 +54,7 @@
       "nome": "Cozinha_Mono19_DIV_02",
       "tipo": "divisorio",
       "largura_mm": 536,
-      "altura_mm": 1762,
+      "altura_mm": 441,
       "espessura_mm": 19,
       "materialId": "mdf_branco"
     },
@@ -172,5 +172,5 @@
     }
   ],
   "fixture": "buildMono19BenchmarkScenario()",
-  "generatedAt": "2026-08-07T13:13:58.517Z"
+  "generatedAt": "2026-08-19T14:15:36.173Z"
 }
