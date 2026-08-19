@@ -1563,6 +1563,7 @@ export class ViewerCore {
     } else {
       this.composerEngine?.setMode("performance");
     }
+    this.syncDisplayQualityVisualPipeline();
   }
 
   setShowcaseMode(active: boolean, turntable = false): void {
@@ -1575,6 +1576,7 @@ export class ViewerCore {
 
   setGlobalLightIntensity(value: number): void {
     this.ensureLightingEngine().applyGlobalIntensity(value, this.ultraPerformanceMode);
+    this.syncDisplayQualityVisualPipeline();
   }
 
   getGlobalLightIntensity(): number {
@@ -1594,6 +1596,7 @@ export class ViewerCore {
    */
   updateShadowIntensity(value: number): void {
     this.ensureLightingEngine().applyShadowIntensity(value);
+    this.syncDisplayQualityVisualPipeline();
     this.requestRender();
   }
 
@@ -2867,6 +2870,7 @@ export class ViewerCore {
     this.sceneManager.setMaterialQuality(this.materialQuality);
     this.reapplyDisplayMaterials();
     this.setMaterialMode(resolveMaterialModeForQuality(this.materialQuality));
+    this.syncDisplayQualityVisualPipeline();
   }
 
   getMaterialQuality(): ViewerMaterialQuality {
@@ -2909,6 +2913,7 @@ export class ViewerCore {
     if (this.reflectionsEnabled) {
       this.updateReflectionProbe(true);
     }
+    this.syncDisplayQualityVisualPipeline();
   }
 
   getReflectionsEnabled(): boolean {
@@ -2920,6 +2925,35 @@ export class ViewerCore {
     this.rendererManager.renderer.toneMappingExposure = this.photoModeEnabled
       ? Math.max(this.baseToneMappingExposure, 1.2)
       : this.baseToneMappingExposure;
+    if (!this.photoModeEnabled) this.syncDisplayQualityVisualPipeline();
+  }
+
+  private resolveDisplayQualityLevel(): "baixa" | "media" | "alta" {
+    if (this.reflectionsEnabled) return "alta";
+    if (this.materialQuality === "standard") return "baixa";
+    return "media";
+  }
+
+  /**
+   * Sincroniza apenas a pipeline de qualidade do viewer para Baixa/Média/Alta.
+   * - Não mexe em Ultra performance nem em Photo Mode (mantém “correcto”).
+   */
+  private syncDisplayQualityVisualPipeline(): void {
+    if (this.photoModeEnabled || this.ultraPerformanceMode) return;
+
+    const level = this.resolveDisplayQualityLevel();
+
+    const exposureFactor = level === "baixa" ? 0.96 : level === "media" ? 1.0 : 0.92;
+    this.rendererManager.renderer.toneMappingExposure = this.baseToneMappingExposure * exposureFactor;
+
+    this.ensureLightingEngine().applyShadowQualityProfile(level);
+
+    const composer = this.ensureComposerEngine();
+    composer.applyDisplayQualityBloomProfiles(level);
+
+    const currentMode = this.viewerState.getCurrentMode();
+    if (currentMode === "showcase") composer.ensureShowcase();
+    else composer.ensureMain();
   }
 
   getPhotoModeEnabled(): boolean {

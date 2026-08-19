@@ -58,20 +58,28 @@ export function buildDisplayQualitySettingsPatch(level: DisplayQualityLevel): Di
         ...LIGHTS_RESET,
         materialQuality: "standard",
         enableReflections: false,
+        // Menos energia global para evitar “imagem fraca”/cinzenta
+        // e remover bloom perceptível no pipeline (via Composer no próximo passo).
+        globalLightIntensity: 0.92,
+        shadowIntensity: 0.72,
       };
     case "media":
       return {
         ...LIGHTS_RESET,
         materialQuality: "premium",
         enableReflections: false,
+        // Equilíbrio: luz neutra + sombras presentes mas suaves.
+        globalLightIntensity: 1.0,
+        shadowIntensity: 0.82,
       };
     case "alta":
       return {
         ...LIGHTS_RESET,
         materialQuality: "premium",
         enableReflections: true,
-        globalLightIntensity: 1.18,
-        shadowIntensity: 1,
+        // Reduz overexposure face a reflexos + bloom; compensado por tone mapping e bloom no Composer.
+        globalLightIntensity: 1.06,
+        shadowIntensity: 0.9,
         glossIntensity: 1,
       };
   }

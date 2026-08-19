@@ -44,6 +44,8 @@ export function scaleLightProfile(
   };
 }
 
+type DisplayQualityLevel = "baixa" | "media" | "alta";
+
 export class LightingEngine {
   globalIntensity = 1;
   shadowIntensity = 1;
@@ -84,6 +86,22 @@ export class LightingEngine {
     this.shadowIntensity = clamped;
     this.lights.keyLight.shadow.intensity = clamped;
     return clamped;
+  }
+
+  applyShadowQualityProfile(level: DisplayQualityLevel): void {
+    // “Baixa” pede sombras suaves; “Alta” pede mais contraste/definição.
+    // `shadow.radius` em Three.js aumenta a “blur” do shadow map.
+    switch (level) {
+      case "baixa":
+        this.lights.keyLight.shadow.radius = 8.0;
+        break;
+      case "media":
+        this.lights.keyLight.shadow.radius = 6.0;
+        break;
+      case "alta":
+        this.lights.keyLight.shadow.radius = 4.5;
+        break;
+    }
   }
 
   beginUltraLights(isAggressive: boolean): LightIntensityProfile {

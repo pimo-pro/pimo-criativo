@@ -10,9 +10,11 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
 import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
-import { LIVE_MAIN_BLOOM, LIVE_SHOWCASE_BLOOM } from "../export/renderExportQuality";
+import { LIVE_MAIN_BLOOM, LIVE_SHOWCASE_BLOOM, type BloomCapturePreset } from "../export/renderExportQuality";
 
 export type ComposerEngineMode = "performance" | "showcase" | "ultra";
+
+type DisplayQualityLevel = "baixa" | "media" | "alta";
 
 export type ComposerEngineDeps = {
   getRenderer: () => THREE.WebGLRenderer;
@@ -44,6 +46,8 @@ export class ComposerEngine {
   main: EffectComposer | null = null;
   mainBloom: UnrealBloomPass | null = null;
   mainFxaa: ShaderPass | null = null;
+  private showcaseBloomProfile: BloomCapturePreset = LIVE_SHOWCASE_BLOOM;
+  private mainBloomProfile: BloomCapturePreset = LIVE_MAIN_BLOOM;
   private readonly deps: ComposerEngineDeps;
 
   constructor(deps: ComposerEngineDeps) {
@@ -52,6 +56,41 @@ export class ComposerEngine {
 
   static ensure(current: ComposerEngine | null, deps: ComposerEngineDeps): ComposerEngine {
     return current ?? new ComposerEngine(deps);
+  }
+
+  applyDisplayQualityBloomProfiles(level: DisplayQualityLevel): void {
+    // “Baixa” deve ser limpa (sem bloom perceptível).
+    // “Média/Alta” seguem com bloom, mas com limiar/força ajustados para não “lavar” o MDF.
+    const MAIN_LOW: BloomCapturePreset = { strength: 0, radius: LIVE_MAIN_BLOOM.radius, threshold: 1 };
+    const SHOWCASE_MEDIA: BloomCapturePreset = { strength: 0.075, radius: 0.28, threshold: 0.94 };
+    const SHOWCASE_HIGH: BloomCapturePreset = { strength: 0.09, radius: 0.29, threshold: 0.965 };
+
+    switch (level) {
+      case "baixa":
+        this.mainBloomProfile = MAIN_LOW;
+        this.showcaseBloomProfile = { ...LIVE_SHOWCASE_BLOOM, strength: 0, threshold: 1 };
+        break;
+      case "media":
+        this.mainBloomProfile = LIVE_MAIN_BLOOM;
+        this.showcaseBloomProfile = SHOWCASE_MEDIA;
+        break;
+      case "alta":
+        this.mainBloomProfile = LIVE_MAIN_BLOOM;
+        this.showcaseBloomProfile = SHOWCASE_HIGH;
+        break;
+    }
+
+    // Se os passes já existirem, aplica imediatamente sem recriar pipelines.
+    if (this.mainBloom) {
+      this.mainBloom.strength = this.mainBloomProfile.strength;
+      this.mainBloom.radius = this.mainBloomProfile.radius;
+      this.mainBloom.threshold = this.mainBloomProfile.threshold;
+    }
+    if (this.bloom) {
+      this.bloom.strength = this.showcaseBloomProfile.strength;
+      this.bloom.radius = this.showcaseBloomProfile.radius;
+      this.bloom.threshold = this.showcaseBloomProfile.threshold;
+    }
   }
 
   setMode(mode: ComposerEngineMode): void {
@@ -79,9 +118,9 @@ export class ComposerEngine {
     this.showcase.addPass(new RenderPass(scene, camera));
     this.bloom = new UnrealBloomPass(
       new Vector2(w, h),
-      LIVE_SHOWCASE_BLOOM.strength,
-      LIVE_SHOWCASE_BLOOM.radius,
-      LIVE_SHOWCASE_BLOOM.threshold
+      this.showcaseBloomProfile.strength,
+      this.showcaseBloomProfile.radius,
+      this.showcaseBloomProfile.threshold
     );
     this.showcase.addPass(this.bloom);
     this.bokeh = new BokehPass(scene, camera, {
@@ -110,9 +149,9 @@ export class ComposerEngine {
     this.main.addPass(new RenderPass(scene, camera));
     this.mainBloom = new UnrealBloomPass(
       new Vector2(w, h),
-      LIVE_MAIN_BLOOM.strength,
-      LIVE_MAIN_BLOOM.radius,
-      LIVE_MAIN_BLOOM.threshold
+      this.mainBloomProfile.strength,
+      this.mainBloomProfile.radius,
+      this.mainBloomProfile.threshold
     );
     this.main.addPass(this.mainBloom);
     this.mainFxaa = new ShaderPass(FXAAShader);
