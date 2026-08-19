@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { V4RoomFloor } from "./V4RoomFloor";
-import { V4RoomWall } from "./V4RoomWall";
-import type { V4RoomConfig } from "./V4RoomConfig";
+import { V4SceneRoomFloor } from "./V4SceneRoomFloor";
+import { V4SceneRoomWall } from "./V4SceneRoomWall";
+import type { V4RoomConfig } from "../state/V4RoomConfig";
 
-interface V4RoomProps {
+interface V4SceneRoomProps {
   config: V4RoomConfig;
 }
 
@@ -12,15 +12,8 @@ interface V4RoomProps {
  * Sala com 4 paredes + teto + chão. Paredes ocultam-se dinamicamente conforme
  * a posição da câmera: se a câmera está do lado de fora de uma parede,
  * essa parede fica opacity=0 para não bloquear a vista do interior.
- *
- * Coordenadas (metros):
- *   centro do chão = (0, 0, 0)
- *   parede traseira = Z negativo
- *   parede frontal  = Z positivo
- *   parede esquerda = X negativo
- *   parede direita  = X positivo
  */
-export function V4Room({ config }: V4RoomProps) {
+export function V4SceneRoom({ config }: V4SceneRoomProps) {
   const w = config.width  / 1000;
   const d = config.depth  / 1000;
   const h = config.height / 1000;
@@ -51,10 +44,10 @@ export function V4Room({ config }: V4RoomProps) {
   return (
     <group>
       {/* Chão */}
-      <V4RoomFloor config={config} />
+      <V4SceneRoomFloor config={config} />
 
       {/* Parede traseira — Z negativo */}
-      <V4RoomWall
+      <V4SceneRoomWall
         position={[0, halfH, -halfD]}
         rotation={[0, 0, 0]}
         width={w}
@@ -64,7 +57,7 @@ export function V4Room({ config }: V4RoomProps) {
       />
 
       {/* Parede frontal — Z positivo */}
-      <V4RoomWall
+      <V4SceneRoomWall
         position={[0, halfH, halfD]}
         rotation={[0, Math.PI, 0]}
         width={w}
@@ -74,7 +67,7 @@ export function V4Room({ config }: V4RoomProps) {
       />
 
       {/* Parede lateral esquerda — X negativo */}
-      <V4RoomWall
+      <V4SceneRoomWall
         position={[-halfW, halfH, 0]}
         rotation={[0, Math.PI / 2, 0]}
         width={d}
@@ -84,7 +77,7 @@ export function V4Room({ config }: V4RoomProps) {
       />
 
       {/* Parede lateral direita — X positivo */}
-      <V4RoomWall
+      <V4SceneRoomWall
         position={[halfW, halfH, 0]}
         rotation={[0, -Math.PI / 2, 0]}
         width={d}
@@ -94,7 +87,7 @@ export function V4Room({ config }: V4RoomProps) {
       />
 
       {/* Teto — Y = height */}
-      <V4RoomWall
+      <V4SceneRoomWall
         position={[0, h, 0]}
         rotation={[Math.PI / 2, 0, 0]}
         width={w}

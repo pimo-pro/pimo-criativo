@@ -9,9 +9,9 @@ import { V4BoxObject } from "./V4BoxObject";
 import { V4DimensionLabel } from "./V4DimensionLabel";
 import { V4ViewerToolbar } from "./V4ViewerToolbar";
 import { useV4ViewerState } from "./useV4ViewerState";
-import { V4Room } from "../room/V4Room";
+import { V4SceneRoom } from "./V4SceneRoom";
 import V4RoomCamera from "../camera/V4RoomCamera";
-import type { V4RoomConfig } from "../room/V4RoomConfig";
+import type { V4RoomConfig } from "../state/V4RoomConfig";
 import type { SceneItem } from "../../components/v4/V4Viewer";
 
 interface V4ViewerCanvasProps {
@@ -101,7 +101,7 @@ export function V4ViewerCanvas({
           <V4Lights />
 
           {/* Sala (paredes + chão) */}
-          <V4Room config={roomConfig} />
+          <V4SceneRoom config={roomConfig} />
 
           {/* Scene boxes */}
           {sceneItems.map((item) => (

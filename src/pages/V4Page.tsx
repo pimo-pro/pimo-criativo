@@ -7,7 +7,7 @@ import V4CatalogPanel from "../components/v4/V4CatalogPanel";
 import V4ItemPreview from "../components/v4/V4ItemPreview";
 import type { CatalogItem } from "../catalog/catalogTypes";
 import useV4Room from "../v4/state/useV4Room";
-import V4RoomSettings from "../v4/room/V4RoomSettings";
+import V4RoomSettingsPanel from "../components/v4/V4RoomSettingsPanel";
 
 type SectionId = "moveis" | "projeto" | "materiais" | "fabricacao" | "rastreio" | "sala" | "definicoes";
 
@@ -101,7 +101,7 @@ export default function V4Page() {
               previewItemId={previewItem?.id}
             />
           ) : activeSection === "sala" ? (
-            <V4RoomSettings config={roomConfig} onUpdate={updateRoomConfig} />
+            <V4RoomSettingsPanel config={roomConfig} onUpdate={updateRoomConfig} />
           ) : (
             <div style={{ padding: "12px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
               <V4Icon name={active.icon} size={28} color="var(--v4-text-subtle)" />

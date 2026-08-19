@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { PerspectiveCamera, OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import type { V4RoomConfig } from "../room/V4RoomConfig";
+import type { V4RoomConfig } from "../state/V4RoomConfig";
 
 interface V4RoomCameraProps {
   config: V4RoomConfig;

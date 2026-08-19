@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { V4RoomConfig } from "./V4RoomConfig";
+import type { V4RoomConfig } from "../../v4/state/V4RoomConfig";
 import { V4RoomShapeGrid } from "./V4RoomShapeGrid";
 import { V4RoomWallInputs } from "./V4RoomWallInputs";
-import { getShapeById, defaultWallValues } from "./V4RoomShapes";
+import { getShapeById, defaultWallValues } from "../../v4/state/V4RoomShapes";
 
 interface V4RoomSettingsProps {
   config: V4RoomConfig;
@@ -22,7 +22,7 @@ const LABEL_STYLE: React.CSSProperties = {
   letterSpacing: "0.06em",
 };
 
-export default function V4RoomSettings({ config, onUpdate }: V4RoomSettingsProps) {
+export default function V4RoomSettingsPanel({ config, onUpdate }: V4RoomSettingsProps) {
   const [selectedShapeId, setSelectedShapeId] = useState("rectangle");
   const [wallValues, setWallValues]            = useState<Record<string, number>>(
     () => defaultWallValues(getShapeById("rectangle"))

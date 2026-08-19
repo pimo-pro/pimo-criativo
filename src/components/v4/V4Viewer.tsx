@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { CatalogItem } from "../../catalog/catalogTypes";
 import { V4ViewerCanvas } from "../../v4/viewer-engine/V4ViewerCanvas";
-import type { V4RoomConfig } from "../../v4/room/V4RoomConfig";
+import type { V4RoomConfig } from "../../v4/state/V4RoomConfig";
 
 export interface SceneItem {
   id: string;

@@ -1,6 +1,7 @@
 /**
  * Hook especializado para sala e paredes no viewer.
  * Obtém a API de sala a partir do runtime canónico (`getActiveViewerCore`).
+ * Z-03.4: delegação única via ViewerCore (D-09 resolvido).
  */
 import { useMemo } from "react";
 import { isViewerCoreReady } from "../../core/viewer/viewerReadiness";
@@ -52,20 +53,13 @@ export function useViewerRoom() {
   return useMemo(() => {
     if (!isViewerCoreReady(viewerCore) || !viewerCore) return ROOM_NOOP_API;
 
-    const room = viewerCore.roomManager;
-    const bindMaybe = (
-      fn: ((..._args: unknown[]) => unknown) | undefined,
-      target: unknown
-    ) => (fn ? fn.bind(target) : undefined);
-    const bindCore = (fn: ((..._args: unknown[]) => unknown) | undefined) =>
-      bindMaybe(fn, viewerCore);
-    const bindRoom = (fn: ((..._args: unknown[]) => unknown) | undefined) =>
-      room ? bindMaybe(fn, room) : undefined;
+    const bindCore = <T extends (...args: never[]) => unknown>(fn: T | undefined) =>
+      fn ? fn.bind(viewerCore) : undefined;
 
     return {
-      createRoom: bindCore(viewerCore.createRoom) ?? bindRoom(room?.createRoom) ?? NOOP,
+      createRoom: bindCore(viewerCore.createRoom) ?? NOOP,
       createRoomWithDimensions: bindCore(viewerCore.createRoomWithDimensions) ?? NOOP,
-      removeRoom: bindCore(viewerCore.removeRoom) ?? bindRoom(room?.removeRoom) ?? NOOP,
+      removeRoom: bindCore(viewerCore.removeRoom) ?? NOOP,
       setRoomDimensions: bindCore(viewerCore.setRoomDimensions) ?? NOOP,
       addExtraWall: bindCore(viewerCore.addExtraWall) ?? NOOP,
       setRoomLocked: bindCore(viewerCore.setRoomLocked) ?? NOOP,
@@ -73,9 +67,8 @@ export function useViewerRoom() {
       selectRoomElementById: bindCore(viewerCore.selectRoomElementById) ?? NOOP,
       selectRoomUtilityById: bindCore(viewerCore.selectRoomUtilityById) ?? NOOP,
       setPlacementMode: bindCore(viewerCore.setPlacementMode) ?? NOOP,
-      addDoorToRoom: bindCore(viewerCore.addDoorToRoom) ?? bindRoom(room?.addDoorToRoom) ?? NOOP_RETURN_EMPTY,
-      addWindowToRoom:
-        bindCore(viewerCore.addWindowToRoom) ?? bindRoom(room?.addWindowToRoom) ?? NOOP_RETURN_EMPTY,
+      addDoorToRoom: bindCore(viewerCore.addDoorToRoom) ?? NOOP_RETURN_EMPTY,
+      addWindowToRoom: bindCore(viewerCore.addWindowToRoom) ?? NOOP_RETURN_EMPTY,
       setOnRoomElementPlaced: bindCore(viewerCore.setOnRoomElementPlaced) ?? NOOP,
       setOnRoomElementSelected: bindCore(viewerCore.setOnRoomElementSelected) ?? NOOP,
       setOnRoomUtilitySelected: bindCore(viewerCore.setOnRoomUtilitySelected) ?? NOOP,
@@ -89,13 +82,12 @@ export function useViewerRoom() {
       setRoomUtilities: bindCore(viewerCore.setRoomUtilities) ?? NOOP,
       setRoomBounds: bindCore(viewerCore.setRoomBounds) ?? NOOP,
       clearRoomBounds: bindCore(viewerCore.clearRoomBounds) ?? NOOP,
-      getRoomExists: bindCore(viewerCore.getRoomExists) ?? bindRoom(room?.getRoomExists) ?? NOOP_RETURN_FALSE,
+      getRoomExists: bindCore(viewerCore.getRoomExists) ?? NOOP_RETURN_FALSE,
       getRoomLocked: bindCore(viewerCore.getRoomLocked) ?? NOOP_RETURN_FALSE,
-      getRoomDimensions:
-        bindCore(viewerCore.getRoomDimensions) ?? bindRoom(room?.getRoomDimensions) ?? NOOP_RETURN_NULL,
-      getRoomVisible: bindCore(viewerCore.getRoomVisible) ?? bindRoom(room?.getRoomVisible) ?? NOOP_RETURN_FALSE,
-      hideRoom: bindCore(viewerCore.hideRoom) ?? bindRoom(room?.hideRoom) ?? NOOP,
-      showRoom: bindCore(viewerCore.showRoom) ?? bindRoom(room?.showRoom) ?? NOOP,
+      getRoomDimensions: bindCore(viewerCore.getRoomDimensions) ?? NOOP_RETURN_NULL,
+      getRoomVisible: bindCore(viewerCore.getRoomVisible) ?? NOOP_RETURN_FALSE,
+      hideRoom: bindCore(viewerCore.hideRoom) ?? NOOP,
+      showRoom: bindCore(viewerCore.showRoom) ?? NOOP,
     };
   }, [viewerCore]);
 }

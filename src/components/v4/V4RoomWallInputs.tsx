@@ -1,4 +1,4 @@
-import type { V4RoomShape } from "./V4RoomShapes";
+import type { V4RoomShape } from "../../v4/state/V4RoomShapes";
 
 // Colour dot per wall label
 const WALL_COLORS: Record<string, string> = {

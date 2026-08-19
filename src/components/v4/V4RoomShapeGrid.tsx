@@ -1,4 +1,4 @@
-import { V4_ROOM_SHAPES } from "./V4RoomShapes";
+import { V4_ROOM_SHAPES } from "../../v4/state/V4RoomShapes";
 
 interface V4RoomShapeGridProps {
   selectedShapeId: string;

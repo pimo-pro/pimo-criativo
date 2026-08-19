@@ -5,7 +5,6 @@
  */
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
-import { computeWallEndpoints, distance, type Point } from "../utils/wallSnapping";
 import {
   computeCenteredConnectedLayoutCm,
   isLegacyCornerWallStoreLayout,
@@ -44,8 +43,6 @@ export interface WallStoreState {
   selectedWallId: string | null;
   /** Índice da parede principal (0..3). Parede onde se constrói a cozinha = "frente" lógica. Default 0. */
   mainWallIndex: number;
-  snapEnabled: boolean;
-  snapThreshold: number;
   createWall: () => void;
   removeWall: (_id: string) => void;
   updateWall: (_id: string, _patch: Partial<Wall>, _options?: { skipSnap?: boolean }) => void;
@@ -53,27 +50,12 @@ export interface WallStoreState {
   setOpen: (_isOpen: boolean) => void;
   /** Define qual parede é a parede frontal (principal) do projeto. */
   setMainWallIndex: (_index: 0 | 1 | 2 | 3) => void;
-  /**
-   * LEGACY / não ligado à UI (2026-03): inverte `snapEnabled`, mas nenhum painel chama `toggleSnap`.
-   * O layout da sala continua a ser imposto por `applyLayoutIfMissing` / `computeConnectedLayout` em `updateWall`.
-   */
-  toggleSnap: () => void;
-  /**
-   * LEGACY / não ligado à UI: alinha extremos da parede `wallId` ao vértice mais próximo de outra parede (≤ `snapThreshold` cm),
-   * só quando `snapEnabled` é true. Não é invocado em lado nenhum; não substitui o layout em U automático.
-   */
-  applySnapping: (_wallId: string) => void;
   /** Recria a sala com 3 paredes padrão (formato em "U"). */
   resetRoom: () => void;
   /** Limpa a sala (sem paredes). */
   clearRoom: () => void;
   /** Define numWalls (3 ou 4); ajusta lista de paredes se necessário. */
   setNumWalls: (_n: 3 | 4) => void;
-  /**
-   * Substitui paredes por um retângulo fechado/aberto com dimensões explícitas (metros → layout em U).
-   * Incrementa `roomMeshSyncToken` para o Workspace recriar a mesh 3D.
-   */
-  setRoomLayoutFromMeters: (_widthM: number, _depthM: number, _heightM: number, _numWalls: 3 | 4) => void;
   /** Atualiza comprimentos/altura das paredes existentes (mantém ids e aberturas). */
   updateRoomDimensionsMeters: (_widthM: number, _depthM: number, _heightM: number) => void;
   /** Restaura estado a partir de snapshot (ex.: ao carregar projeto). */
@@ -122,16 +104,12 @@ function applyLayoutIfMissing(walls: Wall[]): Wall[] {
   });
 }
 
-let isSnapping = false;
-
 export const wallStore = createStore<WallStoreState>((set, get) => ({
   isOpen: true,
   roomMeshSyncToken: 0,
   walls: [],
   selectedWallId: null,
   mainWallIndex: 0,
-  snapEnabled: true,
-  snapThreshold: 10,
 
   setMainWallIndex: (index) => {
     const { walls } = get();
@@ -190,57 +168,6 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
     set({ isOpen });
   },
 
-  /** @see WallStoreState.toggleSnap — LEGACY, sem botão na UI. */
-  toggleSnap: () => {
-    set((state) => ({ snapEnabled: !state.snapEnabled }));
-  },
-
-  /** @see WallStoreState.applySnapping — LEGACY, sem gatilho na UI. */
-  applySnapping: (wallId: string) => {
-    const state = get();
-    const { walls, snapEnabled, snapThreshold } = state;
-    if (!snapEnabled || isSnapping) return;
-
-    const wall = walls.find((item) => item.id === wallId);
-    if (!wall) return;
-
-    const current = computeWallEndpoints(wall);
-    let bestSnap: { from: Point; to: Point } | null = null;
-    let bestDistance = Infinity;
-
-    walls.forEach((other) => {
-      if (other.id === wallId) return;
-      const target = computeWallEndpoints(other);
-      const pairs: { from: Point; to: Point }[] = [
-        { from: current.start, to: target.start },
-        { from: current.start, to: target.end },
-        { from: current.end, to: target.start },
-        { from: current.end, to: target.end },
-      ];
-      pairs.forEach((pair) => {
-        const dist = distance(pair.from, pair.to);
-        if (dist < bestDistance && dist <= snapThreshold) {
-          bestDistance = dist;
-          bestSnap = pair;
-        }
-      });
-    });
-
-    const snap = bestSnap as { from: Point; to: Point } | null;
-    if (snap) {
-      const dx = snap.to.x - snap.from.x;
-      const dz = snap.to.z - snap.from.z;
-      logWallStore("snap-applied", { wallId, dx, dz, distance: bestDistance });
-      isSnapping = true;
-      get().updateWall(
-        wallId,
-        { position: { x: (wall.position?.x ?? 0) + dx, z: (wall.position?.z ?? 0) + dz } },
-        { skipSnap: true }
-      );
-      isSnapping = false;
-    }
-  },
-
   resetRoom: () => {
     const ts = Date.now();
     const w1: Wall = { id: `wall-${ts}-1`, ...DEFAULT_WALL, openings: [] };
@@ -275,29 +202,6 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
       const newWall: Wall = { id: `wall-${Date.now()}-4`, ...DEFAULT_WALL, openings: [] };
       set({ walls: applyLayoutIfMissing([...walls, newWall]) });
     }
-  },
-
-  setRoomLayoutFromMeters: (widthM, depthM, heightM, numWalls) => {
-    const widthCm = Math.max(50, widthM * 100);
-    const depthCm = Math.max(50, depthM * 100);
-    const heightCm = Math.max(50, heightM * 100);
-    const ts = Date.now();
-    const mkWall = (lengthCm: number): Wall => ({
-      id: `wall-${ts}-${Math.random().toString(36).slice(2, 9)}`,
-      ...DEFAULT_WALL,
-      lengthCm,
-      heightCm,
-      openings: [],
-    });
-    const specs = numWalls >= 4 ? [widthCm, depthCm, widthCm, depthCm] : [widthCm, depthCm, widthCm];
-    const raw = specs.map((L) => mkWall(L));
-    const withLayout = applyLayoutIfMissing(raw);
-    set({
-      walls: withLayout,
-      selectedWallId: withLayout[0]?.id ?? null,
-      mainWallIndex: 0,
-      roomMeshSyncToken: get().roomMeshSyncToken + 1,
-    });
   },
 
   updateRoomDimensionsMeters: (widthM, depthM, heightM) => {

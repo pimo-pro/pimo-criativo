@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { DEFAULT_ROOM_CONFIG, type V4RoomConfig } from "../room/V4RoomConfig";
+import { DEFAULT_ROOM_CONFIG, type V4RoomConfig } from "./V4RoomConfig";
 
 interface UseV4RoomReturn {
   roomConfig: V4RoomConfig;

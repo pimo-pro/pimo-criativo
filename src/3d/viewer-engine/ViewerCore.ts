@@ -3605,103 +3605,6 @@ export class ViewerCore {
     this.ensureStaticSceneGround();
   }
 
-  createRoomBox(bounds: {
-    minX: number;
-    maxX: number;
-    minZ: number;
-    maxZ: number;
-    minY: number;
-    maxY: number;
-    centerX: number;
-    centerZ: number;
-  }): void {
-    this.clearRoomBox();
-    const { minX, maxX, minZ, maxZ, minY, maxY, centerX, centerZ } = bounds;
-    const width = Math.max(0.01, maxX - minX);
-    const depth = Math.max(0.01, maxZ - minZ);
-    const height = Math.max(0.01, maxY - minY);
-    const t = ViewerCore.ROOM_WALL_THICKNESS_M;
-    const sceneConfig = this.materialPipeline.getSceneMaterialConfig();
-    const roomBoxConfig = sceneConfig.roomBox;
-    const wallMat = new THREE.MeshStandardMaterial({
-      color: roomBoxConfig.color,
-      roughness: roomBoxConfig.roughness,
-      metalness: roomBoxConfig.metalness,
-      transparent: roomBoxConfig.transparent,
-      opacity: roomBoxConfig.opacity,
-    });
-
-    const group = new THREE.Group();
-    group.name = "roomBox";
-
-    const front = new THREE.Mesh(new THREE.BoxGeometry(width, height, t), wallMat.clone());
-    front.position.set(centerX, minY + height / 2, minZ - t / 2);
-    front.userData.wallId = 0;
-    front.userData.wallNormal = new THREE.Vector3(0, 0, -1);
-    front.userData.isRoomWall = true;
-    front.userData.wallLengthMm = width * 1000;
-    front.userData.wallHeightMm = height * 1000;
-    front.userData.wallThicknessM = t;
-    group.add(front);
-
-    const right = new THREE.Mesh(new THREE.BoxGeometry(depth, height, t), wallMat.clone());
-    right.rotation.y = Math.PI / 2;
-    right.position.set(maxX + t / 2, minY + height / 2, centerZ);
-    right.userData.wallId = 1;
-    right.userData.wallNormal = new THREE.Vector3(-1, 0, 0);
-    right.userData.isRoomWall = true;
-    right.userData.wallLengthMm = depth * 1000;
-    right.userData.wallHeightMm = height * 1000;
-    right.userData.wallThicknessM = t;
-    group.add(right);
-
-    const back = new THREE.Mesh(new THREE.BoxGeometry(width, height, t), wallMat.clone());
-    back.position.set(centerX, minY + height / 2, maxZ + t / 2);
-    back.userData.wallId = 2;
-    back.userData.wallNormal = new THREE.Vector3(0, 0, 1);
-    back.userData.isRoomWall = true;
-    back.userData.wallLengthMm = width * 1000;
-    back.userData.wallHeightMm = height * 1000;
-    back.userData.wallThicknessM = t;
-    group.add(back);
-
-    const left = new THREE.Mesh(new THREE.BoxGeometry(depth, height, t), wallMat.clone());
-    left.rotation.y = Math.PI / 2;
-    left.position.set(minX - t / 2, minY + height / 2, centerZ);
-    left.userData.wallId = 3;
-    left.userData.wallNormal = new THREE.Vector3(1, 0, 0);
-    left.userData.isRoomWall = true;
-    left.userData.wallLengthMm = depth * 1000;
-    left.userData.wallHeightMm = height * 1000;
-    left.userData.wallThicknessM = t;
-    group.add(left);
-
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), wallMat.clone());
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(centerX, minY, centerZ);
-    floor.userData.isRoomFloor = true;
-    group.add(floor);
-
-    const ceiling = new THREE.Mesh(new THREE.BoxGeometry(width, t, depth), wallMat.clone());
-    ceiling.position.set(centerX, maxY + t / 2, centerZ);
-    ceiling.userData.isRoomCeiling = true;
-    group.add(ceiling);
-
-    this.sceneManager.root.add(group);
-    this.roomBoxGroup = group;
-    this.roomBoxWalls = [
-      { id: 0, normal: new THREE.Vector3(0, 0, -1), mesh: front },
-      { id: 1, normal: new THREE.Vector3(-1, 0, 0), mesh: right },
-      { id: 2, normal: new THREE.Vector3(0, 0, 1), mesh: back },
-      { id: 3, normal: new THREE.Vector3(1, 0, 0), mesh: left },
-    ];
-    this.roomBoxFloor = floor;
-    this.roomBoxCeiling = ceiling;
-    this.setRoomCeilingVisible(this.roomCeilingVisible);
-    this.applyBackgroundMode();
-    this.reapplyDisplayMaterials();
-  }
-
   private getRoomFloorShape(expandM = 0): THREE.Shape | null {
     if (!this.roomBounds) return null;
     const { minX, maxX, minZ, maxZ } = this.roomBounds;
@@ -5972,8 +5875,6 @@ export class ViewerCore {
     }
   }
 
-  /** Espessura das paredes (m) do Room Box. */
-  private static readonly ROOM_WALL_THICKNESS_M = 0.12;
   /** Recuo (m) do limite interno da parede; com lock ON a caixa não entra no muro. */
   private static readonly WALL_INNER_INSET_M = 0.06;
   /** Offset (m) da caixa em relação ao plano da parede para evitar Z-fighting (0.5 cm). */

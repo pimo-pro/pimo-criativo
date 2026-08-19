@@ -1,10 +1,10 @@
-import type { V4RoomConfig } from "./V4RoomConfig";
+import type { V4RoomConfig } from "../state/V4RoomConfig";
 
-interface V4RoomFloorProps {
+interface V4SceneRoomFloorProps {
   config: V4RoomConfig;
 }
 
-export function V4RoomFloor({ config }: V4RoomFloorProps) {
+export function V4SceneRoomFloor({ config }: V4SceneRoomFloorProps) {
   const w = config.width  / 1000;
   const d = config.depth  / 1000;
 
