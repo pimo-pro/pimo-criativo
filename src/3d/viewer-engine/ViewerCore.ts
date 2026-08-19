@@ -2945,7 +2945,7 @@ export class ViewerCore {
 
     const level = this.resolveDisplayQualityLevel();
 
-    const exposureFactor = level === "baixa" ? 0.96 : level === "media" ? 1.0 : 0.92;
+    const exposureFactor = level === "baixa" ? 1.0 : level === "media" ? 1.0 : 0.92;
     this.rendererManager.renderer.toneMappingExposure = this.baseToneMappingExposure * exposureFactor;
 
     this.ensureLightingEngine().applyShadowQualityProfile(level);

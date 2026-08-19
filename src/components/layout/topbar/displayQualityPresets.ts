@@ -58,10 +58,10 @@ export function buildDisplayQualitySettingsPatch(level: DisplayQualityLevel): Di
         ...LIGHTS_RESET,
         materialQuality: "standard",
         enableReflections: false,
-        // Menos energia global para evitar “imagem fraca”/cinzenta
-        // e remover bloom perceptível no pipeline (via Composer no próximo passo).
-        globalLightIntensity: 0.92,
-        shadowIntensity: 0.72,
+        // "Sem efeitos" = sem bloom/reflexos/material premium; luz e sombra
+        // ficam iguais a "Média" (não deve haver imagem mais escura em Baixa).
+        globalLightIntensity: 1.0,
+        shadowIntensity: 0.82,
       };
     case "media":
       return {
