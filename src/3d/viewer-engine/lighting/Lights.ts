@@ -85,7 +85,14 @@ export class Lights {
   }
 
   setShadowMapSize(size: number): void {
+    if (this.keyLight.shadow.mapSize.width === size && this.keyLight.shadow.mapSize.height === size) {
+      return;
+    }
     this.keyLight.shadow.mapSize.width = size;
     this.keyLight.shadow.mapSize.height = size;
+    // O shadow map já alocado no GPU não é redimensionado sozinho: sem descartá-lo,
+    // a troca de mapSize em runtime (Baixa/Média/Alta) não teria efeito nenhum.
+    this.keyLight.shadow.map?.dispose();
+    this.keyLight.shadow.map = null;
   }
 }

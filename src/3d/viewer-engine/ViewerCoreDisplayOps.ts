@@ -90,7 +90,8 @@ export function setModeImpl(
 ): void {
   deps.viewerState.setCurrentMode(mode);
   deps.setTurntableEnabled(mode === "showcase" && turntable);
-  deps.lights.setShadowMapSize(deps.isMobile ? 1024 : 4096);
+  // Tamanho do shadow map é decidido por syncDisplayQualityVisualPipelineImpl (depende
+  // do nível Baixa/Média/Alta, não só de isMobile) — chamado no fim desta função.
   if (mode === "showcase") {
     deps.ensureComposerEngine().setMode("showcase");
   } else {
@@ -424,6 +425,11 @@ export function syncDisplayQualityVisualPipelineImpl(deps: ViewerCoreDisplayOpsD
   if (deps.getPhotoModeEnabled() || deps.getUltraPerformanceMode()) return;
 
   const level = resolveDisplayQualityLevelImpl(deps);
+
+  // Baixa precisa ser leve o suficiente para telas/GPUs fracas: shadow map bem menor
+  // que Média/Alta. Em mobile, sempre o valor mais baixo independente do nível.
+  const shadowMapSize = deps.isMobile ? 1024 : level === "baixa" ? 1024 : level === "media" ? 2048 : 4096;
+  deps.lights.setShadowMapSize(shadowMapSize);
 
   // Alta não soma mais +6% de luz global (ver displayQualityPresets.ts), então precisa
   // de bem menos correção de exposição do que antes — só o suficiente para o bloom/
