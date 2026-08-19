@@ -8,6 +8,7 @@ import { SceneEngine } from "./scene/SceneEngine";
 import { ensureViewerSceneEngine } from "./engines/SceneEngine";
 import { CameraManager } from "./camera";
 import { CameraEngine } from "./camera/CameraEngine";
+import { ensureViewerCameraEngine } from "./engines/CameraEngine";
 import { RendererManager } from "./renderer";
 import { Lights } from "./lighting";
 import { LightingEngine } from "./lighting/LightingEngine";
@@ -605,7 +606,7 @@ export class ViewerCore {
     this.sceneEngine = ensureViewerSceneEngine(this.sceneEngine ?? null, this.sceneManager);
     this.defaultGroundSize = foundation.defaultGroundSize;
     this.cameraManager = foundation.cameraManager;
-    this.cameraEngine = new CameraEngine(this.cameraManager);
+    this.cameraEngine = ensureViewerCameraEngine(this.cameraEngine ?? null, this.cameraManager);
     this.rendererManager = foundation.rendererManager;
     this.lights = foundation.lights;
     this.baseLightIntensities = foundation.baseLightIntensities;
