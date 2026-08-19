@@ -1,3 +1,8 @@
+/**
+ * Estado da sala (wallStore) — vista derivada em cm (Z-03.3).
+ * SSOT canónico: ProjectState.room = ProjectRoomConfig (mm).
+ * Sincronização: RoomEngine.applyProjectRoomToWallStore.
+ */
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { computeWallEndpoints, distance, type Point } from "../utils/wallSnapping";
@@ -5,13 +10,7 @@ import {
   computeCenteredConnectedLayoutCm,
   isLegacyCornerWallStoreLayout,
 } from "../utils/roomCoordinates";
-
-/**
- * Estado da sala (wallStore) e layout (computeConnectedLayout) estão desenhados para expansão:
- * - Novos campos em Wall/WallOpening podem ser opcionais para compatibilidade.
- * - loadRoomConfig/snapshot já persistem walls + selectedWallId; RoomConfig no projeto idem.
- * - Alterações futuras (materiais, mais aberturas, regras) devem manter esta interface estável.
- */
+import { wallStoreFootprintCm } from "../3d/viewer-engine/room/roomUnitConversion";
 
 export interface WallOpening {
   id: string;
@@ -108,15 +107,7 @@ function computeConnectedLayout(walls: Wall[]): Array<{ x: number; z: number; ro
 }
 
 export function getRoomDimensionsCm(walls: Wall[]): { widthCm: number; depthCm: number; heightCm: number } | null {
-  if (!walls || walls.length < 3) return null;
-  const w0 = walls[0]?.lengthCm ?? DEFAULT_WALL.lengthCm;
-  const w2 = walls[2]?.lengthCm ?? w0;
-  const w1 = walls[1]?.lengthCm ?? w0;
-  const w3 = walls[3]?.lengthCm ?? w1;
-  const widthCm = (w0 + w2) / 2;
-  const depthCm = (w1 + w3) / 2;
-  const heightCm = Math.max(...walls.map((w) => w.heightCm ?? DEFAULT_WALL.heightCm), DEFAULT_WALL.heightCm);
-  return { widthCm, depthCm, heightCm };
+  return wallStoreFootprintCm(walls);
 }
 
 function applyLayoutIfMissing(walls: Wall[]): Wall[] {

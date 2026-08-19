@@ -1142,7 +1142,7 @@ export function useGerarArquivoHandlers() {
         const persistedSnapshot: ProjectSnapshot = {
           projectState: serializeState(stateForSnapshot),
           viewerSnapshot: viewerSync.saveViewerSnapshot(),
-          roomSnapshot: captureRoomSnapshot(),
+          roomSnapshot: captureRoomSnapshot(stateForSnapshot.room),
         };
         const saved = await saveProject({
           name: stateForSnapshot.projectName ?? project.projectName ?? "Projeto",

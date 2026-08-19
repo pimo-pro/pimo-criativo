@@ -461,7 +461,7 @@ export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }
                             typeof viewerSync?.saveViewerSnapshot === "function"
                               ? viewerSync.saveViewerSnapshot()
                               : null,
-                          roomSnapshot: captureRoomSnapshot(),
+                          roomSnapshot: captureRoomSnapshot(project.room),
                         };
                         const saved = await saveProject({
                           name: stateForSnapshot.projectName ?? project.projectName ?? "Projeto",

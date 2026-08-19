@@ -2,7 +2,6 @@
  * RoomEngine — orquestração Room 2.0 (fase básica).
  * Geometria visual apenas; sem impacto industrial.
  */
-import type { Wall, WallOpening } from "../../../stores/wallStore";
 import { wallStore } from "../../../stores/wallStore";
 import type { PimoViewerApi } from "../../../context/PimoViewerContextCore";
 import { applyRoomMeshFromWallStore, applyRoomOpeningsFromWallStore } from "../../../utils/roomMeshFromWallStore";
@@ -19,10 +18,9 @@ import {
   type RoomFloorMode,
   type RoomOpeningKind,
   ROOM_20_DEFAULTS,
-  WALL_INDEX_TO_LABEL,
-  WALL_LABEL_TO_INDEX,
   WALL_LABELS,
 } from "./roomEngineTypes";
+import { deriveWallStoreConfigFromProjectRoom } from "./roomUnitConversion";
 
 export {
   ROOM_20_DEFAULTS,
@@ -241,104 +239,19 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
   });
 }
 
-export function projectRoomToWallStoreWalls(room: ProjectRoomConfig): Wall[] {
-  return room.walls
-    .slice()
-    .sort((a, b) => WALL_LABEL_TO_INDEX[a.label] - WALL_LABEL_TO_INDEX[b.label])
-    .map((wall) => {
-      const openings: WallOpening[] = room.openings
-        .filter((o) => o.wallId === wall.id)
-        .map((o) => ({
-          id: o.id,
-          type: o.type,
-          kind: o.kind,
-          widthMm: o.widthMm,
-          heightMm: o.heightMm,
-          thicknessMm: o.thicknessMm,
-          floorOffsetMm: o.floorOffsetMm ?? o.verticalOffsetMm,
-          horizontalOffsetMm: o.xPosMm ?? o.horizontalOffsetMm,
-        }));
-      return {
-        id: wall.id,
-        lengthCm: (wall.widthMm ?? wall.lengthMm) / 10,
-        heightCm: wall.heightMm / 10,
-        thicknessCm: wall.thicknessMm / 10,
-        color: "#d1d5db",
-        openings,
-        position: {
-          x: wall.position.x / 10,
-          y: (wall.position.y ?? wall.heightMm / 2) / 10,
-          z: wall.position.z / 10,
-        },
-        rotation: wall.rotationDeg,
-      };
-    })
-}
-
-export function wallStoreToProjectRoom(
-  walls: Wall[],
-  extras?: Partial<Pick<ProjectRoomConfig, "locked" | "visible" | "floorMode" | "ceilingVisible" | "hiddenWalls" | "utilities">>
-): ProjectRoomConfig | null {
-  if (!walls || walls.length < 4) return null;
-  const sorted = [...walls];
-  const w0 = sorted[0]?.lengthCm ?? 0;
-  const w2 = sorted[2]?.lengthCm ?? w0;
-  const w1 = sorted[1]?.lengthCm ?? 0;
-  const widthMm = ((w0 + w2) / 2) * 10;
-  const depthMm = (w1 * 10);
-  const heightMm = Math.max(...sorted.map((w) => (w.heightCm ?? 0) * 10), ROOM_20_DEFAULTS.heightMm);
-  const wallThicknessMm = (sorted[0]?.thicknessCm ?? ROOM_20_DEFAULTS.wallThicknessMm / 10) * 10;
-  const projectWalls: ProjectRoomWall[] = sorted.map((wall, index) => ({
-    id: wall.id,
-    label: WALL_INDEX_TO_LABEL[index] ?? "extra",
-    widthMm: (wall.lengthCm ?? 0) * 10,
-    lengthMm: (wall.lengthCm ?? 0) * 10,
-    heightMm: (wall.heightCm ?? 0) * 10,
-    thicknessMm: (wall.thicknessCm ?? ROOM_20_DEFAULTS.wallThicknessMm / 10) * 10,
-    position: {
-      x: (wall.position?.x ?? 0) * 10,
-      y: (wall.position?.y ?? (wall.heightCm ?? 0) / 2) * 10,
-      z: (wall.position?.z ?? 0) * 10,
-    },
-    rotationDeg: wall.rotation ?? 0,
-  }));
-  const openings: ProjectRoomOpening[] = [];
-  sorted.forEach((wall) => {
-    for (const o of wall.openings ?? []) {
-      openings.push({
-        id: o.id,
-        type: o.type,
-        kind: o.kind ?? "normal",
-        wallId: wall.id,
-        xPosMm: o.horizontalOffsetMm,
-        horizontalOffsetMm: o.horizontalOffsetMm,
-        widthMm: o.widthMm,
-        heightMm: o.heightMm,
-        thicknessMm: o.thicknessMm ?? (o.type === "window" ? DEFAULT_WINDOW.thicknessMm : DEFAULT_DOOR.thicknessMm),
-        floorOffsetMm: o.floorOffsetMm,
-        verticalOffsetMm: o.floorOffsetMm,
-      });
-    }
-  });
-  return {
-    widthMm,
-    depthMm,
-    heightMm,
-    wallThicknessMm,
-    locked: extras?.locked ?? false,
-    visible: extras?.visible !== false,
-    floorMode: normalizeFloorMode(extras?.floorMode),
-    ceilingVisible: extras?.ceilingVisible !== false,
-    hiddenWalls: Array.isArray(extras?.hiddenWalls)
-      ? extras.hiddenWalls.filter((id) => projectWalls.some((wall) => wall.id === id))
-      : [],
-    walls: projectWalls,
-    openings,
-    utilities: Array.isArray(extras?.utilities)
-      ? extras.utilities.map((u) => normalizeUtility(u, projectWalls)).filter((u): u is ProjectRoomUtility => Boolean(u))
-      : [],
-  };
-}
+export {
+  cmToMm,
+  deriveWallStoreConfigFromProjectRoom,
+  mmToCm,
+  mmToM,
+  mToMm,
+  projectRoomToRoomSnapshot,
+  projectRoomToWallStoreWalls,
+  wallStoreFootprintCm,
+  wallStoreFootprintMm,
+  wallStoreToProjectRoom,
+} from "./roomUnitConversion";
+export type { RoomSnapshotUiState, WallStoreRoomExtras } from "./roomUnitConversion";
 
 export function applyProjectRoomDimensions(room: ProjectRoomConfig): ProjectRoomConfig {
   const next = { ...room, walls: room.walls.map((w) => ({ ...w })) };
@@ -364,12 +277,12 @@ export function applyProjectRoomDimensions(room: ProjectRoomConfig): ProjectRoom
 export function applyProjectRoomToWallStore(room: ProjectRoomConfig): void {
   const normalized = normalizeProjectRoom(room);
   if (!normalized) return;
-  const walls = projectRoomToWallStoreWalls(normalized);
-  wallStore.getState().loadRoomConfig({
-    walls,
-    selectedWallId: walls[0]?.id ?? null,
-    mainWallIndex: 0,
+  const ui = wallStore.getState();
+  const derived = deriveWallStoreConfigFromProjectRoom(normalized, {
+    selectedWallId: ui.selectedWallId,
+    mainWallIndex: ui.mainWallIndex,
   });
+  wallStore.getState().loadRoomConfig(derived);
 }
 
 export function syncProjectRoomToViewer(

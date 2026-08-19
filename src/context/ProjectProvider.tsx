@@ -85,7 +85,7 @@ export function ProjectProvider({ children, variant = "default" }: ProjectProvid
     {
       serializeForAutosave: (state) => serializeStateForAutosave(state),
       revive: (snap) => reviveState(snap),
-      captureRoomSnapshot,
+      captureRoomSnapshot: () => captureRoomSnapshot(projectRef.current.room),
       applyResultados,
     },
     { disabled: isPiproDesign }

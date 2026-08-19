@@ -67,7 +67,7 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         const snapshot: ProjectSnapshot = {
           projectState: serializeState(projectRef.current),
           viewerSnapshot: viewerSync.saveViewerSnapshot(),
-          roomSnapshot: captureRoomSnapshot(),
+          roomSnapshot: captureRoomSnapshot(projectRef.current.room),
         };
         const currentUser = getCurrentProjectUser();
         void saveSnapshot({
@@ -82,7 +82,7 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         const snapshot: ProjectSnapshot = {
           projectState: serializeState(projectRef.current),
           viewerSnapshot: viewerSync.saveViewerSnapshot(),
-          roomSnapshot: captureRoomSnapshot(),
+          roomSnapshot: captureRoomSnapshot(projectRef.current.room),
         };
         const savedAt = new Date().toISOString();
         const backup: ManualBackupEntry = {

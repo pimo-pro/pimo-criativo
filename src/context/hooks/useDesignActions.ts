@@ -135,7 +135,7 @@ export function useDesignActions(ctx: ProjectActionsExecutionContext): DesignAct
       const snapshot: ProjectSnapshot = {
         projectState: serializeState(generatedState),
         viewerSnapshot: viewerSync.saveViewerSnapshot(),
-        roomSnapshot: captureRoomSnapshot(),
+        roomSnapshot: captureRoomSnapshot(projectRef.current.room),
       };
       const currentUser = getCurrentProjectUser();
       const currentProjectId = projectRef.current.currentProjectId ?? undefined;

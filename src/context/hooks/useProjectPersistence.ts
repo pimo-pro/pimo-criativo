@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { safeGetItem, safeSetItem } from "../../utils/storage";
 import { wallStore } from "../../stores/wallStore";
-import { applyProjectRoomToWallStore } from "../../3d/viewer-engine/room/RoomEngine";
+import { applyProjectRoomToWallStore, normalizeProjectRoom, wallStoreToProjectRoom } from "../../3d/viewer-engine/room/RoomEngine";
 import type { ProjectState, ProjectSnapshot, RoomSnapshot } from "../projectTypes";
 import { defaultState } from "../projectState";
 
@@ -109,15 +109,25 @@ export function useProjectPersistence(
         : undefined;
     const restored = projectState ? api.revive(projectState) : null;
     if (restored) {
-      const next = api.applyResultados
+      let next = api.applyResultados
         ? api.applyResultados({ ...restored, lastAutosaveTime: parsed.savedAt ?? restored.lastAutosaveTime ?? null })
         : { ...restored, lastAutosaveTime: parsed.savedAt ?? restored.lastAutosaveTime ?? null };
-      setProject(next);
       if (next.room) {
         applyProjectRoomToWallStore(next.room);
+      } else if (roomSnapshot?.walls?.length) {
+        const promoted = wallStoreToProjectRoom(roomSnapshot.walls);
+        const normalized = promoted ? normalizeProjectRoom(promoted) : null;
+        if (normalized) {
+          next = { ...next, room: normalized };
+          applyProjectRoomToWallStore(normalized);
+        } else {
+          wallStore.getState().loadRoomConfig(roomSnapshot);
+        }
+      } else if (roomSnapshot === null) {
+        wallStore.getState().clearRoom();
       }
-    }
-    if (roomSnapshot !== undefined && !restored?.room) {
+      setProject(next);
+    } else if (roomSnapshot !== undefined) {
       if (roomSnapshot) {
         wallStore.getState().loadRoomConfig(roomSnapshot);
       } else {

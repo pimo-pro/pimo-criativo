@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.32 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico; **Z-03.2** classificação completa dos sistemas de sala (19 de Agosto de 2026) |
-| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1/Z-03.2 documentação only (sem alteração de `src/`) |
+| **Versão do plano** | 1.33 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico; **Z-03.2** classificação; **Z-03.3** unificação SSOT sala (19 de Agosto de 2026) |
+| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1–3.3 sala (Z-03.3 alterou `src/` — só camada SSOT/conversão) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 19 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.6 / Z-03.3+ (código de sala ou Aedifex) só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.6 / Z-03.4+ (remoção de legado sala) só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -449,7 +449,8 @@ Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01
 | **Z-02.0** | **Toolbar superior do Viewer** | `UnifiedTopToolbar.tsx` + `ViewerToolbar.tsx` | Chrome UI **vivo**; 20 controlos visíveis + faixa vazia + popovers | **Auditoria §6.3** — diagnóstico only; **não apagar** sem gatilho Z-02.1+ |
 | Z-03 | Adapter WO legado | `legacyWorkflowWorkOrderAdapter.ts` | Exportado; documentado como ponte read-only | Transição TRAK (D-03) |
 | **Z-03.1** | **Sala industrial / RoomManager** | `src/3d/room/*` + `RoomEngine` + `wallStore` + `ProjectState.room` | Sistema **vivo** e duplicado (D-09); não é o adapter WO | **Auditoria §6.4** — diagnóstico only |
-| **Z-03.2** | **Classificação completa dos sistemas de sala** | Inventário §6.5 (ProjectRoomConfig, wallStore, RoomManager, Auto-Room-Fill, Kitchen 3.0, paralelos v4/showroom) | Zero código apagado; etiquetas de destino futuro | **Relatório §6.5** — documentação only; **não alterar** `src/` sem gatilho Z-03.3+ |
+| **Z-03.2** | **Classificação completa dos sistemas de sala** | Inventário §6.5 | Zero código apagado; etiquetas de destino futuro | **Relatório §6.5** — documentação only |
+| **Z-03.3** | **Unificação SSOT da sala** | `roomUnitConversion.ts` + fluxos RoomEngine / persistência | `ProjectRoomConfig` (mm) canónico; wallStore/roomSnapshot derivados | **Executado** 19-08-2026 — tag `z-03-3-room-ssot` — §6.6 |
 | **Z-04** | Integration UI industrial (**ex-Z-01**) | `src/industrial/integration/ui/*` | Zero imports em `src/app` | Tipos re-exportados; possível uso futuro TRAK |
 
 **Contentor React (não é o alvo Z-01):** `src/components/layout/workspace/Workspace.tsx` (1439 linhas) monta o ViewerCore, liga bridges e overlays. É o casco UI, não o expositor 3D.
@@ -1620,7 +1621,7 @@ Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 l
 
 **Recomendação de leitura (não é execução):** A é pré-requisito de B ou C. Sem unificar mm/cm/m e o SSOT, um motor externo herda o drift.
 
-**Próximo gatilho (código):** Z-03.3+ só com pedido explícito. **Z-03.2** (classificação) está em §6.5.
+**Próximo gatilho (código):** Z-03.4+ (remoção de legado) só com pedido explícito. **Z-03.3** (SSOT) concluído em §6.6.
 
 ## 6.5 Z-03.2 — Limpeza e classificação completa dos sistemas de sala
 
@@ -1872,8 +1873,108 @@ Camada de compatibilidade: `AedifexModel → ProjectRoomConfig` e o inverso. Z-0
 
 - Não apagou, moveu nem deprecou código em `src/`.
 - Não alterou comportamento industrial, BoxBuilder, SnapEngine, LayoutEngine, ProjectState industrial, nem pipeline.
-- Não unificou mm/cm/m (isso seria opção A / Z-03.3+).
+- Não unificou mm/cm/m (isso seria opção A / **Z-03.3** — agora executado em §6.6).
 - Não integrou Aedifex.
+
+**Próximo gatilho (código):** Z-03.4+ (remoção de legado) só com pedido explícito.
+
+## 6.6 Z-03.3 — Unificação SSOT da sala
+
+| Campo | Valor |
+|-------|--------|
+| **Estado** | **Executado** (19-08-2026). Tag `z-03-3-room-ssot`. |
+| **Exclusões respeitadas** | BoxBuilder, `src/core/cnc`, `src/core/export`, `src/industrial/*`, algoritmo Kitchen 3.0 / LayoutEngine — **não tocados** |
+| **Ficheiros novos** | `src/3d/viewer-engine/room/roomUnitConversion.ts` |
+| **Testes** | `tests/viewer/engines/roomUnitConversion.test.ts` (4 testes) |
+
+**Conclusão em uma frase:** `ProjectState.room` (`ProjectRoomConfig` mm) é agora a **única fonte canónica**; `wallStore` e `roomSnapshot` são **vistas derivadas** via `roomUnitConversion.ts`; RoomManager continua a consumir metros só na renderização.
+
+### 6.6.1 Arquitectura SSOT (pós Z-03.3)
+
+```mermaid
+flowchart LR
+  SSOT["ProjectRoomConfig mm<br/>ProjectState.room"]
+  CONV["roomUnitConversion.ts"]
+  WS["wallStore cm<br/>vista runtime"]
+  SNAP["roomSnapshot cm<br/>sidecar persistência"]
+  MESH["roomMeshFromWallStore → m<br/>RoomManager"]
+
+  SSOT --> CONV
+  CONV --> WS
+  CONV --> SNAP
+  WS --> MESH
+```
+
+| Camada | Unidade | Papel pós Z-03.3 |
+|--------|---------|------------------|
+| **SSOT** | mm | `ProjectRoomConfig` em `project.room` — escrita via `useRoomActions` / PainelSala |
+| **Conversão interna** | mm↔cm↔m | `roomUnitConversion.ts` — **sem** API pública nova além dos re-exports em `RoomEngine` |
+| **wallStore** | cm | Vista derivada; `applyProjectRoomToWallStore` → `deriveWallStoreConfigFromProjectRoom` |
+| **roomSnapshot** | cm | Sidecar derivado; `captureRoomSnapshot(project.room)` |
+| **RoomManager** | m | Inalterado — lê wallStore via `applyRoomMeshFromWallStore` |
+
+### 6.6.2 Fluxos de conversão
+
+**Escrita (canónico):**
+```
+UI / acções → normalizeProjectRoom → ProjectState.room (mm)
+  → applyProjectRoomToWallStore
+  → deriveWallStoreConfigFromProjectRoom
+  → wallStore.loadRoomConfig
+  → Workspace → applyRoomMeshFromWallStore (m)
+```
+
+**Persistência / export:**
+```
+captureRoomSnapshot(project.room)
+  → projectRoomToRoomSnapshot (cm)
+  + projectState.room (mm) no envelope serializado
+```
+
+**Load (autosave / ficheiro):**
+```
+revive → project.room (mm) se existir → applyProjectRoomToWallStore
+senão roomSnapshot (cm) → wallStoreToProjectRoom (≥4 paredes) → normalize → project.room + wallStore
+senão (3 paredes U) → loadRoomConfig legado (sem promover SSOT)
+```
+
+**Correcção Z-03.3:** `wallStoreToProjectRoom` usa agora `(w1+w3)/2` para `depthMm` — alinhado com `getRoomDimensionsCm` / `wallStoreFootprintMm` (corrige Z31-D1 parcial).
+
+### 6.6.3 Ficheiros alterados (sem remoções)
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| `roomUnitConversion.ts` | **Novo** — conversão mm/cm/m + derivados |
+| `RoomEngine.ts` | Delega conversão; `applyProjectRoomToWallStore` preserva seleção UI |
+| `wallStore.ts` | Comentário SSOT; `getRoomDimensionsCm` → `wallStoreFootprintCm` |
+| `projectPersistence.ts` | `captureRoomSnapshot(projectRoom?)` deriva do SSOT |
+| `useProjectPersistence.ts` | Promove `roomSnapshot` → `project.room` no load |
+| `ProjectProvider`, IO/export handlers | Passam `project.room` ao capture |
+| `RoomIconButton.tsx` | Cria sala via `setProjectRoom` (4×3×2,4 m) — deixa de escrever só wallStore |
+
+### 6.6.4 Protecção industrial (verificado)
+
+| Alvo | Tocado? |
+|------|---------|
+| BoxBuilder | **Não** |
+| PDF/XLSX/TCN/DRILL/PI | **Não** |
+| `core/autoRoomFill` (Kitchen 3.0) | **Não** — continua a ler `ProjectRoomConfig` |
+| LayoutEngine / SnapEngine | **Não** |
+| Colocação de caixas (fill/clamp) | **Não** — algoritmos intactos; clamp continua via bounds derivados |
+
+### 6.6.5 Candidatos a remoção em Z-03.4 (texto only — **não executar**)
+
+| Alvo | Pré-requisito |
+|------|---------------|
+| `ViewerCore.createRoomBox` | Confirmar zero uso dinâmico |
+| `wallStore.setRoomLayoutFromMeters` / `resetRoom` sem SSOT | Todos os gatilhos UI passam por `project.room` |
+| `wallSnapping` + `applySnapping` | UI morta confirmada |
+| Bind duplo `useViewerRoom` (D-09) | Só ViewerCore / ViewerRoomEngine |
+| Formato `3d/room/types.ts` deprecated | Adapter único mm |
+
+### 6.6.6 Preservar (inalterado por Z-03.4 imediato)
+
+`ProjectRoomConfig`, Kitchen 3.0, `kitchenFinish/roomContext`, RoomManager/WallFactory (render), testes LayoutEngine/RoomEngine, envelope dual `room` + `roomSnapshot` (compatibilidade).
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -2182,6 +2283,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.30 | **Z-02.5 executado:** Orbit/Pan/Zoom unificados no MouseInputMapper. Tag `z-02-5-mouse-unification`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.31 | **Z-03.1 diagnóstico only:** sala / RoomManager mapeada em §6.4; zero alterações a `src/`. | Khaled (dono do produto) + auditoria Cursor |
 | 2026-08-19 | 1.32 | **Z-03.2 documentação only:** classificação completa dos sistemas de sala em §6.5; zero alterações a `src/`. | Khaled (dono do produto) + auditoria Cursor |
+| 2026-08-19 | 1.33 | **Z-03.3 executado:** SSOT `ProjectRoomConfig` mm; `roomUnitConversion.ts`; wallStore/roomSnapshot derivados. Tag `z-03-3-room-ssot`. §6.6. | Khaled (dono do produto) + execução Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -2507,7 +2609,20 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Etiquetas** | industrial-safe / legacy / unused / candidate for removal / candidate for replacement + preservar (industrial-adjacente) |
 | **Industrial** | BoxBuilder e pipeline sem imports de sala; impacto só indirecto via caixas (Kitchen 3.0 / clamp / rodapé FULL) |
 | **Aedifex** | Continua ausente; contrato mínimo documentado; sem integração |
-| **Próximo código** | Z-03.3+ só com gatilho explícito |
+| **Próximo código** | Z-03.4+ só com gatilho explícito |
+
+### 13.34 Changelog v1.32 → v1.33
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.3** | SSOT unificado: `ProjectRoomConfig` (mm) canónico; `roomUnitConversion.ts` |
+| **Derivados** | `wallStore` e `roomSnapshot` passam a ser vistas derivadas |
+| **Correcção** | `depthMm` em `wallStoreToProjectRoom` alinhado com footprint (média w1/w3) |
+| **Load** | `roomSnapshot` promove para `project.room` quando possível (≥4 paredes) |
+| **UI** | `RoomIconButton` cria sala via `setProjectRoom` (SSOT) |
+| **Testes** | `roomUnitConversion.test.ts` (4 testes) |
+| **Tag** | `z-03-3-room-ssot` |
+| **Intocado** | BoxBuilder, pipeline industrial, Kitchen 3.0 (algoritmo), LayoutEngine, SnapEngine |
 
 ---
 
@@ -2519,4 +2634,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.32).
+Fim do documento de planeamento (v1.33).

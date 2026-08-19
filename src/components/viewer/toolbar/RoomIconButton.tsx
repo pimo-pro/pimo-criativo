@@ -1,9 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { useProject } from "../../../context/useProject";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
-import { wallStore, useWallStore } from "../../../stores/wallStore";
-import { uiStore, useUiStore } from "../../../stores/uiStore";
+import { useWallStore } from "../../../stores/wallStore";import { uiStore, useUiStore } from "../../../stores/uiStore";
 import { LEFT_TOOLBAR_IDS } from "../../layout/left-toolbar/LeftToolbar";
+import {
+  applyProjectRoomDimensions,
+  createDefaultProjectRoom,
+} from "../../../3d/viewer-engine/room/RoomEngine";
 import { hasPersistedRoomWalls } from "../../../utils/roomWorkspaceBounds";
 import { Icon } from "@/components/icons";
 
@@ -27,7 +30,14 @@ export default function RoomIconButton() {
 
   const handleClick = useCallback(() => {
     if (!roomPresent) {
-      wallStore.getState().setRoomLayoutFromMeters(DEFAULT_ROOM_WIDTH_M, DEFAULT_ROOM_DEPTH_M, DEFAULT_ROOM_HEIGHT_M, 4);
+      const base = createDefaultProjectRoom();
+      const room = applyProjectRoomDimensions({
+        ...base,
+        widthMm: DEFAULT_ROOM_WIDTH_M * 1000,
+        depthMm: DEFAULT_ROOM_DEPTH_M * 1000,
+        heightMm: DEFAULT_ROOM_HEIGHT_M * 1000,
+      });
+      actions.setProjectRoom(room);
       // Navigate to HOME so room settings appear in the Início section
       setSelectedTool(LEFT_TOOLBAR_IDS.HOME);
       const scheduleReposition = () => {

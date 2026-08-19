@@ -10,6 +10,8 @@ import { getMaterialByIdOrLabel } from "../core/materials/service";
 import { wallStore } from "../stores/wallStore";
 import { createEmptyProjectMeasurements } from "../3d/viewer-engine/measurement/internalRulerTypes";
 import { normalizeProjectRoom } from "../3d/viewer-engine/room/RoomEngine";
+import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
+import { projectRoomToRoomSnapshot } from "../3d/viewer-engine/room/roomUnitConversion";
 import { normalizeOrlaPresets } from "../core/orla/orlaPresets";
 import { normalizeDrawerPresets } from "../core/drawers/drawerPresets";
 import { normalizeObservacoesList } from "../core/observacoes/ObservacoesService";
@@ -345,16 +347,25 @@ export function reviveState(snapshot: unknown, options?: ReviveStateOptions): Pr
   };
 }
 
-export function captureRoomSnapshot(): RoomSnapshot | null {
-  const state = wallStore.getState();
-  if (!state.walls || state.walls.length === 0) return null;
+export function captureRoomSnapshot(projectRoom?: ProjectRoomConfig | null): RoomSnapshot | null {
+  const ui = wallStore.getState();
+  if (projectRoom) {
+    const normalized = normalizeProjectRoom(projectRoom);
+    if (normalized) {
+      return projectRoomToRoomSnapshot(normalized, {
+        selectedWallId: ui.selectedWallId,
+        mainWallIndex: ui.mainWallIndex,
+      });
+    }
+  }
+  if (!ui.walls || ui.walls.length === 0) return null;
   return {
-    walls: state.walls.map((wall) => ({
+    walls: ui.walls.map((wall) => ({
       ...wall,
       openings: (wall.openings ?? []).map((opening) => ({ ...opening })),
     })),
-    selectedWallId: state.selectedWallId,
-    mainWallIndex: Math.max(0, Math.min(3, state.mainWallIndex ?? 0)),
+    selectedWallId: ui.selectedWallId,
+    mainWallIndex: Math.max(0, Math.min(3, ui.mainWallIndex ?? 0)),
   };
 }
 
