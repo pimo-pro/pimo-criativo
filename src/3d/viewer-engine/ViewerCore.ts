@@ -78,12 +78,6 @@ import {
   traceDrawerFrontMaterial,
 } from "./materials/drawerFrontMaterialTrace";
 import { applyMeshGrainOrientation } from "./materials/viewerGrainOrientation";
-import {
-  createRoomFloorOutline,
-  createRoomFloorOverlayMaterial,
-  getRoomFloorExpandM,
-  getRoomFloorOverlayAppearance,
-} from "./materials/roomFloorOverlay";
 import type { BoxOptions } from "../objects/BoxBuilder";
 import type { ViewerBoxEntry } from "./types";
 import type { BoxPanelIds, TechnicalDrillHole } from "../../core/types";
@@ -204,6 +198,25 @@ import {
   syncIndustrialDesignViewerOverlayImpl,
   updateBoxDrillMarkersImpl,
 } from "./ViewerCoreIndustrialMode";
+import type { ViewerCoreRoomGeometryDeps } from "./ViewerCoreRoomGeometry";
+import {
+  clearRoomBoundsImpl,
+  clearRoomFromManagerImpl,
+  getManualWallHiddenImpl,
+  getRoomUtilityByIdImpl,
+  notifyRoomElementTransformImpl,
+  notifyRoomUtilityTransformImpl,
+  notifyWallTransformImpl,
+  setManualWallHiddenImpl,
+  setRoomBoundsImpl,
+  setRoomCeilingVisibleImpl,
+  setRoomFloorModeImpl,
+  setRoomFromManagerImpl,
+  setRoomHiddenWallsImpl,
+  setRoomUtilitiesImpl,
+  setWallEditModeImpl,
+  updateWallVisibilityBasedOnCameraImpl,
+} from "./ViewerCoreRoomGeometry";
 import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
 import {
   applyRemateKeyboardTransformImpl,
@@ -244,11 +257,9 @@ import type {
 } from "../../context/projectTypes";
 import { ProjectLoader } from "../../core/viewer/formats/ProjectLoader";
 import type { ProjectLoadInput, ProjectLoadResult } from "../../core/viewer/formats/normalizedProject";
-import { snapHorizontalOffset } from "../../utils/openingConstraints";
 import type { ProjectRoomUtility, RoomFloorMode } from "./room/roomEngineTypes";
 import { devLogger } from "../../utils/devLogger";
 import { WallGizmo } from "../gizmos/WallGizmo";
-import { updateWallCulling } from "../visibility/WallRaycastCulling";
 import type { SnapDebugData } from "../snapping/ModelWallSnap";
 import { keepModelInsideRoom, preventModelWallIntersection } from "../collision/ModelCollision";
 import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
@@ -1026,7 +1037,7 @@ export class ViewerCore {
     });
 
     this.wallGizmo = new WallGizmo(this.cameraManager.camera);
-    this.wallGizmo.setOnTransform(() => this.notifyWallTransform());
+    this.wallGizmo.setOnTransform(() => notifyWallTransformImpl(this.getRoomGeometryDeps()));
     this.sceneManager.scene.add(this.wallGizmo.group);
     this.sceneManager.scene.add(this.remateVisualizer.getRoot());
     this.sceneManager.scene.add(this.tampoVisualizer.getRoot());
@@ -2821,49 +2832,23 @@ export class ViewerCore {
   }
 
   setRoomCeilingVisible(visible: boolean): void {
-    this.roomCeilingVisible = Boolean(visible);
-    if (this.roomBoxCeiling) {
-      this.roomBoxCeiling.visible = this.roomCeilingVisible;
-    }
-    if (this.roomBoxGroup) {
-      this.roomBoxGroup.traverse((node) => {
-        if (!(node instanceof THREE.Mesh)) return;
-        if (node.userData?.isRoomCeiling === true) {
-          node.visible = this.roomCeilingVisible;
-        }
-      });
-    }
+    setRoomCeilingVisibleImpl(this.getRoomGeometryDeps(), visible);
   }
 
   setRoomFloorMode(mode: RoomFloorMode): void {
-    this.roomFloorMode = mode === "full" || mode === "hybrid" || mode === "room" ? mode : "room";
-    this.rebuildRoomFloorAndCeiling();
+    setRoomFloorModeImpl(this.getRoomGeometryDeps(), mode);
   }
 
   setRoomHiddenWalls(wallIds: string[]): void {
-    const byStringId = new Map(this.roomBoxWalls.map((entry) => [String(entry.mesh.userData.wallProjectId ?? entry.mesh.userData.wallId ?? entry.id), entry.id]));
-    this.hiddenRoomWallIds = new Set(
-      (Array.isArray(wallIds) ? wallIds : [])
-        .map((id) => byStringId.get(id))
-        .filter((id): id is number => typeof id === "number")
-    );
-    this.applyRoomWallVisibility();
+    setRoomHiddenWallsImpl(this.getRoomGeometryDeps(), wallIds);
   }
 
   setRoomUtilities(utilities: ProjectRoomUtility[]): void {
-    this.rebuildRoomUtilities(Array.isArray(utilities) ? utilities : []);
+    setRoomUtilitiesImpl(this.getRoomGeometryDeps(), utilities);
   }
 
   setWallEditMode(enabled: boolean): void {
-    this.viewerState.setWallEditMode(Boolean(enabled));
-    if (this.wallGizmo) {
-      this.wallGizmo.group.visible = this.viewerState.getWallEditMode();
-      if (!this.viewerState.getWallEditMode()) this.wallGizmo.detach();
-      if (this.viewerState.getWallEditMode() && this.viewerState.getSelectedWallIndex() !== null) {
-        const wall = this.roomBoxWalls.find((w) => w.id === this.viewerState.getSelectedWallIndex())?.mesh;
-        if (wall) this.wallGizmo.attach(wall);
-      }
-    }
+    setWallEditModeImpl(this.getRoomGeometryDeps(), enabled);
   }
 
   addBox(id: string, options: BoxOptions = {}): boolean {
@@ -3190,243 +3175,16 @@ export class ViewerCore {
     return this.ensureViewerRoomEngine().getRoomVisible();
   }
 
-  private clearRoomBox(): void {
-    if (this.roomBoxGroup) {
-      this.sceneManager.root.remove(this.roomBoxGroup);
-    }
-    this.roomBoxWalls.forEach((w) => {
-      w.mesh.geometry.dispose();
-      if (Array.isArray(w.mesh.material)) {
-        w.mesh.material.forEach((m) => m.dispose());
-      } else {
-        w.mesh.material.dispose();
-      }
-    });
-    if (this.roomBoxFloor) {
-      this.roomBoxFloor.geometry.dispose();
-      if (Array.isArray(this.roomBoxFloor.material)) {
-        this.roomBoxFloor.material.forEach((m) => m.dispose());
-      } else {
-        this.roomBoxFloor.material.dispose();
-      }
-    }
-    if (this.roomBoxCeiling) {
-      this.roomBoxCeiling.geometry.dispose();
-      if (Array.isArray(this.roomBoxCeiling.material)) {
-        this.roomBoxCeiling.material.forEach((m) => m.dispose());
-      } else {
-        this.roomBoxCeiling.material.dispose();
-      }
-    }
-    if (this.roomFloorRoot) {
-      this.disposeObject(this.roomFloorRoot);
-      this.roomFloorRoot.removeFromParent();
-    }
-    if (this.roomUtilitiesRoot) {
-      this.disposeObject(this.roomUtilitiesRoot);
-      this.roomUtilitiesRoot.removeFromParent();
-    }
-    this.roomBoxGroup = null;
-    this.roomBoxWalls = [];
-    this.roomBoxFloor = null;
-    this.roomBoxFloorOutline = null;
-    this.roomBoxCeiling = null;
-    this.roomFloorRoot = null;
-    this.roomUtilitiesRoot = null;
-  }
-
-  /** Room 2.1: chão global fixo (25 m), independente da sala. Não redimensionar com bounds. */
-  private ensureStaticSceneGround(): void {
-    this.sceneManager.setGroundSize(this.defaultGroundSize, this.defaultGroundSize);
-    this.sceneManager.setGroundPosition(0, 0);
-  }
-
-  /** Chamado pelo RoomManager quando a sala é criada/atualizada. Adiciona o grupo à cena e regista paredes/bounds. */
   setRoomFromManager(
     walls: WallEntryForViewer[],
     bounds: RoomBounds,
     group: THREE.Group
   ): void {
-    if (this.roomBoxGroup && this.roomBoxGroup !== group) {
-      this.sceneManager.root.remove(this.roomBoxGroup);
-    }
-    this.roomBoxGroup = group;
-    this.roomBoxWalls = walls;
-    this.roomBoxFloor = null;
-    this.roomBoxFloorOutline = null;
-    this.roomBoxCeiling = null;
-    this.roomBounds = bounds;
-    this.boundsCache.invalidateRoom();
-    this.sceneManager.root.add(group);
-    this.ensureStaticSceneGround();
-    this.rebuildRoomFloorAndCeiling();
-    this.applyRoomWallVisibility();
-    this.setRoomCeilingVisible(this.roomCeilingVisible);
+    setRoomFromManagerImpl(this.getRoomGeometryDeps(), walls, bounds, group);
   }
 
-  /** Chamado pelo RoomManager quando a sala é removida. Remove o grupo da cena e limpa estado. */
   clearRoomFromManager(): void {
-    this.roomBuilder.clearRoom(true);
-    if (this.roomBoxGroup) {
-      this.sceneManager.root.remove(this.roomBoxGroup);
-    }
-    this.roomBoxWalls = [];
-    this.roomBoxGroup = null;
-    this.roomBoxFloor = null;
-    this.roomBoxFloorOutline = null;
-    this.roomBoxCeiling = null;
-    this.roomFloorRoot = null;
-    this.roomUtilitiesRoot = null;
-    this.roomBounds = null;
-    this.boundsCache.invalidateRoom();
-    this.viewerState.setSelectedWallIndex(null);
-    if (this.wallGizmo) this.wallGizmo.detach();
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
-    this.ensureStaticSceneGround();
-  }
-
-  private getRoomFloorShape(expandM = 0): THREE.Shape | null {
-    if (!this.roomBounds) return null;
-    const { minX, maxX, minZ, maxZ } = this.roomBounds;
-    const shape = new THREE.Shape();
-    shape.moveTo(minX - expandM, minZ - expandM);
-    shape.lineTo(maxX + expandM, minZ - expandM);
-    shape.lineTo(maxX + expandM, maxZ + expandM);
-    shape.lineTo(minX - expandM, maxZ + expandM);
-    shape.lineTo(minX - expandM, minZ - expandM);
-    return shape;
-  }
-
-  private clearRoomFloorRoot(): void {
-    if (!this.roomFloorRoot) return;
-    this.disposeObject(this.roomFloorRoot);
-    this.roomFloorRoot.removeFromParent();
-    this.roomFloorRoot = null;
-    this.roomBoxFloor = null;
-    this.roomBoxFloorOutline = null;
-    this.roomBoxCeiling = null;
-  }
-
-  private rebuildRoomFloorAndCeiling(): void {
-    if (!this.roomBoxGroup || !this.roomBounds) return;
-    this.clearRoomFloorRoot();
-    const sceneConfig = this.materialPipeline.getSceneMaterialConfig();
-    const group = new THREE.Group();
-    group.name = "room-floor-root";
-    const expandM = getRoomFloorExpandM(this.roomFloorMode);
-    const shape = this.getRoomFloorShape(expandM);
-    if (!shape) return;
-    const floorAppearance = getRoomFloorOverlayAppearance(this.backgroundMode);
-    const floorGeom = new THREE.ShapeGeometry(shape);
-    floorGeom.rotateX(-Math.PI / 2);
-    const floorMat = createRoomFloorOverlayMaterial(floorAppearance);
-    const floor = new THREE.Mesh(floorGeom, floorMat);
-    floor.position.y = this.roomBounds.minY + 0.002;
-    floor.name = "room-floor-root";
-    floor.userData.isRoomFloor = true;
-    floor.renderOrder = 1;
-    group.add(floor);
-
-    const outline = createRoomFloorOutline(
-      this.roomBounds.minX,
-      this.roomBounds.maxX,
-      this.roomBounds.minZ,
-      this.roomBounds.maxZ,
-      expandM,
-      this.roomBounds.minY + 0.004,
-      floorAppearance.outlineColor
-    );
-    group.add(outline);
-
-    const ceilingGeom = new THREE.ShapeGeometry(shape);
-    ceilingGeom.rotateX(Math.PI / 2);
-    const ceilingMat = new THREE.MeshStandardMaterial({
-      color: sceneConfig.roomBox.color,
-      roughness: sceneConfig.roomBox.roughness,
-      metalness: sceneConfig.roomBox.metalness,
-      transparent: true,
-      opacity: Math.min(0.45, sceneConfig.roomBox.opacity),
-      side: THREE.DoubleSide,
-    });
-    const ceiling = new THREE.Mesh(ceilingGeom, ceilingMat);
-    ceiling.position.y = this.roomBounds.maxY;
-    ceiling.name = "room-ceiling";
-    ceiling.userData.isRoomCeiling = true;
-    ceiling.visible = this.roomCeilingVisible;
-    group.add(ceiling);
-
-    this.roomBoxGroup.add(group);
-    this.roomFloorRoot = group;
-    this.roomBoxFloor = floor;
-    this.roomBoxFloorOutline = outline;
-    this.roomBoxCeiling = ceiling;
-    this.applyBackgroundMode();
-  }
-
-  private clearRoomUtilitiesRoot(): void {
-    this.roomBoxWalls.forEach((entry) => {
-      const toRemove = entry.mesh.children.filter((child) => child.userData?.roomUtilityId);
-      toRemove.forEach((child) => {
-        entry.mesh.remove(child);
-        this.disposeObject(child);
-      });
-    });
-    if (!this.roomUtilitiesRoot) return;
-    this.roomUtilitiesRoot.removeFromParent();
-    this.roomUtilitiesRoot = null;
-  }
-
-  private utilityColor(type: ProjectRoomUtility["type"]): number {
-    if (type === "WaterPoint") return 0x38bdf8;
-    if (type === "DrainPoint") return 0x64748b;
-    return 0xfacc15;
-  }
-
-  private rebuildRoomUtilities(utilities: ProjectRoomUtility[]): void {
-    this.clearRoomUtilitiesRoot();
-    if (!this.roomBoxGroup || !utilities.length) return;
-    const root = new THREE.Group();
-    root.name = "room-utilities-root";
-    const wallsByProjectId = new Map<string, THREE.Mesh>();
-    this.roomBoxWalls.forEach((entry) => {
-      const key = String(entry.mesh.userData.wallProjectId ?? entry.mesh.userData.wallId ?? entry.id);
-      wallsByProjectId.set(key, entry.mesh);
-    });
-    utilities.forEach((utility) => {
-      const wall = wallsByProjectId.get(utility.wallId);
-      if (!wall) return;
-      const wallLenMm = (wall.userData.wallLengthMm as number | undefined) ?? 1000;
-      const wallHeightMm = (wall.userData.wallHeightMm as number | undefined) ?? 2600;
-      const wallLenM = wallLenMm / 1000;
-      const wallHeightM = wallHeightMm / 1000;
-      const t = (wall.userData.wallThicknessM as number | undefined) ?? 0.12;
-      const marker = new THREE.Group();
-      marker.name = `room-utility-${utility.type}`;
-      marker.userData.roomUtilityId = utility.id;
-      marker.userData.roomUtility = { ...utility };
-      const plate = new THREE.Mesh(
-        new THREE.BoxGeometry(0.16, 0.16, 0.018),
-        new THREE.MeshStandardMaterial({ color: this.utilityColor(utility.type), roughness: 0.55, metalness: 0.05 })
-      );
-      plate.userData.roomUtilityId = utility.id;
-      marker.add(plate);
-      const x = -wallLenM / 2 + Math.max(0, Math.min(wallLenMm, utility.positionAlongWall)) / 1000;
-      const y = -wallHeightM / 2 + Math.max(0, Math.min(wallHeightMm, utility.heightMm)) / 1000;
-      marker.position.set(x, y, t / 2 + 0.04);
-      wall.add(marker);
-    });
-    this.roomBoxGroup.add(root);
-    this.roomUtilitiesRoot = root;
-    this.applyRoomWallVisibility();
-  }
-
-  private getRoomUtilityById(utilityId: string): THREE.Object3D | null {
-    for (const wall of this.roomBoxWalls) {
-      const found = wall.mesh.children.find((child) => child.userData?.roomUtilityId === utilityId);
-      if (found) return found;
-    }
-    return null;
+    clearRoomFromManagerImpl(this.getRoomGeometryDeps());
   }
 
   setRoomBounds(bounds: {
@@ -3436,20 +3194,11 @@ export class ViewerCore {
     originX?: number;
     originZ?: number;
   }): void {
-    void bounds;
-    // Compatibilidade legada: bounds diretos foram substituídos por RoomManager/createRoomWithDimensions.
-    this.clearRoomBounds();
+    setRoomBoundsImpl(this.getRoomGeometryDeps(), bounds);
   }
 
   clearRoomBounds(): void {
-    if (this.roomManager?.room) {
-      this.roomManager.removeRoom();
-      return;
-    }
-    this.roomBounds = null;
-    this.ensureStaticSceneGround();
-    this.clearRoomBox();
-    this.roomBuilder.clearRoom(true);
+    clearRoomBoundsImpl(this.getRoomGeometryDeps());
   }
 
   /**
@@ -4177,6 +3926,77 @@ export class ViewerCore {
       getCamera: () => this.cameraManager.camera,
       getCanvas: () => this.rendererManager.renderer.domElement,
       boxSceneController: this.boxSceneController,
+    };
+  }
+
+  private getRoomGeometryDeps(): ViewerCoreRoomGeometryDeps {
+    return {
+      getRoomBoxGroup: () => this.roomBoxGroup,
+      setRoomBoxGroup: (group) => {
+        this.roomBoxGroup = group;
+      },
+      getRoomBoxWalls: () => this.roomBoxWalls,
+      setRoomBoxWalls: (walls) => {
+        this.roomBoxWalls = walls;
+      },
+      getRoomBoxFloor: () => this.roomBoxFloor,
+      setRoomBoxFloor: (floor) => {
+        this.roomBoxFloor = floor;
+      },
+      getRoomBoxFloorOutline: () => this.roomBoxFloorOutline,
+      setRoomBoxFloorOutline: (outline) => {
+        this.roomBoxFloorOutline = outline;
+      },
+      getRoomBoxCeiling: () => this.roomBoxCeiling,
+      setRoomBoxCeiling: (ceiling) => {
+        this.roomBoxCeiling = ceiling;
+      },
+      getRoomFloorRoot: () => this.roomFloorRoot,
+      setRoomFloorRoot: (root) => {
+        this.roomFloorRoot = root;
+      },
+      getRoomUtilitiesRoot: () => this.roomUtilitiesRoot,
+      setRoomUtilitiesRoot: (root) => {
+        this.roomUtilitiesRoot = root;
+      },
+      getRoomBounds: () => this.roomBounds,
+      setRoomBounds: (bounds) => {
+        this.roomBounds = bounds;
+      },
+      getRoomCeilingVisible: () => this.roomCeilingVisible,
+      setRoomCeilingVisibleFlag: (visible) => {
+        this.roomCeilingVisible = visible;
+      },
+      getRoomFloorMode: () => this.roomFloorMode,
+      setRoomFloorModeState: (mode) => {
+        this.roomFloorMode = mode;
+      },
+      getHiddenRoomWallIds: () => this.hiddenRoomWallIds,
+      setHiddenRoomWallIds: (ids) => {
+        this.hiddenRoomWallIds = ids;
+      },
+      getManualHiddenWallId: () => this.manualHiddenWallId,
+      setManualHiddenWallId: (id) => {
+        this.manualHiddenWallId = id;
+      },
+      sceneManager: this.sceneManager,
+      materialPipeline: this.materialPipeline,
+      boundsCache: this.boundsCache,
+      roomBuilder: this.roomBuilder,
+      wallGizmo: this.wallGizmo,
+      viewerState: this.viewerState,
+      getRoomManager: () => this.roomManager,
+      defaultGroundSize: this.defaultGroundSize,
+      getBackgroundMode: () => this.backgroundMode,
+      disposeObject: (object) => this.disposeObject(object),
+      applyBackgroundMode: () => this.applyBackgroundMode(),
+      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
+      refreshOutlineTarget: () => this.refreshOutlineTarget(),
+      getWallIdInFrontOfCamera: () => this.pointerPicking.getWallIdInFrontOfCamera(),
+      getCamera: () => this.cameraManager.camera,
+      onWallTransform: this.onWallTransform,
+      onRoomElementTransform: this.onRoomElementTransform,
+      onRoomUtilityTransform: this.onRoomUtilityTransform,
     };
   }
 
@@ -5432,58 +5252,16 @@ export class ViewerCore {
 
   /** Esconde a parede que está entre a câmera e o centro da sala. */
   private updateWallVisibilityBasedOnCamera(): void {
-    if (!this.roomBounds) return;
-    const cam = this.cameraManager.camera;
-    const wallsMain = this.roomBoxWalls
-      .map((w) => w.mesh)
-      .filter((m) => m.userData?.isMainWall === true);
-
-    updateWallCulling(cam, this.roomBounds, wallsMain);
-    this.applyRoomWallVisibility();
-  }
-
-  private applyRoomWallVisibility(): void {
-    this.roomBoxWalls.forEach((entry) => {
-      if (!this.hiddenRoomWallIds.has(entry.id)) return;
-      entry.mesh.visible = false;
-      entry.mesh.children.forEach((child) => {
-        if (child.userData?.elementId || child.userData?.roomUtilityId) child.visible = false;
-      });
-    });
-
-    // Override manual continua com prioridade.
-    if (this.manualHiddenWallId !== null) {
-      this.roomBoxWalls.forEach((entry) => {
-        if (entry.id === this.manualHiddenWallId) {
-          entry.mesh.visible = false;
-        }
-      });
-    }
-  }
-
-  private getWallIdInFrontOfCamera(): number | null {
-    return this.pointerPicking.getWallIdInFrontOfCamera();
+    updateWallVisibilityBasedOnCameraImpl(this.getRoomGeometryDeps());
   }
 
   /** Esconde/mostra uma parede manualmente. Auto-hide continua ativo. */
   setManualWallHidden(active: boolean): void {
-    if (!active) {
-      this.manualHiddenWallId = null;
-      this.roomBoxWalls.forEach((w) => {
-        w.mesh.visible = true;
-      });
-      return;
-    }
-    const wallId = this.viewerState.getSelectedWallIndex() ?? this.getWallIdInFrontOfCamera();
-    if (wallId === null) return;
-    this.manualHiddenWallId = wallId;
-    this.roomBoxWalls.forEach((w) => {
-      if (w.id === wallId) w.mesh.visible = false;
-    });
+    setManualWallHiddenImpl(this.getRoomGeometryDeps(), active);
   }
 
   getManualWallHidden(): boolean {
-    return this.manualHiddenWallId !== null;
+    return getManualWallHiddenImpl(this.getRoomGeometryDeps());
   }
 
   private applyRoomConstraint(movingMesh: THREE.Object3D, options: { ignoreY?: boolean } = {}): void {
@@ -5550,73 +5328,20 @@ export class ViewerCore {
     return computeTransformGizmoSizeForBox(entry);
   }
 
-  private notifyWallTransform() {
-    if (this.viewerState.getSelectedWallIndex() === null) return;
-    const wall = this.roomBoxWalls.find((w) => w.id === this.viewerState.getSelectedWallIndex())?.mesh;
-    if (!wall) return;
-    const rotationDeg = (wall.rotation.y * 180) / Math.PI;
-    if (
-      this.roomManager?.room &&
-      this.roomManager.locked &&
-      this.viewerState.getSelectedWallIndex() >= 0 &&
-      this.viewerState.getSelectedWallIndex() <= 3
-    ) {
-      this.roomManager.onMainWallTransformed(
-        this.viewerState.getSelectedWallIndex(),
-        { x: wall.position.x, z: wall.position.z },
-        rotationDeg
-      );
-    }
-    const wallAfter = this.roomBoxWalls.find((w) => w.id === this.viewerState.getSelectedWallIndex())?.mesh;
-    if (wallAfter && this.onWallTransform) {
-      const { x, z } = wallAfter.position;
-      const rotDeg = (wallAfter.rotation.y * 180) / Math.PI;
-      this.onWallTransform(this.viewerState.getSelectedWallIndex(), { x, z }, rotDeg);
-    }
-    this.roomManager?.refreshDynamicBounds();
+  private notifyWallTransform(): void {
+    notifyWallTransformImpl(this.getRoomGeometryDeps());
   }
 
-  private notifyRoomElementTransform() {
-    if (!this.viewerState.getSelectedRoomElementId() || !this.onRoomElementTransform) return;
-    const element = this.roomBuilder.getElementById(this.viewerState.getSelectedRoomElementId());
-    if (!element || !element.parent) return;
-    const wall = element.parent as THREE.Mesh;
-    const wallLenMm = (wall.userData.wallLengthMm as number) ?? 4000;
-    const wallHeightMm = (wall.userData.wallHeightMm as number) ?? 2800;
-    const wallLenM = wallLenMm * 0.001;
-    element.updateMatrixWorld(true);
-    wall.updateMatrixWorld(true);
-    const localPos = new THREE.Vector3();
-    element.getWorldPosition(localPos);
-    wall.worldToLocal(localPos);
-    const cur = element.userData.config as DoorWindowConfig;
-    let horizontalOffsetMm = (localPos.x + wallLenM / 2) * 1000 - cur.widthMm / 2;
-    let floorOffsetMm = localPos.y * 1000 - cur.heightMm / 2;
-    horizontalOffsetMm = Math.max(0, Math.min(wallLenMm - cur.widthMm, horizontalOffsetMm));
-    floorOffsetMm = Math.max(0, Math.min(wallHeightMm - cur.heightMm, floorOffsetMm));
-    horizontalOffsetMm = snapHorizontalOffset(horizontalOffsetMm, cur.widthMm, wallLenMm, true);
-    const config: DoorWindowConfig = {
-      ...cur,
-      horizontalOffsetMm,
-      floorOffsetMm,
-    };
-    this.onRoomElementTransform(this.viewerState.getSelectedRoomElementId(), config);
+  private notifyRoomElementTransform(): void {
+    notifyRoomElementTransformImpl(this.getRoomGeometryDeps());
   }
 
-  private notifyRoomUtilityTransform() {
-    const utilityId = this.viewerState.getSelectedRoomUtilityId();
-    if (!utilityId || !this.onRoomUtilityTransform) return;
-    const utility = this.getRoomUtilityById(utilityId);
-    if (!utility || !(utility.parent instanceof THREE.Mesh)) return;
-    const wall = utility.parent as THREE.Mesh;
-    const wallLenMm = (wall.userData.wallLengthMm as number | undefined) ?? 1000;
-    const wallHeightMm = (wall.userData.wallHeightMm as number | undefined) ?? 2600;
-    const wallLenM = wallLenMm / 1000;
-    let positionAlongWall = (utility.position.x + wallLenM / 2) * 1000;
-    let heightMm = (utility.position.y + wallHeightMm / 2000) * 1000;
-    positionAlongWall = Math.max(0, Math.min(wallLenMm, positionAlongWall));
-    heightMm = Math.max(0, Math.min(wallHeightMm, heightMm));
-    this.onRoomUtilityTransform(utilityId, { positionAlongWall, heightMm });
+  private notifyRoomUtilityTransform(): void {
+    notifyRoomUtilityTransformImpl(this.getRoomGeometryDeps());
+  }
+
+  private getRoomUtilityById(utilityId: string): THREE.Object3D | null {
+    return getRoomUtilityByIdImpl(this.getRoomGeometryDeps(), utilityId);
   }
 
   private loadMaterial(materialName: string): LoadedWoodMaterial | null {
