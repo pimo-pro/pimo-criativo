@@ -140,6 +140,7 @@ import { TransformConstraints, type ClampTransformContext } from "./constraints/
 import { SnapEngine, type SnapAlignTarget } from "./snapping/SnapEngine";
 import { applyFinishMovementConstraints } from "./constraints/finishCollision";
 import { MeasurementEngine } from "./measurement/MeasurementEngine";
+import { ensureViewerMeasurementEngine } from "./engines/MeasurementEngine";
 import type { RulerMeasurementHit, UnifiedMeasurement } from "./measurement/unifiedMeasurementTypes";
 import type { InternalRulerFacade } from "./measurement/internalRulerFacade";
 import type { InternalCavityMeasurements } from "./measurement/internalRulerOverlayTypes";
@@ -709,7 +710,7 @@ export class ViewerCore {
     );
     this.applyMousePresetToControls();
     this.applyBackgroundMode();
-    this.measurementEngine = new MeasurementEngine({
+    this.measurementEngine = ensureViewerMeasurementEngine(null, {
       getCamera: () => this.cameraManager.camera,
       getCanvas: () => this.rendererManager.renderer.domElement,
       getContainer: () => this.container,
