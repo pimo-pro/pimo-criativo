@@ -66,10 +66,6 @@ import {
   mergeViewerMaterialSet,
 } from "./materials/materialSetState";
 import {
-  normalizeViewerMaterialQuality,
-  resolveMaterialModeForQuality,
-} from "./materials/materialQualityMode";
-import {
   disposeLoadedWoodMaterial,
   isDoorOrDrawerFrontNode,
   isDrawerClickTargetGhost,
@@ -136,6 +132,37 @@ import {
   getRoomOpeningsMmForAutoLayoutImpl,
   isMeshInsideOrTouchingRoomImpl,
 } from "./ViewerCoreRoomUtils";
+import type { ViewerCoreDisplayOpsDeps } from "./ViewerCoreDisplayOps";
+import {
+  applyBackgroundModeImpl,
+  getBackgroundModeImpl,
+  getCurrentModeImpl,
+  getGlobalLightIntensityImpl,
+  getGlossIntensityImpl,
+  getMaterialQualityImpl,
+  getMatteModeImpl,
+  getPhotoModeEnabledImpl,
+  getReflectionsEnabledImpl,
+  getShadowIntensityImpl,
+  getShowcaseModeImpl,
+  getUltraPerformanceModeImpl,
+  getUltraPerformanceModeOptionsImpl,
+  lerpLightsToTargetImpl,
+  reapplyDisplayMaterialsImpl,
+  setBackgroundModeImpl,
+  setGlobalLightIntensityImpl,
+  setGlossIntensityImpl,
+  setMaterialQualityImpl,
+  setMatteModeImpl,
+  setModeImpl,
+  setPhotoModeEnabledImpl,
+  setReflectionsEnabledImpl,
+  setShowcaseModeImpl,
+  setUltraPerformanceModeImpl,
+  setUltraPerformanceModeOptionsImpl,
+  updateReflectionProbeImpl,
+  updateShadowIntensityImpl,
+} from "./ViewerCoreDisplayOps";
 import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
 import {
   applyRemateKeyboardTransformImpl,
@@ -1077,7 +1104,7 @@ export class ViewerCore {
   }
 
   getCurrentMode(): "performance" | "showcase" {
-    return this.viewerState.getCurrentMode();
+    return getCurrentModeImpl(this.getDisplayOpsDeps());
   }
 
   private ensureLightingEngine(): LightingEngine {
@@ -1413,133 +1440,58 @@ export class ViewerCore {
   }
 
   setMode(mode: "performance" | "showcase", turntable = false): void {
-    this.viewerState.setCurrentMode(mode);
-    this.turntableEnabled = mode === "showcase" && turntable;
-    this.lights.setShadowMapSize(this.isMobile ? 1024 : 4096);
-    if (mode === "showcase") {
-      this.ensureComposerEngine().setMode("showcase");
-    } else {
-      this.composerEngine?.setMode("performance");
-    }
-    this.syncDisplayQualityVisualPipeline();
+    setModeImpl(this.getDisplayOpsDeps(), mode, turntable);
   }
 
   setShowcaseMode(active: boolean, turntable = false): void {
-    this.setMode(active ? "showcase" : "performance", turntable);
+    setShowcaseModeImpl(this.getDisplayOpsDeps(), active, turntable);
   }
 
   getShowcaseMode(): boolean {
-    return this.viewerState.getCurrentMode() === "showcase";
+    return getShowcaseModeImpl(this.getDisplayOpsDeps());
   }
 
   setGlobalLightIntensity(value: number): void {
-    this.ensureLightingEngine().applyGlobalIntensity(value, this.ultraPerformanceMode);
-    this.syncDisplayQualityVisualPipeline();
+    setGlobalLightIntensityImpl(this.getDisplayOpsDeps(), value);
   }
 
   getGlobalLightIntensity(): number {
-    return this.lightingEngine?.globalIntensity ?? 1;
+    return getGlobalLightIntensityImpl(this.getDisplayOpsDeps());
   }
 
   setShadowIntensity(value: number): void {
-    this.updateShadowIntensity(value);
+    updateShadowIntensityImpl(this.getDisplayOpsDeps(), value);
   }
 
   getShadowIntensity(): number {
-    return this.lightingEngine?.shadowIntensity ?? 1;
+    return getShadowIntensityImpl(this.getDisplayOpsDeps());
   }
 
   /**
    * Aplica intensidade das sombras na luz principal (Three.js `shadow.intensity`) e agenda render.
    */
   updateShadowIntensity(value: number): void {
-    this.ensureLightingEngine().applyShadowIntensity(value);
-    this.syncDisplayQualityVisualPipeline();
-    this.requestRender();
+    updateShadowIntensityImpl(this.getDisplayOpsDeps(), value);
   }
 
   setUltraPerformanceMode(active: boolean): void {
-    if (this.ultraPerformanceMode === active) return;
-    this.ultraPerformanceMode = active;
-    this.ultraPerformanceModeOptions = {
-      ...this.ultraPerformanceModeOptions,
-      enabled: active,
-    };
-
-    const mode = this.ultraPerformanceModeOptions.mode;
-    const isAggressive = mode === "aggressive";
-    const isFlat2 = mode === "flat2";
-
-    if (active) {
-      this.ensureLightingEngine().beginUltraLights(isAggressive);
-      this.reflectionUpdateIntervalFrames = this.isMobile ? 30 : 18;
-
-      if (!this.ultraRenderState) {
-        this.ultraRenderState = {
-          materialQuality: this.materialQuality,
-          reflectionsEnabled: this.reflectionsEnabled,
-          toneMappingExposure: this.rendererManager.renderer.toneMappingExposure,
-        };
-      }
-
-      this.setMaterialQuality("lacquered");
-      this.setReflectionsEnabled(true);
-      this.rendererManager.renderer.toneMappingExposure = Math.max(this.baseToneMappingExposure, 1.08);
-
-      const optimizedRatio = this.isMobile
-        ? Math.min(this.defaultPixelRatio, 0.95)
-        : Math.min(this.defaultPixelRatio, 1.2);
-      this.rendererManager.renderer.setPixelRatio(optimizedRatio);
-      this.applyUltraMaterialProfile(isFlat2, false);
-    } else {
-      this.lightingEngine?.endUltraLights();
-      this.reflectionUpdateIntervalFrames = this.isMobile ? 36 : 24;
-      if (this.ultraRenderState) {
-        this.setMaterialQuality(this.ultraRenderState.materialQuality);
-        this.setReflectionsEnabled(this.ultraRenderState.reflectionsEnabled);
-        this.rendererManager.renderer.toneMappingExposure = this.ultraRenderState.toneMappingExposure;
-        this.ultraRenderState = null;
-      }
-      this.rendererManager.renderer.setPixelRatio(this.defaultPixelRatio);
-      this.applyUltraMaterialProfile(false, false);
-    }
-
-    this.updateCanvasSize();
+    setUltraPerformanceModeImpl(this.getDisplayOpsDeps(), active);
   }
 
   setUltraPerformanceModeOptions(options: UltraPerformanceModeOptions): void {
-    const nextMode =
-      options.mode === "flat2" || options.mode === "aggressive" || options.mode === "balanced"
-        ? options.mode
-        : "balanced";
-    this.ultraPerformanceModeOptions = {
-      enabled: Boolean(options.enabled),
-      mode: nextMode,
-    };
-    if (this.ultraPerformanceMode !== this.ultraPerformanceModeOptions.enabled) {
-      this.setUltraPerformanceMode(this.ultraPerformanceModeOptions.enabled);
-      return;
-    }
-    if (this.ultraPerformanceMode) {
-      this.setUltraPerformanceMode(false);
-      this.setUltraPerformanceMode(true);
-    }
+    setUltraPerformanceModeOptionsImpl(this.getDisplayOpsDeps(), options);
   }
 
   getUltraPerformanceModeOptions(): UltraPerformanceModeOptions {
-    return { ...this.ultraPerformanceModeOptions };
-  }
-
-  private applyUltraMaterialProfile(flat2Active: boolean, aggressive: boolean): void {
-    this.ultraMaterials.apply(this.sceneManager.root, flat2Active, aggressive);
+    return getUltraPerformanceModeOptionsImpl(this.getDisplayOpsDeps());
   }
 
   private lerpLightsToTarget(): void {
-    this.lightingEngine?.lerpToTarget();
+    lerpLightsToTargetImpl(this.getDisplayOpsDeps());
   }
 
   getUltraPerformanceMode(): boolean {
-    return this.ultraPerformanceMode;
+    return getUltraPerformanceModeImpl(this.getDisplayOpsDeps());
   }
 
   setLockEnabled(enabled: boolean): void {
@@ -2610,212 +2562,65 @@ export class ViewerCore {
   }
 
   private applyBackgroundMode(): void {
-    const renderer = this.rendererManager.renderer;
-    const mode = this.backgroundMode;
-    const sceneBackgroundByMode: Record<ViewerBackgroundMode, string> = {
-      studio: "#0f172a",
-      white: "#ffffff",
-      dark: "#020617",
-      woodFloor: "#f8fafc",
-    };
-    const clearColor = sceneBackgroundByMode[mode];
-    this.sceneEngine.setBackground(clearColor);
-    renderer.setClearColor(clearColor, 1);
-
-    if (mode === "woodFloor") {
-      this.sceneManager.setGroundAppearance({
-        color: "#9a7452",
-        roughness: 0.9,
-        metalness: 0.02,
-      });
-    } else if (mode === "dark") {
-      this.sceneManager.setGroundAppearance({
-        color: "#1f2937",
-        roughness: 0.92,
-        metalness: 0,
-      });
-    } else if (mode === "white") {
-      this.sceneManager.setGroundAppearance({
-        color: "#e5e7eb",
-        roughness: 0.92,
-        metalness: 0,
-      });
-    } else {
-      this.sceneManager.setGroundAppearance({
-        color: "#d4dae2",
-        roughness: 0.92,
-        metalness: 0,
-      });
-    }
-
-    const roomFloorAppearance = getRoomFloorOverlayAppearance(mode);
-    const applyRoomFloorOverlayMaterial = (material: THREE.MeshStandardMaterial) => {
-      material.color.set(roomFloorAppearance.color);
-      material.roughness = roomFloorAppearance.roughness;
-      material.metalness = roomFloorAppearance.metalness;
-      material.opacity = roomFloorAppearance.opacity;
-      material.transparent = roomFloorAppearance.opacity < 1;
-      material.needsUpdate = true;
-    };
-
-    if (this.roomBoxFloor?.material instanceof THREE.MeshStandardMaterial) {
-      applyRoomFloorOverlayMaterial(this.roomBoxFloor.material);
-    }
-
-    this.sceneManager.root.traverse((node) => {
-      if (!(node instanceof THREE.Mesh)) return;
-      if (node.userData?.isRoomFloor !== true) return;
-      if (!(node.material instanceof THREE.MeshStandardMaterial)) return;
-      applyRoomFloorOverlayMaterial(node.material);
-    });
-
-    if (this.roomBoxFloorOutline?.material instanceof THREE.LineBasicMaterial) {
-      this.roomBoxFloorOutline.material.color.set(roomFloorAppearance.outlineColor);
-      this.roomBoxFloorOutline.material.needsUpdate = true;
-    }
-
-    this.sceneManager.root.traverse((node) => {
-      if (!(node instanceof THREE.LineLoop)) return;
-      if (node.userData?.isRoomFloorOutline !== true) return;
-      if (!(node.material instanceof THREE.LineBasicMaterial)) return;
-      node.material.color.set(roomFloorAppearance.outlineColor);
-      node.material.needsUpdate = true;
-    });
-    this.sceneManager.setMaterialQuality(this.materialQuality);
+    applyBackgroundModeImpl(this.getDisplayOpsDeps());
   }
 
   /** Orquestrador: quality → glossIntensity → matteMode.
    * Único ponto de reconciliação de brilho. Substitui applyMaterialQualityProfile. */
   private reapplyDisplayMaterials(): void {
-    this.displayMaterials.reapply(this.sceneManager.root, {
-      materialQuality: this.materialQuality,
-      glossIntensity: this.glossIntensity,
-      matteMode: this.matteMode,
-    });
+    reapplyDisplayMaterialsImpl(this.getDisplayOpsDeps());
   }
 
   setGlossIntensity(value: number): void {
-    this.glossIntensity = Math.max(0, Math.min(1, value));
-    this.reapplyDisplayMaterials();
+    setGlossIntensityImpl(this.getDisplayOpsDeps(), value);
   }
 
   getGlossIntensity(): number {
-    return this.glossIntensity;
+    return getGlossIntensityImpl(this.getDisplayOpsDeps());
   }
 
   setMatteMode(enabled: boolean): void {
-    this.matteMode = Boolean(enabled);
-    this.reapplyDisplayMaterials();
+    setMatteModeImpl(this.getDisplayOpsDeps(), enabled);
   }
 
   getMatteMode(): boolean {
-    return this.matteMode;
+    return getMatteModeImpl(this.getDisplayOpsDeps());
   }
 
   setBackgroundMode(mode: ViewerBackgroundMode): void {
-    this.backgroundMode =
-      mode === "white" || mode === "dark" || mode === "woodFloor" ? mode : "studio";
-    this.applyBackgroundMode();
+    setBackgroundModeImpl(this.getDisplayOpsDeps(), mode);
   }
 
   getBackgroundMode(): ViewerBackgroundMode {
-    return this.backgroundMode;
+    return getBackgroundModeImpl(this.getDisplayOpsDeps());
   }
 
   setMaterialQuality(quality: ViewerMaterialQuality): void {
-    this.materialQuality = normalizeViewerMaterialQuality(quality);
-    this.materialPipeline.setLacqueredClearcoatPipeline(this.materialQuality === "lacquered");
-    this.sceneManager.setMaterialQuality(this.materialQuality);
-    this.reapplyDisplayMaterials();
-    this.setMaterialMode(resolveMaterialModeForQuality(this.materialQuality));
-    this.syncDisplayQualityVisualPipeline();
+    setMaterialQualityImpl(this.getDisplayOpsDeps(), quality);
   }
 
   getMaterialQuality(): ViewerMaterialQuality {
-    return this.materialQuality;
-  }
-
-  private getReflectionProbeCenter(): { x: number; y: number; z: number } {
-    if (this.roomBounds) {
-      return {
-        x: this.roomBounds.centerX,
-        y: Math.max(0.8, this.roomBounds.minY + (this.roomBounds.maxY - this.roomBounds.minY) * 0.45),
-        z: this.roomBounds.centerZ,
-      };
-    }
-    if (this.boxes.size > 0) {
-      const roots = Array.from(this.boxes.values()).map((e) => e.mesh);
-      runWithAllLayoutBoundsProxiesVisible(roots, () => {
-        this._boundingBox.makeEmpty();
-        this.boxes.forEach((entry) => {
-          this._boundingBox.expandByObject(entry.mesh);
-        });
-      });
-      this._boundingBox.getCenter(this._center);
-      return { x: this._center.x, y: Math.max(0.8, this._center.y), z: this._center.z };
-    }
-    return { x: 0, y: 1.2, z: 0 };
+    return getMaterialQualityImpl(this.getDisplayOpsDeps());
   }
 
   private updateReflectionProbe(force = false): void {
-    if (!this.reflectionsEnabled) return;
-    this.sceneManager.updateReflectionProbe(this.rendererManager.renderer, {
-      center: this.getReflectionProbeCenter(),
-      force,
-    });
+    updateReflectionProbeImpl(this.getDisplayOpsDeps(), force);
   }
 
   setReflectionsEnabled(enabled: boolean): void {
-    this.reflectionsEnabled = Boolean(enabled);
-    this.sceneManager.setReflectionsEnabled(this.reflectionsEnabled, this.rendererManager.renderer);
-    if (this.reflectionsEnabled) {
-      this.updateReflectionProbe(true);
-    }
-    this.syncDisplayQualityVisualPipeline();
+    setReflectionsEnabledImpl(this.getDisplayOpsDeps(), enabled);
   }
 
   getReflectionsEnabled(): boolean {
-    return this.reflectionsEnabled;
+    return getReflectionsEnabledImpl(this.getDisplayOpsDeps());
   }
 
   setPhotoModeEnabled(enabled: boolean): void {
-    this.photoModeEnabled = Boolean(enabled);
-    this.rendererManager.renderer.toneMappingExposure = this.photoModeEnabled
-      ? Math.max(this.baseToneMappingExposure, 1.2)
-      : this.baseToneMappingExposure;
-    if (!this.photoModeEnabled) this.syncDisplayQualityVisualPipeline();
-  }
-
-  private resolveDisplayQualityLevel(): "baixa" | "media" | "alta" {
-    if (this.reflectionsEnabled) return "alta";
-    if (this.materialQuality === "standard") return "baixa";
-    return "media";
-  }
-
-  /**
-   * Sincroniza apenas a pipeline de qualidade do viewer para Baixa/Média/Alta.
-   * - Não mexe em Ultra performance nem em Photo Mode (mantém “correcto”).
-   */
-  private syncDisplayQualityVisualPipeline(): void {
-    if (this.photoModeEnabled || this.ultraPerformanceMode) return;
-
-    const level = this.resolveDisplayQualityLevel();
-
-    const exposureFactor = level === "baixa" ? 1.0 : level === "media" ? 1.0 : 0.92;
-    this.rendererManager.renderer.toneMappingExposure = this.baseToneMappingExposure * exposureFactor;
-
-    this.ensureLightingEngine().applyShadowQualityProfile(level);
-
-    const composer = this.ensureComposerEngine();
-    composer.applyDisplayQualityBloomProfiles(level);
-
-    const currentMode = this.viewerState.getCurrentMode();
-    if (currentMode === "showcase") composer.ensureShowcase();
-    else composer.ensureMain();
+    setPhotoModeEnabledImpl(this.getDisplayOpsDeps(), enabled);
   }
 
   getPhotoModeEnabled(): boolean {
-    return this.photoModeEnabled;
+    return getPhotoModeEnabledImpl(this.getDisplayOpsDeps());
   }
 
   setExplodedViewEnabled(enabled: boolean): void {
@@ -4300,6 +4105,79 @@ export class ViewerCore {
       boundingBox: this._boundingBox,
       boundsCache: this.boundsCache,
       roomBuilder: this.roomBuilder,
+    };
+  }
+
+  private getDisplayOpsDeps(): ViewerCoreDisplayOpsDeps {
+    return {
+      viewerState: this.viewerState,
+      getTurntableEnabled: () => this.turntableEnabled,
+      setTurntableEnabled: (enabled) => {
+        this.turntableEnabled = enabled;
+      },
+      isMobile: this.isMobile,
+      lights: this.lights,
+      ensureLightingEngine: () => this.ensureLightingEngine(),
+      getLightingEngine: () => this.lightingEngine,
+      ensureComposerEngine: () => this.ensureComposerEngine(),
+      getComposerEngine: () => this.composerEngine,
+      getUltraPerformanceMode: () => this.ultraPerformanceMode,
+      setUltraPerformanceModeFlag: (active) => {
+        this.ultraPerformanceMode = active;
+      },
+      getUltraPerformanceModeOptions: () => this.ultraPerformanceModeOptions,
+      setUltraPerformanceModeOptionsState: (options) => {
+        this.ultraPerformanceModeOptions = options;
+      },
+      getUltraRenderState: () => this.ultraRenderState,
+      setUltraRenderState: (state) => {
+        this.ultraRenderState = state;
+      },
+      getMaterialQuality: () => this.materialQuality,
+      setMaterialQualityState: (quality) => {
+        this.materialQuality = quality;
+      },
+      getReflectionsEnabled: () => this.reflectionsEnabled,
+      setReflectionsEnabledState: (enabled) => {
+        this.reflectionsEnabled = enabled;
+      },
+      getPhotoModeEnabled: () => this.photoModeEnabled,
+      setPhotoModeEnabledState: (enabled) => {
+        this.photoModeEnabled = enabled;
+      },
+      getMatteMode: () => this.matteMode,
+      setMatteModeState: (enabled) => {
+        this.matteMode = enabled;
+      },
+      getBackgroundMode: () => this.backgroundMode,
+      setBackgroundModeState: (mode) => {
+        this.backgroundMode = mode;
+      },
+      getGlossIntensity: () => this.glossIntensity,
+      setGlossIntensityState: (value) => {
+        this.glossIntensity = value;
+      },
+      getReflectionUpdateIntervalFrames: () => this.reflectionUpdateIntervalFrames,
+      setReflectionUpdateIntervalFrames: (frames) => {
+        this.reflectionUpdateIntervalFrames = frames;
+      },
+      baseToneMappingExposure: this.baseToneMappingExposure,
+      defaultPixelRatio: this.defaultPixelRatio,
+      rendererManager: this.rendererManager,
+      sceneEngine: this.sceneEngine,
+      sceneManager: this.sceneManager,
+      getRoomBoxFloor: () => this.roomBoxFloor,
+      getRoomBoxFloorOutline: () => this.roomBoxFloorOutline,
+      displayMaterials: this.displayMaterials,
+      ultraMaterials: this.ultraMaterials,
+      materialPipeline: this.materialPipeline,
+      getRoomBounds: () => this.roomBounds,
+      boxes: this.boxes,
+      boundingBox: this._boundingBox,
+      center: this._center,
+      setMaterialMode: (mode) => this.setMaterialMode(mode),
+      updateCanvasSize: () => this.updateCanvasSize(),
+      requestRender: () => this.requestRender(),
     };
   }
 
