@@ -57,7 +57,8 @@ ProjectContext (src/context/)
 
 **Zustand stores** (`src/stores/`) handle UI-only state that doesn't need persistence:
 - `uiStore.ts` — selected tool, selection state
-- `wallStore.ts` — derived view (cm) of `ProjectState.room` (mm SSOT); synced by `RoomEngine.applyProjectRoomToWallStore`
+- `wallStore.ts` — vista derivada (cm) de `ProjectState.room` (mm SSOT); sincronizado por `RoomEngine.applyProjectRoomToWallStore`
+- `roomSnapshot` — snapshot derivado persistido (cm), promovido em load para o SSOT (Z-03.7)
 
 ### 3D Viewer Architecture
 
@@ -107,7 +108,7 @@ Box dimensions + rules → BoxModule (core/box/) → CutListItem[] → PDF / CNC
 - `src/core/drawers/` — drawer geometry, BOM, and generation service
 - `src/core/cnc/` — KDT/CNC file generation
 - `src/core/panel/` — panel constants
-- PDF export: `jspdf` + `jspdf-autotable` via `src/core/export/`
+- PDF export: `jspdf` + `jspdf-autotable` via `src/core/pdf/`
 
 ### Rules Engine
 
@@ -131,3 +132,18 @@ Accessible at `/admin`. Admin pages manage: materials CRUD, CAD models catalog, 
 - Language: variable names and comments are in **Portuguese** throughout the codebase (domain terms: `caixa`=cabinet, `gaveta`=drawer, `porta`=door, `prateleira`=shelf, `parede`=wall, `peça`=piece/part)
 - `src/3d/` contains legacy 3D helpers; new viewer code lives in `src/viewer/`
 - Dev-only tools under `src/__dev__/` (only loaded when `import.meta.env.DEV`)
+
+### Sala / room: SSOT e vistas derivadas
+
+- **SSOT canónico:** `ProjectState.room` (tipo `ProjectRoomConfig`) em **mm**.
+- **Vista derivada em tempo real:** `wallStore` em **cm**, sincronizado por `RoomEngine.applyProjectRoomToWallStore`.
+- **Sidecar derivado para persistência/compatibilidade:** `roomSnapshot` em **cm**.
+- **Unificação de persistência (Z-03.7):** no load, se `project.room` estiver ausente mas `roomSnapshot` existir, promovemos `roomSnapshot -> project.room` via `wallStoreToProjectRoom` + `normalizeProjectRoom`. Assim preserva-se o SSOT mm sem risco de mistura mm/cm.
+
+### Isolamento do pipeline industrial
+
+A pipeline industrial (CNC, DRILL, PI, TCN, NQR, etiquetas, técnico, XLSX) é **isolada** do subsistema de sala: não depende de `RoomManager`/`RoomEngine`/`wallStore`/`roomSnapshot` para regras industriais. A sala afecta o industrial apenas via bridge permitido (por exemplo `autoRoomFill`/Kitchen 3.0), que transforma o layout de room em `WorkspaceBoxes` — depois disso o pipeline industrial opera sobre dados de caixas/cutlist como SSOT industrial.
+
+### Prototipo V4 removido (Z-03.8)
+
+O subsistema V4 foi removido em **Z-03.8**: `src/v4/`, `src/components/v4/`, `src/pages/V4Page.tsx` e a rota `/v4` deixaram de existir. O projecto mantém apenas o viewer canónico baseado em `ViewerCore` e no sistema sala (SSOT mm → wallStore/roomSnapshot cm → render em metros).

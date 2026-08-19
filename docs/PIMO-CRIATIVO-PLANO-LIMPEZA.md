@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.34 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico; **Z-03.2** classificação; **Z-03.3** unificação SSOT sala; **Z-03.4** remoção legado sala (19 de Agosto de 2026) |
-| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1–3.4 sala (Z-03.3 SSOT; Z-03.4 remoção legado) |
+| **Versão do plano** | 1.39 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico; **Z-03.2** classificação; **Z-03.3** unificação SSOT sala (tag z-03-3-room-ssot); **Z-03.4** remoção legado sala (tag z-03-4-room-legacy-removal); **Z-03.5** limpeza sistemas paralelos sala (tag z-03-5-room-parallel-cleanup); **Z-03.6** remoção de dead code (tag z-03-6-dead-code-removal); **Z-03.7** consolidação roomSnapshot (tag z-03-7-roomSnapshot-consolidation); **Z-03.8** remoção completa V4 (tag z-03-8-remove-v4) |
+| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1–3.8 sala (Z-03.3 SSOT; Z-03.4 remoção legado; Z-03.5 paralelos limpos; Z-03.6 dead code; Z-03.7 unificação persistência; Z-03.8 V4 removido) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 19 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.6 / Z-03.5+ (evolução sala) só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-03.9 documentação arquitectural + alinhamento final (esta fase). Depois: Z-03.10 organização interna opcional do ViewerCore; Z-03.11 revisão final duplicações/nomenclaturas; Z-03.12 validação de Zero-Legacy. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -114,7 +114,7 @@ Browser
       │     Workspace → ViewerCore (Three.js)
       │     ProjectProvider → ProjectState (SSOT mm)
       └── Rotas modernas
-            /dashboard, /projects, /industrial/*, /PROJETOS/*, /nesting_v3, /v4
+           /dashboard, /projects, /industrial/*, /PROJETOS/*, /nesting_v3
 
 Persistência
   PHP Hostinger: auth, users, settings, projects JSON, industrial/orders JSON
@@ -425,7 +425,7 @@ Critério: chamada, rota ou documentação sem implementação efectiva ou efeit
 | F-03 | `/api/deploy` | TODO `DeployAdminPage.tsx` | UI sem backend | Admin enganoso |
 | F-04 | Rewrites em falta | PHP `auth/register`, `user-settings`; `.htaccess` incompleto | SPA fallback | Auth online |
 | F-05 | Events System | `features.eventsSystem` só em docs/rules; **zero código** | No-op | Plano vs código |
-| F-06 | Rota `/v4` | `App.tsx` «TEMPORARY» | Experimento público | Superfície R3F |
+| F-06 | Rota `/v4` | `App.tsx` «TEMPORARY» | **Removido em Z-03.8** | Rota removida |
 | F-07 | `core/layout` Fase 3 | Skeleton com `@placeholder` (L-05…L-08) | **Removido** na Fase 1.4 | — |
 | F-08 | `Viewer.events.emit` | Stub (auditoria viewer) | **Removido** em Z-01.2.1 | — |
 | F-09 | Pasta `backend/` | Nome «servidor»; 1 JSON | Confusão | Onboarding |
@@ -2727,6 +2727,33 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Tag** | `z-03-8-remove-v4` |
 | **Intocado** | ViewerCore, ProjectState, wallStore, RoomManager, RoomEngine, Engines, Kitchen 3.0, BoxBuilder, pipeline industrial, SnapEngine, LayoutEngine |
 
+### 13.40 Changelog v1.38 → v1.39
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.9** | Documentação arquitectural completa: `CLAUDE.md` + novo `ARCHITECTURE.md` + actualização do hub e docs internos (V4 removido) |
+| **Tag** | `z-03-9-docs-update` |
+| **Intocado** | Industrial e lógica de sala/ViewerCore: sem alterações |
+
+---
+
+## 15. Fases futuras recomendadas e Estado Zero‑Legacy
+
+### 15.1 Fases futuras recomendadas
+1. **Z-03.9** — Documentação arquitectural e alinhamento com o código (esta fase)
+2. **Z-03.10** — Limpeza opcional do `ViewerCore` (organização interna; sem mudança funcional)
+3. **Z-03.11** — Revisão final de duplicações e nomenclaturas (garantir zero “paralelos” restantes)
+4. **Z-03.12** — Validação de Zero‑Legacy (critério de “OK” + build/prod/testes e inspeção de imports)
+
+### 15.2 Estado Zero‑Legacy — critérios de “OK”
+- **Zero código morto:** nenhum stub no-op / export sem consumidores.
+- **Zero duplicações:** sem sistemas paralelos activos (viewer/room etc.); sem “restos” funcionais.
+- **Zero sidecars não necessários:** apenas vistas derivadas documentadas (ex.: `wallStore` e `roomSnapshot`), sem persistências duplicadas acidentais.
+- **Sala SSOT único:** `ProjectState.room` (`ProjectRoomConfig` em mm) como única fonte canónica.
+- **Viewer sem módulos paralelos:** `V4` removido; rotas `/v4` inexistentes; apenas fluxos canónicos.
+- **Industrial 100% isolado:** CNC, DRILL, PI, TCN, NQR, etiquetas, técnico, XLSX sem dependências do subsistema sala.
+- **Documentação alinhada:** `CLAUDE.md` + docs referenciam apenas arquitectura real e não citam managers/rotas removidas.
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -2737,4 +2764,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.38).
+Fim do documento de planeamento (v1.39).
