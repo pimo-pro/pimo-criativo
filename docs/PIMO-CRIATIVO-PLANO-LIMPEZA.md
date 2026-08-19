@@ -2717,6 +2717,16 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Tag** | `z-03-7-roomSnapshot-consolidation` |
 | **Intocado** | ProjectRoomConfig (SSOT), Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine, tipos `ProjectSnapshot`/`PersistedProjectSnapshot` |
 
+### 13.39 Changelog v1.37 → v1.38
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.8** | Remoção completa do subsistema V4 (protótipo TEMPORARY) |
+| **Removido** | `src/v4/` (22 ficheiros), `src/components/v4/` (7 ficheiros), `src/pages/V4Page.tsx` — total 30 ficheiros |
+| **App.tsx** | Removido lazy import e rota `/v4` |
+| **Tag** | `z-03-8-remove-v4` |
+| **Intocado** | ViewerCore, ProjectState, wallStore, RoomManager, RoomEngine, Engines, Kitchen 3.0, BoxBuilder, pipeline industrial, SnapEngine, LayoutEngine |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -2727,4 +2737,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.37).
+Fim do documento de planeamento (v1.38).

@@ -105,7 +105,7 @@ const WorkspaceDesignModePage = lazy(() => import("./ui/pipro/WorkspaceDesignMod
 const PiproDesignShellPage = lazy(() => import("./ui/pipro/PiproDesignShellPage"));
 const Documentacao = lazy(() => import("./pages/Documentacao"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
-const V4Page = lazy(() => import("./pages/V4Page"));
+
 const NestingV3RoutePage = lazy(() => import("./app/nesting-v3/NestingV3RoutePage"));
 const DevPimoTest = import.meta.env.DEV
   ? lazy(() => import("./__dev__/DevPimoTest"))
@@ -619,7 +619,6 @@ export default function App() {
               }
             />
           </Route>
-          <Route path="/v4" element={<V4Page />} /> {/* TEMPORARY — remove before production */}
         </Route>
         {/* Workspace Pipro v2: layout próprio — fora do AppChromeLayout (evita Header/Footer duplicados). */}
         <Route
