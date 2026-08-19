@@ -12,6 +12,7 @@ import { ensureViewerCameraEngine } from "./engines/CameraEngine";
 import { RendererManager } from "./renderer";
 import { Lights } from "./lighting";
 import { LightingEngine } from "./lighting/LightingEngine";
+import { ensureViewerLightingEngine } from "./engines/LightingEngine";
 import { ComposerEngine } from "./lighting/ComposerEngine";
 import type { SelectionEngine } from "./selection/SelectionEngine";
 import { createViewerSelectionEngine } from "./engines/SelectionEngine";
@@ -1079,7 +1080,7 @@ export class ViewerCore {
   }
 
   private ensureLightingEngine(): LightingEngine {
-    const engine = LightingEngine.ensure(this.lightingEngine, this.lights, this.baseLightIntensities);
+    const engine = ensureViewerLightingEngine(this.lightingEngine, this.lights, this.baseLightIntensities);
     this.lightingEngine = engine;
     return engine;
   }
