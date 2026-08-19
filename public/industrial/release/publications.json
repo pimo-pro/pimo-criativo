@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-19T16:46:34.353Z",
+      "author": "pimo-pro",
+      "commitMessage": "chore(cnc): atualizar benchmarks de cutlayout",
+      "version": "v6.0819.1746"
+    },
+    {
       "publishedAt": "2026-08-19T13:00:10.929Z",
       "author": "pimo-pro",
       "commitMessage": "fix(viewer): z-03-10 quality pipeline - bloom/shadows/tone",

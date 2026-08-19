@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-19T13:00:11.870Z",
+  "updatedAt": "2026-08-19T16:46:35.224Z",
   "news": [
+    {
+      "version": "v6.0819.1746",
+      "title": "chore(cnc): atualizar benchmarks de cutlayout",
+      "description": "chore(cnc): atualizar benchmarks de cutlayout",
+      "publishedAt": "2026-08-19T16:46:35.079Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "57597e37"
+    },
     {
       "version": "v6.0819.1400",
       "title": "fix(viewer): z-03-10 quality pipeline - bloom/shadows/tone",
       "description": "fix(viewer): z-03-10 quality pipeline - bloom/shadows/tone",
-      "publishedAt": "2026-08-19T13:00:11.671Z",
+      "publishedAt": "2026-08-19T14:01:59+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "c0f9073b"
+      "commit": "d1d6df9"
     },
     {
       "version": "v6.0818.2214",
