@@ -114,6 +114,7 @@ import {
 import type { ViewerOptions } from "@/viewer/core/viewerTypes";
 export type { ViewerOptions } from "@/viewer/core/viewerTypes";
 import { RoomBuilder } from "../room/RoomBuilder";
+import { createViewerCoreFacades } from "./ViewerCoreFacades";
 import type { RoomConfig, DoorWindowConfig } from "../room/types";
 import {
   RoomManager,
@@ -195,7 +196,7 @@ import { DesignConversationState } from "./snapping/designConversationState";
 import type { ConversationTurnResult } from "./snapping/conversationalDesignerEngine";
 import type { ConversationEntry } from "./snapping/designConversationState";
 import type { DesignVariantId, EnvironmentStyleId } from "./snapping/intelligentDesignerTypes";
-import { isEnvironmentStyleId, listStyleProfiles } from "./snapping/styleProfileEngine";
+import { isEnvironmentStyleId } from "./snapping/styleProfileEngine";
 import { ManufacturingReportEngine } from "./snapping/manufacturingReportEngine";
 import type { ManufacturingFullReport, ManufacturingUiReport } from "./snapping/manufacturingTypes";
 import { CostReportEngine } from "./snapping/costReportEngine";
@@ -775,81 +776,38 @@ export class ViewerCore {
       getBoxEntry: (boxId) => this.boxes.get(boxId),
     });
     this.layoutEngine = new LayoutEngine(smartLayoutDeps);
-    this.autoLayout = {
-      fillWallWithModule: (wallId, moduleBoxId) =>
-        this.layoutEngine.fillWallWithModule(wallId, moduleBoxId),
-      extendAlongWallFromBox: (boxId) => this.layoutEngine.extendAlongWallFromBox(boxId),
-      distributeBoxesEvenly: (boxIds) => this.layoutEngine.distributeBoxesEvenly(boxIds),
-      autoStackShelvesInBox: (boxId, options) =>
-        this.layoutEngine.autoStackShelvesInBox(boxId, options),
-    };
-    this.smartLayout = {
-      autoWallFill: (wallId, moduleBoxId) => this.layoutEngine.autoWallFill(wallId, moduleBoxId),
-      previewAutoWallFill: (wallId, moduleBoxId) => this.previewSmartWallFill(wallId, moduleBoxId),
-      autoRoomFill: (seedBoxId) => this.layoutEngine.autoRoomFill(seedBoxId),
-      autoDistribute: (boxIds) => this.layoutEngine.autoDistribute(boxIds),
-      autoStackShelves: (boxId, options) => this.layoutEngine.autoStackShelves(boxId, options),
-      applyPredictiveLayout: () => this.acceptPredictiveLayoutPending(),
-      rejectPredictiveLayout: () => {
-        this.layoutEngine.predictive.rejectPending();
-        this.clearSmartAlignSnapOverlay();
-      },
-      hasPredictiveLayout: () => this.layoutEngine.predictive.getPending() !== null,
-    };
-    this.intelligentDesigner = {
-      generateDesigns: (seedBoxId) => this.generateIntelligentDesigns(seedBoxId),
-      generateVariations: () => this.generateIntelligentVariations(),
-      previewDesign: (id) => this.previewIntelligentDesign(id),
-      applyDesign: (id) => this.applyIntelligentDesign(id),
-      refineLayout: () => this.ensureIntelligentDesigner().refineLastLayout(),
-      learnPreferences: () => this.ensureIntelligentDesigner().learnPreferencesSummary(),
-      explainDecision: (id) => this.ensureIntelligentDesigner().explainDecision(id),
-      previewStyle: (styleId, seedBoxId) => this.previewIntelligentStyle(styleId, seedBoxId),
-      applyStyle: (styleId, seedBoxId) => this.applyIntelligentStyle(styleId, seedBoxId),
-      explainStyle: (styleId) => this.ensureIntelligentDesigner().explainStyle(styleId),
-      listStyles: () => listStyleProfiles().map((p) => ({ id: p.id, label: p.label })),
-    };
-    this.conversationalDesigner = {
-      sendMessage: (text, seedBoxId) => this.ensureConversationalDesignerEngine().processInput(text, seedBoxId),
-      quickAction: (action, seedBoxId) =>
-        this.ensureConversationalDesignerEngine().processQuickAction(action, seedBoxId),
-      getHistory: () => this.designConversationState.getHistory(),
-      explain: () =>
-        this.ensureIntelligentDesigner().explainDecision(
-          this.ensureIntelligentDesigner().getLastAppliedDesignId() ?? undefined
-        ),
-    };
-    this.manufacturing = {
-      generateReport: () => this.ensureManufacturingReportEngine().generateReport(),
-      getReport: () => this.ensureManufacturingReportEngine().getUiReport(),
-      score: () => this.ensureManufacturingReportEngine().score(),
-      autoFix: () => {
-        const result = this.ensureManufacturingReportEngine().autoFix();
-        return { ok: result.ok, message: result.message, score: result.scan.score };
-      },
-      previewFixes: () => this.previewManufacturingFixes(),
-      applySuggestedFixes: () => this.applyManufacturingSuggestedFixes(),
-    };
-    this.costEstimator = {
-      generateCostReport: (seedBoxId) => {
-        if (seedBoxId) this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.ensureCostReportEngine().generateCostReport();
-      },
-      summarizeForUI: (seedBoxId) => {
-        if (seedBoxId) this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.ensureCostReportEngine().summarizeCostForUI();
-      },
-      score: () => this.ensureCostReportEngine().score(),
-      compareDesigns: (seedBoxId) => {
-        this.designConversationState.setSeedBoxId(seedBoxId);
-        return this.ensureCostReportEngine().compareDesignsCost(seedBoxId);
-      },
-      compareStyles: () => this.ensureCostReportEngine().compareStylesCost(),
-      estimateChangeImpact: (change) => this.ensureCostReportEngine().estimateChangeImpact(change),
-      suggestCheaper: (seedBoxId) => this.previewCostSuggestionByTier(seedBoxId, "cheaper"),
-      suggestPremium: (seedBoxId) => this.previewCostSuggestionByTier(seedBoxId, "premium"),
-      suggestBalanced: (seedBoxId) => this.previewCostSuggestionByTier(seedBoxId, "balanced"),
-    };
+    const facades = createViewerCoreFacades({
+      layoutEngine: this.layoutEngine,
+      designConversationState: this.designConversationState,
+
+      previewSmartWallFill: (wallId, moduleBoxId) => this.previewSmartWallFill(wallId, moduleBoxId),
+      acceptPredictiveLayoutPending: () => this.acceptPredictiveLayoutPending(),
+      clearSmartAlignSnapOverlay: () => this.clearSmartAlignSnapOverlay(),
+
+      ensureIntelligentDesigner: () => this.ensureIntelligentDesigner(),
+      generateIntelligentDesigns: (seedBoxId) => this.generateIntelligentDesigns(seedBoxId),
+      generateIntelligentVariations: () => this.generateIntelligentVariations(),
+      previewIntelligentDesign: (id) => this.previewIntelligentDesign(id),
+      applyIntelligentDesign: (id) => this.applyIntelligentDesign(id),
+      previewIntelligentStyle: (styleId, seedBoxId) => this.previewIntelligentStyle(styleId, seedBoxId),
+      applyIntelligentStyle: (styleId, seedBoxId) => this.applyIntelligentStyle(styleId, seedBoxId),
+
+      ensureConversationalDesignerEngine: () => this.ensureConversationalDesignerEngine(),
+
+      ensureManufacturingReportEngine: () => this.ensureManufacturingReportEngine(),
+      previewManufacturingFixes: () => this.previewManufacturingFixes(),
+      applyManufacturingSuggestedFixes: () => this.applyManufacturingSuggestedFixes(),
+
+      ensureCostReportEngine: () => this.ensureCostReportEngine(),
+      previewCostSuggestionByTier: (seedBoxId, tier) => this.previewCostSuggestionByTier(seedBoxId, tier),
+    });
+
+    this.autoLayout = facades.autoLayout;
+    this.smartLayout = facades.smartLayout;
+    this.intelligentDesigner = facades.intelligentDesigner;
+    this.conversationalDesigner = facades.conversationalDesigner;
+    this.manufacturing = facades.manufacturing;
+    this.costEstimator = facades.costEstimator;
     const visualFacades = createViewerVisualFacades({
       syncOrlaVisuals: () => this.syncOrlaVisuals(),
       syncRemateVisuals: () => this.syncRemateVisuals(),
