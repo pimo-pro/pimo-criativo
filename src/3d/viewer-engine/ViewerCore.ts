@@ -14,7 +14,8 @@ import { ComposerEngine } from "./lighting/ComposerEngine";
 import type { SelectionEngine } from "./selection/SelectionEngine";
 import { createViewerSelectionEngine } from "./engines/SelectionEngine";
 import { createViewerGizmoEngine } from "./engines/GizmoEngine";
-import { BoxEngine } from "./box/BoxEngine";
+import type { BoxEngine } from "./box/BoxEngine";
+import { ensureViewerBoxEngine } from "./engines/BoxEngine";
 import { ViewerRoomEngine } from "./room/ViewerRoomEngine";
 import { DesignerEngine } from "./designer/DesignerEngine";
 import { createFinishSyncFlags, requestFinishSync, flushPendingFinishSync } from "./finish/ViewerFinishSync";
@@ -1090,7 +1091,7 @@ export class ViewerCore {
   }
 
   private ensureBoxEngine(): BoxEngine {
-    const engine = BoxEngine.ensure(this.boxEngine, this.boxSceneController);
+    const engine = ensureViewerBoxEngine(this.boxEngine, this.boxSceneController);
     this.boxEngine = engine;
     return engine;
   }
