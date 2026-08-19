@@ -57,23 +57,24 @@ ProjectContext (src/context/)
 
 **Zustand stores** (`src/stores/`) handle UI-only state that doesn't need persistence:
 - `uiStore.ts` — selected tool, selection state
-- `wallStore.ts` — wall editing state
+- `wallStore.ts` — derived view (cm) of `ProjectState.room` (mm SSOT); synced by `RoomEngine.applyProjectRoomToWallStore`
 
 ### 3D Viewer Architecture
 
 ```
 Workspace.tsx
   └── usePimoViewer(containerRef, options)  →  PimoViewerApi (viewerApi)
-      └── 3d/core/Viewer.ts (re-exports ViewerCore)
-          └── src/viewer/ViewerCore.ts
-              ├── RoomManager      — 3D room/walls/openings
-              ├── ReflowManager    — auto-positions boxes side by side
-              ├── CollisionManager — detects box overlaps
-              ├── SnapshotManager  — camera/scene serialization
-              └── ToolsManager     — gizmos (select/move/rotate)
+      └── 3d/core/Viewer.ts (1-line alias for ViewerCore)
+          └── src/3d/viewer-engine/ViewerCore.ts (~6300 lines, monolithic)
+              ├── Managers: SceneManager, CameraManager, RendererManager,
+              │             EventsManager, SelectionManager, HighlightManager, BoxManager
+              ├── Engines:  BoxEngine, SelectionEngine, GizmoEngine, ViewerRoomEngine,
+              │             DesignerEngine, MeasurementEngine, SnapEngine, SmartAlignSnapEngine,
+              │             SceneEngine, CameraEngine, LightingEngine, ComposerEngine
+              └── Room:     RoomManager (src/3d/room/) — 3D walls/openings
 ```
 
-The `Viewer` class at `src/3d/core/Viewer.ts` is a thin wrapper that extends `ViewerCore` — all implementation lives in `src/viewer/ViewerCore.ts` and its manager modules.
+The `Viewer` class at `src/3d/core/Viewer.ts` is a 1-line alias (`class Viewer extends ViewerCore {}`) — all implementation lives in `src/3d/viewer-engine/ViewerCore.ts`.
 
 **PimoViewerContext** (`src/context/PimoViewerContext.tsx`) registers the active viewer API so that panels (LeftPanel, RightPanel, etc.) can call viewer operations without prop-drilling.
 

@@ -485,12 +485,8 @@ export interface ProjectActions {
   setMateriaisProjeto: (_materiais: string) => void;
   setTipoProjeto: (_tipo: string) => void;
   setMaterial: (_material: Material) => void;
-  /** @deprecated LEGADO — Sem implementação em runtime. Usar setMaterial para Material completo. */
-  setProjectMaterial: (_materialId: string) => void;
   setEspessura: (_espessura: number) => void;
   setDimensoes: (_dimensoes: Partial<Dimensoes>) => void;
-  /** @deprecated LEGADO — Sem implementação em runtime. Candidato a remoção futura. */
-  setQuantidade: (_quantidade: number) => void;
   /** Atualiza apenas o flag de pronto para fabricação/orçamento. */
   setReadyForProduction: (_ready: boolean) => void;
   addBox: () => void;
@@ -510,18 +506,6 @@ export interface ProjectActions {
   removeWorkspaceBoxById: (_boxId: string) => void;
   selectBox: (_boxId: string) => void;
   clearSelection: () => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  addModelToBox: (_caixaId: string, _cadModelId: string) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  addCadModelAsNewBox: (_cadModelId: string) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  removeModelFromBox: (_caixaId: string, _modelInstanceId: string) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  updateModelInBox: (_caixaId: string, _modelInstanceId: string, _updates: { nome?: string; material?: string; categoria?: string }) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  updateCaixaModelId: (_caixaId: string, _modelId: string | null) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  selectModelInstance: (_boxId: string, _modelInstanceId: string | null) => void;
   renameBox: (_nome: string) => void;
   setPrateleiras: (_quantidade: number) => void;
   /** Opções avançadas de prateleiras (direcção, passo, grelha, margem). */
@@ -536,12 +520,6 @@ export interface ProjectActions {
   setPortaTipo: (_portaTipo: BoxModule["portaTipo"]) => void;
   setTipoBorda: (_tipoBorda: TipoBorda) => void;
   setTipoFundo: (_tipoFundo: TipoFundo) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  setExtractedPartsForBox: (_boxId: string, _modelInstanceId: string, _parts: CutListItemComPreco[]) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  clearExtractedPartsForBox: (_boxId: string, _modelInstanceId?: string) => void;
-  /** @deprecated LEGADO — Sistema CAD removido. Sem implementação em runtime. Candidato a remoção futura. */
-  setModelPositionInBox: (_boxId: string, _modelInstanceId: string, _position: { x: number; y: number; z: number }) => void;
   setLayoutWarnings: (_warnings: LayoutWarnings) => void;
   /** Altera o material simples da porta (Material Picker: Madeira, Branco, etc.). */
   setDoorMaterial: (_boxId: string, _doorLayerId: string, _material: string) => void;
@@ -908,8 +886,6 @@ export interface ProjectActions {
   loadImportedPimoProject: (_snapshot: ProjectSnapshot, _projectNameSlug: string) => Promise<void>;
   /** Combina vários snapshots guardados num único estado de workspace (opcional; não altera os projetos guardados). */
   mergeSnapshots: (_ids: string[]) => Promise<void>;
-  /** @deprecated LEGADO — Templates não implementados. Sem implementação em runtime. Candidato a remoção futura. */
-  loadProjectFromTemplate: (_templateId: string) => void;
   /** Adiciona um template como novas caixas no workspace (não substitui o projeto). */
   addTemplateAsNewBox: (_templateId: string) => void;
   listSavedProjects: (_scope?: "mine" | "all") => Promise<SavedProjectInfo[]>;

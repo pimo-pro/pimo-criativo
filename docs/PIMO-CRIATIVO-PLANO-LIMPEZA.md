@@ -2695,6 +2695,17 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Tag** | `z-03-5-room-parallel-cleanup` |
 | **Intocado** | ProjectRoomConfig (SSOT), Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine, comportamento Viewer |
 
+### 13.37 Changelog v1.35 → v1.36
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.6** | Remoção de dead code confirmado fora do subsistema sala |
+| **Skeleton** | Removido `src/core/export/` (5 ficheiros: service, exportService, hooks, types, utils) — zero importadores |
+| **Actions** | Removidas 12 declarações deprecated da interface `ProjectActions`: `setProjectMaterial`, `setQuantidade`, `addModelToBox`, `addCadModelAsNewBox`, `removeModelFromBox`, `updateModelInBox`, `updateCaixaModelId`, `selectModelInstance`, `setExtractedPartsForBox`, `clearExtractedPartsForBox`, `setModelPositionInBox`, `loadProjectFromTemplate` |
+| **CLAUDE.md** | Actualizado: arquitectura real do Viewer (Engines vs Managers inexistentes), wallStore como vista derivada |
+| **Tag** | `z-03-6-dead-code-removal` |
+| **Intocado** | Campos activos do ProjectState, hooks activos, Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -2705,4 +2716,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.35).
+Fim do documento de planeamento (v1.36).
