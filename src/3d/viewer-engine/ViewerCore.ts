@@ -123,6 +123,12 @@ import {
   syncCameraTargetImpl,
   updateCameraTargetImpl,
 } from "./ViewerCoreCameraOps";
+import type { ViewerCoreFeetOpsDeps } from "./ViewerCoreFeetOps";
+import {
+  getFixedYForCabinetImpl,
+  shouldUseFeetLockImpl,
+  syncFeetVisualForBoxImpl,
+} from "./ViewerCoreFeetOps";
 import type { RoomConfig, DoorWindowConfig } from "../room/types";
 import {
   RoomManager,
@@ -4395,6 +4401,16 @@ export class ViewerCore {
     };
   }
 
+  private getFeetOpsDeps(): ViewerCoreFeetOpsDeps {
+    return {
+      heightBaseCm: ViewerCore.HEIGHT_BASE_CM,
+      heightUpperCm: ViewerCore.HEIGHT_UPPER_CM,
+      feetFrontInsetM: ViewerCore.FEET_FRONT_INSET_M,
+      feetBackInsetM: ViewerCore.FEET_BACK_INSET_M,
+      feetSideInsetM: ViewerCore.FEET_SIDE_INSET_M,
+    };
+  }
+
   /** Mantém CameraManager.target e OrbitControls.target sincronizados. */
   private syncCameraTarget(
     center: THREE.Vector3,
@@ -4457,13 +4473,7 @@ export class ViewerCore {
     cabinetType?: "lower" | "upper";
     feetEnabled?: boolean;
   }): boolean {
-    return entry.cabinetType === "lower" && entry.feetEnabled === true;
-  }
-
-  private shouldRenderFeet(entry: {
-    feetEnabled?: boolean;
-  }): boolean {
-    return entry.feetEnabled === true;
+    return shouldUseFeetLockImpl(entry);
   }
 
   /** Altura Y (m) fixa para caixas inferiores com pés ativos. */
@@ -4472,124 +4482,7 @@ export class ViewerCore {
     cabinetType?: "lower" | "upper";
     pe_cm?: number;
   }): number {
-    const h = entry.height;
-    if (entry.cabinetType === "lower") {
-      const peM = ((entry.pe_cm ?? ViewerCore.HEIGHT_BASE_CM) / 100);
-      return peM + h / 2;
-    }
-    if (entry.cabinetType === "upper") {
-      const baseM = ViewerCore.HEIGHT_UPPER_CM / 100;
-      return baseM + h / 2;
-    }
-    return h / 2;
-  }
-
-  private removeFeetVisual(root: THREE.Object3D): void {
-    const existing = root.getObjectByName("kitchen-feet-group");
-    if (!existing) return;
-    root.remove(existing);
-    const disposedGeometries = new Set<THREE.BufferGeometry>();
-    const disposedMaterials = new Set<THREE.Material>();
-    existing.traverse((node) => {
-      if (!(node instanceof THREE.Mesh)) return;
-      if (node.geometry && !disposedGeometries.has(node.geometry)) {
-        node.geometry.dispose();
-        disposedGeometries.add(node.geometry);
-      }
-      if (Array.isArray(node.material)) {
-        node.material.forEach((material) => {
-          if (!disposedMaterials.has(material)) {
-            material.dispose();
-            disposedMaterials.add(material);
-          }
-        });
-      } else if (node.material && !disposedMaterials.has(node.material)) {
-        node.material.dispose();
-        disposedMaterials.add(node.material);
-      }
-    });
-  }
-
-  private createKitchenFeetGroup(
-    width: number,
-    height: number,
-    depth: number,
-    feetHeightM: number,
-    feetOffsetFrontM: number
-  ): THREE.Group {
-    const group = new THREE.Group();
-    group.name = "kitchen-feet-group";
-    group.userData.isKitchenFeet = true;
-
-    const headHeight = 0.012;
-    const baseHeight = 0.008;
-    const bodyHeight = Math.max(0.02, feetHeightM - headHeight - baseHeight);
-    const headSize = 0.036;
-    const bodyRadius = 0.012;
-    const baseRadius = 0.03;
-
-    const metalMat = new THREE.MeshStandardMaterial({
-      color: 0x000000,
-      roughness: 0.32,
-      metalness: 0.82,
-    });
-    const baseMat = new THREE.MeshStandardMaterial({
-      color: 0x000000,
-      roughness: 0.85,
-      metalness: 0.1,
-    });
-
-    const headGeometry = new THREE.BoxGeometry(headSize, headHeight, headSize);
-    const bodyGeometry = new THREE.CylinderGeometry(bodyRadius, bodyRadius, bodyHeight, 18);
-    const baseGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius, baseHeight, 22);
-
-    const createFoot = () => {
-      const foot = new THREE.Group();
-      const topY = -height / 2;
-      const head = new THREE.Mesh(headGeometry, metalMat);
-      head.position.y = topY - headHeight / 2;
-      head.castShadow = true;
-      head.receiveShadow = true;
-
-      const body = new THREE.Mesh(bodyGeometry, metalMat);
-      body.position.y = topY - headHeight - bodyHeight / 2;
-      body.castShadow = true;
-      body.receiveShadow = true;
-
-      const base = new THREE.Mesh(baseGeometry, baseMat);
-      base.position.y = topY - headHeight - bodyHeight - baseHeight / 2;
-      base.castShadow = true;
-      base.receiveShadow = true;
-
-      foot.add(head, body, base);
-      return foot;
-    };
-
-    const widthInsetLimit = Math.max(0.02, width / 2 - baseRadius - 0.005);
-    const depthInsetLimit = Math.max(0.02, depth / 2 - baseRadius - 0.005);
-    const sideInset = Math.min(ViewerCore.FEET_SIDE_INSET_M, widthInsetLimit);
-    const frontInset = Math.min(Math.max(0, feetOffsetFrontM), depthInsetLimit);
-    const backInset = Math.min(ViewerCore.FEET_BACK_INSET_M, depthInsetLimit);
-
-    const xLeft = -width / 2 + sideInset;
-    const xRight = width / 2 - sideInset;
-    const zFront = depth / 2 - frontInset;
-    const zBack = -depth / 2 + backInset;
-
-    const placements: Array<{ x: number; z: number }> = [
-      { x: xLeft, z: zFront },
-      { x: xRight, z: zFront },
-      { x: xLeft, z: zBack },
-      { x: xRight, z: zBack },
-    ];
-
-    placements.forEach(({ x, z }) => {
-      const foot = createFoot();
-      foot.position.set(x, 0, z);
-      group.add(foot);
-    });
-
-    return group;
+    return getFixedYForCabinetImpl(this.getFeetOpsDeps(), entry);
   }
 
   private syncFeetVisualForBox(
@@ -4605,18 +4498,7 @@ export class ViewerCore {
       feetEnabled?: boolean;
     }
   ): void {
-    this.removeFeetVisual(entry.mesh);
-    if (!this.shouldRenderFeet(entry)) return;
-    const feetHeightMm = Math.max(40, entry.feetHeight ?? ((entry.pe_cm ?? ViewerCore.HEIGHT_BASE_CM) * 10));
-    const feetOffsetFrontMm = Math.max(0, entry.feetOffsetFront ?? (ViewerCore.FEET_FRONT_INSET_M * 1000));
-    const feet = this.createKitchenFeetGroup(
-      entry.width,
-      entry.height,
-      entry.depth,
-      feetHeightMm / 1000,
-      feetOffsetFrontMm / 1000
-    );
-    entry.mesh.add(feet);
+    syncFeetVisualForBoxImpl(this.getFeetOpsDeps(), entry);
   }
 
   private getNextBoxIndex() {
