@@ -22,7 +22,7 @@ import type { BoxEngine } from "./box/BoxEngine";
 import { ensureViewerBoxEngine } from "./engines/BoxEngine";
 import { ViewerRoomEngine } from "./room/ViewerRoomEngine";
 import { ensureViewerRoomEngine as ensureViewerRoomEngineFactory } from "./engines/ViewerRoomEngine";
-import { DesignerEngine } from "./designer/DesignerEngine";
+import { ensureViewerDesignerEngine } from "./engines/DesignerEngine";
 import { createFinishSyncFlags, requestFinishSync, flushPendingFinishSync } from "./finish/ViewerFinishSync";
 import { Controls } from "./controls";
 import {
@@ -278,7 +278,7 @@ export class ViewerCore {
   private composerEngine: ComposerEngine | null = null;
   private cameraEngine!: CameraEngine;
   private selectionEngine!: SelectionEngine;
-  private readonly designerEngine = new DesignerEngine();
+  private readonly designerEngine = ensureViewerDesignerEngine(null);
   private viewerRoomEngine: ViewerRoomEngine | null = null;
   get boxes(): Map<string, ViewerBoxEntry> {
     return this.boxManager.getBoxes();
