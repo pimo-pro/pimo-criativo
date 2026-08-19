@@ -115,6 +115,14 @@ import type { ViewerOptions } from "@/viewer/core/viewerTypes";
 export type { ViewerOptions } from "@/viewer/core/viewerTypes";
 import { RoomBuilder } from "../room/RoomBuilder";
 import { createViewerCoreFacades } from "./ViewerCoreFacades";
+import type { ViewerCoreCameraOpsDeps } from "./ViewerCoreCameraOps";
+import {
+  adjustCameraPositionToIncludeBoxImpl,
+  getBoxBoundingBoxCenterImpl,
+  isBoxInCameraFrameImpl,
+  syncCameraTargetImpl,
+  updateCameraTargetImpl,
+} from "./ViewerCoreCameraOps";
 import type { RoomConfig, DoorWindowConfig } from "../room/types";
 import {
   RoomManager,
@@ -4372,78 +4380,45 @@ export class ViewerCore {
     this.boxManager.reflowBoxes(this.boxGap);
   }
 
+  private getCameraOpsDeps(): ViewerCoreCameraOpsDeps {
+    return {
+      cameraManager: this.cameraManager,
+      controls: this.controls,
+      boxes: this.boxes,
+      cameraViewPreset: this.cameraViewPreset,
+      boundingBox: this._boundingBox,
+      center: this._center,
+      boxSingle: this._boxSingle,
+      size: this._size,
+      projScreenMatrix: this._projScreenMatrix,
+      frustum: this._frustum,
+    };
+  }
+
   /** Mantém CameraManager.target e OrbitControls.target sincronizados. */
   private syncCameraTarget(
     center: THREE.Vector3,
     options?: { updateLookAt?: boolean }
   ): void {
-    const updateLookAt = options?.updateLookAt !== false;
-    if (updateLookAt) {
-      this.cameraManager.setTarget(center.x, center.y, center.z);
-    } else {
-      this.cameraManager.getTarget().copy(center);
-    }
-    if (this.controls) {
-      this.controls.controls.target.copy(center);
-      this.controls.update();
-    }
+    syncCameraTargetImpl(this.getCameraOpsDeps(), center, options);
   }
 
   private updateCameraTarget() {
-    if (this.boxes.size === 0) {
-      if (this.cameraViewPreset == null) {
-        this.syncCameraTarget(new THREE.Vector3(0, 0, 0));
-      }
-      return;
-    }
-    const camBboxRoots = Array.from(this.boxes.values()).map((e) => e.mesh);
-    runWithAllLayoutBoundsProxiesVisible(camBboxRoots, () => {
-      this._boundingBox.makeEmpty();
-      this.boxes.forEach((entry) => {
-        this._boundingBox.expandByObject(entry.mesh);
-      });
-    });
-    this._boundingBox.getCenter(this._center);
-
-    if (this.cameraViewPreset != null) {
-      this.syncCameraTarget(this._center, { updateLookAt: false });
-      return;
-    }
-
-    this.syncCameraTarget(this._center);
+    updateCameraTargetImpl(this.getCameraOpsDeps());
   }
 
   /**
    * Centro do bounding box real do box em mundo (atualiza matriz antes).
    */
   private getBoxBoundingBoxCenter(boxId: string): THREE.Vector3 | null {
-    const entry = this.boxes.get(boxId);
-    if (!entry) return null;
-    entry.mesh.updateMatrixWorld(true);
-    runWithLayoutBoundsProxiesVisible(entry.mesh, () => {
-      this._boxSingle.setFromObject(entry.mesh);
-    });
-    this._boxSingle.getCenter(this._center);
-    return this._center.clone();
+    return getBoxBoundingBoxCenterImpl(this.getCameraOpsDeps(), boxId);
   }
 
   /**
    * True se o box está (parcialmente) dentro do frustum da câmera.
    */
   private isBoxInCameraFrame(boxId: string): boolean {
-    const entry = this.boxes.get(boxId);
-    if (!entry) return false;
-    entry.mesh.updateMatrixWorld(true);
-    this.cameraManager.camera.updateMatrixWorld(true);
-    this._projScreenMatrix.multiplyMatrices(
-      this.cameraManager.camera.projectionMatrix,
-      this.cameraManager.camera.matrixWorldInverse
-    );
-    this._frustum.setFromProjectionMatrix(this._projScreenMatrix);
-    runWithLayoutBoundsProxiesVisible(entry.mesh, () => {
-      this._boxSingle.setFromObject(entry.mesh);
-    });
-    return this._frustum.intersectsBox(this._boxSingle);
+    return isBoxInCameraFrameImpl(this.getCameraOpsDeps(), boxId);
   }
 
   /**
@@ -4451,23 +4426,7 @@ export class ViewerCore {
    * Só altera a distância ao alvo para caber o box no FOV.
    */
   private adjustCameraPositionToIncludeBox(boxId: string): void {
-    const entry = this.boxes.get(boxId);
-    if (!entry) return;
-    entry.mesh.updateMatrixWorld(true);
-    runWithLayoutBoundsProxiesVisible(entry.mesh, () => {
-      this._boxSingle.setFromObject(entry.mesh);
-    });
-    this._boxSingle.getCenter(this._center);
-    this._boxSingle.getSize(this._size);
-    const cam = this.cameraManager.camera;
-    const dir = new THREE.Vector3().subVectors(cam.position, this._center).normalize();
-    const maxDim = Math.max(this._size.x, this._size.y, this._size.z, 0.1);
-    const fovRad = (cam.fov * Math.PI) / 180;
-    const distance = Math.max(0.3, maxDim / (2 * Math.tan(fovRad * 0.5)) * 1.1);
-    cam.position.copy(this._center).addScaledVector(dir, distance);
-    this.syncCameraTarget(this._center, { updateLookAt: false });
-    cam.lookAt(this._center);
-    this.controls?.update();
+    adjustCameraPositionToIncludeBoxImpl(this.getCameraOpsDeps(), boxId);
   }
 
   /**
