@@ -17,6 +17,7 @@ import { createViewerGizmoEngine } from "./engines/GizmoEngine";
 import type { BoxEngine } from "./box/BoxEngine";
 import { ensureViewerBoxEngine } from "./engines/BoxEngine";
 import { ViewerRoomEngine } from "./room/ViewerRoomEngine";
+import { ensureViewerRoomEngine as ensureViewerRoomEngineFactory } from "./engines/ViewerRoomEngine";
 import { DesignerEngine } from "./designer/DesignerEngine";
 import { createFinishSyncFlags, requestFinishSync, flushPendingFinishSync } from "./finish/ViewerFinishSync";
 import { Controls } from "./controls";
@@ -1097,7 +1098,7 @@ export class ViewerCore {
   }
 
   private ensureViewerRoomEngine(): ViewerRoomEngine {
-    const engine = ViewerRoomEngine.ensure(this.viewerRoomEngine, () => this.roomManager);
+    const engine = ensureViewerRoomEngineFactory(this.viewerRoomEngine, () => this.roomManager);
     this.viewerRoomEngine = engine;
     return engine;
   }
