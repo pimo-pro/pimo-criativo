@@ -41,12 +41,11 @@ import {
   shouldBlockPointerDownForSelection,
   type MouseInputPreset,
 } from "./controls/MouseInputMapper";
-import { isObjectInScreenRect } from "./utils/screenSelection";
 import { BoxSceneController } from "./box/BoxSceneController";
 import { ViewerBoxManager } from "./box";
 import { SnapshotRenderer } from "./snapshot";
 import type { HighlightManager } from "./highlight";
-import type { EdgeOutlineBoxEntry, EdgeOutlineSystem } from "../outline";
+import type { EdgeOutlineSystem } from "../outline";
 import { ViewerRaycastSystem } from "./raycast/ViewerRaycastSystem";
 import { ViewerState } from "./state";
 import { EventsManager } from "./events";
@@ -217,6 +216,26 @@ import {
   setWallEditModeImpl,
   updateWallVisibilityBasedOnCameraImpl,
 } from "./ViewerCoreRoomGeometry";
+import type { ViewerCoreSelectionOpsDeps } from "./ViewerCoreSelectionOps";
+import {
+  disposeSelectionSystemsImpl,
+  getSelectionIdsInScreenRectImpl,
+  refreshOutlineTargetImpl,
+  resolveMemberMeshImpl,
+  resolveMultiOutlineTargetImpl,
+  sanitizeSelectionOutlineStaleTargetImpl,
+  selectRoomElementByIdImpl,
+  selectRoomUtilityByIdImpl,
+  selectWallByIndexImpl,
+  setHighlightEnabledImpl,
+  setHoveredBoxImpl,
+  setHoveredRemateImpl,
+  setInternalSelectionImpl,
+  setOutlineTargetImpl,
+  setSelectedBoxImpl,
+  syncEdgeOutlineRootImpl,
+  updateSelectionOverlaysFrameImpl,
+} from "./ViewerCoreSelectionOps";
 import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
 import {
   applyRemateKeyboardTransformImpl,
@@ -291,7 +310,7 @@ import {
   type InternalSelectionState,
   cloneInternalSelectionState,
 } from "./selection";
-import type { MultiOutlineTarget, MultiSelectionOutline } from "./selection/MultiSelectionOutline";
+import type { MultiSelectionOutline } from "./selection/MultiSelectionOutline";
 import { MeasurementAnchorsVisualizer } from "./measurement/MeasurementAnchorsVisualizer";
 import { historyManager } from "../../core/viewer/historyManager";
 import type { MeasurementAnchorEntry } from "../../core/viewer/measurementAnchors";
@@ -752,7 +771,7 @@ export class ViewerCore {
     this.multiSelectionOutline = selectionSystems.multiSelectionOutline;
     this.selectionEngine = createViewerSelectionEngine({
       multiSelectionOutline: this.multiSelectionOutline,
-      resolveMultiOutlineTarget: (encoded) => this.resolveMultiOutlineTarget(encoded),
+      resolveMultiOutlineTarget: (encoded) => resolveMultiOutlineTargetImpl(this.getSelectionOpsDeps(), encoded),
       setGroupMemberIds: (ids) => this.viewerState.setGroupTransformMemberIds(ids),
       clearGroupMemberIds: () => this.viewerState.clearGroupTransformMemberIds(),
       refreshGizmo: () => this.gizmoEngine.refreshAttachment(),
@@ -1591,44 +1610,7 @@ export class ViewerCore {
     rect: { left: number; top: number; right: number; bottom: number },
     canvas: HTMLCanvasElement
   ): string[] {
-    const canvasRect = canvas.getBoundingClientRect();
-    const selectionRect = {
-      left: Math.min(rect.left, rect.right),
-      top: Math.min(rect.top, rect.bottom),
-      right: Math.max(rect.left, rect.right),
-      bottom: Math.max(rect.top, rect.bottom),
-    };
-    const camera = this.cameraManager.camera;
-    const ids: string[] = [];
-
-    this.boxes.forEach((entry, boxId) => {
-      entry.mesh.updateMatrixWorld(true);
-      if (isObjectInScreenRect(entry.mesh, selectionRect, camera, canvasRect)) {
-        ids.push(`box:${boxId}`);
-      }
-    });
-
-    const rematePieces = this.remateVisualBridge?.listRematePieces() ?? [];
-    for (const piece of rematePieces) {
-      const mesh = this.getRemateMesh(piece.id);
-      if (!mesh) continue;
-      mesh.updateMatrixWorld(true);
-      if (isObjectInScreenRect(mesh, selectionRect, camera, canvasRect)) {
-        ids.push(`remate:${piece.id}`);
-      }
-    }
-
-    const rodapes = (this.rodapeVisualBridge?.listBoxRodapeConfigs() ?? []).flatMap((c) => c.rodapes);
-    for (const rodape of rodapes) {
-      const mesh = this.rodapeVisualizer.getMeshByRodapeId(rodape.id);
-      if (!mesh) continue;
-      mesh.updateMatrixWorld(true);
-      if (isObjectInScreenRect(mesh, selectionRect, camera, canvasRect)) {
-        ids.push(`rodape:${rodape.id}`);
-      }
-    }
-
-    return ids;
+    return getSelectionIdsInScreenRectImpl(this.getSelectionOpsDeps(), rect, canvas);
   }
 
   setMultiSelectionOutlines(encodedIds: string[]): void {
@@ -1714,7 +1696,7 @@ export class ViewerCore {
   }
 
   resolveMemberMesh(encoded: string): THREE.Object3D | null {
-    return this.resolveMultiOutlineTarget(encoded)?.mesh ?? null;
+    return resolveMemberMeshImpl(this.getSelectionOpsDeps(), encoded);
   }
 
   applyGroupPivotTransform(): void {
@@ -1808,52 +1790,6 @@ export class ViewerCore {
 
   getPointerSelectionEncodedId(event: { clientX: number; clientY: number }): string | null {
     return this.pointerPicking.getPointerSelectionEncodedId(event);
-  }
-
-  private resolveMultiOutlineTarget(encoded: string): MultiOutlineTarget | null {
-    const decoded = decodeSelectionId(encoded);
-    if (!decoded) return null;
-
-    if (decoded.kind === "box") {
-      const entry = this.boxes.get(decoded.id);
-      if (!entry) return null;
-      return {
-        mesh: entry.mesh,
-        layoutDims: {
-          w: Math.max(0.001, entry.width),
-          h: Math.max(0.001, entry.height),
-          d: Math.max(0.001, entry.carcassDepth ?? entry.depth),
-        },
-      };
-    }
-
-    if (decoded.kind === "remate") {
-      const mesh = this.getRemateMesh(decoded.id);
-      return mesh ? { mesh } : null;
-    }
-
-    if (decoded.kind === "rodape") {
-      const mesh = this.rodapeVisualizer.getMeshByRodapeId(decoded.id);
-      return mesh ? { mesh } : null;
-    }
-
-    if (decoded.kind === "door") {
-      for (const entry of this.boxes.values()) {
-        const doorGroup = entry.mesh.children.find((c) => c.name === `door-layer-${decoded.id}`);
-        if (doorGroup) return { mesh: doorGroup };
-      }
-      return null;
-    }
-
-    if (decoded.kind === "drawer") {
-      for (const entry of this.boxes.values()) {
-        const drawerGroup = entry.mesh.children.find((c) => c.name === `drawer-layer-${decoded.id}`);
-        if (drawerGroup) return { mesh: drawerGroup };
-      }
-      return null;
-    }
-
-    return null;
   }
 
   /**
@@ -2010,23 +1946,7 @@ export class ViewerCore {
   }
 
   setInternalSelection(selection: InternalSelectionState | null): void {
-    const prev = this.viewerState.getInternalSelection();
-    const next = selection ? cloneInternalSelectionState(selection) : null;
-    const same =
-      prev?.type === next?.type &&
-      prev?.boxId === next?.boxId &&
-      prev?.faceId === next?.faceId &&
-      prev?.edgeId === next?.edgeId &&
-      prev?.pointId === next?.pointId;
-    if (same) return;
-
-    this.viewerState.setInternalSelection(next);
-    this.internalSelectionOutline?.sync(next, (boxId) => this.boxes.get(boxId)?.mesh ?? null);
-
-    if (!next) return;
-    if (next.type === "internal-face") this.onInternalSurfaceSelected?.(next);
-    else if (next.type === "internal-edge") this.onInternalEdgeSelected?.(next);
-    else if (next.type === "internal-point") this.onInternalPointSelected?.(next);
+    setInternalSelectionImpl(this.getSelectionOpsDeps(), selection);
   }
 
   setInternalSelectionEnabled(enabled: boolean): void {
@@ -2685,10 +2605,7 @@ export class ViewerCore {
   }
 
   setHighlightEnabled(enabled: boolean): void {
-    this.viewerState.setHighlightEnabled(Boolean(enabled));
-    this.highlightManager?.setEnabled(this.viewerState.getHighlightEnabled());
-    this.refreshOutlineTarget();
-    applyPanelVisibilityForAllBoxesImpl(this.getIndustrialModeDeps());
+    setHighlightEnabledImpl(this.getSelectionOpsDeps(), enabled);
   }
 
   getExplodedViewEnabled(): boolean {
@@ -2878,7 +2795,7 @@ export class ViewerCore {
       syncOrlaForBox: (boxId) => this.syncOrlaForBox(boxId),
       syncRemateForBox: (boxId) => this.syncRemateForBox(boxId),
       syncEdgeOutlines: () =>
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
+        syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
       applyBackgroundMode: () => this.applyBackgroundMode(),
       reapplyDisplayMaterials: () => this.reapplyDisplayMaterials(),
       isMeshInsideOrTouchingRoom: (mesh) => this.isMeshInsideOrTouchingRoom(mesh),
@@ -2965,7 +2882,7 @@ export class ViewerCore {
         getFixedYForCabinet: (boxEntry) => this.getFixedYForCabinet(boxEntry),
         applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
         syncEdgeOutlines: () =>
-          this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
+          syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
       });
     }
 
@@ -2989,7 +2906,7 @@ export class ViewerCore {
         deleteRotationCacheForMesh: (meshUuid) => this.appliedRotationByMeshUuid.delete(meshUuid),
         sceneRootAdd: (object) => this.sceneManager.root.add(object),
         syncEdgeOutlines: () =>
-          this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
+          syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
         requestRender: () => this.requestRender(),
         logStructuralRebuild: import.meta.env.DEV && dimensionsChanged
           ? (payload) => devLogger.debug("[ViewerCore.updateBox] mesh reconstruído (estrutura alterada)", payload)
@@ -3048,7 +2965,7 @@ export class ViewerCore {
           });
         },
         syncEdgeOutlines: () =>
-          this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
+          syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
         requestRender: () => this.requestRender(),
       });
     } finally {
@@ -3088,7 +3005,7 @@ export class ViewerCore {
       clearSelectedBox: () => this.setSelectedBox(null),
       clearModelsFromBox: (boxId) => this.clearModelsFromBox(boxId),
       syncEdgeOutlines: () =>
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap()),
+        syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
       deleteRotationCacheForMesh: (meshUuid) => this.appliedRotationByMeshUuid.delete(meshUuid),
       reflowBoxes: () => this.reflowBoxes(),
       updateCameraTarget: () => this.updateCameraTarget(),
@@ -3344,32 +3261,15 @@ export class ViewerCore {
 
   /** Seleciona parede por índice (ex.: ao clicar na lista do painel). Atualiza gizmo e outline. */
   selectWallByIndex(index: number | null): void {
-    this.viewerState.setSelectedWallIndex(index !== null && this.roomBoxWalls.some((w) => w.id === index) ? index : null);
-    if (this.wallGizmo) {
-      if (this.viewerState.getWallEditMode() && this.viewerState.getSelectedWallIndex() !== null) {
-        const wall = this.roomBoxWalls.find((w) => w.id === this.viewerState.getSelectedWallIndex())?.mesh;
-        if (wall) this.wallGizmo.attach(wall);
-      } else {
-        this.wallGizmo.detach();
-      }
-    }
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
-    this.onWallSelected?.(this.viewerState.getSelectedWallIndex());
+    selectWallByIndexImpl(this.getSelectionOpsDeps(), index);
   }
 
   selectRoomElementById(elementId: string | null): void {
-    this.viewerState.setSelectedRoomElementId(elementId);
-    if (elementId) this.viewerState.setSelectedRoomUtilityId(null);
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
+    selectRoomElementByIdImpl(this.getSelectionOpsDeps(), elementId);
   }
 
   selectRoomUtilityById(utilityId: string | null): void {
-    this.viewerState.setSelectedRoomUtilityId(utilityId);
-    if (utilityId) this.viewerState.setSelectedRoomElementId(null);
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
+    selectRoomUtilityByIdImpl(this.getSelectionOpsDeps(), utilityId);
   }
 
   setOnBoxSelected(callback: (_id: string | null) => void): void {
@@ -3467,7 +3367,7 @@ export class ViewerCore {
       this.transformControls?.detach();
       if (this.transformControlsHelper) this.transformControlsHelper.visible = false;
     }
-    this.selectionOutline.sanitizeStaleTarget((object) => this.isObjectAttachedToScene(object));
+    sanitizeSelectionOutlineStaleTargetImpl(this.getSelectionOpsDeps());
   }
 
   private incrementLifecycleCount(map: Map<string, number>, id: unknown): void {
@@ -3596,7 +3496,7 @@ export class ViewerCore {
           object.position.set(0, entry.height / 2, 0);
         }
         entry.cadModels.push({ id, object, path: modelPath });
-        this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap());
+        syncEdgeOutlineRootImpl(this.getSelectionOpsDeps());
         this.onModelLoaded?.(boxId, id, object);
       })
       .catch(() => {
@@ -3656,7 +3556,7 @@ export class ViewerCore {
     if (model.object.parent) {
       model.object.parent.remove(model.object);
     }
-    this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap());
+    syncEdgeOutlineRootImpl(this.getSelectionOpsDeps());
     this.disposeObject(model.object);
     return true;
   }
@@ -3671,7 +3571,7 @@ export class ViewerCore {
       this.disposeObject(model.object);
     });
     entry.cadModels = [];
-    this.edgeOutlineSystem?.syncRoot(this.sceneManager.root, this.getEdgeOutlineBoxesMap());
+    syncEdgeOutlineRootImpl(this.getSelectionOpsDeps());
   }
 
   listModels(boxId: string): Array<{ id: string; path: string }> | null {
@@ -3997,6 +3897,39 @@ export class ViewerCore {
       onWallTransform: this.onWallTransform,
       onRoomElementTransform: this.onRoomElementTransform,
       onRoomUtilityTransform: this.onRoomUtilityTransform,
+    };
+  }
+
+  private getSelectionOpsDeps(): ViewerCoreSelectionOpsDeps {
+    return {
+      viewerState: this.viewerState,
+      getHighlightManager: () => this.highlightManager,
+      updateOutline: () => this.viewerTools.updateOutline(),
+      selectionOutline: this.selectionOutline,
+      getMultiSelectionOutline: () => this.multiSelectionOutline,
+      wallSelectionOutline: this.wallSelectionOutline,
+      getEdgeOutlineSystem: () => this.edgeOutlineSystem,
+      getInternalSelectionOutline: () => this.internalSelectionOutline,
+      sceneManager: this.sceneManager,
+      boxes: this.boxes,
+      getRoomBoxWalls: () => this.roomBoxWalls,
+      getCamera: () => this.cameraManager.camera,
+      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
+      getRemateVisualBridge: () => this.remateVisualBridge,
+      getRodapeVisualBridge: () => this.rodapeVisualBridge,
+      rodapeVisualizer: this.rodapeVisualizer,
+      wallGizmo: this.wallGizmo,
+      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
+      onWallSelected: this.onWallSelected,
+      onBoxSelected: this.onBoxSelected,
+      selectedBoxChangeListeners: this.selectedBoxChangeListeners,
+      onMeasurementSelectionChanged: (boxId) => this.measurementEngine.onSelectionChanged(boxId),
+      onInternalSurfaceSelected: this.onInternalSurfaceSelected,
+      onInternalEdgeSelected: this.onInternalEdgeSelected,
+      onInternalPointSelected: this.onInternalPointSelected,
+      applyPanelVisibilityForAllBoxes: () =>
+        applyPanelVisibilityForAllBoxesImpl(this.getIndustrialModeDeps()),
+      isObjectAttachedToScene: (object) => this.isObjectAttachedToScene(object),
     };
   }
 
@@ -4326,7 +4259,7 @@ export class ViewerCore {
   }
 
   private setOutlineTarget(mesh: THREE.Object3D | null, opacity: number, colorHex: number): void {
-    this.selectionOutline.setTarget(mesh, opacity, colorHex);
+    setOutlineTargetImpl(this.getSelectionOpsDeps(), mesh, opacity, colorHex);
   }
 
   /** Obtém boxId a partir de um mesh (grupo ou filho/GLB); sobe na hierarquia até encontrar userData.boxId ou o grupo da caixa. */
@@ -4335,64 +4268,7 @@ export class ViewerCore {
   }
 
   private setSelectedBox(id: string | null, options?: { preserveGroupMembers?: boolean }) {
-    if (import.meta.env.DEV) {
-      devLogger.debug("[SELECTION][ViewerCore] setSelectedBox:entrada", {
-        nextBoxId: id,
-        currentSelectionBefore: this.viewerState.getSelectedBox(),
-        callerStack:
-          id == null
-            ? new Error("[SELECTION] setSelectedBox(null) trace").stack
-            : undefined,
-      });
-    }
-    if (this.viewerState.getSelectedBox() === id) {
-      if (import.meta.env.DEV) {
-        devLogger.debug("[SELECTION][ViewerCore] setSelectedBox:sem-mudanca", {
-          sameBoxId: id,
-        });
-      }
-      if (import.meta.env.DEV) {
-        devLogger.debug("[SELECTION][ViewerCore] onBoxSelected:emit", {
-          boxId: id,
-          reason: "same-selection-short-circuit",
-        });
-      }
-      this.onBoxSelected?.(id);
-      return;
-    }
-    this.viewerState.setSelectedBox(id);
-    this.viewerState.setSelectedRemate(null);
-    this.viewerState.setSelectedDivSep(null);
-    this.viewerState.setSelectedWallIndex(null);
-    this.viewerState.setSelectedRoomElementId(null);
-    if (!options?.preserveGroupMembers) {
-      this.viewerState.clearGroupTransformMemberIds();
-    }
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
-    if (import.meta.env.DEV) {
-      devLogger.debug("[SELECTION][ViewerCore] setSelectedBox:apos-update-state", {
-        nextBoxId: id,
-        currentSelectionAfter: this.viewerState.getSelectedBox(),
-      });
-      devLogger.debug("[SELECTION][ViewerCore] onBoxSelected:emit", {
-        boxId: id,
-      });
-    }
-    this.onBoxSelected?.(id);
-    this.selectedBoxChangeListeners.forEach((cb) => {
-      try {
-        cb(id);
-      } catch {
-        /* ignore */
-      }
-    });
-    if (id == null) {
-      this.measurementEngine.onSelectionChanged(null);
-      this.setInternalSelection(null);
-      return;
-    }
-    this.measurementEngine.onSelectionChanged(id);
+    setSelectedBoxImpl(this.getSelectionOpsDeps(), id, options);
   }
 
   /**
@@ -5283,21 +5159,6 @@ export class ViewerCore {
   /** Recuo lateral dos pés (m). */
   private static readonly FEET_SIDE_INSET_M = 0.06;
 
-  private getEdgeOutlineBoxesMap(): ReadonlyMap<string, EdgeOutlineBoxEntry> {
-    const map = new Map<string, EdgeOutlineBoxEntry>();
-    this.boxes.forEach((entry, id) => {
-      map.set(id, {
-        mesh: entry.mesh,
-        width: entry.width,
-        height: entry.height,
-        carcassDepth: entry.carcassDepth,
-        depth: entry.depth,
-        cadOnly: entry.cadOnly,
-      });
-    });
-    return map;
-  }
-
   private isMeshInsideOrTouchingRoom(movingMesh: THREE.Object3D, tolerance = 0.02): boolean {
     return isMeshInsideOrTouchingRoomImpl(this.getRoomUtilsDeps(), movingMesh, tolerance);
   }
@@ -5351,21 +5212,15 @@ export class ViewerCore {
 
   /** Delega ao ViewerTools. */
   private refreshOutlineTarget(): void {
-    this.viewerTools.updateOutline();
+    refreshOutlineTargetImpl(this.getSelectionOpsDeps());
   }
 
   private setHoveredBox(id: string | null) {
-    if (this.viewerState.getHoveredBox() === id) return;
-    this.viewerState.setHoveredBox(id);
-    if (id != null) this.viewerState.setHoveredRemate(null);
-    this.refreshOutlineTarget();
+    setHoveredBoxImpl(this.getSelectionOpsDeps(), id);
   }
 
   private setHoveredRemate(id: string | null) {
-    if (this.viewerState.getHoveredRemate() === id) return;
-    this.viewerState.setHoveredRemate(id);
-    if (id != null) this.viewerState.setHoveredBox(null);
-    this.refreshOutlineTarget();
+    setHoveredRemateImpl(this.getSelectionOpsDeps(), id);
   }
 
   private getHighlightIntersects(event: { clientX: number; clientY: number }): THREE.Intersection[] {
@@ -5481,11 +5336,7 @@ export class ViewerCore {
     if (this.snapDebugOverlay && this.lastSnapDebugData) {
       this.snapDebugOverlay.update(this.lastSnapDebugData);
     }
-    this.selectionOutline.updateFrame();
-    this.multiSelectionOutline?.updateMatrices();
-
-    this.highlightManager?.update();
-    this.edgeOutlineSystem?.update();
+    updateSelectionOverlaysFrameImpl(this.getSelectionOpsDeps());
     this.overlayCoordinator.refreshFrame(performance.now());
 
     if (this.reflectionsEnabled) {
@@ -5495,11 +5346,6 @@ export class ViewerCore {
         this.updateReflectionProbe(false);
       }
     }
-
-    const wallEntry = this.viewerState.getSelectedWallIndex() !== null
-      ? this.roomBoxWalls.find((w) => w.id === this.viewerState.getSelectedWallIndex())
-      : null;
-    this.wallSelectionOutline.update(wallEntry ? { mesh: wallEntry.mesh } : null);
   }
 
   saveSnapshot(): import("../../context/projectTypes").ViewerSnapshot | null {
@@ -5573,22 +5419,11 @@ export class ViewerCore {
     }
     this.snapshotRenderer = null;
     this.selectedBoxChangeListeners.clear();
-    this.selectionOutline.dispose();
-    this.multiSelectionOutline?.dispose(this.sceneManager.scene);
+    disposeSelectionSystemsImpl(this.getSelectionOpsDeps());
     this.multiSelectionOutline = null;
-    this.wallSelectionOutline.dispose();
-    if (this.highlightManager) {
-      this.highlightManager.dispose();
-      this.highlightManager = null;
-    }
-    if (this.edgeOutlineSystem) {
-      this.edgeOutlineSystem.dispose();
-      this.edgeOutlineSystem = null;
-    }
-    if (this.internalSelectionOutline) {
-      this.internalSelectionOutline.dispose();
-      this.internalSelectionOutline = null;
-    }
+    this.highlightManager = null;
+    this.edgeOutlineSystem = null;
+    this.internalSelectionOutline = null;
     this.dimensionsOverlay.dispose();
     this.measurementEngine.dispose();
     this.unregisterAdminSnappingRules?.();
