@@ -425,7 +425,10 @@ export function syncDisplayQualityVisualPipelineImpl(deps: ViewerCoreDisplayOpsD
 
   const level = resolveDisplayQualityLevelImpl(deps);
 
-  const exposureFactor = level === "baixa" ? 1.0 : level === "media" ? 1.0 : 0.92;
+  // Alta não soma mais +6% de luz global (ver displayQualityPresets.ts), então precisa
+  // de bem menos correção de exposição do que antes — só o suficiente para o bloom/
+  // reflexos mais fortes não estourarem o branco.
+  const exposureFactor = level === "baixa" ? 1.0 : level === "media" ? 1.0 : 0.96;
   deps.rendererManager.renderer.toneMappingExposure = deps.baseToneMappingExposure * exposureFactor;
 
   deps.ensureLightingEngine().applyShadowQualityProfile(level);

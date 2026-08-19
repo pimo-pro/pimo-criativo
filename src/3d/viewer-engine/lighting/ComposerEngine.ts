@@ -63,7 +63,9 @@ export class ComposerEngine {
     // “Média/Alta” seguem com bloom, mas com limiar/força ajustados para não “lavar” o MDF.
     const MAIN_LOW: BloomCapturePreset = { strength: 0, radius: LIVE_MAIN_BLOOM.radius, threshold: 1 };
     const SHOWCASE_MEDIA: BloomCapturePreset = { strength: 0.075, radius: 0.28, threshold: 0.94 };
-    const SHOWCASE_HIGH: BloomCapturePreset = { strength: 0.09, radius: 0.29, threshold: 0.965 };
+    // Alta precisa ser claramente mais que Média (antes a diferença de força era de
+    // apenas 0.015 e o threshold era mais restritivo, tornando o bloom imperceptível).
+    const SHOWCASE_HIGH: BloomCapturePreset = { strength: 0.16, radius: 0.32, threshold: 0.9 };
 
     switch (level) {
       case "baixa":

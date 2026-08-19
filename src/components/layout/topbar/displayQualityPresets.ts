@@ -77,8 +77,9 @@ export function buildDisplayQualitySettingsPatch(level: DisplayQualityLevel): Di
         ...LIGHTS_RESET,
         materialQuality: "premium",
         enableReflections: true,
-        // Reduz overexposure face a reflexos + bloom; compensado por tone mapping e bloom no Composer.
-        globalLightIntensity: 1.06,
+        // Luz global igual a Baixa/Média: a diferença de "Alta" vem de bloom e
+        // reflexos reais (Composer + sonda), não de clarear a cena inteira.
+        globalLightIntensity: 1.0,
         shadowIntensity: 0.9,
         glossIntensity: 1,
       };
