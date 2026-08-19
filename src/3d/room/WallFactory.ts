@@ -12,7 +12,7 @@ export function setWallThicknessM(value: number): void {
   currentWallThicknessM = Math.max(0.05, value);
 }
 
-export interface WallMaterialOptions {
+interface WallMaterialOptions {
   doubleSide?: boolean;
   transparent?: boolean;
   opacity?: number;
@@ -38,26 +38,6 @@ function createWallMaterialFromConfig(
     transparent,
     opacity,
   });
-}
-
-/**
- * Aplica material às paredes (MeshStandardMaterial, DoubleSide, transparent).
- * Usa getSceneMaterialConfig() como padrão.
- */
-export function applyWallMaterial(
-  mesh: THREE.Mesh,
-  options: WallMaterialOptions = {}
-): void {
-  const config = getSceneMaterialConfig();
-  const mat = createWallMaterialFromConfig(config.wall, options);
-  if (mesh.material) {
-    if (Array.isArray(mesh.material)) {
-      mesh.material.forEach((m) => m.dispose());
-    } else {
-      (mesh.material as THREE.Material).dispose();
-    }
-  }
-  mesh.material = mat;
 }
 
 export type RoomNumWalls = 3 | 4;

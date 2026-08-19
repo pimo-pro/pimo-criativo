@@ -3,8 +3,8 @@
  * Geometria visual apenas; sem impacto industrial.
  */
 import { wallStore } from "../../../stores/wallStore";
-import type { PimoViewerApi } from "../../../context/PimoViewerContextCore";
-import { applyRoomMeshFromWallStore, applyRoomOpeningsFromWallStore } from "../../../utils/roomMeshFromWallStore";
+
+
 import {
   centeredWallPositionForLabel,
   migrateProjectRoomToCenteredCoords,
@@ -283,53 +283,4 @@ export function applyProjectRoomToWallStore(room: ProjectRoomConfig): void {
     mainWallIndex: ui.mainWallIndex,
   });
   wallStore.getState().loadRoomConfig(derived);
-}
-
-export function syncProjectRoomToViewer(
-  viewerApi: Pick<
-    PimoViewerApi,
-    | "createRoomWithDimensions"
-    | "removeRoom"
-    | "addDoorToRoom"
-    | "addWindowToRoom"
-    | "getRoomExists"
-    | "setRoomLocked"
-    | "setRoomFloorMode"
-    | "setRoomHiddenWalls"
-    | "setRoomUtilities"
-    | "hideRoom"
-    | "showRoom"
-    | "setRoomCeilingVisible"
-  > | null | undefined,
-  room: ProjectRoomConfig | null
-): void {
-  if (!viewerApi) return;
-  if (!room) {
-    viewerApi.removeRoom?.();
-    return;
-  }
-  applyProjectRoomToWallStore(room);
-  applyRoomMeshFromWallStore(viewerApi);
-  applyRoomOpeningsFromWallStore(viewerApi);
-  viewerApi.setRoomLocked?.(room.locked);
-  viewerApi.setRoomFloorMode?.(room.floorMode);
-  viewerApi.setRoomCeilingVisible?.(room.ceilingVisible);
-  viewerApi.setRoomHiddenWalls?.(room.hiddenWalls);
-  viewerApi.setRoomUtilities?.(room.utilities);
-  if (room.visible) viewerApi.showRoom?.();
-  else viewerApi.hideRoom?.();
-}
-
-export function refreshViewerRoomFromWallStore(
-  viewerApi: Pick<
-    PimoViewerApi,
-    | "createRoomWithDimensions"
-    | "removeRoom"
-    | "addDoorToRoom"
-    | "addWindowToRoom"
-    | "getRoomExists"
-  > | null | undefined
-): void {
-  applyRoomMeshFromWallStore(viewerApi);
-  applyRoomOpeningsFromWallStore(viewerApi);
 }

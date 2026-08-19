@@ -2682,6 +2682,19 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Tag** | `z-03-4-room-legacy-removal` |
 | **Intocado** | ProjectRoomConfig, Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine, comportamento Viewer |
 
+### 13.36 Changelog v1.34 → v1.35
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.5** | Limpeza sistemas paralelos sala: remoção de código morto e consolidação sidecar |
+| **WallFactory** | Removido export `applyWallMaterial` (sem consumidores); `WallMaterialOptions` tornado privado |
+| **RoomEngine** | Removidos exports não consumidos `syncProjectRoomToViewer` e `refreshViewerRoomFromWallStore` |
+| **UI** | Eliminado `RoomSettingsPanel.tsx` (legado não referenciado); mantido `PainelSala` como UI canónica |
+| **Sidecar** | `projectsMappers.ts`: removido fallback `state["room"]` em `buildPimoProjectDataFromRequest`; type guard `isRoomSnapshotLike` em `toRecordFromProjectData` previne persistência de mm no campo cm |
+| **v4** | Auditoria confirmou todos os ficheiros v4 referenciados pela cadeia de imports — nenhuma remoção |
+| **Tag** | `z-03-5-room-parallel-cleanup` |
+| **Intocado** | ProjectRoomConfig (SSOT), Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine, comportamento Viewer |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -2692,4 +2705,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.34).
+Fim do documento de planeamento (v1.35).

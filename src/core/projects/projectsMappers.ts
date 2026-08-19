@@ -41,7 +41,7 @@ export function buildPimoProjectDataFromRequest(request: SaveProjectRequest): Pi
   const state = projectStateFromSnapshot(request.snapshot);
   const stateViewer = asObject(state.viewerSettings);
   const stateMaterials = asObject(state.material);
-  const room = request.snapshot.roomSnapshot ?? state["room"] ?? null;
+  const room = request.snapshot.roomSnapshot ?? null;
   const viewerSnapshot = request.snapshot.viewerSnapshot ?? null;
   const boxes = state["workspaceBoxes"] ?? state["boxes"] ?? [];
   const cutlist = safeArray(state["cutList"]);
@@ -100,10 +100,15 @@ export function toMetaFromProjectData(project: PimoProjectData, index: number): 
   };
 }
 
+function isRoomSnapshotLike(value: unknown): boolean {
+  const obj = asObject(value);
+  return obj !== null && Array.isArray(obj["walls"]);
+}
+
 export function toRecordFromProjectData(project: PimoProjectData): SavedProjectRecord {
   const settingsObj = asObject(project.settings);
   const projectState = settingsObj?.projectState ?? {};
-  const roomSnapshot = project.room ?? null;
+  const roomSnapshot = isRoomSnapshotLike(project.room) ? project.room : null;
   const snapshot = {
     projectState,
     viewerSnapshot: project.viewerSnapshot ?? null,
