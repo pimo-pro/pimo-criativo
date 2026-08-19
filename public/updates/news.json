@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-19T16:46:35.224Z",
+  "updatedAt": "2026-08-19T19:21:26.983Z",
   "news": [
+    {
+      "version": "v6.0819.2021",
+      "title": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
+      "description": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
+      "publishedAt": "2026-08-19T19:21:26.804Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "9ec635ce"
+    },
     {
       "version": "v6.0819.1746",
       "title": "chore(cnc): atualizar benchmarks de cutlayout",
       "description": "chore(cnc): atualizar benchmarks de cutlayout",
-      "publishedAt": "2026-08-19T16:46:35.079Z",
+      "publishedAt": "2026-08-19T17:48:10+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "57597e37"
+      "commit": "c531ccd"
     },
     {
       "version": "v6.0819.1400",
