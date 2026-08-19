@@ -48,6 +48,7 @@ export class ComposerEngine {
   mainFxaa: ShaderPass | null = null;
   private showcaseBloomProfile: BloomCapturePreset = LIVE_SHOWCASE_BLOOM;
   private mainBloomProfile: BloomCapturePreset = LIVE_MAIN_BLOOM;
+  private currentLevel: DisplayQualityLevel = "media";
   private readonly deps: ComposerEngineDeps;
 
   constructor(deps: ComposerEngineDeps) {
@@ -59,6 +60,7 @@ export class ComposerEngine {
   }
 
   applyDisplayQualityBloomProfiles(level: DisplayQualityLevel): void {
+    this.currentLevel = level;
     // “Baixa” deve ser limpa (sem bloom perceptível).
     // “Média/Alta” seguem com bloom, mas com limiar/força ajustados para não “lavar” o MDF.
     const MAIN_LOW: BloomCapturePreset = { strength: 0, radius: LIVE_MAIN_BLOOM.radius, threshold: 1 };
@@ -139,6 +141,12 @@ export class ComposerEngine {
   }
 
   ensureMain(): EffectComposer | null {
+    if (this.currentLevel === "baixa") {
+      // Baixa renderiza direto (renderer.render, sem EffectComposer): evita o custo de
+      // render-to-texture extra do RenderPass/UnrealBloomPass/FXAA mesmo com bloom zerado.
+      this.disposeMain();
+      return null;
+    }
     if (this.main) return this.main;
     const container = this.deps.getContainer();
     if (!container) return null;
