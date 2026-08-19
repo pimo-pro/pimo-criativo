@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.31 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico RoomManager (18 de Agosto de 2026) |
-| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1 diagnóstico only (sem alteração de `src/`) |
+| **Versão do plano** | 1.32 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico; **Z-03.2** classificação completa dos sistemas de sala (19 de Agosto de 2026) |
+| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1/Z-03.2 documentação only (sem alteração de `src/`) |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
-| **Última actualização do plano** | 18 de Agosto de 2026 |
+| **Última actualização do plano** | 19 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-02.6 / Z-03.2+ só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Z-02.6 / Z-03.3+ (código de sala ou Aedifex) só com gatilho explícito. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -448,7 +448,8 @@ Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01
 | Z-02 | Dashboard + analytics | `industrial/core/dashboard/*`, `analytics/stats.ts` | Cadeia interna metrics→dashboard; sem UI | Pode alimentar supervisor futuro |
 | **Z-02.0** | **Toolbar superior do Viewer** | `UnifiedTopToolbar.tsx` + `ViewerToolbar.tsx` | Chrome UI **vivo**; 20 controlos visíveis + faixa vazia + popovers | **Auditoria §6.3** — diagnóstico only; **não apagar** sem gatilho Z-02.1+ |
 | Z-03 | Adapter WO legado | `legacyWorkflowWorkOrderAdapter.ts` | Exportado; documentado como ponte read-only | Transição TRAK (D-03) |
-| **Z-03.1** | **Sala industrial / RoomManager** | `src/3d/room/*` + `RoomEngine` + `wallStore` + `ProjectState.room` | Sistema **vivo** e duplicado (D-09); não é o adapter WO | **Auditoria §6.4** — diagnóstico only; **não alterar** `src/` sem gatilho Z-03.2+ |
+| **Z-03.1** | **Sala industrial / RoomManager** | `src/3d/room/*` + `RoomEngine` + `wallStore` + `ProjectState.room` | Sistema **vivo** e duplicado (D-09); não é o adapter WO | **Auditoria §6.4** — diagnóstico only |
+| **Z-03.2** | **Classificação completa dos sistemas de sala** | Inventário §6.5 (ProjectRoomConfig, wallStore, RoomManager, Auto-Room-Fill, Kitchen 3.0, paralelos v4/showroom) | Zero código apagado; etiquetas de destino futuro | **Relatório §6.5** — documentação only; **não alterar** `src/` sem gatilho Z-03.3+ |
 | **Z-04** | Integration UI industrial (**ex-Z-01**) | `src/industrial/integration/ui/*` | Zero imports em `src/app` | Tipos re-exportados; possível uso futuro TRAK |
 
 **Contentor React (não é o alvo Z-01):** `src/components/layout/workspace/Workspace.tsx` (1439 linhas) monta o ViewerCore, liga bridges e overlays. É o casco UI, não o expositor 3D.
@@ -1619,7 +1620,260 @@ Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 l
 
 **Recomendação de leitura (não é execução):** A é pré-requisito de B ou C. Sem unificar mm/cm/m e o SSOT, um motor externo herda o drift.
 
-**Próximo gatilho possível:** Z-03.2 só com pedido explícito (não desta fase).
+**Próximo gatilho (código):** Z-03.3+ só com pedido explícito. **Z-03.2** (classificação) está em §6.5.
+
+## 6.5 Z-03.2 — Limpeza e classificação completa dos sistemas de sala
+
+| Campo | Valor |
+|-------|--------|
+| **Estado** | Classificação **concluída** (19-08-2026). **Zero** alterações a `src/`. Nenhum ficheiro apagado. |
+| **Gatilho de código** | Nenhum. Remoção, unificação de SSOT, ou Aedifex exigem pedido explícito (ex.: «aplica Z-03.3»). |
+| **Exclusões** | BoxBuilder, SnapEngine, LayoutEngine (algoritmo), schema ProjectState industrial, PDF/XLSX/TCN/DRILL/PI — **não tocados** |
+| **Nota de ID** | Complementa §6.4 (Z-03.1). **Não** substitui Z-03 (adapter WO legado). |
+
+**Conclusão em uma frase:** as paredes da sala são **só visual/runtime**; a fabricação **nunca** corta paredes. O único impacto industrial é **indirecto**: Kitchen 3.0 / Auto-Room-Fill (e rodapé/hemati FULL) lêem `ProjectRoomConfig` para **colocar ou ancorar caixas** — as caixas é que entram em cutlist/CNC. Nada disto importa BoxBuilder nem o pipeline industrial.
+
+### 6.5.1 Legenda das etiquetas
+
+Cada ficheiro (ou trecho, quando o ficheiro é misto) recebe **uma ou mais** etiquetas:
+
+| Etiqueta | Significado nesta fase |
+|----------|------------------------|
+| **industrial-safe** | Não alimenta BoxBuilder, cutlist, PDF/XLSX, TCN, DRILL nem PI. Remoção futura **não** parte a fabricação **directamente**. |
+| **legacy** | Geração anterior ainda referenciada, ou API morta dentro de ficheiro vivo. Não é SSOT. |
+| **unused** | Sem consumidores activos (método ou ficheiro). |
+| **candidate for removal** | Destino futuro de código, **depois** de unificar SSOT / matar bind duplo. **Não remover agora.** |
+| **candidate for replacement** | Geometria ou mesh que um motor externo (Aedifex) ou `RoomKernel` pode substituir **via adapter** para `ProjectRoomConfig`. |
+
+Etiqueta extra (obrigatória quando o ficheiro gera ou ancora caixas):
+
+| Etiqueta | Significado |
+|----------|-------------|
+| **preservar (industrial-adjacente)** | Não apagar nem substituir sem adapter. Impacto industrial **indirecto** (posição/IDs de caixas). |
+
+### 6.5.2 Separação conceptual (visual / runtime / contrato)
+
+| Camada | O que é | O que **não** é | Fabricação |
+|--------|---------|-----------------|------------|
+| **Apenas visual** | Meshes Three.js (paredes, portas, janelas, piso/tecto Room 2.1, gizmos, culling) | Geometria de peça | Paredes **nunca** vão a cutlist |
+| **Apenas runtime** | `wallStore` (cm), tokens de sync, selecção de parede, clamp de caixas no viewer | Contrato gravado em mm | Não é input de TCN; só impede caixas de sair do rectângulo **na UI** |
+| **Apenas contrato de projecto** | `ProjectState.room` = `ProjectRoomConfig` (mm) + sidecar `roomSnapshot` (cm) | Motor 3D | Persistência; Kitchen 3.0 lê o contrato |
+| **Industrial-adjacente** | `core/autoRoomFill` (Kitchen 3.0 + fill legado) + `kitchenFinish/roomContext` (rodapé/hemati FULL) | Mesh de parede | Escreve/ancora `WorkspaceBox` → **aí** o BoxBuilder/pipeline |
+
+**Garantia desta fase:** nenhum destes sistemas **é** a malha industrial. BoxBuilder continua a receber só caixas. TCN/DRILL/PI continuam a receber só cutlist + furos da peça.
+
+### 6.5.3 Dependências (BoxBuilder, ProjectState industrial, pipeline)
+
+Grep estático (19-08-2026):
+
+| Alvo | Toca sistemas de sala? | Evidência |
+|------|------------------------|-----------|
+| **BoxBuilder** (`src/3d/objects/`) | **Não** | Zero imports de `roomEngineTypes`, `wallStore`, `RoomManager`, `autoRoomFill`. Showroom importa BoxBuilder para **exibir** caixas — fluxo D-07, não o RoomManager do Workspace. |
+| **SnapEngine** | **Não** (algoritmo) | Smart-snap de sala (`smartSnappingRoom`, `semanticRoomAnalyzer`) é overlay 3D; não gera cutlist. |
+| **LayoutEngine** | **Fachada apenas** | Delega Kitchen 3.0 / fill legado a `core/autoRoomFill`. Algoritmo 3D = adapters. **Não alterar** nesta campanha. |
+| **ProjectState industrial** | **Trecho `room` + acções de fill** | `project.room` e `runKitchenLayout30` / `runAutoRoomFill` vivem em `projectTypes.ts`. Caixas, cutlist, `resultados` **não** derivam da mesh da sala. |
+| **PDF / XLSX / TCN / DRILL / PI** | **Não** | Zero hits em `src/core/cnc`, `src/core/export`, `src/industrial`. |
+| **Rodapé / hemati FULL** | **Indirecto** | `rodapeFactory` / `hematiFactory` lêem `ProjectRoomConfig` via `kitchenFinish/roomContext` (`parentWallId` = `room.walls[0].id` se existir). Sem sala, FULL cai para defaults — **não** quebra CNC das caixas já existentes. |
+| **CRUD / transform de caixas** | **Indirecto (runtime)** | `useBoxCrudActions` / `useBoxTransformActions` usam `wallStore` + `roomWorkspaceBounds` para spawn e clamp XZ. Depois `recomputeState` → BoxBuilder como sempre. |
+
+**Dependências indirectas (cadeia):**
+
+```
+ProjectRoomConfig (mm)
+  → Kitchen 3.0 / Auto-Room-Fill  → WorkspaceBox[]  → recomputeState
+       → BoxModule / cutlist → PDF / XLSX / TCN / DRILL / PI
+
+ProjectRoomConfig (mm)
+  → kitchenFinish.roomContext → rodapé/hemati FULL (peças extra na caixa)
+
+wallStore (cm)  → clamp/spawn UI  → posição da caixa  → mesma cadeia cutlist
+RoomManager (m) → meshes          → (não entra na cadeia)
+```
+
+Erro de geometria de sala **antes** do fill pode deslocar caixas (Z31-R6). Erro **depois** do fill, só nas meshes, **não** altera CNC.
+
+### 6.5.4 Inventário classificado — núcleo Workspace (canónico)
+
+Caminhos relativos a `src/` salvo indicação.
+
+#### A — Contrato `ProjectRoomConfig`
+
+| Ficheiro | Classificação | Camada | Notas |
+|----------|---------------|--------|-------|
+| `3d/viewer-engine/room/roomEngineTypes.ts` | **preservar (industrial-adjacente)** | Contrato | SSOT de tipos mm. **Não** substituir sem adapter Aedifex. Aliases `lengthMm`/`xPosMm` são dívida (Z31-D2), não motivo para apagar o tipo. |
+| `3d/viewer-engine/room/RoomEngine.ts` | **legacy** + **candidate for replacement** (conversores) | Contrato + runtime | Normaliza e converte mm↔cm. Manter `normalizeProjectRoom` no limite do adapter. |
+| `context/projectTypes.ts` (campo `room` + acções fill) | **preservar (industrial-adjacente)** | Contrato | Ficheiro **misto**: só o trecho sala/fill está no âmbito. Resto industrial **intocado**. |
+| `context/hooks/useRoomActions.ts` | industrial-safe | Runtime + contrato | Escreve `project.room` e sincroniza wallStore/viewer. |
+| `context/projectPersistence.ts` (`captureRoomSnapshot` / restore `room`) | **preservar (industrial-adjacente)** | Contrato | Sidecar cm + `project.room` mm. Ficheiro misto. |
+| `context/hooks/useProjectPersistence.ts` | industrial-safe | Runtime | Load `roomSnapshot` no wallStore. |
+| `core/projects/projectsMappers.ts` | **preservar (industrial-adjacente)** | Contrato | Envelope: `roomSnapshot` vs `state.room` intercambiáveis (risco Z31-R5). |
+| `utils/roomCoordinates.ts` | industrial-safe + **candidate for replacement** | Contrato/geometria | Centro do footprint; migração legado. |
+| `3d/room/types.ts` (`RoomConfig` / `WallConfig`) | **legacy** + **candidate for removal** (formato) | Contrato morto-parcial | Terceiro formato (mm + posição em **metros**). Usado pelo `createRoom` deprecated. |
+
+#### B — `wallStore`
+
+| Ficheiro | Classificação | Camada | Notas |
+|----------|---------------|--------|-------|
+| `stores/wallStore.ts` | industrial-safe + **candidate for replacement** (como SSOT) | Runtime | Lista viva cm. Destino futuro: vista derivada de `ProjectRoomConfig`. `toggleSnap` / `applySnapping`: **legacy** sem UI. |
+| `utils/wallSnapping.ts` | **legacy** + **candidate for removal** | Runtime | Só usado pelo wallStore; snap de extremos **não ligado à UI**. |
+| `utils/roomMeshFromWallStore.ts` | industrial-safe + **candidate for replacement** | Visual | Recria RoomManager a partir do store. |
+| `utils/roomWorkspaceBounds.ts` | industrial-safe (directo) + impacto **indirecto** no clamp | Runtime | Spawn/clamp de caixas. Preservar enquanto o clamp existir. |
+| `utils/openingConstraints.ts` | industrial-safe | Visual/runtime | Clamp de aberturas na parede (não CNC). |
+
+#### C — `Room.ts` / `RoomManager` (motor 3D)
+
+| Ficheiro | Classificação | Camada | Notas |
+|----------|---------------|--------|-------|
+| `3d/room/RoomManager.ts` | industrial-safe + **candidate for replacement** | Visual | Motor de meshes. Comentário: piso **não** é criado aqui. |
+| `3d/room/Room.ts` | industrial-safe + **candidate for replacement** | Visual | AABB em metros. |
+| `3d/room/WallFactory.ts` | industrial-safe + **candidate for replacement** | Visual | `BoxGeometry`; cantos por sobreposição. |
+| `3d/room/RoomBuilder.ts` | industrial-safe | Visual | Portas/janelas **vivas**. `createRoom` / `updateRoom` / `setWallOutlineVisible`: **unused** (no-op). |
+| `3d/room/elements/DoorElement.ts` | industrial-safe + **candidate for replacement** | Visual | |
+| `3d/room/elements/WindowElement.ts` | industrial-safe + **candidate for replacement** | Visual | |
+| `3d/room/openingPlacement.ts` | industrial-safe + **candidate for replacement** | Visual | |
+| `3d/room/roomDynamicBounds.ts` | industrial-safe | Visual/runtime | Bounds viewer; lê também `ProjectRoomConfig`. |
+| `3d/viewer-engine/room/ViewerRoomEngine.ts` | industrial-safe | Visual | Fachada Z-01.2.7 C. **Manter** como ponto de adapter. |
+| `3d/gizmos/WallGizmo.ts` | industrial-safe | Visual | Edição 3D de parede (risco Z31-R1 se dessincronizar SSOT). |
+| `3d/visibility/WallRaycastCulling.ts` | industrial-safe | Visual | Tipo `RoomBounds` apenas. |
+| `3d/collision/ModelCollision.ts` | industrial-safe | Visual | Tipo `RoomBounds` apenas. |
+| `3d/viewer-engine/materials/roomFloorOverlay.ts` | industrial-safe | Visual | Room 2.1 / modos de piso. |
+| `3d/viewer-engine/room/roomFloorModeUi.ts` | industrial-safe | Visual | |
+| `hooks/viewer/useViewerRoom.ts` | **legacy** + **candidate for removal** (bind duplo) | Runtime | D-09: bind ViewerCore **e** RoomManager. Ficheiro vivo via `usePimoViewer`. Limpar bind, não apagar a API de sala. |
+| `core/viewer/pimoViewerRuntime.ts` (tipo `ViewerCoreRoomManagerRuntime`) | industrial-safe | Runtime | Trecho. |
+
+**Métodos mortos (não são ficheiros):** `ViewerCore.createRoomBox` — **unused** + **candidate for removal**; `ViewerCore.createRoom(RoomConfig)` — **legacy** deprecated.
+
+#### D — Auto-Room-Fill e Kitchen 3.0
+
+| Ficheiro | Classificação | Camada | Notas |
+|----------|---------------|--------|-------|
+| `core/autoRoomFill/generateKitchenLayoutPlan.ts` | **preservar (industrial-adjacente)** | Contrato → caixas | Canal **canónico** Kitchen 3.0. |
+| `core/autoRoomFill/applyAutoRoomFillPlan.ts` (`runKitchenLayout30OnState`) | **preservar (industrial-adjacente)** | Contrato → caixas | Escreve `WorkspaceBox`. |
+| `core/autoRoomFill/layoutDetection.ts` | **preservar (industrial-adjacente)** | Contrato | I / L / U / ilha. |
+| `core/autoRoomFill/layoutSpecials.ts` | **preservar (industrial-adjacente)** | Contrato → caixas | Pia, fogão, etc. |
+| `core/autoRoomFill/specialPlacement.ts` | **preservar (industrial-adjacente)** | Contrato → caixas | |
+| `core/autoRoomFill/islandGenerator.ts` | **preservar (industrial-adjacente)** | Contrato → caixas | |
+| `core/autoRoomFill/roomAnalysis.ts` | **preservar (industrial-adjacente)** + **candidate for replacement** (modelo de «corrida») | Contrato | Duplica ideia de `autoLayoutRoomGeometry` (Z31-D5). |
+| `core/autoRoomFill/wallPacking.ts` | **preservar (industrial-adjacente)** | Contrato → caixas | |
+| `core/autoRoomFill/moduleCatalog.ts` | **preservar (industrial-adjacente)** | Contrato → caixas | IDs paramétricos; as caixas geradas **são** industriais. |
+| `core/autoRoomFill/autoFillSettings.ts` | **preservar (industrial-adjacente)** | Contrato | |
+| `core/autoRoomFill/autoRoomFillTypes.ts` | **preservar (industrial-adjacente)** | Contrato | |
+| `core/autoRoomFill/index.ts` | **preservar (industrial-adjacente)** | Barrel | |
+| `core/autoRoomFill/generateAutoRoomFillPlan.ts` | **legacy** + **preservar (industrial-adjacente)** | Contrato → caixas | Fill de projecto **legado**; ainda chamado por `runAutoRoomFillOnState` e por Kitchen 3.0 (packing). **Não apagar** sem substituir packing. |
+| `core/kitchenFinish/roomContext.ts` | **preservar (industrial-adjacente)** | Contrato | Bounds/parede mais próxima para rodapé/hemati. **Não** confundir com `src/core/kitchen/**` (Modelo B). |
+| `core/kitchenFinish/finishTypes.ts` | **preservar (industrial-adjacente)** | Contrato | Ficheiro de acabamento; não é sala 3D. |
+| `core/kitchenFinish/autoExtend.ts` | **preservar (industrial-adjacente)** | Contrato | Usado por rodapé/hemati, não por meshes. |
+| `context/hooks/useAutoRoomFillActions.ts` | **preservar (industrial-adjacente)** | Runtime | `runKitchenLayout30` / `runAutoRoomFill`. |
+| `3d/viewer-engine/layout/LayoutEngine.ts` | **preservar** — **fora de remoção** | Fachada | **Não alterar.** Só documentado como orquestrador. |
+| `3d/viewer-engine/snapping/autoRoomFillEngine.ts` | industrial-safe (3D) + **legacy** (fallback 4 paredes) | Visual/runtime | Delega Kitchen 3.0 via bridge; fallback 3D se o bridge falhar. |
+| `3d/viewer-engine/autoLayout/autoLayoutRoomGeometry.ts` | industrial-safe + **candidate for replacement** | Visual | Segundo modelo de parede (Z31-D5). |
+| `3d/viewer-engine/autoLayout/AutoLayoutEngine.ts` | industrial-safe | Visual | Planos 3D; **não** é Kitchen 3.0. |
+| `admin/rules/autoFillRules/*` | **preservar (industrial-adjacente)** | Contrato admin | Regras de fill; não é mesh. |
+| `admin/rules/roomRules/*` | industrial-safe | Contrato admin | Offsets/snap de sala no admin; não CNC. |
+
+#### E — UI canónica da sala
+
+| Ficheiro | Classificação | Camada | Notas |
+|----------|---------------|--------|-------|
+| `components/layout/left-panel/PainelSala.tsx` | industrial-safe (paredes) + **preservar** (botão Kitchen 3.0) | UI | Aviso explícito «não entra em cutlist» refere-se às **paredes**. |
+| `components/layout/room/RoomSettingsPanel.tsx` | industrial-safe | UI | |
+| `components/layout/room/RoomFloorModeSelect.tsx` | industrial-safe | UI | |
+| `components/viewer/toolbar/RoomIconButton.tsx` | industrial-safe | UI | Tooltip/aria = Z-02.6, não Z-03. |
+| `components/layout/left-panel/LeftPanel.tsx` | industrial-safe (trecho) | UI | `hasPersistedRoomWalls` para mostrar painel. |
+| `components/layout/workspace/Workspace.tsx` | industrial-safe (trecho sync mesh) | Runtime | Ficheiro **misto**; sync `roomMeshSyncToken`. **Não fatiar** nesta fase. |
+| `components/layout/workspace/ContextMenu.tsx` | industrial-safe (trecho) | UI | Fill 3D / existência de sala. |
+| `components/layout/viewer-toolbar/ViewerToolbar.tsx` | industrial-safe (trecho) | UI | `useWallStore`. |
+| `ui/pipro/PiproDesignShellPage.tsx` | industrial-safe (trecho) | UI | `wallStore` no casco PI. |
+
+#### F — Testes (preservar como evidência)
+
+| Ficheiro | Classificação |
+|----------|---------------|
+| `tests/viewer/engines/RoomEngine.test.ts` | preservar |
+| `3d/viewer-engine/room/ViewerRoomEngine.test.ts` | preservar |
+| `tests/viewer/engines/LayoutEngine.test.ts` + `3d/viewer-engine/layout/LayoutEngine.test.ts` | preservar (Kitchen 3.0 vs legado) |
+
+### 6.5.5 Inventário — paralelos (fora do Workspace canónico)
+
+Estes **não** são o RoomManager do produto principal. Já mapeados em D-07 / F-06. Classificados aqui só para não os confundir com a sala industrial.
+
+| Ficheiro / pasta | Classificação | Notas |
+|------------------|---------------|-------|
+| `v4/room/*` (`V4Room.tsx`, `V4RoomConfig.ts`, `V4RoomShapes.ts`, `V4RoomSettings.tsx`, `V4RoomShapeGrid.tsx`, `V4RoomWall.tsx`, `V4RoomWallInputs.tsx`, `V4RoomFloor.tsx`) | industrial-safe + **candidate for removal** (com a rota `/v4`) | Sala R3F **paralela**. Zero pipeline. Remoção = campanha v4, **não** Z-03.3 de RoomManager. |
+| `v4/state/useV4Room.ts`, `v4/camera/V4RoomCamera.tsx` | idem | |
+| `components/showroom/*` (ficheiros `Showroom*` + `showroom*.ts`) | industrial-safe | Showroom **lê** projecto e usa BoxBuilder para **desenhar** caixas. Não é Room 2.0. |
+
+### 6.5.6 Smart-snap / análise semântica (adjacentes, não núcleo de sala)
+
+| Ficheiro | Classificação | Notas |
+|----------|---------------|-------|
+| `3d/viewer-engine/snapping/smartSnappingRoom.ts` | industrial-safe | Overlay snap. |
+| `3d/viewer-engine/snapping/smartRoomSnapIntegration.ts` | industrial-safe | |
+| `3d/viewer-engine/snapping/semanticRoomAnalyzer.ts` | industrial-safe + **legacy** (heurística) | Não persiste `ProjectRoomConfig`. |
+
+### 6.5.7 O que pode ser removido no futuro (texto only — **não executar**)
+
+Ordem sugerida **depois** de unificar SSOT (opção A em §6.4.10). Nenhum item desta lista está autorizado agora.
+
+| Prioridade | Alvo | Pré-requisito | Risco |
+|------------|------|---------------|-------|
+| 1 | Método `ViewerCore.createRoomBox` | Confirmar zero reflexão/dinâmico | Baixo |
+| 2 | No-ops `RoomBuilder.createRoom` / `updateRoom` | Renomear ou documentar API | Baixo (nome enganador) |
+| 3 | `wallSnapping.ts` + `applySnapping` do wallStore | Confirmar que nenhuma UI futura depende | Baixo |
+| 4 | Bind RoomManager em `useViewerRoom` (D-09) | Toda a UI passar por ViewerCore / ViewerRoomEngine | Médio UX |
+| 5 | Formato `3d/room/types.ts` (`createRoom` deprecated) | Snapshot/API programática só em mm Room 2.0 | Médio persistência |
+| 6 | Fallback 3D de `AutoRoomFillEngine.fillRoomWithModuleOnAllWalls` | Bridge Kitchen 3.0 sempre presente | Médio UX 3D |
+| 7 | Pasta `v4/room/*` | Decisão F-06 / rota `/v4` | Isolado do Workspace |
+| 8 | `wallStore` como SSOT (não o ficheiro de imediato) | `ProjectRoomConfig` único; store = vista | Alto UX se mal migrado |
+
+**Não** entram nesta lista: `core/autoRoomFill` Kitchen 3.0, `roomEngineTypes.ts`, `project.room`, rodapé/hemati `roomContext`, BoxBuilder, LayoutEngine, pipeline.
+
+### 6.5.8 O que deve ser preservado
+
+| Item | Porque |
+|------|--------|
+| `ProjectRoomConfig` (mm) e IDs `room-wall-{label}` | Contrato de projecto; Kitchen 3.0 e persistência |
+| `normalizeProjectRoom` | Validador mínimo no limite do adapter |
+| Kitchen 3.0 (`generateKitchenLayoutPlan` + `runKitchenLayout30OnState`) | Única via canónica projecto → caixas de cozinha |
+| `generateAutoRoomFillPlan` (packing) | Ainda usado pelo Kitchen 3.0 |
+| `kitchenFinish/roomContext` | Rodapé/hemati FULL |
+| Caixas resultantes + `recomputeState` | Entrada real da indústria |
+| Envelope `room` + `roomSnapshot` até haver migração | Load de ficheiros antigos (Z31-R5) |
+| `ViewerRoomEngine` | Fachada estável para substituir meshes por Aedifex |
+| Testes `LayoutEngine` / `RoomEngine` | Regressão da fachada |
+
+### 6.5.9 Riscos (classificação — sem mitigação de código)
+
+Herdados de §6.4.9, com IDs de destino:
+
+| ID | Risco | Relação com etiquetas |
+|----|--------|------------------------|
+| Z32-R1 | Tratar Kitchen 3.0 como «só visual» e apagá-lo com as meshes | **preservar (industrial-adjacente)** |
+| Z32-R2 | Apagar `wallStore` antes de um único SSOT mm | **candidate for replacement**, não removal imediata |
+| Z32-R3 | Substituir RoomManager por Aedifex sem adapter → `ProjectRoomConfig` | Kitchen 3.0 e save partem |
+| Z32-R4 | Confundir `v4/room` com RoomManager e apagar o canónico | Paralelos §6.5.5 |
+| Z32-R5 | Mexer em `LayoutEngine` / SnapEngine «porque têm room no nome» | Fora de âmbito; exclusão explícita |
+| Z32-R6 | Clamp `roomWorkspaceBounds` alterado sem testes de spawn | Caixas fora do sítio → cutlist **indirecto** |
+| Z31-R1…R7 | Ver §6.4.9 | Continuam válidos |
+
+### 6.5.10 Preparação para motores externos (Aedifex) — sem integrar
+
+Grep 19-08-2026: **zero** referências a Aedifex no repositório.
+
+Contrato mínimo a **não partir** (igual §6.4.8, agora com etiquetas):
+
+| Substituível (candidate for replacement) | Intocável sem adapter |
+|------------------------------------------|------------------------|
+| `Room.ts`, `WallFactory`, meshes RoomManager, `roomMeshFromWallStore`, layout cm do wallStore, `autoLayoutRoomGeometry` | `ProjectRoomConfig` mm, IDs de parede, openings mm, Kitchen 3.0, BoxBuilder, cutlist, TCN/DRILL/PI |
+
+Camada de compatibilidade: `AedifexModel → ProjectRoomConfig` e o inverso. Z-03.2 **não** cria essa camada.
+
+### 6.5.11 O que esta fase **não** fez
+
+- Não apagou, moveu nem deprecou código em `src/`.
+- Não alterou comportamento industrial, BoxBuilder, SnapEngine, LayoutEngine, ProjectState industrial, nem pipeline.
+- Não unificou mm/cm/m (isso seria opção A / Z-03.3+).
+- Não integrou Aedifex.
 
 ## 7. Riscos técnicos e de segurança (`R-`)
 
@@ -1927,6 +2181,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.29 | **Z-02.4 executado:** painel de qualidade Baixa / Média / Alta; Ultra só no Photo Mode. Tag `z-02-4-quality-panel`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.30 | **Z-02.5 executado:** Orbit/Pan/Zoom unificados no MouseInputMapper. Tag `z-02-5-mouse-unification`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.31 | **Z-03.1 diagnóstico only:** sala / RoomManager mapeada em §6.4; zero alterações a `src/`. | Khaled (dono do produto) + auditoria Cursor |
+| 2026-08-19 | 1.32 | **Z-03.2 documentação only:** classificação completa dos sistemas de sala em §6.5; zero alterações a `src/`. | Khaled (dono do produto) + auditoria Cursor |
 
 ### 13.2 Changelog v1.0 → v1.1 (resumo das mudanças neste documento)
 
@@ -2243,6 +2498,17 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Aedifex** | Ausente do repo; só pontos de encaixe documentados |
 | **Z-03 original** | Adapter WO legado — **não** substituído |
 
+### 13.33 Changelog v1.31 → v1.32
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.2** | Classificação completa dos sistemas de sala em §6.5 |
+| **Código** | Nenhuma alteração a `src/` — nenhum ficheiro apagado |
+| **Etiquetas** | industrial-safe / legacy / unused / candidate for removal / candidate for replacement + preservar (industrial-adjacente) |
+| **Industrial** | BoxBuilder e pipeline sem imports de sala; impacto só indirecto via caixas (Kitchen 3.0 / clamp / rodapé FULL) |
+| **Aedifex** | Continua ausente; contrato mínimo documentado; sem integração |
+| **Próximo código** | Z-03.3+ só com gatilho explícito |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -2253,4 +2519,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.31).
+Fim do documento de planeamento (v1.32).
