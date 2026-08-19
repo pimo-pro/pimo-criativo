@@ -9,7 +9,7 @@ import {
 } from "../projectPersistence";
 import { safeGetItem, safeParseJson, safeSetItem } from "../../utils/storage";
 import { wallStore } from "../../stores/wallStore";
-import { applyProjectRoomToWallStore } from "../../3d/viewer-engine/room/RoomEngine";
+import { applyProjectRoomToWallStore, normalizeProjectRoom, wallStoreToProjectRoom } from "../../3d/viewer-engine/room/RoomEngine";
 import { getCurrentProjectUser } from "../../core/projects/currentUser";
 import {
   DEFAULT_EMPRESA_EXECUTORA,
@@ -109,7 +109,7 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         viewerSync.restoreViewerSnapshot(
           (entry.snapshot.viewerSnapshot ?? null) as ProjectSnapshot["viewerSnapshot"]
         );
-        const restored = reviveState(entry.snapshot.projectState);
+        let restored = reviveState(entry.snapshot.projectState);
         if (!restored) {
           showToast(
             "Snapshot do projeto inválido ou incompatível. Não foi possível abrir.",
@@ -120,22 +120,25 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         logProjectIo("project-loaded", { id, boxes: restored.workspaceBoxes?.length ?? 0 });
         if (restored.room) {
           applyProjectRoomToWallStore(restored.room);
-        } else if (entry.snapshot.roomSnapshot !== undefined) {
-          if (entry.snapshot.roomSnapshot) {
-            wallStore
-              .getState()
-              .loadRoomConfig(entry.snapshot.roomSnapshot as import("../projectTypes").RoomSnapshot);
+        } else if (entry.snapshot.roomSnapshot) {
+          const rs = entry.snapshot.roomSnapshot as import("../projectTypes").RoomSnapshot;
+          const promoted = rs.walls?.length ? wallStoreToProjectRoom(rs.walls) : null;
+          const normalized = promoted ? normalizeProjectRoom(promoted) : null;
+          if (normalized) {
+            restored = { ...restored, room: normalized };
+            applyProjectRoomToWallStore(normalized);
           } else {
-            wallStore.getState().clearRoom();
+            wallStore.getState().loadRoomConfig(rs);
           }
+        } else if (entry.snapshot.roomSnapshot === null) {
+          wallStore.getState().clearRoom();
         }
         clearAllCutlistCache();
-        // P3.5 — trocar projeto: limpar live e republicar via ProjectProvider.
         clearIndustrialLiveProject();
         updateProject(() => ({ ...applyResultados(restored), currentProjectId: id }));
       },
       loadImportedPimoProject: async (snapshot, projectNameSlug) => {
-        const restored = prepareImportedProjectState(snapshot.projectState);
+        let restored = prepareImportedProjectState(snapshot.projectState);
         if (!restored) {
           showToast("Ficheiro de projeto inválido ou incompatível.", "error");
           return;
@@ -145,14 +148,18 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         );
         if (restored.room) {
           applyProjectRoomToWallStore(restored.room);
-        } else if (snapshot.roomSnapshot !== undefined) {
-          if (snapshot.roomSnapshot) {
-            wallStore
-              .getState()
-              .loadRoomConfig(snapshot.roomSnapshot as import("../projectTypes").RoomSnapshot);
+        } else if (snapshot.roomSnapshot) {
+          const rs = snapshot.roomSnapshot as import("../projectTypes").RoomSnapshot;
+          const promoted = rs.walls?.length ? wallStoreToProjectRoom(rs.walls) : null;
+          const normalized = promoted ? normalizeProjectRoom(promoted) : null;
+          if (normalized) {
+            restored = { ...restored, room: normalized };
+            applyProjectRoomToWallStore(normalized);
           } else {
-            wallStore.getState().clearRoom();
+            wallStore.getState().loadRoomConfig(rs);
           }
+        } else if (snapshot.roomSnapshot === null) {
+          wallStore.getState().clearRoom();
         }
         undoStackRef.current = [];
         redoStackRef.current = [];

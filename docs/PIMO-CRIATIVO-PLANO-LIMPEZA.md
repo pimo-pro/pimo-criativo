@@ -2706,6 +2706,17 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Tag** | `z-03-6-dead-code-removal` |
 | **Intocado** | Campos activos do ProjectState, hooks activos, Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine |
 
+### 13.38 Changelog v1.36 → v1.37
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.7** | Consolidação roomSnapshot: unificação do padrão de load |
+| **useProjectIoActions** | `loadProjectSnapshot` e `loadImportedPimoProject` agora promovem `roomSnapshot` (cm) → `project.room` (mm) via `wallStoreToProjectRoom` + `normalizeProjectRoom`, alinhando com o padrão já existente em `useProjectPersistence` |
+| **Retrocompatibilidade** | Snapshots antigos (sem `project.room`, com `roomSnapshot`) continuam a funcionar: promoção automática para SSOT mm |
+| **Persistência** | `roomSnapshot` continua a ser gravado nos snapshots (derivado de `project.room`) para compatibilidade com versões anteriores |
+| **Tag** | `z-03-7-roomSnapshot-consolidation` |
+| **Intocado** | ProjectRoomConfig (SSOT), Kitchen 3.0, BoxBuilder, pipeline industrial, LayoutEngine, SnapEngine, tipos `ProjectSnapshot`/`PersistedProjectSnapshot` |
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -2716,4 +2727,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.36).
+Fim do documento de planeamento (v1.37).
