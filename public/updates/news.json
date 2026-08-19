@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-18T21:14:43.602Z",
+  "updatedAt": "2026-08-19T13:00:11.870Z",
   "news": [
+    {
+      "version": "v6.0819.1400",
+      "title": "fix(viewer): z-03-10 quality pipeline - bloom/shadows/tone",
+      "description": "fix(viewer): z-03-10 quality pipeline - bloom/shadows/tone",
+      "publishedAt": "2026-08-19T13:00:11.671Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "c0f9073b"
+    },
     {
       "version": "v6.0818.2214",
       "title": "fix: qualidade 4K da captura e do modo Alta no Relatório Final",
       "description": "fix: qualidade 4K da captura e do modo Alta no Relatório Final",
-      "publishedAt": "2026-08-18T21:14:43.447Z",
+      "publishedAt": "2026-08-18T22:16:23+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "b5e873be"
+      "commit": "95c6174"
     },
     {
       "version": "v6.0818.2132",

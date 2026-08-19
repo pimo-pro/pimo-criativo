@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-19T13:00:10.929Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): z-03-10 quality pipeline - bloom/shadows/tone",
+      "version": "v6.0819.1400"
+    },
+    {
       "publishedAt": "2026-08-18T21:14:42.840Z",
       "author": "pimo-pro",
       "commitMessage": "fix: qualidade 4K da captura e do modo Alta no Relatório Final",
