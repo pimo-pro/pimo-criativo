@@ -14,6 +14,7 @@ import { Lights } from "./lighting";
 import { LightingEngine } from "./lighting/LightingEngine";
 import { ensureViewerLightingEngine } from "./engines/LightingEngine";
 import { ComposerEngine } from "./lighting/ComposerEngine";
+import { ensureViewerComposerEngine } from "./engines/ComposerEngine";
 import type { SelectionEngine } from "./selection/SelectionEngine";
 import { createViewerSelectionEngine } from "./engines/SelectionEngine";
 import { createViewerGizmoEngine } from "./engines/GizmoEngine";
@@ -1086,7 +1087,7 @@ export class ViewerCore {
   }
 
   private ensureComposerEngine(): ComposerEngine {
-    const engine = ComposerEngine.ensure(this.composerEngine, {
+    const engine = ensureViewerComposerEngine(this.composerEngine, {
       getRenderer: () => this.rendererManager.renderer,
       getScene: () => this.sceneManager.scene,
       getCamera: () => this.cameraManager.camera,
