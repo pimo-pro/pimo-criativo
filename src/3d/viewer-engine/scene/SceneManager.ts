@@ -150,7 +150,16 @@ export class SceneManager {
 
     const center = options?.center ?? { x: 0, y: 1.2, z: 0 };
     this.reflectionCubeCamera.position.set(center.x, center.y, center.z);
+
+    // Captura sem o environment atual: evita que materiais especulares realimentem
+    // a própria captura seguinte (loop de feedback que clareava a cena progressivamente
+    // a cada recaptura periódica). A sonda reflete sempre a cena tal como os pontos de
+    // luz diretos a iluminam, nunca a sua própria iluminação de ambiente anterior.
+    const previousEnvironment = this.scene.environment;
+    this.scene.environment = null;
     this.reflectionCubeCamera.update(renderer, this.scene);
+    this.scene.environment = previousEnvironment;
+
     this.scene.environment = this.reflectionCubeTarget.texture;
     if (options?.force) {
       this.scene.traverse((node) => {
