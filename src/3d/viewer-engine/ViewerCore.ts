@@ -11,8 +11,9 @@ import { RendererManager } from "./renderer";
 import { Lights } from "./lighting";
 import { LightingEngine } from "./lighting/LightingEngine";
 import { ComposerEngine } from "./lighting/ComposerEngine";
-import { SelectionEngine } from "./selection/SelectionEngine";
-import { GizmoEngine } from "./tools/GizmoEngine";
+import type { SelectionEngine } from "./selection/SelectionEngine";
+import { createViewerSelectionEngine } from "./engines/SelectionEngine";
+import { createViewerGizmoEngine } from "./engines/GizmoEngine";
 import { BoxEngine } from "./box/BoxEngine";
 import { ViewerRoomEngine } from "./room/ViewerRoomEngine";
 import { DesignerEngine } from "./designer/DesignerEngine";
@@ -425,7 +426,7 @@ export class ViewerCore {
   private debugMode = false;
   private eventsManager: EventsManager | null = null;
   private readonly viewerTools = new ViewerTools(() => this.getToolsEngineApi());
-  private readonly gizmoEngine = new GizmoEngine(this.viewerTools);
+  private readonly gizmoEngine = createViewerGizmoEngine(this.viewerTools);
 
   /** Vista escolhida pelo utilizador (Selecionar Vista). Quando definida, updateCameraTarget/ToBox só atualizam o alvo, não a orientação. */
   private get cameraViewPreset() {
@@ -619,9 +620,9 @@ export class ViewerCore {
     this.edgeOutlineSystem = selectionSystems.edgeOutlineSystem;
     this.internalSelectionOutline = selectionSystems.internalSelectionOutline;
     this.multiSelectionOutline = selectionSystems.multiSelectionOutline;
-    this.selectionEngine = new SelectionEngine({
-      syncMultiOutlines: (encodedIds) =>
-        this.multiSelectionOutline?.sync(encodedIds, (encoded) => this.resolveMultiOutlineTarget(encoded)),
+    this.selectionEngine = createViewerSelectionEngine({
+      multiSelectionOutline: this.multiSelectionOutline,
+      resolveMultiOutlineTarget: (encoded) => this.resolveMultiOutlineTarget(encoded),
       setGroupMemberIds: (ids) => this.viewerState.setGroupTransformMemberIds(ids),
       clearGroupMemberIds: () => this.viewerState.clearGroupTransformMemberIds(),
       refreshGizmo: () => this.gizmoEngine.refreshAttachment(),
