@@ -1,3 +1,32 @@
+# PIMO Criativo
+
+![Logótipo PIMO](https://pimo.pro/logo-pi.png)
+
+**[PIMO Criativo](https://pimo.pro)** é a plataforma web para criação de caixas e mobiliário modular com visualização 3D em tempo real. Gera automaticamente lista de corte, ficheiros CNC/TCN, planos de furação e relatórios de preço. Para carpintarias, designers e fábricas — sem instalação.
+
+📖 Documentação completa e guias de utilização: **[pimo.pro/ajuda](https://pimo.pro/ajuda)**
+
+### Funcionalidades principais
+
+- **Visualizador 3D** em tempo real (Three.js / React Three Fiber) com edição direta de caixas, materiais e ferragens (`src/3d`)
+- **Lista de corte (cutlist)** gerada automaticamente com dimensões, materiais e custos por peça
+- **Nesting / layout de corte** com modos Fast e PRO para otimizar o aproveitamento de chapa (`src/core/nesting3`, `src/nesting-v3`, `src/core/cutlayout`)
+- **Plano de furação** paramétrico (cavilhas, corrediças, dobradiças) para exportação CNC (`src/core/drill`, `src/core/drilling`)
+- **PIMO-TRAK** — etiquetas com QR code único por peça para rastreio de produção (`src/core/etiquetas`)
+- **Planeamento automático de espaço/sala** (`src/core/autoRoomFill`)
+- **Exportação industrial**: PDF técnico, ficheiros CNC/TCN, Drill XML e pacote ZIP completo (`src/core/cnc`)
+- **Relatórios de preço** com sistema de tarifas e custos industriais configuráveis (Orçamentos)
+- **Sistema Industrial**: painéis visuais de chão de fábrica (estação, operador, supervisor) sobre o fluxo de produção já existente
+
+### Screenshots
+
+<!-- TODO: adicionar capturas de ecrã em docs/screenshots/ e atualizar os caminhos abaixo -->
+![Visualizador 3D](docs/screenshots/viewer-3d.png)
+![Planeador de sala](docs/screenshots/room-planner.png)
+![Lista de corte / nesting](docs/screenshots/cutlist-nesting.png)
+
+---
+
 # PIMO v3 — Deploy Frontend (Hostinger) + Backend (Render)
 
 Este repositório contém:
