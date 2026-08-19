@@ -109,7 +109,6 @@ import { SYSTEM_BACK_MM } from "../../core/baseCabinets";
 import {
   clearSnapUserData,
   getTransformGizmoSizeForBox as computeTransformGizmoSizeForBox,
-  isMeshInsideOrTouchingRoomBounds,
 } from "@/viewer/core/viewerUtils";
 import type { ViewerOptions } from "@/viewer/core/viewerTypes";
 export type { ViewerOptions } from "@/viewer/core/viewerTypes";
@@ -129,6 +128,14 @@ import {
   shouldUseFeetLockImpl,
   syncFeetVisualForBoxImpl,
 } from "./ViewerCoreFeetOps";
+import type { ViewerCoreRoomUtilsDeps } from "./ViewerCoreRoomUtils";
+import {
+  applyRoomConstraintImpl,
+  getRoomBoundsMmForAutoLayoutImpl,
+  getRoomOpeningsForSnappingImpl,
+  getRoomOpeningsMmForAutoLayoutImpl,
+  isMeshInsideOrTouchingRoomImpl,
+} from "./ViewerCoreRoomUtils";
 import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
 import {
   applyRemateKeyboardTransformImpl,
@@ -253,7 +260,7 @@ import { applyRemateRotationSnapToMesh } from "../../core/remate/remateRotationS
 import { isTampoAngularConfig } from "../../core/remate/tampoAngle";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
-import { mToMm, mmToM } from "../../utils/units";
+import { mmToM } from "../../utils/units";
 import { ViewerPanelVisibility } from "./panels/ViewerPanelVisibility";
 import { IndustrialDesignViewerOverlay } from "./overlays/IndustrialDesignViewerOverlay";
 import { IndustrialDesignWorkspaceMode } from "./modes/IndustrialDesignWorkspaceMode";
@@ -1398,25 +1405,11 @@ export class ViewerCore {
   }
 
   private getRoomBoundsMmForAutoLayout(): AutoLayoutRoomBoundsMm | null {
-    if (!this.roomBounds) return null;
-    const b = this.roomBounds;
-    return {
-      minX_mm: mToMm(b.minX),
-      maxX_mm: mToMm(b.maxX),
-      minZ_mm: mToMm(b.minZ),
-      maxZ_mm: mToMm(b.maxZ),
-      minY_mm: mToMm(b.minY),
-      maxY_mm: mToMm(b.maxY),
-    };
+    return getRoomBoundsMmForAutoLayoutImpl(this.getRoomUtilsDeps());
   }
 
   private getRoomOpeningsMmForAutoLayout(): AutoLayoutOpeningMm[] {
-    return this.getRoomOpeningsForSnapping().map((opening) => ({
-      minX_mm: mToMm(opening.min.x),
-      maxX_mm: mToMm(opening.max.x),
-      minZ_mm: mToMm(opening.min.z),
-      maxZ_mm: mToMm(opening.max.z),
-    }));
+    return getRoomOpeningsMmForAutoLayoutImpl(this.getRoomUtilsDeps());
   }
 
   setMode(mode: "performance" | "showcase", turntable = false): void {
@@ -4298,6 +4291,18 @@ export class ViewerCore {
     };
   }
 
+  private getRoomUtilsDeps(): ViewerCoreRoomUtilsDeps {
+    return {
+      getRoomBounds: () => this.roomBounds,
+      lockEnabled: this.lockEnabled,
+      wallInnerInsetM: ViewerCore.WALL_INNER_INSET_M,
+      snapWallOffsetM: ViewerCore.SNAP_WALL_OFFSET_M,
+      boundingBox: this._boundingBox,
+      boundsCache: this.boundsCache,
+      roomBuilder: this.roomBuilder,
+    };
+  }
+
   private getFinishOpsDeps(): ViewerCoreFinishOpsDeps {
     return {
       orlaVisualizer: this.orlaVisualizer,
@@ -5604,39 +5609,8 @@ export class ViewerCore {
     return this.manualHiddenWallId !== null;
   }
 
-  /**
-   * Restringe a caixa aos limites da sala.
-   * Sempre: nunca sair de [0→width]×[0→depth]. Com lock ON: usar limites internos (inset) para não entrar no muro.
-   */
   private applyRoomConstraint(movingMesh: THREE.Object3D, options: { ignoreY?: boolean } = {}): void {
-    if (!this.roomBounds) return;
-    movingMesh.updateMatrixWorld(true);
-    const movingBox = new THREE.Box3();
-    setBox3FromObjectExcludingLayoutProxy(movingBox, movingMesh);
-    const inset = this.lockEnabled ? ViewerCore.WALL_INNER_INSET_M : 0;
-    const off = this.lockEnabled ? ViewerCore.SNAP_WALL_OFFSET_M : 0;
-    const minX = this.roomBounds.minX + inset + off;
-    const maxX = this.roomBounds.maxX - inset - off;
-    const minZ = this.roomBounds.minZ + inset + off;
-    const maxZ = this.roomBounds.maxZ - inset - off;
-    const minY = this.roomBounds.minY;
-    const maxY = this.roomBounds.maxY;
-    let dx = 0;
-    let dy = 0;
-    let dz = 0;
-    if (movingBox.min.x < minX) dx += minX - movingBox.min.x;
-    if (movingBox.max.x > maxX) dx -= movingBox.max.x - maxX;
-    if (movingBox.min.z < minZ) dz += minZ - movingBox.min.z;
-    if (movingBox.max.z > maxZ) dz -= movingBox.max.z - maxZ;
-    if (!options.ignoreY) {
-      if (movingBox.min.y < minY) dy += minY - movingBox.min.y;
-      if (movingBox.max.y > maxY) dy -= movingBox.max.y - maxY;
-    }
-    if (dx !== 0 || dy !== 0 || dz !== 0) {
-      movingMesh.position.x += dx;
-      movingMesh.position.y += dy;
-      movingMesh.position.z += dz;
-    }
+    applyRoomConstraintImpl(this.getRoomUtilsDeps(), movingMesh, options);
   }
 
   /** Recuo (m) do limite interno da parede; com lock ON a caixa não entra no muro. */
@@ -5670,30 +5644,11 @@ export class ViewerCore {
   }
 
   private isMeshInsideOrTouchingRoom(movingMesh: THREE.Object3D, tolerance = 0.02): boolean {
-    if (!this.roomBounds) return false;
-    return isMeshInsideOrTouchingRoomBounds(movingMesh, this.roomBounds, tolerance, this._boundingBox);
+    return isMeshInsideOrTouchingRoomImpl(this.getRoomUtilsDeps(), movingMesh, tolerance);
   }
 
   private getRoomOpeningsForSnapping(): import("./snapping/smartSnappingTypes").RoomOpeningLike[] {
-    const gen = this.boundsCache.getRoomGeneration();
-    return this.boundsCache.getRoomOpenings(gen, () => {
-      const out: import("./snapping/smartSnappingTypes").RoomOpeningLike[] = [];
-      const box = this._boundingBox;
-      for (const el of this.roomBuilder.getElements()) {
-        const group = this.roomBuilder.getElementById(el.elementId);
-        if (!group) continue;
-        group.updateMatrixWorld(true);
-        box.setFromObject(group);
-        if (box.isEmpty()) continue;
-        out.push({
-          elementId: el.elementId,
-          type: el.type,
-          min: box.min.clone(),
-          max: box.max.clone(),
-        });
-      }
-      return out;
-    });
+    return getRoomOpeningsForSnappingImpl(this.getRoomUtilsDeps());
   }
 
   private notifyBoxTransform() {
