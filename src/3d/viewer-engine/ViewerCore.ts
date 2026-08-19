@@ -23,7 +23,7 @@ import { ensureViewerBoxEngine } from "./engines/BoxEngine";
 import { ViewerRoomEngine } from "./room/ViewerRoomEngine";
 import { ensureViewerRoomEngine as ensureViewerRoomEngineFactory } from "./engines/ViewerRoomEngine";
 import { ensureViewerDesignerEngine } from "./engines/DesignerEngine";
-import { createFinishSyncFlags, requestFinishSync, flushPendingFinishSync } from "./finish/ViewerFinishSync";
+import { createFinishSyncFlags, flushPendingFinishSync } from "./finish/ViewerFinishSync";
 import { Controls } from "./controls";
 import {
   createViewerControls,
@@ -129,6 +129,29 @@ import {
   shouldUseFeetLockImpl,
   syncFeetVisualForBoxImpl,
 } from "./ViewerCoreFeetOps";
+import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
+import {
+  applyRemateKeyboardTransformImpl,
+  bindDivSepBridgeImpl,
+  bindHematiBridgeImpl,
+  bindOrlaBridgeImpl,
+  bindRemateBridgeImpl,
+  bindRodapeBridgeImpl,
+  getDivSepMeshImpl,
+  getHematiMeshImpl,
+  getRemateMeshImpl,
+  getRodapeMeshImpl,
+  selectDivSepImpl,
+  selectHematiImpl,
+  selectRemateImpl,
+  selectRodapeImpl,
+  syncHematiVisualsImpl,
+  syncOrlaForBoxImpl,
+  syncOrlaVisualsImpl,
+  syncRemateForBoxImpl,
+  syncRemateVisualsImpl,
+  syncRodapeVisualsImpl,
+} from "./ViewerCoreFinishOps";
 import type { RoomConfig, DoorWindowConfig } from "../room/types";
 import {
   RoomManager,
@@ -223,7 +246,6 @@ import { RematePieceVisualizer, type RematePieceVisualBridge } from "./remate/Re
 import { TampoPieceVisualizer } from "./remate/TampoPieceVisualizer";
 import {
   listRemateIdsInSameLComposite,
-  resolveLRemateCimaLeadId,
   resolveRemateTransformRoot,
 } from "./remate/remateLCompositeVisual";
 import { isLRematePiece } from "../../core/remate/remateLGeometry";
@@ -245,7 +267,6 @@ import { bindViewerOverlayCoordinator } from "./overlays/bindViewerOverlayCoordi
 import { createViewerVisualFacades, type ViewerVisualFacade } from "./overlays/viewerVisualFacades";
 import { registerViewerWindowEvents } from "./input/viewerWindowEvents";
 import { PointerPickingFacade } from "./input/PointerPickingFacade";
-import { clearCompetingSelectionsFor } from "./input/neutralSelection";
 import { shouldProcessTransformDragEnd } from "./transforms/transformDragLifecycle";
 import {
   type AlignmentType,
@@ -1232,66 +1253,32 @@ export class ViewerCore {
   }
 
   bindOrlaBridge(bridge: Pick<OrlaVisualBridge, "getBoxOrlaConfig"> | null): void {
-    // Renderização 3D desligada: bridge null + sync limpa meshes antigos.
-    this.orlaVisualizer.bindBridge(bridge);
-    this.syncOrlaVisuals();
+    bindOrlaBridgeImpl(this.getFinishOpsDeps(), bridge);
   }
 
   syncOrlaVisuals(): void {
-    requestFinishSync(this.pendingViewerVisualSync, "orla", this.viewerState.getTransformControlsDragging(), () => {
-      for (const [boxId, entry] of this.boxes.entries()) {
-        if (entry?.mesh) this.orlaVisualizer.syncBoxRoot(boxId, entry.mesh);
-      }
-      this.refreshViewerAttachmentsAfterMeshMutation();
-    });
+    syncOrlaVisualsImpl(this.getFinishOpsDeps());
   }
 
   private syncOrlaForBox(boxId: string): void {
-    requestFinishSync(this.pendingViewerVisualSync, "orla", this.viewerState.getTransformControlsDragging(), () => {
-      const entry = this.boxes.get(boxId);
-      if (!entry?.mesh) return;
-      this.orlaVisualizer.syncBoxRoot(boxId, entry.mesh);
-      this.refreshViewerAttachmentsAfterMeshMutation();
-    });
+    syncOrlaForBoxImpl(this.getFinishOpsDeps(), boxId);
   }
 
   bindRemateBridge(bridge: RematePieceVisualBridge | null): void {
-    this.remateVisualBridge = bridge;
-    this.remateVisualizer.bindBridge(bridge);
-    this.tampoVisualizer.bindBridge(bridge);
-    this.syncRemateVisuals();
+    bindRemateBridgeImpl(this.getFinishOpsDeps(), bridge);
   }
 
   /** Sync visual de remates — aplica apenas transform guardado no estado (sem re-snap à caixa). */
   syncRemateVisuals(): void {
-    requestFinishSync(this.pendingViewerVisualSync, "remate", this.viewerState.getTransformControlsDragging(), () => {
-      this.remateVisualizer.syncAll();
-      this.tampoVisualizer.syncAll();
-      for (const [, entry] of this.boxes.entries()) {
-        if (!entry?.mesh) continue;
-        this.clearBoxChildrenRemateLegacy(entry.mesh);
-        this.applyPanelVisibilityForObject(entry.mesh);
-      }
-      this.applyPanelVisibilityForObject(this.remateVisualizer.getRoot());
-      this.applyPanelVisibilityForObject(this.tampoVisualizer.getRoot());
-      this.refreshViewerAttachmentsAfterMeshMutation();
-    });
-  }
-
-  private clearBoxChildrenRemateLegacy(boxRoot: THREE.Object3D): void {
-    this.remateVisualizer.clearBoxChildren(boxRoot);
+    syncRemateVisualsImpl(this.getFinishOpsDeps());
   }
 
   private syncRemateForBox(_boxId: string): void {
-    this.syncRemateVisuals();
+    syncRemateForBoxImpl(this.getFinishOpsDeps(), _boxId);
   }
 
   getRemateMesh(remateId: string): THREE.Object3D | null {
-    return (
-      this.tampoVisualizer.getMeshByRemateId(remateId) ??
-      this.remateVisualizer.getMeshByRemateId(remateId) ??
-      null
-    );
+    return getRemateMeshImpl(this.getFinishOpsDeps(), remateId);
   }
 
   /**
@@ -1303,80 +1290,11 @@ export class ViewerCore {
     key: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight",
     options?: { stepMm?: number; stepDeg?: number; shiftKey?: boolean }
   ): boolean {
-    const pieces = this.remateVisualBridge?.listRematePieces() ?? [];
-    const leadId = resolveLRemateCimaLeadId(remateId, pieces);
-    const rawMesh = this.getRemateMesh(leadId);
-    const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
-    if (!mesh) return false;
-
-    const tool = this.viewerState.getCurrentTool();
-    if (tool === "scale") return false;
-
-    const stepMm = options?.stepMm ?? 1;
-    const stepDeg = options?.stepDeg ?? 1;
-    const shiftKey = options?.shiftKey ?? false;
-    const stepM = stepMm / 1000;
-    const stepRad = (stepDeg * Math.PI) / 180;
-
-    if (tool === "rotate") {
-      const axis = new THREE.Vector3();
-      let sign = 1;
-      if (shiftKey) {
-        axis.set(0, 0, 1);
-        if (key === "ArrowUp") sign = 1;
-        else if (key === "ArrowDown") sign = -1;
-        else return false;
-      } else if (key === "ArrowLeft" || key === "ArrowRight") {
-        axis.set(0, 1, 0);
-        sign = key === "ArrowLeft" ? 1 : -1;
-      } else if (key === "ArrowUp" || key === "ArrowDown") {
-        axis.set(1, 0, 0);
-        sign = key === "ArrowUp" ? 1 : -1;
-      } else {
-        return false;
-      }
-      mesh.rotateOnWorldAxis(axis, sign * stepRad);
-    } else {
-      const delta = new THREE.Vector3();
-      if (shiftKey) {
-        if (key === "ArrowUp") delta.z = stepM;
-        else if (key === "ArrowDown") delta.z = -stepM;
-        else return false;
-      } else if (key === "ArrowUp") delta.y = stepM;
-      else if (key === "ArrowDown") delta.y = -stepM;
-      else if (key === "ArrowLeft") delta.x = -stepM;
-      else if (key === "ArrowRight") delta.x = stepM;
-      else return false;
-      mesh.position.add(delta);
-    }
-
-    mesh.updateMatrixWorld(true);
-
-    const prevSelected = this.viewerState.getSelectedRemate();
-    if (prevSelected !== leadId) this.viewerState.setSelectedRemate(leadId);
-    this.notifyRemateTransform();
-    if (prevSelected !== leadId) this.viewerState.setSelectedRemate(prevSelected);
-
-    this.syncRemateVisuals();
-
-    const isLCimaComposite = mesh.userData?.isRemateLComposite === true;
-    if (!isLCimaComposite && this.lockEnabled) {
-      this.resolveFinishCollisionAfterSync({ remateId: leadId });
-    }
-
-    return true;
+    return applyRemateKeyboardTransformImpl(this.getFinishOpsDeps(), remateId, key, options);
   }
 
   selectRemate(remateId: string | null): void {
-    const resolvedId =
-      remateId != null
-        ? resolveLRemateCimaLeadId(remateId, this.remateVisualBridge?.listRematePieces() ?? [])
-        : null;
-    this.viewerState.setSelectedRemate(resolvedId);
-    this.onRemateSelected?.(resolvedId);
-    clearCompetingSelectionsFor(this.viewerState, "remate", resolvedId);
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
+    selectRemateImpl(this.getFinishOpsDeps(), remateId);
   }
 
   setOnRemateTransform(
@@ -1389,7 +1307,7 @@ export class ViewerCore {
   }
 
   bindDivSepBridge(bridge: DivSepVisualBridge | null): void {
-    this.divSepVisualBridge = bridge;
+    bindDivSepBridgeImpl(this.getFinishOpsDeps(), bridge);
   }
 
   setOnDivSepTransform(
@@ -1401,12 +1319,7 @@ export class ViewerCore {
   }
 
   getDivSepMesh(selection: SelectedDivSep): THREE.Object3D | null {
-    const entry = this.boxes.get(selection.boxId);
-    if (!entry) return null;
-    const meshName =
-      selection.kind === "div" ? `divsep-div-${selection.itemId}` : `divsep-sep-${selection.itemId}`;
-    const found = entry.mesh.getObjectByName(meshName);
-    return found ?? null;
+    return getDivSepMeshImpl(this.getFinishOpsDeps(), selection);
   }
 
   getDivSepHitAtPointer(event: { clientX: number; clientY: number }): SelectedDivSep | null {
@@ -1414,15 +1327,7 @@ export class ViewerCore {
   }
 
   selectDivSep(selection: SelectedDivSep | null): void {
-    this.viewerState.setSelectedDivSep(selection);
-    if (selection) {
-      clearCompetingSelectionsFor(this.viewerState, "divSep", selection);
-      if (this.viewerState.getCurrentTool() !== "translate") {
-        this.viewerState.setCurrentTool("translate");
-      }
-    }
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
+    selectDivSepImpl(this.getFinishOpsDeps(), selection);
   }
 
   setOnRemateSelected(callback: ((_remateId: string | null) => void) | null): void {
@@ -1434,39 +1339,28 @@ export class ViewerCore {
   }
 
   bindHematiBridge(bridge: HematiVisualBridge | null): void {
-    this.hematiVisualizer.bindBridge(bridge);
-    this.syncHematiVisuals();
+    bindHematiBridgeImpl(this.getFinishOpsDeps(), bridge);
   }
 
   syncHematiVisuals(): void {
-    requestFinishSync(this.pendingViewerVisualSync, "hemati", this.viewerState.getTransformControlsDragging(), () => {
-      this.hematiVisualizer.syncAll();
-      this.applyPanelVisibilityForObject(this.hematiVisualizer.getRoot());
-      this.refreshViewerAttachmentsAfterMeshMutation();
-    });
+    syncHematiVisualsImpl(this.getFinishOpsDeps());
   }
 
   bindRodapeBridge(bridge: RodapeVisualBridge | null): void {
-    this.rodapeVisualBridge = bridge;
-    this.rodapeVisualizer.bindBridge(bridge);
-    this.syncRodapeVisuals();
+    bindRodapeBridgeImpl(this.getFinishOpsDeps(), bridge);
   }
 
   /** Sync visual de rodapés — aplica apenas transform guardado no estado (sem re-snap à caixa). */
   syncRodapeVisuals(): void {
-    requestFinishSync(this.pendingViewerVisualSync, "rodape", this.viewerState.getTransformControlsDragging(), () => {
-      this.rodapeVisualizer.syncAll();
-      this.applyPanelVisibilityForObject(this.rodapeVisualizer.getRoot());
-      this.refreshViewerAttachmentsAfterMeshMutation();
-    });
+    syncRodapeVisualsImpl(this.getFinishOpsDeps());
   }
 
   getHematiMesh(hematiId: string): THREE.Object3D | null {
-    return this.hematiVisualizer.getMeshByHematiId(hematiId) ?? null;
+    return getHematiMeshImpl(this.getFinishOpsDeps(), hematiId);
   }
 
   getRodapeMesh(rodapeId: string): THREE.Object3D | null {
-    return this.rodapeVisualizer.getMeshByRodapeId(rodapeId) ?? null;
+    return getRodapeMeshImpl(this.getFinishOpsDeps(), rodapeId);
   }
 
   getHematiIdAtPointer(event: { clientX: number; clientY: number }): string | null {
@@ -1478,18 +1372,11 @@ export class ViewerCore {
   }
 
   selectHemati(hematiId: string | null): void {
-    this.viewerState.setSelectedHemati(hematiId);
-    clearCompetingSelectionsFor(this.viewerState, "hemati", hematiId);
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
+    selectHematiImpl(this.getFinishOpsDeps(), hematiId);
   }
 
   selectRodape(rodapeId: string | null): void {
-    this.viewerState.setSelectedRodape(rodapeId);
-    this.onRodapeSelected?.(rodapeId);
-    clearCompetingSelectionsFor(this.viewerState, "rodape", rodapeId);
-    this.refreshTransformControlsAttachment();
-    this.refreshOutlineTarget();
+    selectRodapeImpl(this.getFinishOpsDeps(), rodapeId);
   }
 
   setOnHematiTransform(
@@ -4408,6 +4295,41 @@ export class ViewerCore {
       feetFrontInsetM: ViewerCore.FEET_FRONT_INSET_M,
       feetBackInsetM: ViewerCore.FEET_BACK_INSET_M,
       feetSideInsetM: ViewerCore.FEET_SIDE_INSET_M,
+    };
+  }
+
+  private getFinishOpsDeps(): ViewerCoreFinishOpsDeps {
+    return {
+      orlaVisualizer: this.orlaVisualizer,
+      remateVisualizer: this.remateVisualizer,
+      tampoVisualizer: this.tampoVisualizer,
+      hematiVisualizer: this.hematiVisualizer,
+      rodapeVisualizer: this.rodapeVisualizer,
+      getRemateVisualBridge: () => this.remateVisualBridge,
+      setRemateVisualBridge: (bridge) => {
+        this.remateVisualBridge = bridge;
+      },
+      setRodapeVisualBridge: (bridge) => {
+        this.rodapeVisualBridge = bridge;
+      },
+      setDivSepVisualBridge: (bridge) => {
+        this.divSepVisualBridge = bridge;
+      },
+      boxes: this.boxes,
+      pendingViewerVisualSync: this.pendingViewerVisualSync,
+      isTransformDragging: () => this.viewerState.getTransformControlsDragging(),
+      refreshViewerAttachmentsAfterMeshMutation: () => this.refreshViewerAttachmentsAfterMeshMutation(),
+      applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
+      viewerState: this.viewerState,
+      onRemateSelected: this.onRemateSelected,
+      onRodapeSelected: this.onRodapeSelected,
+      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
+      refreshOutlineTarget: () => this.refreshOutlineTarget(),
+      notifyRemateTransform: () => this.notifyRemateTransform(),
+      syncRemateVisuals: () => this.syncRemateVisuals(),
+      lockEnabled: this.lockEnabled,
+      resolveFinishCollisionAfterSync: (params) => this.resolveFinishCollisionAfterSync(params),
+      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
     };
   }
 
