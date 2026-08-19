@@ -5,6 +5,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 
 import { SceneManager } from "./scene";
 import { SceneEngine } from "./scene/SceneEngine";
+import { ensureViewerSceneEngine } from "./engines/SceneEngine";
 import { CameraManager } from "./camera";
 import { CameraEngine } from "./camera/CameraEngine";
 import { RendererManager } from "./renderer";
@@ -601,7 +602,7 @@ export class ViewerCore {
     this.container = container;
     const foundation = createViewerFoundation(container, options, this.isMobile);
     this.sceneManager = foundation.sceneManager;
-    this.sceneEngine = new SceneEngine(this.sceneManager);
+    this.sceneEngine = ensureViewerSceneEngine(this.sceneEngine ?? null, this.sceneManager);
     this.defaultGroundSize = foundation.defaultGroundSize;
     this.cameraManager = foundation.cameraManager;
     this.cameraEngine = new CameraEngine(this.cameraManager);
