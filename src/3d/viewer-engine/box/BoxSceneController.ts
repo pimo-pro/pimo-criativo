@@ -9,6 +9,7 @@ import type { ViewerBoxEntry } from "../types";
 import type { ViewerBoxManager } from "./BoxManager";
 import {
   isViewerLayoutProxyObject,
+  isViewerPickBoundsObject,
   VIEWER_LAYOUT_PROXY_LAYER,
 } from "./boxAabbUtils";
 
@@ -23,9 +24,11 @@ type LayoutBoundsEntry = {
   depth: number;
   cadOnly?: boolean;
   layoutBoundsMesh?: THREE.Mesh;
+  pickBoundsMesh?: THREE.Mesh;
 };
 
 const VIEWER_LAYOUT_BOUNDS_NAME = "viewer-layout-bounds";
+const VIEWER_PICK_BOUNDS_NAME = "viewer-pick-bounds";
 
 type BoxIdentityInput = {
   id: string;
@@ -234,6 +237,7 @@ export class BoxSceneController {
     const createdEntry = params.boxes.get(params.id);
     if (createdEntry) {
       this.attachLayoutBoundsMesh(createdEntry);
+      this.attachPickBoundsMesh(createdEntry, params.id);
       params.syncFeetVisualForBox(createdEntry);
     }
     params.sceneAdd(box);
@@ -580,8 +584,9 @@ export class BoxSceneController {
       carcassDepth,
     });
     this.applyNoBackPanelState(entry, opts);
-    if (structureChanged) {
+    if (structureChanged || dimensionsChanged) {
       this.attachLayoutBoundsMesh(entry);
+      this.attachPickBoundsMesh(entry, id);
     }
     params.syncFeetVisualForBox(entry);
     tagBoxGroupWithId(entry.mesh, id);
@@ -812,6 +817,11 @@ export class BoxSceneController {
         child.layers.set(VIEWER_LAYOUT_PROXY_LAYER);
         return;
       }
+      if (isViewerPickBoundsObject(child)) {
+        child.layers.set(0);
+        child.userData.boxId = boxId;
+        return;
+      }
       child.layers.set(0);
     });
     this.applyViewerDrillHoleSceneRules(root);
@@ -836,6 +846,7 @@ export class BoxSceneController {
   /**
    * Proxy LxAxP de layout: `visible: false` no render; só `visible: true` temporariamente em
    * `runWithLayoutBoundsProxiesVisible` para bbox de câmara. Material não escreve cor/depth.
+   * Sem raycast (layer 31) — o picking de caixa usa `attachPickBoundsMesh`.
    */
   attachLayoutBoundsMesh(entry: LayoutBoundsEntry): void {
     const existing = entry.mesh.getObjectByName(VIEWER_LAYOUT_BOUNDS_NAME);
@@ -871,6 +882,46 @@ export class BoxSceneController {
     entry.mesh.add(m);
     m.visible = false;
     entry.layoutBoundsMesh = m;
+  }
+
+  /**
+   * Hitbox L×A×P dedicado a picking de caixa (layer 0).
+   * Invisível; fallback quando o clique não acerta painel/porta/frente reais.
+   * Separado do proxy de layout (layer 31) para não misturar bbox de câmara com selecção.
+   */
+  attachPickBoundsMesh(entry: LayoutBoundsEntry, boxId: string): void {
+    const existing = entry.mesh.getObjectByName(VIEWER_PICK_BOUNDS_NAME);
+    if (existing) {
+      entry.mesh.remove(existing);
+      if (existing instanceof THREE.Mesh) {
+        existing.geometry.dispose();
+        const mat = existing.material;
+        if (!Array.isArray(mat) && mat instanceof THREE.Material) mat.dispose();
+      }
+    }
+    entry.pickBoundsMesh = undefined;
+
+    const w = Math.max(0.001, entry.width);
+    const h = Math.max(0.001, entry.height);
+    const d = Math.max(0.001, entry.depth);
+    const geom = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      colorWrite: false,
+    });
+    const m = new THREE.Mesh(geom, mat);
+    m.name = VIEWER_PICK_BOUNDS_NAME;
+    m.renderOrder = -999999;
+    m.frustumCulled = false;
+    m.visible = false;
+    m.userData.viewerPickBounds = true;
+    m.userData.boxId = boxId;
+    m.layers.set(0);
+    entry.mesh.add(m);
+    entry.pickBoundsMesh = m;
   }
 
   /** Remove e dispõe geometrias/materiais do mesh da cena (não dispõe entry.material, que é cache). */

@@ -37,6 +37,7 @@ export type InternalPickContext = {
 export function isInternalSelectableMesh(mesh: THREE.Mesh): boolean {
   const ud = mesh.userData ?? {};
   if (ud.viewerLayoutBounds === true) return false;
+  if (ud.viewerPickBounds === true) return false;
   if (ud.isOrlaBand === true) return false;
   if (ud.isRematePiece === true || ud.remateId != null) return false;
   if (ud.isHematiPiece === true || ud.hematiId != null) return false;

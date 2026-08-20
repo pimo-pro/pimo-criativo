@@ -16,6 +16,7 @@ import type { MouseMenuTarget } from "../../../ui/context-menu/ContextMenuEngine
 import type { InternalSelectionHit } from "../selection/internalSelectionTypes";
 import { resolveInternalSelectionHit } from "../selection/InternalSelectionResolver";
 import { resolveRemateIdFromFinishHit } from "../remate/remateLCompositeVisual";
+import { isViewerPickBoundsObject } from "../box/boxAabbUtils";
 
 /** Layer lógica interna (raycast continua em layer 0; classificação separa interno vs externo). */
 export const VIEWER_INTERNAL_PICK_LAYER = 30;
@@ -283,6 +284,7 @@ export class ViewerRaycastSystem {
         objectName: hit.object.name,
         objectUuid: hit.object.uuid,
         distance: hit.distance,
+        isPickBounds: isViewerPickBoundsObject(hit.object),
         hasBoxIdInHierarchy: this.getBoxIdByMesh(hit.object),
         hasDoorLayerIdInHierarchy: this.getDoorLayerIdByMesh(hit.object),
       }));
@@ -292,51 +294,60 @@ export class ViewerRaycastSystem {
       });
     }
     if (!hits.length) return null;
+
+    // 1) Preferir geometria real (painéis, portas, frentes, GLB) — ignorar pick-bounds.
     for (const hit of hits) {
+      if (isViewerPickBoundsObject(hit.object)) continue;
       const candidate = hit.object;
       const boxIdCandidate = this.getBoxIdByMesh(candidate);
       if (!boxIdCandidate) continue;
       if (import.meta.env.DEV) {
-        devLogger.debug("[SELECTION][Raycast] primeiro hit com boxId", {
-          boxIdCandidate,
-          candidateName: candidate.name,
-          candidateUuid: candidate.uuid,
-        });
-      }
-      const doorLayerIdAtPointer = this.getDoorLayerIdByMesh(candidate);
-      if (!doorLayerIdAtPointer) {
-        if (import.meta.env.DEV) {
-          devLogger.debug("[SELECTION][Raycast] mesh final resolvido", {
-            boxId: boxIdCandidate,
-            meshName: candidate.name,
-            meshUuid: candidate.uuid,
-          });
+        const doorLayerIdAtPointer = this.getDoorLayerIdByMesh(candidate);
+        if (doorLayerIdAtPointer) {
+          const entry = boxes.get(boxIdCandidate);
+          const doorIndex = entry?.mesh
+            ? entry.mesh.children
+                .filter((c) => c.name.startsWith("door-layer-"))
+                .findIndex((c) => c.name === `door-layer-${doorLayerIdAtPointer}`)
+            : -1;
+          if (this.deps.getDebugMode()) {
+            devLogger.debug("[DOOR-MAT] getBoxIdAtPointer — primeiro hit é porta (clique simples)", {
+              boxId: boxIdCandidate,
+              doorLayerId: doorLayerIdAtPointer,
+              specId: doorLayerIdAtPointer,
+              doorIndex,
+              hitObjectName: candidate.name,
+            });
+          }
         }
-        return boxIdCandidate;
-      }
-      const entry = boxes.get(boxIdCandidate);
-      const doorIndex = entry?.mesh
-        ? entry.mesh.children.filter((c) => c.name.startsWith("door-layer-")).findIndex((c) => c.name === `door-layer-${doorLayerIdAtPointer}`)
-        : -1;
-      if (import.meta.env.DEV && this.deps.getDebugMode()) {
-        devLogger.debug("[DOOR-MAT] getBoxIdAtPointer — primeiro hit é porta (clique simples)", {
-          boxId: boxIdCandidate,
-          doorLayerId: doorLayerIdAtPointer,
-          specId: doorLayerIdAtPointer,
-          doorIndex,
-          hitObjectName: candidate.name,
-        });
-      }
-      if (import.meta.env.DEV) {
-        devLogger.debug("[SELECTION][Raycast] mesh final resolvido (porta)", {
+        devLogger.debug("[SELECTION][Raycast] mesh final resolvido", {
           boxId: boxIdCandidate,
           meshName: candidate.name,
           meshUuid: candidate.uuid,
-          doorLayerIdAtPointer,
+          viaPickBounds: false,
         });
       }
       return boxIdCandidate;
     }
+
+    // 2) Fallback: hitbox L×A×P (volume visual) quando o clique não acertou geometria real.
+    for (const hit of hits) {
+      if (!isViewerPickBoundsObject(hit.object)) continue;
+      const boxIdCandidate =
+        (typeof hit.object.userData?.boxId === "string" && hit.object.userData.boxId) ||
+        this.getBoxIdByMesh(hit.object);
+      if (!boxIdCandidate) continue;
+      if (import.meta.env.DEV) {
+        devLogger.debug("[SELECTION][Raycast] mesh final resolvido (pick-bounds fallback)", {
+          boxId: boxIdCandidate,
+          meshName: hit.object.name,
+          meshUuid: hit.object.uuid,
+          viaPickBounds: true,
+        });
+      }
+      return boxIdCandidate;
+    }
+
     if (import.meta.env.DEV) {
       devLogger.debug("[SELECTION][Raycast] nenhum hit válido com boxId", {
         totalHits: hits.length,
@@ -402,9 +413,19 @@ export class ViewerRaycastSystem {
     this.deps.getBoxes().forEach((entry) => roots.push(entry.mesh));
     const hits = this.deps.raycaster.intersectObjects(roots, true);
     for (const hit of hits) {
+      if (isViewerPickBoundsObject(hit.object)) continue;
       if (this.isDrawerHierarchyObject(hit.object)) continue;
       if (this.getDoorLayerIdByMesh(hit.object)) continue;
       const boxId = this.getBoxIdByMesh(hit.object);
+      if (!boxId) continue;
+      return { boxId };
+    }
+    // Fallback: volume L×A×P quando o duplo clique não acertou painel estrutural.
+    for (const hit of hits) {
+      if (!isViewerPickBoundsObject(hit.object)) continue;
+      const boxId =
+        (typeof hit.object.userData?.boxId === "string" && hit.object.userData.boxId) ||
+        this.getBoxIdByMesh(hit.object);
       if (!boxId) continue;
       return { boxId };
     }
@@ -455,6 +476,7 @@ export class ViewerRaycastSystem {
     });
     const hits = this.deps.raycaster.intersectObjects(roots, true);
     for (const hit of hits) {
+      if (isViewerPickBoundsObject(hit.object)) continue;
       const boxId = this.getBoxIdByMesh(hit.object);
       if (!boxId) continue;
       const remateId = hit.object.userData?.remateId;
@@ -718,6 +740,7 @@ export class ViewerRaycastSystem {
     if (!roots.length) return null;
     const hits = this.deps.raycaster.intersectObjects(roots, true);
     for (const hit of hits) {
+      if (isViewerPickBoundsObject(hit.object)) continue;
       const boxId = this.getBoxIdByMesh(hit.object);
       if (!boxId) continue;
       const divSep = this.resolveDivSepFromObject(hit.object, boxId);

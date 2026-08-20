@@ -51,4 +51,9 @@ export interface ViewerBoxEntry {
    * (`runWithLayoutBoundsProxiesVisible`) para bbox de câmara. Excluído de raycast/reflow/colisão/régua.
    */
   layoutBoundsMesh?: THREE.Mesh;
+  /**
+   * Hitbox L×A×P dedicado a picking de caixa (layer 0, invisível). Fallback quando o clique
+   * não acerta geometria real de painel/porta/frente. Não é painel industrial.
+   */
+  pickBoundsMesh?: THREE.Mesh;
 }

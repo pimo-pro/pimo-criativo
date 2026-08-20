@@ -123,6 +123,7 @@ function isProxyMesh(mesh: THREE.Object3D): boolean {
   const ud = mesh.userData ?? {};
   return (
     ud.viewerLayoutBounds === true ||
+    ud.viewerPickBounds === true ||
     ud.isDrillMarker === true ||
     ud.isPanelEdgeOverlay === true ||
     ud.isEdgeOutlineOverlay === true ||
