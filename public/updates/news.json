@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-20T07:13:55.625Z",
+  "updatedAt": "2026-08-20T16:28:19.803Z",
   "news": [
+    {
+      "version": "v6.0820.1728",
+      "title": "fix(viewer): silenciar TS6133 em wrappers privados do ViewerCore para desbloquear build de deploy",
+      "description": "fix(viewer): silenciar TS6133 em wrappers privados do ViewerCore para desbloquear build de deploy",
+      "publishedAt": "2026-08-20T16:28:19.638Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "5e095c37"
+    },
+    {
+      "version": "v6.0820.1115",
+      "title": "feat: modal de pedido de orçamento + envio de email via pimo-mail-service",
+      "description": "feat: modal de pedido de orçamento + envio de email via pimo-mail-service\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-20T11:12:40+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "75c1d88"
+    },
     {
       "version": "v6.0820.0813",
       "title": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
       "description": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
-      "publishedAt": "2026-08-20T07:13:55.451Z",
+      "publishedAt": "2026-08-20T08:17:40+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "00c02aa5"
+      "commit": "97c77b4"
     },
     {
       "version": "v6.0819.2021",

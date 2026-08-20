@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-20T16:28:18.699Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(viewer): silenciar TS6133 em wrappers privados do ViewerCore para desbloquear build de deploy",
+      "version": "v6.0820.1728"
+    },
+    {
       "publishedAt": "2026-08-20T07:13:54.320Z",
       "author": "pimo-pro",
       "commitMessage": "Publicação PIMO — Sistema Industrial",
