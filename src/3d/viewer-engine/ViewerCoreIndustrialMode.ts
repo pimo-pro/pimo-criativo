@@ -1,3 +1,7 @@
+/**
+ * Modo industrial do viewer (painéis, drill markers, exploded, design workspace).
+ * Isolamento: não depende de RoomManager / wallStore / roomSnapshot — opera sobre boxes/cutlist.
+ */
 import * as THREE from "three";
 import type { BoxPanelIds, ViewerDrillMarkersByPanel } from "../../core/types";
 import type { HoleTypeId } from "../../core/drill/holeCatalog";

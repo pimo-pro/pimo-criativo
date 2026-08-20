@@ -68,9 +68,6 @@ export type { ViewerOptions } from "@/viewer/core/viewerTypes";
 import { RoomBuilder } from "../room/RoomBuilder";
 import type { ViewerCoreCameraOpsDeps } from "./ViewerCoreCameraOps";
 import {
-  adjustCameraPositionToIncludeBoxImpl,
-  getBoxBoundingBoxCenterImpl,
-  isBoxInCameraFrameImpl,
   syncCameraTargetImpl,
   updateCameraTargetImpl,
   updateCameraTargetToBoxImpl,
@@ -3102,28 +3099,6 @@ export class ViewerCore {
 
   private updateCameraTarget() {
     updateCameraTargetImpl(this.getCameraOpsDeps());
-  }
-
-  /**
-   * Centro do bounding box real do box em mundo (atualiza matriz antes).
-   */
-  private getBoxBoundingBoxCenter(boxId: string): THREE.Vector3 | null {
-    return getBoxBoundingBoxCenterImpl(this.getCameraOpsDeps(), boxId);
-  }
-
-  /**
-   * True se o box está (parcialmente) dentro do frustum da câmera.
-   */
-  private isBoxInCameraFrame(boxId: string): boolean {
-    return isBoxInCameraFrameImpl(this.getCameraOpsDeps(), boxId);
-  }
-
-  /**
-   * Ajusta a posição da câmera para que o box entre no enquadramento (sem saltos bruscos).
-   * Só altera a distância ao alvo para caber o box no FOV.
-   */
-  private adjustCameraPositionToIncludeBox(boxId: string): void {
-    adjustCameraPositionToIncludeBoxImpl(this.getCameraOpsDeps(), boxId);
   }
 
   /**

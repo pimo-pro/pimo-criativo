@@ -58,6 +58,7 @@ import type { ViewerState } from "./state/ViewerState";
 import type { IViewerEventEngine } from "./events/EventEngineTypes";
 import type { IViewerToolsEngine } from "./tools/ToolsEngineTypes";
 import type { ViewerCoreDisplayOpsDeps, UltraRenderStateSnapshot } from "./ViewerCoreDisplayOps";
+import { resolveDisplayQualityLevelImpl } from "./ViewerCoreDisplayOps";
 import type {
   IndustrialDesignCallbacksState,
   ViewerCoreIndustrialModeDeps,
@@ -687,7 +688,7 @@ export function getRuntimeOpsDepsImpl(host: ViewerCoreEngineApisOpsDeps): Viewer
       getControls: () => host.controls,
       getUltraPerformanceMode: () => host.ultraPerformanceMode,
       getReflectionsEnabled: () => host.reflectionsEnabled,
-      getMaterialQuality: () => host.materialQuality,
+      resolveDisplayQualityLevel: () => resolveDisplayQualityLevelImpl(getDisplayEngineApiImpl(host)),
       getDiagnosticsLogged: () => host._diagnosticsLogged,
       setDiagnosticsLogged: (logged) => {
         host._diagnosticsLogged = logged;

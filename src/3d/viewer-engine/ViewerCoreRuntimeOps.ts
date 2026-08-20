@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import type { ViewerMaterialQuality } from "../../context/projectTypes";
 import type { SnapDebugData } from "../snapping/ModelWallSnap";
 import type { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import type { WallGizmo } from "../gizmos/WallGizmo";
 import type { Lights } from "./lighting";
+import type { DisplayQualityLevel } from "./lighting/LightingEngine";
 import { shouldCastKeyShadow } from "./lighting/LightingEngine";
 import type { CameraManager } from "./camera";
 import type { RendererManager } from "./renderer";
@@ -21,7 +21,7 @@ export type ViewerCoreRuntimeOpsDeps = {
   getControls: () => Controls | null;
   getUltraPerformanceMode: () => boolean;
   getReflectionsEnabled: () => boolean;
-  getMaterialQuality: () => ViewerMaterialQuality;
+  resolveDisplayQualityLevel: () => DisplayQualityLevel;
   getDiagnosticsLogged: () => boolean;
   setDiagnosticsLogged: (logged: boolean) => void;
   getReflectionFrameCounter: () => number;
@@ -78,14 +78,8 @@ export function onBeforeRenderTickImpl(deps: ViewerCoreRuntimeOpsDeps): void {
     const r = deps.rendererManager.renderer;
     r.shadowMap.enabled = true;
     if (r.shadowMap.type !== THREE.PCFSoftShadowMap) r.shadowMap.type = THREE.PCFSoftShadowMap;
-    // Baixa não projeta sombra (luz simples, sem efeitos) — evita o custo do maior
-    // gargalo de GPU do pipeline padrão quando a qualidade pedida é a mais leve.
-    const displayQualityLevel = deps.getReflectionsEnabled()
-      ? "alta"
-      : deps.getMaterialQuality() === "standard"
-        ? "baixa"
-        : "media";
-    deps.lights.keyLight.castShadow = shouldCastKeyShadow(displayQualityLevel);
+    // Uma fonte de verdade: mesmo nível que DisplayOps.resolveDisplayQualityLevelImpl.
+    deps.lights.keyLight.castShadow = shouldCastKeyShadow(deps.resolveDisplayQualityLevel());
   }
   deps.lerpLightsToTarget();
   deps.updateDimensionsOverlay();
