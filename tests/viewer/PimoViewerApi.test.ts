@@ -25,7 +25,6 @@ const WINDOW_VIEWER_CORE_ALLOWLIST = new Set([
   "src/core/viewer/pimoViewerRuntime.ts",
   "src/core/viewer/viewerReadiness.ts",
   "src/3d/viewer-engine/ViewerCore.ts",
-  "src/3d/viewer-engine/core/ViewerCoreAudit.ts",
 ]);
 
 function listSourceFiles(dir: string): string[] {

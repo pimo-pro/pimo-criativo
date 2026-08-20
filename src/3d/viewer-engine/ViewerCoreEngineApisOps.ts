@@ -463,13 +463,3 @@ export function getRuntimeOpsDepsImpl(host: ViewerCoreEngineApisOpsDeps): Viewer
       updateReflectionProbe: (force) => host.updateReflectionProbe(force),
     };
   }
-
-/** API EventsManager — alias estável do Bloco 3.7. */
-export function getEventEngineApiFromHostImpl(host: ViewerCoreEngineApisOpsDeps): IViewerEventEngine {
-  return buildEventEngineApiImpl(host);
-}
-
-/** API ViewerTools — alias estável do Bloco 3.7. */
-export function getToolsEngineApiFromHostImpl(host: ViewerCoreEngineApisOpsDeps): IViewerToolsEngine {
-  return buildToolsEngineApiImpl(host);
-}
