@@ -5,18 +5,15 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 
 import { SceneManager } from "./scene";
 import { SceneEngine } from "./scene/SceneEngine";
-import { ensureViewerSceneEngine } from "./engines/SceneEngine";
 import { CameraManager } from "./camera";
 import { CameraEngine } from "./camera/CameraEngine";
-import { ensureViewerCameraEngine } from "./engines/CameraEngine";
 import { RendererManager } from "./renderer";
 import { Lights } from "./lighting";
-import { LightingEngine, shouldCastKeyShadow } from "./lighting/LightingEngine";
+import { LightingEngine } from "./lighting/LightingEngine";
 import { ensureViewerLightingEngine } from "./engines/LightingEngine";
 import { ComposerEngine } from "./lighting/ComposerEngine";
 import { ensureViewerComposerEngine } from "./engines/ComposerEngine";
 import type { SelectionEngine } from "./selection/SelectionEngine";
-import { createViewerSelectionEngine } from "./engines/SelectionEngine";
 import { createViewerGizmoEngine } from "./engines/GizmoEngine";
 import type { BoxEngine } from "./box/BoxEngine";
 import { ensureViewerBoxEngine } from "./engines/BoxEngine";
@@ -25,13 +22,6 @@ import { ensureViewerRoomEngine as ensureViewerRoomEngineFactory } from "./engin
 import { ensureViewerDesignerEngine } from "./engines/DesignerEngine";
 import { createFinishSyncFlags, flushPendingFinishSync } from "./finish/ViewerFinishSync";
 import { Controls } from "./controls";
-import {
-  createViewerControls,
-  createViewerDisplayFacade,
-  createViewerFoundation,
-  createViewerMaterialSystems,
-  createViewerSelectionSystems,
-} from "./composition/ViewerCompositionRoot";
 import {
   applyMouseInputMappingToOrbitControls,
   getMouseInputMapping,
@@ -58,7 +48,6 @@ import type { MaterialPipelineFacade } from "./materials/materialPipelineFacade"
 import type { DisplayMaterialController } from "./materials/displayMaterialController";
 import type { UltraMaterialController } from "./materials/ultraMaterialController";
 import {
-  createInitialMaterialSet,
   mergeViewerMaterialSet,
 } from "./materials/materialSetState";
 import {
@@ -92,11 +81,9 @@ import {
   setBox3FromObjectExcludingLayoutProxy,
 } from "./box/boxAabbUtils";
 import { SYSTEM_BACK_MM } from "../../core/baseCabinets";
-import { clearSnapUserData } from "@/viewer/core/viewerUtils";
 import type { ViewerOptions } from "@/viewer/core/viewerTypes";
 export type { ViewerOptions } from "@/viewer/core/viewerTypes";
 import { RoomBuilder } from "../room/RoomBuilder";
-import { createViewerCoreFacades } from "./ViewerCoreFacades";
 import type { ViewerCoreCameraOpsDeps } from "./ViewerCoreCameraOps";
 import {
   adjustCameraPositionToIncludeBoxImpl,
@@ -157,11 +144,9 @@ import type {
 import {
   applyExplodedViewForObjectImpl,
   applyPanelIdsToBoxImpl,
-  applyPanelVisibilityForAllBoxesImpl,
   applyPanelVisibilityForObjectImpl,
   applyViewerDrillHoleSceneRulesImpl,
-  getBoxPanelRaycastHitsImpl,
-  getExplodedViewEnabledImpl,
+    getExplodedViewEnabledImpl,
   getExplodedViewIntensityImpl,
   getHiddenPanelsImpl,
   getIndustrialDesignActiveHoleTypeImpl,
@@ -188,9 +173,7 @@ import {
   setPanelEdgesVisibleImpl,
   setPanelHiddenImpl,
   setPanelRenderingEnabledImpl,
-  syncIndustrialDesignViewerOverlayImpl,
-  updateBoxDrillMarkersImpl,
-} from "./ViewerCoreIndustrialMode";
+    } from "./ViewerCoreIndustrialMode";
 import type { ViewerCoreRoomGeometryDeps } from "./ViewerCoreRoomGeometry";
 import {
   clearRoomBoundsImpl,
@@ -216,8 +199,7 @@ import {
   getSelectionIdsInScreenRectImpl,
   refreshOutlineTargetImpl,
   resolveMemberMeshImpl,
-  resolveMultiOutlineTargetImpl,
-  sanitizeSelectionOutlineStaleTargetImpl,
+    sanitizeSelectionOutlineStaleTargetImpl,
   selectRoomElementByIdImpl,
   selectRoomUtilityByIdImpl,
   selectWallByIndexImpl,
@@ -228,7 +210,6 @@ import {
   setOutlineTargetImpl,
   setSelectedBoxImpl,
   syncEdgeOutlineRootImpl,
-  updateSelectionOverlaysFrameImpl,
 } from "./ViewerCoreSelectionOps";
 import type { ViewerCoreTransformOpsDeps } from "./ViewerCoreTransformOps";
 import {
@@ -249,12 +230,43 @@ import type { ViewerCoreEventOpsDeps } from "./ViewerCoreEventOps";
 import {
   getBoxIdAtPointerImpl,
   getBoxIdByMeshImpl,
-  getEventEngineApiImpl,
   handleShiftKeyDownImpl,
   handleShiftKeyUpImpl,
 } from "./ViewerCoreEventOps";
 import type { ViewerCoreToolsOpsDeps } from "./ViewerCoreToolsOps";
-import { getToolsEngineApiImpl } from "./ViewerCoreToolsOps";
+import type { ViewerCoreRuntimeOpsDeps } from "./ViewerCoreRuntimeOps";
+import {
+  onBeforeRenderTickImpl,
+  requestRenderImpl,
+  startRuntimeImpl,
+  updateCanvasSizeImpl,
+} from "./ViewerCoreRuntimeOps";
+import type { ViewerCoreSnappingOpsDeps } from "./ViewerCoreSnappingOps";
+import {
+  applyDynamicAlignSnapImpl,
+  buildDisabledSmartSnapContextImpl,
+  buildSmartAlignSnapContextForDragImpl,
+  clearSmartAlignSnapOverlayImpl,
+  clearSnapStateImpl,
+  syncSmartAlignSnapOverlayFromEngineImpl,
+} from "./ViewerCoreSnappingOps";
+import type { ViewerCoreConstructorOpsDeps } from "./ViewerCoreConstructorOps";
+import { wireViewerCoreConstructorImpl } from "./ViewerCoreConstructorOps";
+import type { ViewerCoreEngineApisOpsDeps } from "./ViewerCoreEngineApisOps";
+import {
+  buildEventEngineApiImpl,
+  buildToolsEngineApiImpl,
+  getDisplayEngineApiImpl,
+  getFinishOpsDepsImpl,
+  getIndustrialEngineApiImpl,
+  getRoomEngineApiImpl,
+  getRuntimeOpsDepsImpl,
+  getSelectionEngineApiImpl,
+  getSnappingOpsDepsImpl,
+  getTransformOpsDepsImpl,
+  getEventOpsDepsImpl,
+  getToolsOpsDepsImpl,
+} from "./ViewerCoreEngineApisOps";
 import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
 import {
   applyRemateKeyboardTransformImpl,
@@ -281,7 +293,6 @@ import {
 import type { RoomConfig, DoorWindowConfig } from "../room/types";
 import {
   RoomManager,
-  type IRoomManagerViewer,
   type RoomBounds,
   type WallEntryForViewer,
 } from "../room/RoomManager";
@@ -303,10 +314,8 @@ import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { ViewerRenderExporter } from "./export/ViewerRenderExporter";
 import { TransformConstraints } from "./constraints/TransformConstraints";
 import { SnapEngine, type SnapAlignTarget } from "./snapping/SnapEngine";
-import { ensureViewerSnapEngine } from "./engines/SnapEngine";
 import { applyFinishMovementConstraints } from "./constraints/finishCollision";
 import { MeasurementEngine } from "./measurement/MeasurementEngine";
-import { ensureViewerMeasurementEngine } from "./engines/MeasurementEngine";
 import type { RulerMeasurementHit, UnifiedMeasurement } from "./measurement/unifiedMeasurementTypes";
 import type { InternalRulerFacade } from "./measurement/internalRulerFacade";
 import type { InternalCavityMeasurements } from "./measurement/internalRulerOverlayTypes";
@@ -330,22 +339,13 @@ import {
 } from "./selection";
 import type { MultiSelectionOutline } from "./selection/MultiSelectionOutline";
 import { MeasurementAnchorsVisualizer } from "./measurement/MeasurementAnchorsVisualizer";
-import { historyManager } from "../../core/viewer/historyManager";
 import type { MeasurementAnchorEntry } from "../../core/viewer/measurementAnchors";
-import { decodeSelectionId } from "../../core/viewer/selectionIds";
 import { SmartSnapping } from "./snapping/SmartSnapping";
-import { createSnappingFacade, type SnappingFacade } from "./snapping/snappingFacade";
-import { registerAdminSnappingRules } from "./snapping/adminSnappingRules";
+import type { SnappingFacade } from "./snapping/snappingFacade";
 import { RemateSmartSnapping } from "./snapping/RemateSmartSnapping";
 import { SmartAlignSnapOverlay } from "./snapping/smartAlignSnapOverlay";
 import { SmartAlignSnapEngine } from "./snapping/SmartAlignSnapEngine";
-import {
-  createSmartAlignOverlayFacade,
-  type SmartAlignOverlayFacade,
-} from "./snapping/smartAlignOverlayFacade";
-import type { SmartAlignSnapContext, SmartSnapEntity } from "./snapping/smartAlignSnapTypes";
-import { DEFAULT_UNIFIED_CAPTURE_MM, DEFAULT_UNIFIED_MAGNET } from "./snapping/smartAlignSnapTypes";
-import { getEntityWorldBoxAabb } from "./snapping/smartAlignSnapAabb";
+import type { SmartAlignOverlayFacade } from "./snapping/smartAlignOverlayFacade";
 import type { AutoLayoutBridge, AutoLayoutOpeningMm, AutoLayoutRoomBoundsMm, AutoStackShelvesOptions } from "./autoLayout/autoLayoutTypes";
 import { LayoutEngine } from "./layout/LayoutEngine";
 import { buildPredictiveLayoutResult } from "./snapping/predictiveLayoutEngine";
@@ -360,9 +360,7 @@ import { ManufacturingReportEngine } from "./snapping/manufacturingReportEngine"
 import type { ManufacturingFullReport, ManufacturingUiReport } from "./snapping/manufacturingTypes";
 import { CostReportEngine } from "./snapping/costReportEngine";
 import type { CostChangeInput, CostFullReport, CostUiSummary, CostSuggestion } from "./snapping/costTypes";
-import { rulesStore } from "../../admin/rules/rulesStore";
 import type { SmartLayoutBridge } from "./snapping/smartLayoutTypes";
-import { createDisabledSmartLayoutDeps } from "./snapping/smartLayoutDepsFactory";
 import { OrlaVisualizer, type OrlaVisualBridge } from "./orla/OrlaVisualizer";
 import { RematePieceVisualizer, type RematePieceVisualBridge } from "./remate/RematePieceVisualizer";
 import { TampoPieceVisualizer } from "./remate/TampoPieceVisualizer";
@@ -374,7 +372,6 @@ import { isLRematePiece } from "../../core/remate/remateLGeometry";
 import { isTampoAngularConfig } from "../../core/remate/tampoAngle";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
-import { mmToM } from "../../utils/units";
 import { ViewerPanelVisibility } from "./panels/ViewerPanelVisibility";
 import { IndustrialDesignViewerOverlay } from "./overlays/IndustrialDesignViewerOverlay";
 import { IndustrialDesignWorkspaceMode } from "./modes/IndustrialDesignWorkspaceMode";
@@ -384,9 +381,7 @@ import type { DesignValidationIssue } from "../../core/industrialDesigner/geomet
 import { DesignValidationError } from "../../core/industrialDesigner/geometryValidation";
 import { ViewerRuntimeLoop } from "./runtime/ViewerRuntimeLoop";
 import { ViewerOverlayCoordinator } from "./overlays/ViewerOverlayCoordinator";
-import { bindViewerOverlayCoordinator } from "./overlays/bindViewerOverlayCoordinator";
-import { createViewerVisualFacades, type ViewerVisualFacade } from "./overlays/viewerVisualFacades";
-import { registerViewerWindowEvents } from "./input/viewerWindowEvents";
+import type { ViewerVisualFacade } from "./overlays/viewerVisualFacades";
 import { PointerPickingFacade } from "./input/PointerPickingFacade";
 import {
   type AlignmentType,
@@ -747,449 +742,182 @@ export class ViewerCore {
   private runtimeLoop!: ViewerRuntimeLoop;
 
   constructor(container: HTMLElement, options: ViewerOptions = {}) {
-    if (!container) {
-      throw new Error("Viewer: container is required");
-    }
-    const userAgent =
-      typeof window !== "undefined" && window.navigator ? window.navigator.userAgent : "";
-    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      userAgent ?? ""
-    );
-    this.reflectionUpdateIntervalFrames = this.isMobile ? 36 : 24;
-    this.container = container;
-    const foundation = createViewerFoundation(container, options, this.isMobile);
-    this.sceneManager = foundation.sceneManager;
-    this.sceneEngine = ensureViewerSceneEngine(this.sceneEngine ?? null, this.sceneManager);
-    this.defaultGroundSize = foundation.defaultGroundSize;
-    this.cameraManager = foundation.cameraManager;
-    this.cameraEngine = ensureViewerCameraEngine(this.cameraEngine ?? null, this.cameraManager);
-    this.rendererManager = foundation.rendererManager;
-    this.lights = foundation.lights;
-    this.baseLightIntensities = foundation.baseLightIntensities;
-    this.display = createViewerDisplayFacade({
-      getShadowIntensity: () => this.lightingEngine?.shadowIntensity ?? 1,
-      updateShadowIntensity: (value) => this.updateShadowIntensity(value),
-    });
-    this.defaultPixelRatio = foundation.defaultPixelRatio;
-    this.baseToneMappingExposure = foundation.baseToneMappingExposure;
-    const selectionSystems = createViewerSelectionSystems({
-      scene: this.sceneManager.scene,
-      getBoxes: () => this.boxes,
-    });
-    this.selectionOutline = selectionSystems.selectionOutline;
-    this.wallSelectionOutline = selectionSystems.wallSelectionOutline;
-    this.highlightManager = selectionSystems.highlightManager;
-    this.edgeOutlineSystem = selectionSystems.edgeOutlineSystem;
-    this.internalSelectionOutline = selectionSystems.internalSelectionOutline;
-    this.multiSelectionOutline = selectionSystems.multiSelectionOutline;
-    this.selectionEngine = createViewerSelectionEngine({
-      multiSelectionOutline: this.multiSelectionOutline,
-      resolveMultiOutlineTarget: (encoded) => resolveMultiOutlineTargetImpl(this.getSelectionOpsDeps(), encoded),
-      setGroupMemberIds: (ids) => this.viewerState.setGroupTransformMemberIds(ids),
-      clearGroupMemberIds: () => this.viewerState.clearGroupTransformMemberIds(),
-      refreshGizmo: () => this.gizmoEngine.refreshAttachment(),
-      getSelectedObjects: (multiBoxIds) => this.getSelectedObjects(multiBoxIds),
-      notifyAligned: (obj) => this.notifyAlignableTransform(obj),
-    });
+    wireViewerCoreConstructorImpl(this.getConstructorOpsDeps(), container, options);
+  }
 
-    this.roomBuilder = new RoomBuilder(() => this.roomBoxWalls.map((w) => w.mesh));
-    this.sceneEngine.add(this.roomBuilder.getGroup());
+  private getEngineApisOpsDeps(): ViewerCoreEngineApisOpsDeps {
+    // Mantém a superfície privada alcançável para as Engine APIs extraídas (TS6133).
+    void this.roomBoxGroup;
+    void this.roomBoxFloor;
+    void this.roomBoxFloorOutline;
+    void this.roomBoxCeiling;
+    void this.roomFloorRoot;
+    void this.roomUtilitiesRoot;
+    void this.raycaster;
+    void this.pointer;
+    void this.onBoxSelected;
+    void this.onMultiSelectToggle;
+    void this.onRemateSelected;
+    void this.onRodapeSelected;
+    void this.onInternalSurfaceSelected;
+    void this.onInternalEdgeSelected;
+    void this.onInternalPointSelected;
+    void this.internalSelectionOutline;
+    void this.multiSelectionOutline;
+    void this.onDoorLayerDoubleClick;
+    void this.onDrawerLayerDoubleClick;
+    void this.onDrawerLayerClick;
+    void this.onBoxDoubleClick;
+    void this.groupGizmo;
+    void this.onTransformDragEnd;
+    void this.isMobile;
+    void this.onRoomElementPlaced;
+    void this.onRoomElementSelected;
+    void this.onWallSelected;
+    void this.onWallTransform;
+    void this.onRoomElementTransform;
+    void this.onRoomUtilitySelected;
+    void this.onRoomUtilityTransform;
+    void this.roomCeilingVisible;
+    void this.roomFloorMode;
+    void this.hiddenRoomWallIds;
+    void this.backgroundMode;
+    void this.reflectionsEnabled;
+    void this.reflectionFrameCounter;
+    void this.reflectionUpdateIntervalFrames;
+    void this.photoModeEnabled;
+    void this.baseToneMappingExposure;
+    void this.shiftKeyHeld;
+    void this.dragStartZForShiftLock;
+    void this.manualHiddenWallId;
+    void this.turntableEnabled;
+    void this.wallSelectionOutline;
+    void this.highlightManager;
+    void this.edgeOutlineSystem;
+    void this.transformDiagnosticsEnabled;
+    void this.ultraPerformanceMode;
+    void this.ultraPerformanceModeOptions;
+    void this.ultraRenderState;
+    void this.materialQuality;
+    void this.matteMode;
+    void this.glossIntensity;
+    void this.defaultPixelRatio;
+    void this.boxesIntersectingWalls;
+    void this.transformControlsHelper;
+    void this.mouseInputPreset;
+    void this._diagnosticsLogged;
+    void this.industrialDesignCallbacks;
+    void this.divSepVisualBridge;
+    void this.isApplyingTransformConstraints;
+    void this.transformDragEndStamp;
+    void this.settings;
+    void this.boxSceneController;
+    void this.panelVisibility;
+    void this.industrialDesignViewerOverlay;
+    void this.displayMaterials;
+    void this.ultraMaterials;
+    void this.pendingViewerVisualSync;
+    void this.constraints;
+    void this.snapEngine;
+    void this.remateSmartSnapping;
+    void this.smartAlignSnapEngine;
+    void this.overlayCoordinator;
+    void this.gizmoEngine;
+    void this.selectedBoxChangeListeners;
+    void this.lockEnabled;
+    void this.roomManager;
+    void this.defaultGroundSize;
+    void this.boundsCache;
+    void this.snapDebugOverlay;
+    void this.lastSnapDebugData;
+    void this.runtimeLoop;
+    void this.smartAlignOverlay;
+    void this.industrialDesignMode;
+    void this.ensureLightingEngine;
+    void this.lerpLightsToTarget;
+    void this.updateDimensionsOverlay;
+    void this.updateReflectionProbe;
+    void this.setTransformAttachmentRefreshSuspended;
+    void this.flushDeferredBoxStructureUpdates;
+    void this.flushDeferredViewerVisualSyncs;
+    void this.getToolsOpsDeps;
+    void this.setOutlineTarget;
+    void this.notifyHematiTransform;
+    void this.notifyDivSepTransform;
+    void this.applyDynamicAlignSnap;
+    void this.clampTransform;
+    void this.updateWallVisibilityBasedOnCamera;
+    void this.getRoomOpeningsForSnapping;
+    void this.notifyWallTransform;
+    void this.notifyRoomElementTransform;
+    void this.notifyRoomUtilityTransform;
+    void this.getRoomUtilityById;
+    void this.setHoveredBox;
+    void this.setHoveredRemate;
+    return this as unknown as ViewerCoreEngineApisOpsDeps;
+  }
 
-    this.raycastSystem = new ViewerRaycastSystem({
-      raycaster: this.raycaster,
-      pointer: this.pointer,
-      camera: this.cameraManager.camera,
-      getBoxes: () => this.boxes,
-      getRoomBoxWalls: () => this.roomBoxWalls,
-      getRoomBuilderGroup: () => this.roomBuilder.getGroup(),
-      getScene: () => this.sceneManager.scene,
-      getCanvas: () => this.rendererManager.renderer.domElement,
-      getRoomBounds: () => this.roomBounds,
-      getTransformControlsHelper: () => this.transformControlsHelper,
-      getDebugMode: () => this.debugMode,
-      getBoxEntry: (boxId) => this.boxes.get(boxId),
-      projectWorldToScreen: (world) => this.projectWorldToScreen(world),
-      getRemateRoot: () => this.remateVisualizer.getRoot(),
-      getTampoRoot: () => this.tampoVisualizer.getRoot(),
-      getHematiRoot: () => this.hematiVisualizer.getRoot(),
-      getRodapeRoot: () => this.rodapeVisualizer.getRoot(),
-    });
-    this.pointerPicking = new PointerPickingFacade({
-      raycastSystem: this.raycastSystem,
-      getPlacementMode: () => this.viewerState.getPlacementMode(),
-      hasRoomElementPlacementHandler: () => Boolean(this.onRoomElementPlaced),
-    });
-
-    const materialSystems = createViewerMaterialSystems();
-    this.materialPipeline = materialSystems.materialPipeline;
-    this.displayMaterials = materialSystems.displayMaterials;
-    this.ultraMaterials = materialSystems.ultraMaterials;
-
-    this.industrialDesignMode = new IndustrialDesignWorkspaceMode({
-      getBoxEntry: (id) => this.boxes.get(id),
-      getBoxMesh: (id) => this.boxes.get(id)?.mesh ?? null,
-      raycastIntersects: (event) =>
-        getBoxPanelRaycastHitsImpl(this.getIndustrialModeDeps(), event),
-      updateBoxDrillMarkers: (boxId, markers) => {
-        updateBoxDrillMarkersImpl(this.getIndustrialModeDeps(), boxId, markers);
-      },
-      setPanelRenderingEnabled: (enabled) => {
-        setPanelRenderingEnabledImpl(this.getIndustrialModeDeps(), enabled);
-        if (enabled) setPanelEdgesVisibleImpl(this.getIndustrialModeDeps(), true);
-      },
-      setValidationHighlightPanels: (boxId, panelIds) => {
-        setIndustrialDesignValidationHighlightImpl(
-          this.getIndustrialModeDeps(),
-          boxId,
-          panelIds
-        );
-      },
-      setSelectionHighlightPanel: (boxId, panelId) => {
-        setIndustrialDesignSelectionHighlightImpl(
-          this.getIndustrialModeDeps(),
-          boxId,
-          panelId
-        );
-      },
-      syncDesignVisuals: (boxId) => {
-        syncIndustrialDesignViewerOverlayImpl(this.getIndustrialModeDeps(), boxId);
-      },
-      getViewerReady: () => this.viewerReadyFlag,
-    });
-
-    this.panelVisibility = new ViewerPanelVisibility({
-      getBoxes: () => this.boxes,
-      getHighlightEnabled: () => this.viewerState.getHighlightEnabled(),
-      getBoxIdByMesh: (mesh) => this.pointerPicking.getBoxIdByMesh(mesh),
-      getSharedPanelEdgeMaterial: () => this.materialPipeline.getSharedPanelEdgeMaterial(),
-      getIndustrialDesignWorkspaceEnabled: () => this.industrialDesignMode.isEnabled(),
-    });
-
-    this.materialSet = createInitialMaterialSet();
-
-    this.controls = createViewerControls(
-      this.cameraManager.camera,
-      this.rendererManager.renderer.domElement,
-      options
-    );
-    this.applyMousePresetToControls();
-    this.applyBackgroundMode();
-    this.measurementEngine = ensureViewerMeasurementEngine(null, {
-      getCamera: () => this.cameraManager.camera,
-      getCanvas: () => this.rendererManager.renderer.domElement,
-      getContainer: () => this.container,
-      getBoxes: () => this.boxes,
-      getRoomWalls: () => this.roomBoxWalls,
-      getSelectedBoxId: () => this.viewerState.getSelectedBox(),
-      isTransformDragging: () => this.viewerState.getTransformControlsDragging(),
-      projectWorldToScreen: (worldPoint) => this.projectWorldToScreen(worldPoint),
-      getProjectMeasurements: () => this.getProjectMeasurementsFn(),
-      onMeasurementSaved: (entry) => this.onInternalMeasurementSavedFn(entry),
-      getNearestBoxDistance: () => this.computeDistanceToNearestBox(),
-      getNearestWallDistance: () => this.computeDistanceToNearestWall(),
-      getFloorDistance: () => this.computeDistanceToFloor(),
-    });
-    this.internalRuler = this.measurementEngine.facade;
-
-    this.smartSnappingEngine = new SmartSnapping({
-      getCamera: () => this.cameraManager.camera,
-      getCanvas: () => this.rendererManager.renderer.domElement,
-      getContainer: () => this.container,
-      projectWorldToScreen: (worldPoint) => this.projectWorldToScreen(worldPoint),
-      isInternalRulerActive: () => this.measurementEngine.isActive(),
-      getRoomBounds: () => this.roomBounds,
-      getRoomOpenings: () => this.getRoomOpeningsForSnapping(),
-    });
-    this.remateSmartSnapping = new RemateSmartSnapping({
-      getContainer: () => this.container,
-      projectWorldToScreen: (worldPoint) => this.projectWorldToScreen(worldPoint),
-    });
-    this.remateSmartSnapping.enable();
-
-    this.smartAlignSnapOverlay = new SmartAlignSnapOverlay({
-      getContainer: () => this.container,
-      projectWorldToScreen: (worldPoint) => this.projectWorldToScreen(worldPoint),
-    });
-    this.smartAlignOverlay = createSmartAlignOverlayFacade(this.smartAlignSnapOverlay);
-
-    this.smartAlignSnapEngine = new SmartAlignSnapEngine({
-      isInternalRulerActive: () => this.measurementEngine.isActive(),
-    });
-    this.smartAlignSnapEngine.enable();
-
-    this.snapping = createSnappingFacade(this.smartSnappingEngine);
-
-    bindViewerOverlayCoordinator({
-      coordinator: this.overlayCoordinator,
-      unifiedMeasurement: this.measurementEngine.engine,
-      smartSnappingEngine: this.smartSnappingEngine,
-      smartAlignSnapEngine: this.smartAlignSnapEngine,
-      syncSmartAlignSnapOverlay: () => this.syncSmartAlignSnapOverlayFromEngine(),
-      clearSmartAlignSnapOverlay: () => this.clearSmartAlignSnapOverlay(),
-    });
-
-    const smartLayoutDeps = createDisabledSmartLayoutDeps({
-      getBridge: () => this.smartLayoutBridge,
-      buildSnapContext: () => this.buildDisabledSmartSnapContext(),
-      getBoxEntry: (boxId) => this.boxes.get(boxId),
-    });
-    this.layoutEngine = new LayoutEngine(smartLayoutDeps);
-    const facades = createViewerCoreFacades({
-      layoutEngine: this.layoutEngine,
-      designConversationState: this.designConversationState,
-
-      previewSmartWallFill: (wallId, moduleBoxId) => this.previewSmartWallFill(wallId, moduleBoxId),
-      acceptPredictiveLayoutPending: () => this.acceptPredictiveLayoutPending(),
-      clearSmartAlignSnapOverlay: () => this.clearSmartAlignSnapOverlay(),
-
-      ensureIntelligentDesigner: () => this.ensureIntelligentDesigner(),
-      generateIntelligentDesigns: (seedBoxId) => this.generateIntelligentDesigns(seedBoxId),
-      generateIntelligentVariations: () => this.generateIntelligentVariations(),
-      previewIntelligentDesign: (id) => this.previewIntelligentDesign(id),
-      applyIntelligentDesign: (id) => this.applyIntelligentDesign(id),
-      previewIntelligentStyle: (styleId, seedBoxId) => this.previewIntelligentStyle(styleId, seedBoxId),
-      applyIntelligentStyle: (styleId, seedBoxId) => this.applyIntelligentStyle(styleId, seedBoxId),
-
-      ensureConversationalDesignerEngine: () => this.ensureConversationalDesignerEngine(),
-
-      ensureManufacturingReportEngine: () => this.ensureManufacturingReportEngine(),
-      previewManufacturingFixes: () => this.previewManufacturingFixes(),
-      applyManufacturingSuggestedFixes: () => this.applyManufacturingSuggestedFixes(),
-
-      ensureCostReportEngine: () => this.ensureCostReportEngine(),
-      previewCostSuggestionByTier: (seedBoxId, tier) => this.previewCostSuggestionByTier(seedBoxId, tier),
-    });
-
-    this.autoLayout = facades.autoLayout;
-    this.smartLayout = facades.smartLayout;
-    this.intelligentDesigner = facades.intelligentDesigner;
-    this.conversationalDesigner = facades.conversationalDesigner;
-    this.manufacturing = facades.manufacturing;
-    this.costEstimator = facades.costEstimator;
-    const visualFacades = createViewerVisualFacades({
-      syncOrlaVisuals: () => this.syncOrlaVisuals(),
-      syncRemateVisuals: () => this.syncRemateVisuals(),
-      syncHematiVisuals: () => this.syncHematiVisuals(),
-      syncRodapeVisuals: () => this.syncRodapeVisuals(),
-    });
-    this.orlaVisual = visualFacades.orlaVisual;
-    this.remateVisual = visualFacades.remateVisual;
-    this.hematiVisual = visualFacades.hematiVisual;
-    this.rodapeVisual = visualFacades.rodapeVisual;
-
-    this.unregisterAdminSnappingRules = registerAdminSnappingRules(
-      this.smartSnappingEngine,
-      {
-        snapRules: rulesStore.snapRules,
-        roomRules: rulesStore.roomRules,
-      },
-      this.smartAlignSnapEngine
-    );
-
-    this.transformControls = new TransformControls(
-      this.cameraManager.camera,
-      this.rendererManager.renderer.domElement
-    );
-    this.transformControls.setSpace("world");
-    this.transformControls.enabled = true;
-    this.transformControls.showX = true;
-    this.transformControls.showY = true;
-    this.transformControls.showZ = true;
-    this.transformControls.addEventListener("mouseDown", () => {
-      historyManager.beginDragSession("transform.drag", "Transformação");
-      this.onTransformDragStart?.();
-      this.smartAlignSnapEngine.onDragStart();
-      if (this.viewerState.getSelectedRemate()) {
-        const remateId = this.viewerState.getSelectedRemate()!;
-        const rawMesh = this.getRemateMesh(remateId);
-        const obj = resolveRemateTransformRoot(rawMesh) ?? rawMesh ?? this.transformControls!.object;
-        if (obj) this.remateSmartSnapping.onDragStart(obj as THREE.Object3D);
-      } else if (this.viewerState.getSelectedDivSep()) {
-        const sel = this.viewerState.getSelectedDivSep()!;
-        const mesh = this.getDivSepMesh(sel);
-        if (mesh) {
-          mesh.userData.divSepDragStart = {
-            x: mesh.position.x,
-            y: mesh.position.y,
-            z: mesh.position.z,
-          };
-        }
-      } else if (this.groupGizmo?.isActive()) {
-        const members = this.groupGizmo.getMembers();
-        for (const member of members) {
-          const decoded = decodeSelectionId(member.encodedId);
-          if (decoded?.kind !== "box") continue;
-          this.smartSnappingEngine.onDragStart(member.mesh);
-          break;
-        }
-      } else if (this.viewerState.getSelectedBox()) {
-        const obj = this.transformControls!.object;
-        if (obj && "position" in obj) {
-          this.dragStartZForShiftLock = (obj as THREE.Object3D).position.z;
-          this.smartSnappingEngine.onDragStart(obj as THREE.Object3D);
-        }
-      }
-      this.viewerState.setTransformControlsDragging(true);
-      this.logTransformDiagnostic("dragStart(mouseDown)");
-    });
-    this.transformControls.addEventListener("mouseUp", () => {
-      this.finishTransformDrag("mouseUp");
-      this.logTransformDiagnostic("dragEnd(mouseUp)");
-    });
-    this.transformControls.addEventListener("dragging-changed", (event) => {
-      this.viewerState.setTransformControlsDragging(Boolean(event.value));
-      this.logTransformDiagnostic("dragging-changed", {
-        value: Boolean(event.value),
-      });
-      if (!event.value) {
-        this.finishTransformDrag("dragging-changed");
-      }
-    });
-    this.transformControls.addEventListener("objectChange", () => {
-      this.handleTransformObjectChange();
-    });
-    this.transformControlsHelper = this.transformControls.getHelper();
-    this.transformControlsHelper.visible = false;
-    this.sceneManager.scene.add(this.transformControlsHelper);
-    this.groupGizmo = new GroupGizmo(this.sceneManager.scene);
-    this.measurementAnchorsVisualizer = new MeasurementAnchorsVisualizer(this.sceneManager.scene);
-    this.dimensionsOverlay = new DimensionsOverlayController({
-      scene: this.sceneManager.scene,
-      camera: this.cameraManager.camera,
-      getViewportSize: () => ({
-        width: this.container?.clientWidth ?? 1280,
-        height: this.container?.clientHeight ?? 720,
-      }),
-      collectBoxBounds: () => this.collectBoxBoundsForDimensions(),
-      projectWorldToScreen: (world) => this.projectWorldToScreen(world),
-    });
-    this.logTransformDiagnostic("transform-listeners-ready", {
-      domTag: this.rendererManager.renderer.domElement.tagName,
-      helperVisible: this.transformControlsHelper.visible,
-    });
-
-    this.wallGizmo = new WallGizmo(this.cameraManager.camera);
-    this.wallGizmo.setOnTransform(() => notifyWallTransformImpl(this.getRoomGeometryDeps()));
-    this.sceneManager.scene.add(this.wallGizmo.group);
-    this.sceneManager.scene.add(this.remateVisualizer.getRoot());
-    this.sceneManager.scene.add(this.tampoVisualizer.getRoot());
-    this.sceneManager.scene.add(this.hematiVisualizer.getRoot());
-    this.sceneManager.scene.add(this.rodapeVisualizer.getRoot());
-    this.setWallEditMode(false);
-
-    this.roomManager = new RoomManager(this as unknown as IRoomManagerViewer);
-    if (import.meta.env.DEV) {
-      this.snapDebugOverlay = new SnapDebugOverlay();
-    }
-
-    this.snapshotRenderer = new SnapshotRenderer({
-      getCamera: () => ({
-        position: this.cameraManager.camera.position,
-        quaternion: this.cameraManager.camera.quaternion,
-        zoom: "zoom" in this.cameraManager.camera ? (this.cameraManager.camera as { zoom: number }).zoom : 1,
-        type: this.cameraManager.camera.type,
-      }),
-      getControls: () =>
-        this.controls?.controls
-          ? { target: this.controls.controls.target, update: () => this.controls!.controls!.update() }
-          : null,
-      getScene: () => this.sceneManager.scene,
-      getRenderer: () => this.rendererManager.renderer,
-      getContainer: () => this.container,
-    });
-
-    this.constraints = new TransformConstraints();
-    this.snapEngine = ensureViewerSnapEngine(null, {
-      getAlignEngine: () => this.smartAlignSnapEngine,
-      isAlignEnabled: () => this.settings.enableSmartAlignSnap,
-      buildAlignContext: () => this.buildSmartAlignSnapContextForDrag(),
-      syncAlignOverlay: () => this.syncSmartAlignSnapOverlayFromEngine(),
-      getConstraints: () => this.constraints,
-    });
-    this.renderExporter = new ViewerRenderExporter({
-      getBoxes: () => this.boxes,
-      getRenderer: () => this.rendererManager.renderer,
-      getScene: () => this.sceneManager.scene,
-      getCamera: () => this.cameraManager.camera,
-      getControls: () =>
-        this.controls?.controls
-          ? { target: this.controls.controls.target, update: () => this.controls!.controls!.update() }
-          : null,
-      getLights: () => ({
-        keyLight: this.lights.keyLight,
-        fillLight: this.lights.fillLight,
-        ambient: this.lights.ambient,
-        rimLight: this.lights.rimLight,
-        hemisphere: this.lights.hemisphere,
-      }),
-      getGroundVisible: () => this.sceneEngine.getGroundVisible(),
-      setGroundVisible: (visible) => this.sceneEngine.setGroundVisible(visible),
-      getGridVisible: () => this.sceneEngine.getGridVisible(),
-      setGridVisible: (visible) => this.sceneEngine.setGridVisible(visible),
-      getRoomGroup: () => this.roomBuilder.getGroup(),
-      getRoomWalls: () => this.roomBoxWalls,
-      getSelectionOutline: () => this.selectionOutline.getGroup(),
-      getWallSelectionOutline: () => this.wallSelectionOutline.getHelper(),
-      getDimensionsOverlayGroup: () => this.dimensionsOverlay.group,
-      getWallGizmoGroup: () => this.wallGizmo?.group ?? null,
-      ensureShowcaseComposer: () => {
-        this.ensureComposerEngine().ensureShowcase();
-      },
-      ensureMainComposer: () => {
-        this.ensureComposerEngine().ensureMain();
-      },
-      getShowcaseComposer: () => this.composerEngine?.showcase ?? null,
-      getMainComposer: () => this.composerEngine?.main ?? null,
-      getShowcaseBloomPass: () => this.composerEngine?.bloom ?? null,
-      getMainBloomPass: () => this.composerEngine?.mainBloom ?? null,
-      getBokehPass: () => this.composerEngine?.bokeh ?? null,
-      setComposerExportSize: (width, height, pixelRatio) => {
-        this.composerEngine?.setExportSize(width, height, pixelRatio);
-      },
-      updateShowcaseComposerSize: () => this.composerEngine?.updateShowcaseSize(),
-      updateMainComposerSize: () => this.composerEngine?.updateMainSize(),
-      updateCanvasSize: () => this.updateCanvasSize(),
-    });
-    this.runtimeLoop = new ViewerRuntimeLoop({
-      getRenderer: () => this.rendererManager.renderer,
-      renderScene: () => this.rendererManager.render(this.sceneManager.scene, this.cameraManager.camera),
-      getCamera: () => this.cameraManager.camera,
-      setCameraAspect: (aspect) => {
-        this.cameraManager.camera.aspect = aspect;
-      },
-      updateCameraProjection: () => this.cameraManager.camera.updateProjectionMatrix(),
-      getContainer: () => this.container,
-      ensureMainComposer: () => {
-        this.ensureComposerEngine().ensureMain();
-      },
-      getShowcaseComposer: () => this.composerEngine?.showcase ?? null,
-      getMainComposer: () => this.composerEngine?.main ?? null,
-      getBokehPass: () => this.composerEngine?.bokeh ?? null,
-      updateShowcaseComposerSize: () => this.composerEngine?.updateShowcaseSize(),
-      updateMainComposerSize: () => this.composerEngine?.updateMainSize(),
-      getCurrentMode: () => this.viewerState.getCurrentMode(),
-      isUltraPerformanceMode: () => this.ultraPerformanceMode,
-      isTurntableEnabled: () => this.turntableEnabled && this.viewerState.getCurrentMode() === "showcase",
-      getTurntableSpeed: () => this.turntableSpeed,
-      getTurntableTarget: () => this.controls?.controls?.target?.clone() ?? null,
-      getBoxes: () => this.boxes,
-      onBeforeRenderTick: () => this.onBeforeRenderTick(),
-    });
-
-    this.updateCameraTarget();
-
-    this.eventsManager = new EventsManager(this.getEventEngineApi());
-    this.eventsManager.register(this.rendererManager.renderer.domElement);
-
-    this.materialPipeline.setLacqueredClearcoatPipeline(this.materialQuality === "lacquered");
-
-    this.start();
-    queueMicrotask(() => this.notifyViewerReady());
-    this.unregisterWindowEvents = registerViewerWindowEvents({
-      resize: this.updateCanvasSize,
-      keydown: this.boundShiftKeyDown,
-      keyup: this.boundShiftKeyUp,
-    });
+  private getConstructorOpsDeps(): ViewerCoreConstructorOpsDeps {
+    // Mantém a superfície privada alcançável para o wiring extraído (TS6133 / ownership).
+    void this.raycastSystem;
+    void this.onTransformDragStart;
+    void this.boundShiftKeyDown;
+    void this.boundShiftKeyUp;
+    void this.turntableSpeed;
+    void this.debugMode;
+    void this.getProjectMeasurementsFn;
+    void this.onInternalMeasurementSavedFn;
+    void this.smartAlignSnapOverlay;
+    void this.ensureConversationalDesignerEngine;
+    void this.notifyViewerReady;
+    void this.notifyAlignableTransform;
+    void this.collectBoxBoundsForDimensions;
+    void this.getEventEngineApi;
+    void this.handleTransformObjectChange;
+    void this.finishTransformDrag;
+    void this.buildSmartAlignSnapContextForDrag;
+    void this.syncSmartAlignSnapOverlayFromEngine;
+    void this.buildDisabledSmartSnapContext;
+    void this.generateIntelligentDesigns;
+    void this.previewIntelligentDesign;
+    void this.applyIntelligentDesign;
+    void this.previewIntelligentStyle;
+    void this.applyIntelligentStyle;
+    void this.previewCostSuggestionByTier;
+    void this.applyManufacturingSuggestedFixes;
+    void this.generateIntelligentVariations;
+    void this.computeDistanceToNearestBox;
+    void this.computeDistanceToNearestWall;
+    void this.computeDistanceToFloor;
+    void this.start;
+    void this.onBeforeRenderTick;
+    void this.previewManufacturingFixes;
+    void this.acceptPredictiveLayoutPending;
+    void this.previewSmartWallFill;
+    void this.updateCameraTarget;
+    void this.updateCanvasSize;
+    void this.applyMousePresetToControls;
+    void this.applyBackgroundMode;
+    void this.getSelectionOpsDeps;
+    void this.getIndustrialModeDeps;
+    void this.getRoomGeometryDeps;
+    void this.getSelectedObjects;
+    void this.projectWorldToScreen;
+    void this.setWallEditMode;
+    void this.ensureComposerEngine;
+    void this.ensureIntelligentDesigner;
+    void this.ensureManufacturingReportEngine;
+    void this.ensureCostReportEngine;
+    void this.getRemateMesh;
+    void this.getDivSepMesh;
+    void this.logTransformDiagnostic;
+    void this.clearSmartAlignSnapOverlay;
+    void this.syncOrlaVisuals;
+    void this.syncRemateVisuals;
+    void this.syncHematiVisuals;
+    void this.syncRodapeVisuals;
+    void this.updateShadowIntensity;
+    return this as unknown as ViewerCoreConstructorOpsDeps;
   }
 
   getCurrentMode(): "performance" | "showcase" {
@@ -2864,7 +2592,7 @@ export class ViewerCore {
 
   /** Agenda um frame de render no próximo requestAnimationFrame. Usado após rebuild de mesh para atualizar a tela imediatamente. */
   private requestRender(): void {
-    this.runtimeLoop.requestRender();
+    requestRenderImpl(this.getRuntimeOpsDeps());
   }
 
   setBoxIndex(id: string, index: number): boolean {
@@ -3626,304 +3354,27 @@ export class ViewerCore {
   }
 
   private getDisplayOpsDeps(): ViewerCoreDisplayOpsDeps {
-    return {
-      viewerState: this.viewerState,
-      getTurntableEnabled: () => this.turntableEnabled,
-      setTurntableEnabled: (enabled) => {
-        this.turntableEnabled = enabled;
-      },
-      isMobile: this.isMobile,
-      lights: this.lights,
-      ensureLightingEngine: () => this.ensureLightingEngine(),
-      getLightingEngine: () => this.lightingEngine,
-      ensureComposerEngine: () => this.ensureComposerEngine(),
-      getComposerEngine: () => this.composerEngine,
-      getUltraPerformanceMode: () => this.ultraPerformanceMode,
-      setUltraPerformanceModeFlag: (active) => {
-        this.ultraPerformanceMode = active;
-      },
-      getUltraPerformanceModeOptions: () => this.ultraPerformanceModeOptions,
-      setUltraPerformanceModeOptionsState: (options) => {
-        this.ultraPerformanceModeOptions = options;
-      },
-      getUltraRenderState: () => this.ultraRenderState,
-      setUltraRenderState: (state) => {
-        this.ultraRenderState = state;
-      },
-      getMaterialQuality: () => this.materialQuality,
-      setMaterialQualityState: (quality) => {
-        this.materialQuality = quality;
-      },
-      getReflectionsEnabled: () => this.reflectionsEnabled,
-      setReflectionsEnabledState: (enabled) => {
-        this.reflectionsEnabled = enabled;
-      },
-      getPhotoModeEnabled: () => this.photoModeEnabled,
-      setPhotoModeEnabledState: (enabled) => {
-        this.photoModeEnabled = enabled;
-      },
-      getMatteMode: () => this.matteMode,
-      setMatteModeState: (enabled) => {
-        this.matteMode = enabled;
-      },
-      getBackgroundMode: () => this.backgroundMode,
-      setBackgroundModeState: (mode) => {
-        this.backgroundMode = mode;
-      },
-      getGlossIntensity: () => this.glossIntensity,
-      setGlossIntensityState: (value) => {
-        this.glossIntensity = value;
-      },
-      getReflectionUpdateIntervalFrames: () => this.reflectionUpdateIntervalFrames,
-      setReflectionUpdateIntervalFrames: (frames) => {
-        this.reflectionUpdateIntervalFrames = frames;
-      },
-      baseToneMappingExposure: this.baseToneMappingExposure,
-      defaultPixelRatio: this.defaultPixelRatio,
-      rendererManager: this.rendererManager,
-      sceneEngine: this.sceneEngine,
-      sceneManager: this.sceneManager,
-      getRoomBoxFloor: () => this.roomBoxFloor,
-      getRoomBoxFloorOutline: () => this.roomBoxFloorOutline,
-      displayMaterials: this.displayMaterials,
-      ultraMaterials: this.ultraMaterials,
-      materialPipeline: this.materialPipeline,
-      getRoomBounds: () => this.roomBounds,
-      boxes: this.boxes,
-      boundingBox: this._boundingBox,
-      center: this._center,
-      setMaterialMode: (mode) => this.setMaterialMode(mode),
-      updateCanvasSize: () => this.updateCanvasSize(),
-      requestRender: () => this.requestRender(),
-    };
+    return getDisplayEngineApiImpl(this.getEngineApisOpsDeps());
   }
 
   private getIndustrialModeDeps(): ViewerCoreIndustrialModeDeps {
-    return {
-      panelVisibility: this.panelVisibility,
-      industrialDesignMode: this.industrialDesignMode,
-      industrialDesignViewerOverlay: this.industrialDesignViewerOverlay,
-      boxes: this.boxes,
-      getIndustrialDesignCallbacks: () => this.industrialDesignCallbacks,
-      setIndustrialDesignCallbacks: (callbacks) => {
-        this.industrialDesignCallbacks = callbacks;
-      },
-      raycaster: this.raycaster,
-      pointer: this.pointer,
-      getCamera: () => this.cameraManager.camera,
-      getCanvas: () => this.rendererManager.renderer.domElement,
-      boxSceneController: this.boxSceneController,
-    };
+    return getIndustrialEngineApiImpl(this.getEngineApisOpsDeps());
   }
 
   private getRoomGeometryDeps(): ViewerCoreRoomGeometryDeps {
-    return {
-      getRoomBoxGroup: () => this.roomBoxGroup,
-      setRoomBoxGroup: (group) => {
-        this.roomBoxGroup = group;
-      },
-      getRoomBoxWalls: () => this.roomBoxWalls,
-      setRoomBoxWalls: (walls) => {
-        this.roomBoxWalls = walls;
-      },
-      getRoomBoxFloor: () => this.roomBoxFloor,
-      setRoomBoxFloor: (floor) => {
-        this.roomBoxFloor = floor;
-      },
-      getRoomBoxFloorOutline: () => this.roomBoxFloorOutline,
-      setRoomBoxFloorOutline: (outline) => {
-        this.roomBoxFloorOutline = outline;
-      },
-      getRoomBoxCeiling: () => this.roomBoxCeiling,
-      setRoomBoxCeiling: (ceiling) => {
-        this.roomBoxCeiling = ceiling;
-      },
-      getRoomFloorRoot: () => this.roomFloorRoot,
-      setRoomFloorRoot: (root) => {
-        this.roomFloorRoot = root;
-      },
-      getRoomUtilitiesRoot: () => this.roomUtilitiesRoot,
-      setRoomUtilitiesRoot: (root) => {
-        this.roomUtilitiesRoot = root;
-      },
-      getRoomBounds: () => this.roomBounds,
-      setRoomBounds: (bounds) => {
-        this.roomBounds = bounds;
-      },
-      getRoomCeilingVisible: () => this.roomCeilingVisible,
-      setRoomCeilingVisibleFlag: (visible) => {
-        this.roomCeilingVisible = visible;
-      },
-      getRoomFloorMode: () => this.roomFloorMode,
-      setRoomFloorModeState: (mode) => {
-        this.roomFloorMode = mode;
-      },
-      getHiddenRoomWallIds: () => this.hiddenRoomWallIds,
-      setHiddenRoomWallIds: (ids) => {
-        this.hiddenRoomWallIds = ids;
-      },
-      getManualHiddenWallId: () => this.manualHiddenWallId,
-      setManualHiddenWallId: (id) => {
-        this.manualHiddenWallId = id;
-      },
-      sceneManager: this.sceneManager,
-      materialPipeline: this.materialPipeline,
-      boundsCache: this.boundsCache,
-      roomBuilder: this.roomBuilder,
-      wallGizmo: this.wallGizmo,
-      viewerState: this.viewerState,
-      getRoomManager: () => this.roomManager,
-      defaultGroundSize: this.defaultGroundSize,
-      getBackgroundMode: () => this.backgroundMode,
-      disposeObject: (object) => this.disposeObject(object),
-      applyBackgroundMode: () => this.applyBackgroundMode(),
-      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
-      refreshOutlineTarget: () => this.refreshOutlineTarget(),
-      getWallIdInFrontOfCamera: () => this.pointerPicking.getWallIdInFrontOfCamera(),
-      getCamera: () => this.cameraManager.camera,
-      onWallTransform: this.onWallTransform,
-      onRoomElementTransform: this.onRoomElementTransform,
-      onRoomUtilityTransform: this.onRoomUtilityTransform,
-    };
+    return getRoomEngineApiImpl(this.getEngineApisOpsDeps());
   }
 
   private getSelectionOpsDeps(): ViewerCoreSelectionOpsDeps {
-    return {
-      viewerState: this.viewerState,
-      getHighlightManager: () => this.highlightManager,
-      updateOutline: () => this.viewerTools.updateOutline(),
-      selectionOutline: this.selectionOutline,
-      getMultiSelectionOutline: () => this.multiSelectionOutline,
-      wallSelectionOutline: this.wallSelectionOutline,
-      getEdgeOutlineSystem: () => this.edgeOutlineSystem,
-      getInternalSelectionOutline: () => this.internalSelectionOutline,
-      sceneManager: this.sceneManager,
-      boxes: this.boxes,
-      getRoomBoxWalls: () => this.roomBoxWalls,
-      getCamera: () => this.cameraManager.camera,
-      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
-      getRemateVisualBridge: () => this.remateVisualBridge,
-      getRodapeVisualBridge: () => this.rodapeVisualBridge,
-      rodapeVisualizer: this.rodapeVisualizer,
-      wallGizmo: this.wallGizmo,
-      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
-      onWallSelected: this.onWallSelected,
-      onBoxSelected: this.onBoxSelected,
-      selectedBoxChangeListeners: this.selectedBoxChangeListeners,
-      onMeasurementSelectionChanged: (boxId) => this.measurementEngine.onSelectionChanged(boxId),
-      onInternalSurfaceSelected: this.onInternalSurfaceSelected,
-      onInternalEdgeSelected: this.onInternalEdgeSelected,
-      onInternalPointSelected: this.onInternalPointSelected,
-      applyPanelVisibilityForAllBoxes: () =>
-        applyPanelVisibilityForAllBoxesImpl(this.getIndustrialModeDeps()),
-      isObjectAttachedToScene: (object) => this.isObjectAttachedToScene(object),
-    };
+    return getSelectionEngineApiImpl(this.getEngineApisOpsDeps());
   }
 
   private getFinishOpsDeps(): ViewerCoreFinishOpsDeps {
-    return {
-      orlaVisualizer: this.orlaVisualizer,
-      remateVisualizer: this.remateVisualizer,
-      tampoVisualizer: this.tampoVisualizer,
-      hematiVisualizer: this.hematiVisualizer,
-      rodapeVisualizer: this.rodapeVisualizer,
-      getRemateVisualBridge: () => this.remateVisualBridge,
-      setRemateVisualBridge: (bridge) => {
-        this.remateVisualBridge = bridge;
-      },
-      setRodapeVisualBridge: (bridge) => {
-        this.rodapeVisualBridge = bridge;
-      },
-      setDivSepVisualBridge: (bridge) => {
-        this.divSepVisualBridge = bridge;
-      },
-      boxes: this.boxes,
-      pendingViewerVisualSync: this.pendingViewerVisualSync,
-      isTransformDragging: () => this.viewerState.getTransformControlsDragging(),
-      refreshViewerAttachmentsAfterMeshMutation: () => this.refreshViewerAttachmentsAfterMeshMutation(),
-      applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
-      viewerState: this.viewerState,
-      onRemateSelected: this.onRemateSelected,
-      onRodapeSelected: this.onRodapeSelected,
-      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
-      refreshOutlineTarget: () => this.refreshOutlineTarget(),
-      notifyRemateTransform: () => this.notifyRemateTransform(),
-      syncRemateVisuals: () => this.syncRemateVisuals(),
-      lockEnabled: this.lockEnabled,
-      resolveFinishCollisionAfterSync: (params) => this.resolveFinishCollisionAfterSync(params),
-      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
-    };
+    return getFinishOpsDepsImpl(this.getEngineApisOpsDeps());
   }
 
   private getTransformOpsDeps(): ViewerCoreTransformOpsDeps {
-    return {
-      viewerState: this.viewerState,
-      boxes: this.boxes,
-      groupGizmo: this.groupGizmo,
-      constraints: this.constraints,
-      snapEngine: this.snapEngine,
-      remateSmartSnapping: this.remateSmartSnapping,
-      smartSnappingEngine: this.smartSnappingEngine,
-      smartAlignSnapEngine: this.smartAlignSnapEngine,
-      viewerTools: this.viewerTools,
-      overlayCoordinator: this.overlayCoordinator,
-      measurementEngine: this.measurementEngine,
-      roomBuilder: this.roomBuilder,
-      boundingBox: this._boundingBox,
-      getTransformControls: () => this.transformControls,
-      getControls: () => this.controls,
-      getLockEnabled: () => this.lockEnabled,
-      getShiftKeyHeld: () => this.shiftKeyHeld,
-      getDragStartZForShiftLock: () => this.dragStartZForShiftLock,
-      setDragStartZForShiftLock: (value) => {
-        this.dragStartZForShiftLock = value;
-      },
-      getIsApplyingTransformConstraints: () => this.isApplyingTransformConstraints,
-      setIsApplyingTransformConstraints: (value) => {
-        this.isApplyingTransformConstraints = value;
-      },
-      getTransformDragEndStamp: () => this.transformDragEndStamp,
-      setTransformDragEndStamp: (stamp) => {
-        this.transformDragEndStamp = stamp;
-      },
-      getTransformDiagnosticsEnabled: () => this.transformDiagnosticsEnabled,
-      getSelectedDivSep: () => this.viewerState.getSelectedDivSep(),
-      getDivSepMesh: (selection) => this.getDivSepMesh(selection),
-      getDivSepVisualBridge: () => this.divSepVisualBridge,
-      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
-      getRemateVisualBridge: () => this.remateVisualBridge,
-      rodapeVisualizer: this.rodapeVisualizer,
-      getRoomBounds: () => this.roomBounds,
-      getRoomBoxWalls: () => this.roomBoxWalls,
-      applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
-      applyRoomConstraint: (obj, options) => this.applyRoomConstraint(obj, options),
-      isMeshInsideOrTouchingRoom: (obj) => this.isMeshInsideOrTouchingRoom(obj),
-      clearSnapState: (obj) => this.clearSnapState(obj),
-      shouldUseFeetLock: (entry) => this.shouldUseFeetLock(entry),
-      getFixedYForCabinet: (entry) => this.getFixedYForCabinet(entry),
-      updateBoxesIntersectingWalls: () => this.updateBoxesIntersectingWalls(),
-      setLastSnapDebugData: (data) => {
-        this.lastSnapDebugData = data;
-      },
-      applyDynamicAlignSnap: (params) => this.applyDynamicAlignSnap(params),
-      applyFinishCollisionConstraint: (mesh, excludeBoxId, excludeRemateId, excludeRodapeId) =>
-        this.applyFinishCollisionConstraint(mesh, excludeBoxId, excludeRemateId, excludeRodapeId),
-      refreshGizmoAttachment: () => this.gizmoEngine.refreshAttachment(),
-      applyMousePresetToControls: () => this.applyMousePresetToControls(),
-      onBoxTransform: this.onBoxTransform,
-      notifyRemateTransform: () => this.notifyRemateTransform(),
-      notifyHematiTransform: () => this.notifyHematiTransform(),
-      notifyRodapeTransform: () => this.notifyRodapeTransform(),
-      notifyDivSepTransform: () => this.notifyDivSepTransform(),
-      notifyWallTransform: () => this.notifyWallTransform(),
-      notifyRoomElementTransform: () => this.notifyRoomElementTransform(),
-      notifyRoomUtilityTransform: () => this.notifyRoomUtilityTransform(),
-      getRoomUtilityById: (utilityId) => this.getRoomUtilityById(utilityId),
-      onTransformDragEnd: this.onTransformDragEnd,
-      flushDeferredBoxStructureUpdates: () => this.flushDeferredBoxStructureUpdates(),
-      flushDeferredViewerVisualSyncs: () => this.flushDeferredViewerVisualSyncs(),
-      refreshViewerAttachmentsAfterMeshMutation: () => this.refreshViewerAttachmentsAfterMeshMutation(),
-    };
+    return getTransformOpsDepsImpl(this.getEngineApisOpsDeps());
   }
 
   /** Mantém CameraManager.target e OrbitControls.target sincronizados. */
@@ -4079,93 +3530,20 @@ export class ViewerCore {
 
   /** API mínima para o EventsManager (handlers de canvas). */
   private getEventEngineApi(): IViewerEventEngine {
-    return getEventEngineApiImpl(this.getEventOpsDeps());
+    return buildEventEngineApiImpl(this.getEngineApisOpsDeps());
   }
 
   private getEventOpsDeps(): ViewerCoreEventOpsDeps {
-    return {
-      viewerState: this.viewerState,
-      rendererManager: this.rendererManager,
-      cameraManager: this.cameraManager,
-      pointerPicking: this.pointerPicking,
-      pointer: this.pointer,
-      raycaster: this.raycaster,
-      getHighlightManager: () => this.highlightManager,
-      roomBuilder: this.roomBuilder,
-      getRoomBoxWalls: () => this.roomBoxWalls,
-      getWallGizmo: () => this.wallGizmo,
-      getControls: () => this.controls,
-      getMouseInputPreset: () => this.mouseInputPreset,
-      industrialDesignMode: this.industrialDesignMode,
-      setSelectedBox: (id, options) => this.setSelectedBox(id, options),
-      setHoveredBox: (id) => this.setHoveredBox(id),
-      setHoveredRemate: (id) => this.setHoveredRemate(id),
-      selectHemati: (id) => this.selectHemati(id),
-      selectRodape: (id) => this.selectRodape(id),
-      selectRemate: (id) => this.selectRemate(id),
-      selectDivSep: (hit) => this.selectDivSep(hit),
-      getDivSepHitAtPointer: (e) => this.getDivSepHitAtPointer(e),
-      getHematiIdAtPointer: (e) => this.getHematiIdAtPointer(e),
-      getRodapeIdAtPointer: (e) => this.getRodapeIdAtPointer(e),
-      getRemateIdAtPointer: (e) => this.getRemateIdAtPointer(e),
-      getPointerSelectionEncodedId: (e) => this.getPointerSelectionEncodedId(e),
-      getInternalSelectionHit: (e) => this.getInternalSelectionHit(e),
-      setInternalSelection: (selection) => this.setInternalSelection(selection),
-      getContextMenuLayerHit: (e) => this.getContextMenuLayerHit(e),
-      refreshTransformControlsAttachment: () => this.refreshTransformControlsAttachment(),
-      setTransformAttachmentRefreshSuspended: (v) => this.setTransformAttachmentRefreshSuspended(v),
-      refreshOutlineTarget: () => this.refreshOutlineTarget(),
-      logTransformDiagnostic: (name, data) => this.logTransformDiagnostic(name, data),
-      onRoomElementSelected: this.onRoomElementSelected,
-      onRoomUtilitySelected: this.onRoomUtilitySelected,
-      onWallSelected: this.onWallSelected,
-      onBoxSelected: this.onBoxSelected,
-      onMultiSelectToggle: this.onMultiSelectToggle,
-      onRemateSelected: this.onRemateSelected,
-      onRoomElementPlaced: this.onRoomElementPlaced,
-      onDoorLayerDoubleClick: this.onDoorLayerDoubleClick,
-      onDrawerLayerDoubleClick: this.onDrawerLayerDoubleClick,
-      onDrawerLayerClick: this.onDrawerLayerClick,
-      onBoxDoubleClick: this.onBoxDoubleClick,
-      setShiftKeyHeld: (held) => {
-        this.shiftKeyHeld = held;
-      },
-    };
+    return getEventOpsDepsImpl(this.getEngineApisOpsDeps());
   }
 
   /** API mínima para o ViewerTools (attachment, outline, clamp). */
   private getToolsEngineApi(): IViewerToolsEngine {
-    return getToolsEngineApiImpl(this.getToolsOpsDeps());
+    return buildToolsEngineApiImpl(this.getEngineApisOpsDeps());
   }
 
   private getToolsOpsDeps(): ViewerCoreToolsOpsDeps {
-    return {
-      viewerState: this.viewerState,
-      boxes: this.boxes,
-      roomBuilder: this.roomBuilder,
-      selectionOutline: this.selectionOutline,
-      boxesIntersectingWalls: this.boxesIntersectingWalls,
-      getTransformControls: () => this.transformControls,
-      getTransformControlsHelper: () => this.transformControlsHelper,
-      setTransformHelperVisible: (visible) => {
-        if (this.transformControlsHelper) this.transformControlsHelper.visible = visible;
-      },
-      getGroupGizmo: () => this.groupGizmo,
-      getRoomBoxWalls: () => this.roomBoxWalls,
-      getDivSepMesh: (selection) => this.getDivSepMesh(selection),
-      getHematiMesh: (hematiId) => this.getHematiMesh(hematiId),
-      getRodapeMesh: (rodapeId) => this.getRodapeMesh(rodapeId),
-      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
-      getRoomUtilityById: (id) => this.getRoomUtilityById(id),
-      applyTransformControlsMouseGuard: () => this.applyTransformControlsMouseGuard(),
-      logTransformDiagnostic: (name, data) => this.logTransformDiagnostic(name, data),
-      setOutlineTarget: (mesh, opacity, colorHex) => this.setOutlineTarget(mesh, opacity, colorHex),
-      clampTransform: () => this.clampTransform(),
-      resolveMemberMesh: (encoded) => this.resolveMemberMesh(encoded),
-      applyGroupPivotTransform: () => this.applyGroupPivotTransform(),
-      notifyGroupTransform: () => this.notifyGroupTransform(),
-      clampGroupTransform: () => this.clampGroupTransform(),
-    };
+    return getToolsOpsDepsImpl(this.getEngineApisOpsDeps());
   }
 
   private setOutlineTarget(mesh: THREE.Object3D | null, opacity: number, colorHex: number): void {
@@ -4468,89 +3846,20 @@ export class ViewerCore {
     });
   }
 
-  private collectAllSnapEntities(): SmartSnapEntity[] {
-    const entities: SmartSnapEntity[] = [];
-    this.boxes.forEach((entry, id) => {
-      entities.push({ kind: "box", id, mesh: entry.mesh as THREE.Mesh });
-    });
-    for (const piece of this.remateVisualBridge?.listRematePieces() ?? []) {
-      const raw = this.getRemateMesh(piece.id);
-      const mesh = resolveRemateTransformRoot(raw) ?? raw;
-      if (!mesh || !(mesh instanceof THREE.Mesh)) continue;
-      entities.push({
-        kind: "remate",
-        id: piece.id,
-        mesh,
-        parentBoxId: piece.parentBoxId,
-      });
-    }
-    for (const cfg of this.rodapeVisualBridge?.listBoxRodapeConfigs() ?? []) {
-      for (const rodape of cfg.rodapes) {
-        const mesh = this.rodapeVisualizer.getMeshByRodapeId(rodape.id);
-        if (!mesh || !(mesh instanceof THREE.Mesh)) continue;
-        entities.push({
-          kind: "rodape",
-          id: rodape.id,
-          mesh,
-          parentBoxId: cfg.boxId,
-        });
-      }
-    }
-    return entities;
-  }
-
-  private buildSmartAlignSnapContextForDrag(): SmartAlignSnapContext {
-    return {
-      boxes: this.boxes,
-      captureRadiusM: mmToM(DEFAULT_UNIFIED_CAPTURE_MM),
-      magnetStrength: DEFAULT_UNIFIED_MAGNET,
-      rematePieces: this.remateVisualBridge?.listRematePieces() ?? [],
-      rodapes: (this.rodapeVisualBridge?.listBoxRodapeConfigs() ?? []).flatMap((c) => c.rodapes),
-      getBoxConfig: (boxId) => this.remateVisualBridge?.getBoxConfig(boxId) ?? null,
-      getWorldAabb: (mesh) => getEntityWorldBoxAabb(mesh, "box"),
-      roomBounds: this.roomBounds,
-      roomBoundsFull: this.roomBounds,
-      roomOpenings: this.getRoomOpeningsForSnapping(),
-      wallOffsetMm: this.smartSnappingEngine.getWallOffset(),
-      explicitModeActive: false,
-      allEntities: this.collectAllSnapEntities(),
-    };
+  private buildSmartAlignSnapContextForDrag() {
+    return buildSmartAlignSnapContextForDragImpl(this.getSnappingOpsDeps());
   }
 
   private syncSmartAlignSnapOverlayFromEngine(): void {
-    if (!this.settings.enableSmartAlignSnap) return;
-    const state = this.smartAlignSnapEngine.getOverlayState();
-    if (state.visible) {
-      this.smartAlignOverlay.setState(state);
-    } else {
-      this.clearSmartAlignSnapOverlay();
-    }
+    syncSmartAlignSnapOverlayFromEngineImpl(this.getSnappingOpsDeps());
   }
 
   private applyDynamicAlignSnap(params: SnapAlignTarget): void {
-    this.snapEngine.applyDuringTranslate(params);
+    applyDynamicAlignSnapImpl(this.getSnappingOpsDeps(), params);
   }
 
-  private buildDisabledSmartSnapContext(): SmartAlignSnapContext {
-    return {
-      boxes: this.boxes,
-      captureRadiusM: 0,
-      magnetStrength: 0,
-      rematePieces: [],
-      rodapes: [],
-      getBoxConfig: () => null,
-      getWorldAabb: (mesh) => {
-        mesh.updateMatrixWorld(true);
-        const box = new THREE.Box3().setFromObject(mesh);
-        return { min: box.min.clone(), max: box.max.clone(), center: box.getCenter(new THREE.Vector3()) };
-      },
-      roomBounds: null,
-      roomBoundsFull: this.roomBounds,
-      roomOpenings: [],
-      wallOffsetMm: this.smartSnappingEngine.getWallOffset(),
-      explicitModeActive: false,
-      allEntities: [],
-    };
+  private buildDisabledSmartSnapContext() {
+    return buildDisabledSmartSnapContextImpl(this.getSnappingOpsDeps());
   }
 
   private generateIntelligentDesigns(seedBoxId: string): boolean {
@@ -4729,7 +4038,7 @@ export class ViewerCore {
   }
 
   private clearSmartAlignSnapOverlay(): void {
-    this.smartAlignOverlay.clear();
+    clearSmartAlignSnapOverlayImpl(this.getSnappingOpsDeps());
   }
 
   private previewSmartWallFill(wallId: string | number, moduleBoxId: string): boolean {
@@ -4834,7 +4143,11 @@ export class ViewerCore {
   }
 
   private clearSnapState(object: THREE.Object3D): void {
-    clearSnapUserData(object);
+    clearSnapStateImpl(object);
+  }
+
+  private getSnappingOpsDeps(): ViewerCoreSnappingOpsDeps {
+    return getSnappingOpsDepsImpl(this.getEngineApisOpsDeps());
   }
 
   private notifyWallTransform(): void {
@@ -4888,63 +4201,19 @@ export class ViewerCore {
   }
 
   private updateCanvasSize = () => {
-    this.runtimeLoop.onResize();
-    this.measurementEngine.resize();
-    this.smartSnappingEngine.resize();
-    this.smartAlignOverlay.resize();
+    updateCanvasSizeImpl(this.getRuntimeOpsDeps());
   };
 
   private start() {
-    this.runtimeLoop.start();
+    startRuntimeImpl(this.getRuntimeOpsDeps());
   }
 
   private onBeforeRenderTick(): void {
-    if (!this._diagnosticsLogged) {
-      this._diagnosticsLogged = true;
-      const exp = this.rendererManager.renderer.toneMappingExposure;
-      if (exp <= 0) {
-        this.rendererManager.renderer.toneMappingExposure = 1.05;
-      }
-      const { keyLight, fillLight, ambient, hemisphere } = this.lights;
-      if (keyLight.intensity <= 0) keyLight.intensity = 0.55;
-      if (fillLight.intensity <= 0) fillLight.intensity = 0.15;
-      if (ambient.intensity <= 0) ambient.intensity = 0.4;
-      if (hemisphere.intensity <= 0) hemisphere.intensity = 0.35;
-    }
-    if (this.cameraManager.camera.position.y < 0.3) {
-      this.cameraManager.camera.position.y = 0.3;
-    }
-    this.controls?.update();
-    if (!this.ultraPerformanceMode) {
-      const r = this.rendererManager.renderer;
-      r.shadowMap.enabled = true;
-      if (r.shadowMap.type !== THREE.PCFSoftShadowMap) r.shadowMap.type = THREE.PCFSoftShadowMap;
-      // Baixa não projeta sombra (luz simples, sem efeitos) — evita o custo do maior
-      // gargalo de GPU do pipeline padrão quando a qualidade pedida é a mais leve.
-      const displayQualityLevel = this.reflectionsEnabled
-        ? "alta"
-        : this.materialQuality === "standard"
-          ? "baixa"
-          : "media";
-      this.lights.keyLight.castShadow = shouldCastKeyShadow(displayQualityLevel);
-    }
-    this.lerpLightsToTarget();
-    this.updateDimensionsOverlay();
-    this.updateWallVisibilityBasedOnCamera();
-    this.wallGizmo?.update();
-    if (this.snapDebugOverlay && this.lastSnapDebugData) {
-      this.snapDebugOverlay.update(this.lastSnapDebugData);
-    }
-    updateSelectionOverlaysFrameImpl(this.getSelectionOpsDeps());
-    this.overlayCoordinator.refreshFrame(performance.now());
+    onBeforeRenderTickImpl(this.getRuntimeOpsDeps());
+  }
 
-    if (this.reflectionsEnabled) {
-      this.reflectionFrameCounter += 1;
-      if (this.reflectionFrameCounter >= this.reflectionUpdateIntervalFrames) {
-        this.reflectionFrameCounter = 0;
-        this.updateReflectionProbe(false);
-      }
-    }
+  private getRuntimeOpsDeps(): ViewerCoreRuntimeOpsDeps {
+    return getRuntimeOpsDepsImpl(this.getEngineApisOpsDeps());
   }
 
   saveSnapshot(): import("../../context/projectTypes").ViewerSnapshot | null {
