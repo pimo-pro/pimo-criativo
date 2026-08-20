@@ -17,6 +17,12 @@ export class EventsManager {
   private isDraggingCamera = false;
   /** Evita double-toggle quando pointerdown já activou a gaveta. */
   private drawerToggledOnPointerDown = false;
+  /** Janela para distinguir clique simples de double-click na gaveta. */
+  private static readonly DRAWER_DBLCLICK_MS = 300;
+  private lastDrawerPointerKey: string | null = null;
+  private lastDrawerPointerDownAt = 0;
+  /** True se o 1.º pointerdown do burst já fez toggle (dblclick deve reverter antes de decidir). */
+  private drawerToggleAppliedInBurst = false;
   private boundHandlers: {
     click: (_event: MouseEvent) => void;
     dblclick: (_event: MouseEvent) => void;
@@ -75,9 +81,22 @@ export class EventsManager {
     this.canvas = null;
   }
 
+  private selectDrawerBox(drawerHit: { boxId: string; drawerLayerId: string }): void {
+    const e = this.engine;
+    e.selectHemati(null);
+    e.selectRodape(null);
+    e.selectRemate(null);
+    e.selectDivSep(null);
+    e.setHoveredBox(drawerHit.boxId);
+    e.setSelectedBox(drawerHit.boxId);
+    e.getOnRoomElementSelected()?.(null);
+    e.getOnWallSelected()?.(null);
+  }
+
   private activateDrawerToggle(
     event: MouseEvent | PointerEvent,
-    drawerHit: { boxId: string; drawerLayerId: string }
+    drawerHit: { boxId: string; drawerLayerId: string },
+    options?: { skipToggle?: boolean }
   ): void {
     const e = this.engine;
     this.drawerToggledOnPointerDown = true;
@@ -85,7 +104,37 @@ export class EventsManager {
     e.setSuppressNextCanvasClick(false);
     event.preventDefault();
     event.stopPropagation();
+    // Seleccionar a caixa (mesma limpeza de concorrentes que o clique no corpo).
+    this.selectDrawerBox(drawerHit);
+    if (options?.skipToggle) return;
     e.getOnDrawerLayerClick()?.(drawerHit.boxId, drawerHit.drawerLayerId);
+    this.drawerToggleAppliedInBurst = true;
+  }
+
+  private handleDrawerPointerDown(
+    event: PointerEvent,
+    drawerHit: { boxId: string; drawerLayerId: string }
+  ): void {
+    const key = `${drawerHit.boxId}:${drawerHit.drawerLayerId}`;
+    const now =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    const isSecondInBurst =
+      this.lastDrawerPointerKey === key &&
+      now - this.lastDrawerPointerDownAt < EventsManager.DRAWER_DBLCLICK_MS;
+
+    this.lastDrawerPointerKey = key;
+    this.lastDrawerPointerDownAt = now;
+
+    if (isSecondInBurst) {
+      // 2.º pointerdown na janela de double-click: só selecciona; o dblclick decide o estado.
+      this.activateDrawerToggle(event, drawerHit, { skipToggle: true });
+      return;
+    }
+
+    this.drawerToggleAppliedInBurst = false;
+    this.activateDrawerToggle(event, drawerHit);
   }
 
   private handleCanvasClick(event: MouseEvent): void {
@@ -312,7 +361,7 @@ export class EventsManager {
 
       const drawerHit = e.getDrawerHitAtPointer(event);
       if (drawerHit != null) {
-        this.activateDrawerToggle(event, drawerHit);
+        this.handleDrawerPointerDown(event, drawerHit);
         return;
       }
 
@@ -353,7 +402,21 @@ export class EventsManager {
       this.engine.getOnDoorLayerDoubleClick()?.(doorHit.boxId, doorHit.doorLayerId);
       return;
     }
-    if (this.engine.getDrawerHitAtPointer(event)) return;
+    const drawerHit = this.engine.getDrawerHitAtPointer(event);
+    if (drawerHit) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Se o 1.º pointerdown já toggleou, reverter para o dblclick ser a decisão final.
+      if (this.drawerToggleAppliedInBurst) {
+        this.engine.getOnDrawerLayerClick()?.(drawerHit.boxId, drawerHit.drawerLayerId);
+        this.drawerToggleAppliedInBurst = false;
+      }
+      this.selectDrawerBox(drawerHit);
+      this.engine.getOnDrawerLayerDoubleClick()?.(drawerHit.boxId, drawerHit.drawerLayerId);
+      this.lastDrawerPointerKey = null;
+      this.lastDrawerPointerDownAt = 0;
+      return;
+    }
     const boxBodyHit = this.engine.getBoxBodyHitAtPointer(event);
     if (!boxBodyHit) return;
     event.preventDefault();

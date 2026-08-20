@@ -366,6 +366,27 @@ export default function Workspace({
     };
   }, [actions, project.selectedWorkspaceBoxId, viewerApi]);
 
+  useEffect(() => {
+    viewerApi.setOnDrawerLayerDoubleClick?.((boxId, drawerLayerId) => {
+      const box = projectRef.current.workspaceBoxes.find((workspaceBox) => workspaceBox.id === boxId);
+      const drawer = box?.drawersLayer?.find((item) => item.id === drawerLayerId);
+      if (!box || !drawer) return;
+
+      if (project.selectedWorkspaceBoxId !== boxId) {
+        actions.selectBox(boxId);
+      }
+
+      toggleDrawer(box, drawerLayerId, {
+        getBox: () => projectRef.current.workspaceBoxes.find((workspaceBox) => workspaceBox.id === boxId),
+        setDrawerOpen: (drawerId, isOpen, options) =>
+          actionsRef.current.setDrawerLayerItemOpen(drawerId, isOpen, options),
+      });
+    });
+    return () => {
+      viewerApi.setOnDrawerLayerDoubleClick?.(null);
+    };
+  }, [actions, project.selectedWorkspaceBoxId, viewerApi]);
+
   /** GLB/CAD: ViewerCore chama após `addModelToBox` concluir o load (ver ViewerCore.addModelToBox). */
   useEffect(() => {
     viewerApi.setOnModelLoaded((boxId, modelId, _object) => {

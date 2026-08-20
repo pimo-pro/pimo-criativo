@@ -612,17 +612,40 @@ export function getEventOpsDepsImpl(host: ViewerCoreEngineApisOpsDeps): ViewerCo
       refreshTransformControlsAttachment: () => host.refreshTransformControlsAttachment(),
       refreshOutlineTarget: () => host.refreshOutlineTarget(),
       logTransformDiagnostic: (name, data) => host.logTransformDiagnostic(name, data),
-      onRoomElementSelected: host.onRoomElementSelected,
-      onRoomUtilitySelected: host.onRoomUtilitySelected,
-      onWallSelected: host.onWallSelected,
-      onBoxSelected: host.onBoxSelected,
-      onMultiSelectToggle: host.onMultiSelectToggle,
-      onRemateSelected: host.onRemateSelected,
-      onRoomElementPlaced: host.onRoomElementPlaced,
-      onDoorLayerDoubleClick: host.onDoorLayerDoubleClick,
-      onDrawerLayerDoubleClick: host.onDrawerLayerDoubleClick,
-      onDrawerLayerClick: host.onDrawerLayerClick,
-      onBoxDoubleClick: host.onBoxDoubleClick,
+      // Callbacks lidos ao vivo do host (EventsManager é criado uma vez; cópia stale = null).
+      get onRoomElementSelected() {
+        return host.onRoomElementSelected;
+      },
+      get onRoomUtilitySelected() {
+        return host.onRoomUtilitySelected;
+      },
+      get onWallSelected() {
+        return host.onWallSelected;
+      },
+      get onBoxSelected() {
+        return host.onBoxSelected;
+      },
+      get onMultiSelectToggle() {
+        return host.onMultiSelectToggle;
+      },
+      get onRemateSelected() {
+        return host.onRemateSelected;
+      },
+      get onRoomElementPlaced() {
+        return host.onRoomElementPlaced;
+      },
+      get onDoorLayerDoubleClick() {
+        return host.onDoorLayerDoubleClick;
+      },
+      get onDrawerLayerDoubleClick() {
+        return host.onDrawerLayerDoubleClick;
+      },
+      get onDrawerLayerClick() {
+        return host.onDrawerLayerClick;
+      },
+      get onBoxDoubleClick() {
+        return host.onBoxDoubleClick;
+      },
       setShiftKeyHeld: (held) => {
         host.shiftKeyHeld = held;
       },
