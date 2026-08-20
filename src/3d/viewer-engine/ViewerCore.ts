@@ -50,30 +50,12 @@ import type { UltraMaterialController } from "./materials/ultraMaterialControlle
 import {
   mergeViewerMaterialSet,
 } from "./materials/materialSetState";
-import {
-  disposeLoadedWoodMaterial,
-  isDoorOrDrawerFrontNode,
-  isDrawerClickTargetGhost,
-  isKitchenFeetNode,
-} from "./materials/boxMaterialHelpers";
-import { createClonedMaterialWithDetailMaps, ensureMaterialEngine } from "./materials/MaterialEngine";
-import {
-  describeMeshMaterial,
-  isDrawerFrontExteriorMesh,
-  traceDrawerFrontMaterial,
-} from "./materials/drawerFrontMaterialTrace";
-import { applyMeshGrainOrientation } from "./materials/viewerGrainOrientation";
+import { ensureMaterialEngine } from "./materials/MaterialEngine";
 import type { BoxOptions } from "../objects/BoxBuilder";
 import type { ViewerBoxEntry } from "./types";
-import type { BoxPanelIds, TechnicalDrillHole } from "../../core/types";
-import { createDoorObject, getDoorSpecFromGroup } from "../objects/BoxBuilder";
-import {
-  createDrawerObject,
-  getDrawerSpecFromGroup,
-  buildDrawerSpecs,
-} from "../objects/DrawerFactory";
+import type { BoxPanelIds } from "../../core/types";
 import type { DrawerLayerItem } from "../../models/BoxLayers";
-import { filterTechnicalDrillHolesForViewerMesh, filterViewerDrillMarkersForMesh } from "./drill/viewerCncDrillFilter";
+import { filterViewerDrillMarkersForMesh } from "./drill/viewerCncDrillFilter";
 import {
   expandBox3ByObjectExcludingLayoutProxy,
   runWithAllLayoutBoundsProxiesVisible,
@@ -99,6 +81,50 @@ import {
   shouldUseFeetLockImpl,
   syncFeetVisualForBoxImpl,
 } from "./ViewerCoreFeetOps";
+import type { ViewerCoreMaterialOpsDeps } from "./ViewerCoreMaterialOps";
+import {
+  updateBoxMaterialImpl,
+  updateDoorMaterialImpl,
+  updateDrawerMaterialImpl,
+  updateFixedFrontMaterialImpl,
+  updateFrontMaterialImpl,
+} from "./ViewerCoreMaterialOps";
+import type { ViewerCoreLifecycleOpsDeps } from "./ViewerCoreLifecycleOps";
+import { disposeImpl } from "./ViewerCoreLifecycleOps";
+import type { ViewerCoreBoxLifecycleOpsDeps } from "./ViewerCoreBoxLifecycleOps";
+import {
+  clearBoxesImpl,
+  removeBoxImpl,
+  updateBoxImpl,
+} from "./ViewerCoreBoxLifecycleOps";
+import type { ViewerCoreFinishTransformOpsDeps } from "./ViewerCoreFinishTransformOps";
+import {
+  applyFinishCollisionConstraintImpl,
+  notifyDivSepTransformImpl,
+  notifyHematiTransformImpl,
+  notifyRemateTransformImpl,
+  notifyRodapeTransformImpl,
+  resolveFinishCollisionAfterSyncImpl,
+} from "./ViewerCoreFinishTransformOps";
+import type { ViewerCoreDesignOpsDeps } from "./ViewerCoreDesignOps";
+import {
+  acceptConversationalPendingImpl,
+  acceptPredictiveLayoutPendingImpl,
+  applyIntelligentDesignImpl,
+  applyIntelligentStyleImpl,
+  applyManufacturingSuggestedFixesImpl,
+  buildCostScanContextImpl,
+  buildManufacturingScanContextImpl,
+  ensureConversationalDesignerEngineImpl,
+  generateIntelligentDesignsImpl,
+  generateIntelligentVariationsImpl,
+  previewCostSuggestionByTierImpl,
+  previewCostSuggestionImpl,
+  previewIntelligentDesignImpl,
+  previewIntelligentStyleImpl,
+  previewManufacturingFixesImpl,
+  resolveCostSeedBoxIdImpl,
+} from "./ViewerCoreDesignOps";
 import type { ViewerCoreRoomUtilsDeps } from "./ViewerCoreRoomUtils";
 import {
   applyRoomConstraintImpl,
@@ -196,7 +222,6 @@ import {
 } from "./ViewerCoreRoomGeometry";
 import type { ViewerCoreSelectionOpsDeps } from "./ViewerCoreSelectionOps";
 import {
-  disposeSelectionSystemsImpl,
   getSelectionIdsInScreenRectImpl,
   refreshOutlineTargetImpl,
   resolveMemberMeshImpl,
@@ -313,7 +338,6 @@ import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { ViewerRenderExporter } from "./export/ViewerRenderExporter";
 import { TransformConstraints } from "./constraints/TransformConstraints";
 import { SnapEngine, type SnapAlignTarget } from "./snapping/SnapEngine";
-import { applyFinishMovementConstraints } from "./constraints/finishCollision";
 import { MeasurementEngine } from "./measurement/MeasurementEngine";
 import type { RulerMeasurementHit, UnifiedMeasurement } from "./measurement/unifiedMeasurementTypes";
 import type { InternalRulerFacade } from "./measurement/internalRulerFacade";
@@ -354,7 +378,6 @@ import { DesignConversationState } from "./snapping/designConversationState";
 import type { ConversationTurnResult } from "./snapping/conversationalDesignerEngine";
 import type { ConversationEntry } from "./snapping/designConversationState";
 import type { DesignVariantId, EnvironmentStyleId } from "./snapping/intelligentDesignerTypes";
-import { isEnvironmentStyleId } from "./snapping/styleProfileEngine";
 import { ManufacturingReportEngine } from "./snapping/manufacturingReportEngine";
 import type { ManufacturingFullReport, ManufacturingUiReport } from "./snapping/manufacturingTypes";
 import { CostReportEngine } from "./snapping/costReportEngine";
@@ -363,12 +386,6 @@ import type { SmartLayoutBridge } from "./snapping/smartLayoutTypes";
 import { OrlaVisualizer, type OrlaVisualBridge } from "./orla/OrlaVisualizer";
 import { RematePieceVisualizer, type RematePieceVisualBridge } from "./remate/RematePieceVisualizer";
 import { TampoPieceVisualizer } from "./remate/TampoPieceVisualizer";
-import {
-  listRemateIdsInSameLComposite,
-  resolveRemateTransformRoot,
-} from "./remate/remateLCompositeVisual";
-import { isLRematePiece } from "../../core/remate/remateLGeometry";
-import { isTampoAngularConfig } from "../../core/remate/tampoAngle";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
 import { ViewerPanelVisibility } from "./panels/ViewerPanelVisibility";
@@ -397,11 +414,6 @@ import type { WallSelectionOutlineController } from "./overlays/WallSelectionOut
 import { ViewerBoundsCache } from "./cache/ViewerBoundsCache";
 import type { MouseMenuTarget } from "../../ui/context-menu/ContextMenuEngine";
 import type { DivSepVisualBridge } from "./divSep/DivSepVisualBridge";
-import {
-  divisorLocalXToPositionMm,
-  separadorLocalYToPositionMm,
-} from "../../core/divSep/dragCoords";
-import type { DivisorItem, SeparadorItem } from "../../core/divSep/types";
 import type { SelectedDivSep } from "./state/ViewerState";
 
 /**
@@ -946,65 +958,7 @@ export class ViewerCore {
   }
 
   private ensureConversationalDesignerEngine(): ConversationalDesignerEngine {
-    const engine = ConversationalDesignerEngine.ensure(
-      this.conversationalDesignerEngine,
-      {
-        designer: this.ensureIntelligentDesigner(),
-        conversation: this.designConversationState,
-        previewPlan: (plan, label, previewId) => {
-          const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, plan, label);
-          this.layoutEngine.predictive.previewDesigns([{ id: previewId, plan, label }]);
-          this.smartAlignOverlay.setState(overlay);
-        },
-        applyPlan: (plan, meta) => {
-          const ok = this.ensureIntelligentDesigner().applyPlanDirect(plan, {
-            designId: meta.designId,
-            variationKind: meta.variationKind,
-          });
-          if (ok) {
-            this.designConversationState.recordApplied({
-              plan,
-              label: meta.label,
-              designId: meta.designId,
-              variationKind: meta.variationKind,
-            });
-            this.clearSmartAlignSnapOverlay();
-          }
-          return ok;
-        },
-        acceptPending: () => this.acceptConversationalPending(),
-        rejectPending: () => {
-          this.layoutEngine.predictive.rejectPending();
-          this.designConversationState.clearPending();
-          this.clearSmartAlignSnapOverlay();
-        },
-        optimizeWallPreview: (wallId, seedBoxId) => this.previewSmartWallFill(wallId, seedBoxId),
-        getManufacturingReport: () => this.ensureManufacturingReportEngine().generateReport(),
-        previewManufacturingFixes: () => this.previewManufacturingFixes(),
-        applyManufacturingFixes: () => {
-          const result = this.ensureManufacturingReportEngine().autoFix();
-          return { ok: result.ok, message: result.message };
-        },
-        getCostReport: (seedBoxId) => {
-          this.designConversationState.setSeedBoxId(seedBoxId);
-          return this.ensureCostReportEngine().generateCostReport();
-        },
-        previewCostSuggestion: (suggestion) => this.previewCostSuggestion(suggestion),
-        buildCostSuggestion: (tier, seedBoxId, reducePercent) => {
-          this.designConversationState.setSeedBoxId(seedBoxId);
-          this.ensureCostReportEngine().scanProject();
-          if (tier === "cheaper") {
-            return reducePercent != null
-              ? this.ensureCostReportEngine().suggestReduceCostPercent(reducePercent)
-              : this.ensureCostReportEngine().suggestCheaperAlternative();
-          }
-          if (tier === "premium") return this.ensureCostReportEngine().suggestPremiumAlternative();
-          return this.ensureCostReportEngine().suggestBalancedAlternative();
-        },
-      }
-    );
-    this.conversationalDesignerEngine = engine;
-    return engine;
+    return ensureConversationalDesignerEngineImpl(this.getDesignOpsDeps());
   }
 
   /** True após inicialização completa (eventos, loop, boxes). Único sinal para expor a API pública. */
@@ -1677,59 +1631,7 @@ export class ViewerCore {
   }
 
   updateBoxMaterial(id: string, materialName: string) {
-    const entry = this.boxes.get(id);
-    if (!entry) return;
-    const nextMaterial = this.loadMaterial(materialName);
-    if (!nextMaterial) return;
-
-    entry.materialName = materialName;
-
-    if (entry.mesh instanceof THREE.Group) {
-      entry.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          if (isKitchenFeetNode(child)) return;
-          // Click-target legado: nunca matéria do módulo (película fantasma).
-          if (isDrawerClickTargetGhost(child)) return;
-          // Nunca escrever matéria do módulo em frentes independentes.
-          if (isDoorOrDrawerFrontNode(child) || isDrawerFrontExteriorMesh(child)) {
-            traceDrawerFrontMaterial("updateBoxMaterial.SKIP_front", {
-              boxId: id,
-              moduleMaterial: materialName,
-              mesh: describeMeshMaterial(child),
-            });
-            return;
-          }
-          if (child.userData?.isDrawerFrontExteriorCap === true) return;
-          const childName = typeof child.name === "string" ? child.name : "";
-          if (
-            childName === "frente-fixa" ||
-            childName.startsWith("frente-fixa") ||
-            childName.startsWith("drawer-front-")
-          ) {
-            return;
-          }
-          if (child.userData?.drawerLayerId && child.userData?.drawerPart === "front") {
-            return;
-          }
-          child.material = nextMaterial.material;
-        }
-      });
-    } else if (entry.mesh instanceof THREE.Mesh) {
-      if (!isKitchenFeetNode(entry.mesh)) {
-        entry.mesh.material = nextMaterial.material;
-      }
-    }
-
-    if (this.viewerState.getSelectedBox() === id) {
-      this.refreshOutlineTarget();
-    }
-    disposeLoadedWoodMaterial(entry.material);
-    entry.material = nextMaterial;
-    if (this.viewerState.getSelectedBox() === id) {
-      this.refreshOutlineTarget();
-    }
-    // Sem sync automático de gaveta/frente-fixa: só updateDrawerMaterial /
-    // updateFixedFrontMaterial (escolha do utilizador) controlam essas matérias.
+    updateBoxMaterialImpl(this.getMaterialOpsDeps(), id, materialName);
   }
 
   /** Reaplica materiais a todas as caixas (ao trocar modo performance/showcase/realistic). */
@@ -1777,91 +1679,7 @@ export class ViewerCore {
    * preservando doorHoles e aplica applyPanelIdsToBox para manter userData.boxId/doorLayerId para seleção e outline.
    */
   updateDoorMaterial(boxId: string, doorLayerId: string, materialName: string): void {
-    if (import.meta.env.DEV) {
-      devLogger.debug("[DOOR-MAT] ViewerCore.updateDoorMaterial", { boxId, doorLayerId, materialName });
-    }
-    const entry = this.boxes.get(boxId);
-    if (!entry) return;
-    const nextMaterial = this.loadMaterial(materialName);
-    if (!nextMaterial) return;
-    const boxGroup = entry.mesh;
-    if (!(boxGroup instanceof THREE.Group)) return;
-
-    const doorLayerNames = boxGroup.children
-      .filter((c) => c.name.startsWith("door-layer-"))
-      .map((c) => c.name);
-    const expectedName = `door-layer-${doorLayerId}`;
-    const oldDoorGroup = boxGroup.children.find(
-      (c) => c.name === expectedName
-    ) as THREE.Group | undefined;
-
-    if (import.meta.env.DEV) {
-      devLogger.debug("[updateDoorMaterial] diagnóstico", {
-        boxId,
-        doorLayerIdRecebido: doorLayerId,
-        gruposDoorLayerNoBox: doorLayerNames,
-        nomeEsperado: expectedName,
-        encontrouGrupo: Boolean(oldDoorGroup),
-        meshUuidAntes: oldDoorGroup
-          ? (() => {
-              let u: string | null = null;
-              oldDoorGroup.traverse((n) => {
-                if (n instanceof THREE.Mesh) u = n.uuid;
-              });
-              return u;
-            })()
-          : null,
-      });
-    }
-
-    if (!oldDoorGroup) return;
-    const spec = getDoorSpecFromGroup(oldDoorGroup);
-    if (!spec) return;
-    let doorHoles: TechnicalDrillHole[] | undefined;
-    oldDoorGroup.traverse((node) => {
-      if (node instanceof THREE.Mesh && this.appliedRotationByMeshUuid.has(node.uuid)) {
-        this.appliedRotationByMeshUuid.delete(node.uuid);
-      }
-      const ud = (node as THREE.Object3D & { userData: { doorHolesEffective?: TechnicalDrillHole[] } }).userData;
-      if (Array.isArray(ud?.doorHolesEffective)) doorHoles = ud.doorHolesEffective;
-    });
-    boxGroup.remove(oldDoorGroup);
-    const doorMat = (nextMaterial.material as THREE.Material).clone();
-    const newDoor = createDoorObject(
-      spec,
-      doorMat,
-      filterTechnicalDrillHolesForViewerMesh(doorHoles)
-    );
-    boxGroup.add(newDoor);
-    newDoor.traverse((n) => {
-      if (n instanceof THREE.Mesh) {
-        applyMeshGrainOrientation(n, materialName, () => this.requestRender());
-      }
-    });
-    this.applyViewerDrillHoleSceneRules(newDoor);
-    if (import.meta.env.DEV) {
-      devLogger.debug("[DOOR-MAT] Material aplicado independentemente:", {
-        id: doorLayerId,
-        material: (doorMat as THREE.Material).uuid,
-        textura: materialName,
-      });
-    }
-    this.applyPanelIdsToBox(boxGroup, boxId, undefined, entry.materialName ?? this.defaultMaterialName);
-    this.applyPanelVisibilityForObject(boxGroup);
-    if (import.meta.env.DEV) {
-      let newMeshUuid: string | null = null;
-      newDoor.traverse((n) => {
-        if (n instanceof THREE.Mesh) newMeshUuid = n.uuid;
-      });
-      devLogger.debug("[updateDoorMaterial] porta reconstruída", {
-        boxId,
-        doorLayerId,
-        newMeshUuid,
-        groupName: newDoor.name,
-        groupUserDataDoorLayerId: (newDoor as THREE.Object3D & { userData: { doorLayerId?: string } }).userData?.doorLayerId,
-      });
-    }
-    if (this.viewerState.getSelectedBox() === boxId) this.refreshOutlineTarget();
+    updateDoorMaterialImpl(this.getMaterialOpsDeps(), boxId, doorLayerId, materialName);
   }
 
   /**
@@ -1877,93 +1695,13 @@ export class ViewerCore {
     materialName: string,
     drawerLayerItems?: DrawerLayerItem[]
   ): void {
-    traceDrawerFrontMaterial("updateDrawerMaterial.ENTER", { boxId, drawerLayerId, materialName });
-    if (import.meta.env.DEV) {
-      devLogger.debug("[DRAWER-MAT] ViewerCore.updateDrawerMaterial", { boxId, drawerLayerId, materialName });
-    }
-    const entry = this.boxes.get(boxId);
-    if (!entry) return;
-    const frontMat = createClonedMaterialWithDetailMaps(materialName, {
-      onMapsApplied: () => {
-        traceDrawerFrontMaterial("updateDrawerMaterial.MAPS_APPLIED", {
-          boxId,
-          drawerLayerId,
-          materialName,
-        });
-        this.requestRender();
-      },
-    });
-    if (!frontMat) return;
-    const boxGroup = entry.mesh;
-    if (!(boxGroup instanceof THREE.Group)) return;
-
-    const expectedName = `drawer-layer-${drawerLayerId}`;
-    const oldDrawerGroup = boxGroup.children.find(
-      (c) => c.name === expectedName
-    ) as THREE.Group | undefined;
-
-    if (import.meta.env.DEV) {
-      devLogger.debug("[updateDrawerMaterial] diagnóstico", {
-        boxId,
-        drawerLayerIdRecebido: drawerLayerId,
-        nomeEsperado: expectedName,
-        encontrouGrupo: Boolean(oldDrawerGroup),
-      });
-    }
-
-    if (!oldDrawerGroup) return;
-    let spec = getDrawerSpecFromGroup(oldDrawerGroup);
-    if (!spec && drawerLayerItems?.length) {
-      const fromItems = buildDrawerSpecs(drawerLayerItems).find((s) => s.id === drawerLayerId);
-      if (fromItems) spec = fromItems;
-    }
-    if (!spec) return;
-
-    oldDrawerGroup.traverse((node) => {
-      if (node instanceof THREE.Mesh && this.appliedRotationByMeshUuid.has(node.uuid)) {
-        this.appliedRotationByMeshUuid.delete(node.uuid);
-      }
-    });
-    boxGroup.remove(oldDrawerGroup);
-
-    const bodyMaterialName = entry.materialName ?? this.defaultMaterialName;
-    const bodyLoaded = this.loadMaterial(bodyMaterialName);
-    const bodyMat = bodyLoaded
-      ? (bodyLoaded.material as THREE.Material).clone()
-      : frontMat.clone();
-
-    const newDrawer = createDrawerObject(spec, {
-      front: frontMat,
-      body: bodyMat,
-      frontMaterialId: materialName,
-    });
-    boxGroup.add(newDrawer);
-    newDrawer.traverse((n) => {
-      if (
-        n instanceof THREE.Mesh &&
-        (n.userData as { drawerPart?: string }).drawerPart === "front"
-      ) {
-        traceDrawerFrontMaterial("updateDrawerMaterial.FRONT_ASSIGNED", {
-          boxId,
-          drawerLayerId,
-          materialName,
-          mesh: describeMeshMaterial(n),
-        });
-        applyMeshGrainOrientation(n, materialName, () => this.requestRender());
-      }
-    });
-    this.applyViewerDrillHoleSceneRules(newDrawer);
-    if (import.meta.env.DEV) {
-      devLogger.debug("[DRAWER-MAT] Material aplicado independentemente:", {
-        id: drawerLayerId,
-        material: frontMat.uuid,
-        textura: materialName,
-      });
-    }
-    this.applyPanelIdsToBox(boxGroup, boxId, undefined, entry.materialName ?? this.defaultMaterialName);
-    this.applyPanelVisibilityForObject(boxGroup);
-    if (this.viewerState.getSelectedBox() === boxId) this.refreshOutlineTarget();
-    this.requestRender();
+    updateDrawerMaterialImpl(
+      this.getMaterialOpsDeps(),
+      boxId,
+      drawerLayerId,
+      materialName,
+      drawerLayerItems
+    );
   }
 
   /**
@@ -1977,39 +1715,19 @@ export class ViewerCore {
     layerId?: string,
     drawerLayerItems?: DrawerLayerItem[]
   ): void {
-    if (partType === "door") {
-      if (!layerId) return;
-      this.updateDoorMaterial(boxId, layerId, materialName);
-      return;
-    }
-    if (partType === "drawer-front") {
-      if (!layerId) return;
-      this.updateDrawerMaterial(boxId, layerId, materialName, drawerLayerItems);
-      return;
-    }
-    this.updateFixedFrontMaterial(boxId, materialName);
+    updateFrontMaterialImpl(
+      this.getMaterialOpsDeps(),
+      partType,
+      boxId,
+      materialName,
+      layerId,
+      drawerLayerItems
+    );
   }
 
   /** Aplica material independente à peça frente-fixa (canto v2). */
   updateFixedFrontMaterial(boxId: string, materialName: string): void {
-    const entry = this.boxes.get(boxId);
-    if (!entry) return;
-    const ffPanel = this.findFixedFrontPanel(entry.mesh);
-    if (!ffPanel) return;
-    const nextMaterial = this.loadMaterial(materialName);
-    if (!nextMaterial) return;
-    ffPanel.material = (nextMaterial.material as THREE.Material).clone();
-    applyMeshGrainOrientation(ffPanel, materialName, () => this.requestRender());
-    (ffPanel.userData as Record<string, unknown>).frenteFixaMaterialId = materialName;
-    entry.frenteFixaMaterialId = materialName;
-    this.requestRender();
-    if (this.viewerState.getSelectedBox() === boxId) this.refreshOutlineTarget();
-  }
-
-  private findFixedFrontPanel(root: THREE.Object3D): THREE.Mesh | undefined {
-    return root.children.find(
-      (c) => c instanceof THREE.Mesh && c.name === "frente-fixa"
-    ) as THREE.Mesh | undefined;
+    updateFixedFrontMaterialImpl(this.getMaterialOpsDeps(), boxId, materialName);
   }
 
   /**
@@ -2386,166 +2104,7 @@ export class ViewerCore {
   }
 
   updateBox(id: string, options: Partial<BoxOptions> = {}): boolean {
-    const entry = this.boxes.get(id);
-    const opts = options ?? {};
-    const hasDimOpts =
-      opts.width !== undefined ||
-      opts.height !== undefined ||
-      opts.depth !== undefined ||
-      opts.size !== undefined ||
-      opts.layoutDepthM !== undefined ||
-      opts.carcassDepthM !== undefined;
-    if (import.meta.env.DEV && hasDimOpts) {
-      devLogger.debug("[ViewerCore.updateBox] chamado com dimensões", {
-        id,
-        entry: !!entry,
-        width: opts.width,
-        height: opts.height,
-        depth: opts.depth,
-        layoutDepthM: opts.layoutDepthM,
-        carcassDepthM: opts.carcassDepthM,
-      });
-    }
-    if (!entry) return false;
-    if ("frenteFixaMaterialId" in opts) {
-      const v =
-        typeof opts.frenteFixaMaterialId === "string" ? opts.frenteFixaMaterialId.trim() : "";
-      entry.frenteFixaMaterialId = v || undefined;
-    }
-    if (
-      (opts.size !== undefined && (!Number.isFinite(opts.size) || opts.size <= 0)) ||
-      (opts.width !== undefined && (!Number.isFinite(opts.width) || opts.width <= 0)) ||
-      (opts.height !== undefined && (!Number.isFinite(opts.height) || opts.height <= 0)) ||
-      (opts.depth !== undefined && (!Number.isFinite(opts.depth) || opts.depth <= 0)) ||
-      (opts.layoutDepthM !== undefined &&
-        (!Number.isFinite(opts.layoutDepthM) || opts.layoutDepthM <= 0)) ||
-      (opts.carcassDepthM !== undefined &&
-        (!Number.isFinite(opts.carcassDepthM) || opts.carcassDepthM <= 0))
-    ) {
-      return false;
-    }
-    if (
-      opts.position &&
-      (!Number.isFinite(opts.position.x) ||
-        !Number.isFinite(opts.position.y) ||
-        !Number.isFinite(opts.position.z))
-    ) {
-      return false;
-    }
-    if (opts.index !== undefined && (!Number.isFinite(opts.index) || opts.index < 0)) {
-      return false;
-    }
-
-    // Atualização apenas de posição/rotação (ex.: após drag ou sync do projeto). Não fazer rebuild (updateBoxGroup/createDoorObject).
-    const structurePlan = this.ensureBoxEngine().createUpdateBoxStructurePlan(entry, opts);
-    const { onlyTransform, hasStructureOpts } = structurePlan;
-    if (onlyTransform && !hasStructureOpts) {
-      if (import.meta.env.DEV) {
-        devLogger.debug("[DOOR-MAT] ViewerCore.updateBox ramo onlyTransform — NÃO chama updateBoxGroup", { boxId: id, onlyTransform: true, hasStructureOpts: false });
-      }
-      // Defesa: ignorar updates externos de posição/rotação enquanto o drag estiver activo
-      // para esta caixa. O Fix principal está em objectChange (notifyBoxTransform removido
-      // durante drag), mas este guard protege contra qualquer outro caminho que chame updateBox.
-      const isActiveDragForThisBox =
-        this.viewerState.getTransformControlsDragging() &&
-        this.viewerState.getSelectedBox() === id;
-      return this.ensureBoxEngine().applyOnlyTransformUpdate({
-        entry,
-        opts,
-        isActiveDragForThisBox,
-        shouldUseFeetLock: (boxEntry) => this.shouldUseFeetLock(boxEntry),
-        getFixedYForCabinet: (boxEntry) => this.getFixedYForCabinet(boxEntry),
-        applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
-        syncEdgeOutlines: () =>
-          syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
-      });
-    }
-
-    const { dimensionsChanged, structureChanged } = structurePlan;
-    if (structureChanged && this.viewerState.getTransformControlsDragging()) {
-      this.pendingBoxStructureUpdates.set(id, {
-        ...(this.pendingBoxStructureUpdates.get(id) ?? {}),
-        ...opts,
-      });
-      return true;
-    }
-    if (structureChanged) {
-      this.ensureBoxEngine().applyStructuralUpdate({
-        id,
-        entry,
-        opts,
-        plan: structurePlan,
-        defaultMaterialName: this.defaultMaterialName,
-        loadMaterial: (materialName) => this.loadMaterial(materialName),
-        filterViewerDrillMarkersForMesh,
-        deleteRotationCacheForMesh: (meshUuid) => this.appliedRotationByMeshUuid.delete(meshUuid),
-        sceneRootAdd: (object) => this.sceneManager.root.add(object),
-        syncEdgeOutlines: () =>
-          syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
-        requestRender: () => this.requestRender(),
-        logStructuralRebuild: import.meta.env.DEV && dimensionsChanged
-          ? (payload) => devLogger.debug("[ViewerCore.updateBox] mesh reconstruído (estrutura alterada)", payload)
-          : undefined,
-      });
-    }
-    if (opts.materialName) {
-      this.pendingMaterialSyncContext.set(id, {
-        drawerLayerItems: opts.drawerLayerItems,
-        // Só string explícita = override. undefined/vazio = preservar (nunca null→corpo).
-        frenteFixaMaterialId:
-          typeof opts.frenteFixaMaterialId === "string" && opts.frenteFixaMaterialId.trim()
-            ? opts.frenteFixaMaterialId.trim()
-            : undefined,
-      });
-    }
-    try {
-      return this.boxSceneController.applyPostUpdateFlow({
-        id,
-        entry,
-        opts,
-        plan: structurePlan,
-        defaultMaterialName: this.defaultMaterialName,
-        updateBoxMaterial: (boxId, materialName) => this.updateBoxMaterial(boxId, materialName),
-        reapplyDisplayMaterials: () => this.reapplyDisplayMaterials(),
-        shouldUseFeetLock: (boxEntry) => this.shouldUseFeetLock(boxEntry),
-        getFixedYForCabinet: (boxEntry) => this.getFixedYForCabinet(boxEntry),
-        applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
-        applyPanelIdsToBox: (root, boxId, panelIds, materialPresetId) =>
-          this.applyPanelIdsToBox(root, boxId, panelIds, materialPresetId),
-        applyExplodedViewForObject: (root) => this.applyExplodedViewForObject(root),
-        syncFeetVisualForBox: (boxEntry) => this.syncFeetVisualForBox(boxEntry),
-        applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
-        syncOrlaForBox: (boxId) => this.syncOrlaForBox(boxId),
-        syncRemateVisuals: () => this.syncRemateVisuals(),
-        getLockEnabled: () => this.lockEnabled,
-        applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
-        applyCatalogModelScale: (boxEntry, model) => this.applyCatalogModelScale(boxEntry, model),
-        reflowBoxes: () => this.reflowBoxes(),
-        updateCameraTarget: () => this.updateCameraTarget(),
-        updateCameraTargetToBox: (boxId, cameraOptions) =>
-          this.updateCameraTargetToBox(boxId, cameraOptions),
-        refreshViewerAttachmentsAfterMeshMutation: () => this.refreshViewerAttachmentsAfterMeshMutation(),
-        updateModelsVerticalPosition: (boxEntry) => this.updateModelsVerticalPosition(boxEntry),
-        hasRoomBounds: () => this.roomBounds != null,
-        isMeshInsideOrTouchingRoom: (mesh) => this.isMeshInsideOrTouchingRoom(mesh),
-        applyRoomConstraint: (mesh, roomOptions) => this.applyRoomConstraint(mesh, roomOptions),
-        isSelectedBox: (boxId) => boxId === this.viewerState.getSelectedBox(),
-        notifySelectedBoxChange: (boxId) => {
-          this.selectedBoxChangeListeners.forEach((cb) => {
-            try {
-              cb(boxId);
-            } catch {
-              /* ignore */
-            }
-          });
-        },
-        syncEdgeOutlines: () =>
-          syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
-        requestRender: () => this.requestRender(),
-      });
-    } finally {
-      this.pendingMaterialSyncContext.delete(id);
-    }
+    return updateBoxImpl(this.getBoxLifecycleOpsDeps(), id, options);
   }
 
   /** Agenda um frame de render no próximo requestAnimationFrame. Usado após rebuild de mesh para atualizar a tela imediatamente. */
@@ -2572,26 +2131,11 @@ export class ViewerCore {
   }
 
   removeBox(id: string): boolean {
-    const removed = this.boxSceneController.removeBox({
-      id,
-      boxes: this.boxes,
-      boxManager: this.boxManager,
-      getSelectedBoxId: () => this.viewerState.getSelectedBox(),
-      clearSelectedBox: () => this.setSelectedBox(null),
-      clearModelsFromBox: (boxId) => this.clearModelsFromBox(boxId),
-      syncEdgeOutlines: () =>
-        syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
-      deleteRotationCacheForMesh: (meshUuid) => this.appliedRotationByMeshUuid.delete(meshUuid),
-      reflowBoxes: () => this.reflowBoxes(),
-      updateCameraTarget: () => this.updateCameraTarget(),
-    });
-    if (removed) this.measurementEngine.onSceneContentChanged();
-    return removed;
+    return removeBoxImpl(this.getBoxLifecycleOpsDeps(), id);
   }
 
   clearBoxes(): void {
-    Array.from(this.boxes.keys()).forEach((id) => this.removeBox(id));
-    this.measurementEngine.onSceneContentChanged();
+    clearBoxesImpl(this.getBoxLifecycleOpsDeps());
   }
 
   /*
@@ -3291,6 +2835,227 @@ export class ViewerCore {
     };
   }
 
+  private getMaterialOpsDeps(): ViewerCoreMaterialOpsDeps {
+    return {
+      boxes: this.boxes,
+      loadMaterial: (materialName) => this.loadMaterial(materialName),
+      viewerState: this.viewerState,
+      refreshOutlineTarget: () => this.refreshOutlineTarget(),
+      requestRender: () => this.requestRender(),
+      appliedRotationByMeshUuid: this.appliedRotationByMeshUuid,
+      applyViewerDrillHoleSceneRules: (root) => this.applyViewerDrillHoleSceneRules(root),
+      applyPanelIdsToBox: (root, boxId, panelIds, materialPresetId) =>
+        this.applyPanelIdsToBox(root, boxId, panelIds, materialPresetId),
+      applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
+      defaultMaterialName: this.defaultMaterialName,
+    };
+  }
+
+  private getBoxLifecycleOpsDeps(): ViewerCoreBoxLifecycleOpsDeps {
+    return {
+      boxes: this.boxes,
+      boxManager: this.boxManager,
+      boxSceneController: this.boxSceneController,
+      ensureBoxEngine: () => this.ensureBoxEngine(),
+      viewerState: this.viewerState,
+      defaultMaterialName: this.defaultMaterialName,
+      pendingBoxStructureUpdates: this.pendingBoxStructureUpdates,
+      pendingMaterialSyncContext: this.pendingMaterialSyncContext,
+      appliedRotationByMeshUuid: this.appliedRotationByMeshUuid,
+      selectedBoxChangeListeners: this.selectedBoxChangeListeners,
+      measurementEngine: this.measurementEngine,
+      loadMaterial: (materialName) => this.loadMaterial(materialName),
+      shouldUseFeetLock: (entry) => this.shouldUseFeetLock(entry),
+      getFixedYForCabinet: (entry) => this.getFixedYForCabinet(entry),
+      applyRotationIfNeeded: (mesh, rotation) => this.applyRotationIfNeeded(mesh, rotation),
+      syncEdgeOutlines: () => syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
+      requestRender: () => this.requestRender(),
+      sceneRootAdd: (object) => this.sceneManager.root.add(object),
+      updateBoxMaterial: (boxId, materialName) => this.updateBoxMaterial(boxId, materialName),
+      reapplyDisplayMaterials: () => this.reapplyDisplayMaterials(),
+      applyPanelIdsToBox: (root, boxId, panelIds, materialPresetId) =>
+        this.applyPanelIdsToBox(root, boxId, panelIds, materialPresetId),
+      applyExplodedViewForObject: (root) => this.applyExplodedViewForObject(root),
+      syncFeetVisualForBox: (entry) => this.syncFeetVisualForBox(entry),
+      applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
+      syncOrlaForBox: (boxId) => this.syncOrlaForBox(boxId),
+      syncRemateVisuals: () => this.syncRemateVisuals(),
+      getLockEnabled: () => this.lockEnabled,
+      applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
+      applyCatalogModelScale: (entry, model) => this.applyCatalogModelScale(entry, model),
+      reflowBoxes: () => this.reflowBoxes(),
+      updateCameraTarget: () => this.updateCameraTarget(),
+      updateCameraTargetToBox: (boxId, cameraOptions) =>
+        this.updateCameraTargetToBox(boxId, cameraOptions),
+      refreshViewerAttachmentsAfterMeshMutation: () => this.refreshViewerAttachmentsAfterMeshMutation(),
+      updateModelsVerticalPosition: (entry) => this.updateModelsVerticalPosition(entry),
+      hasRoomBounds: () => this.roomBounds != null,
+      isMeshInsideOrTouchingRoom: (mesh) => this.isMeshInsideOrTouchingRoom(mesh),
+      applyRoomConstraint: (mesh, roomOptions) => this.applyRoomConstraint(mesh, roomOptions),
+      setSelectedBox: (id) => this.setSelectedBox(id),
+      clearModelsFromBox: (boxId) => this.clearModelsFromBox(boxId),
+    };
+  }
+
+  private getLifecycleOpsDeps(): ViewerCoreLifecycleOpsDeps {
+    return {
+      runtimeLoop: this.runtimeLoop,
+      getUnregisterWindowEvents: () => this.unregisterWindowEvents,
+      setUnregisterWindowEvents: (value) => {
+        this.unregisterWindowEvents = value;
+      },
+      disposeComposer: () => this.disposeComposer(),
+      disposeMainComposer: () => this.disposeMainComposer(),
+      getControls: () => this.controls,
+      getTransformControls: () => this.transformControls,
+      setTransformControls: (value) => {
+        this.transformControls = value;
+      },
+      getTransformControlsHelper: () => this.transformControlsHelper,
+      setTransformControlsHelper: (value) => {
+        this.transformControlsHelper = value;
+      },
+      sceneManager: this.sceneManager,
+      layoutEngine: this.layoutEngine,
+      orlaVisualizer: this.orlaVisualizer,
+      setRemateVisualBridge: (value) => {
+        this.remateVisualBridge = value;
+      },
+      remateVisualizer: this.remateVisualizer,
+      tampoVisualizer: this.tampoVisualizer,
+      hematiVisualizer: this.hematiVisualizer,
+      setRodapeVisualBridge: (value) => {
+        this.rodapeVisualBridge = value;
+      },
+      rodapeVisualizer: this.rodapeVisualizer,
+      overlayCoordinator: this.overlayCoordinator,
+      setOnBoxTransform: (value) => {
+        this.onBoxTransform = value;
+      },
+      setOnBoxSelected: (value) => {
+        this.onBoxSelected = value;
+      },
+      setOnMultiSelectToggle: (value) => {
+        this.onMultiSelectToggle = value;
+      },
+      setOnInternalSurfaceSelected: (value) => {
+        this.onInternalSurfaceSelected = value;
+      },
+      setOnInternalEdgeSelected: (value) => {
+        this.onInternalEdgeSelected = value;
+      },
+      setOnInternalPointSelected: (value) => {
+        this.onInternalPointSelected = value;
+      },
+      setOnDoorLayerDoubleClick: (value) => {
+        this.onDoorLayerDoubleClick = value;
+      },
+      setOnDrawerLayerDoubleClick: (value) => {
+        this.onDrawerLayerDoubleClick = value;
+      },
+      setOnDrawerLayerClick: (value) => {
+        this.onDrawerLayerClick = value;
+      },
+      setOnBoxDoubleClick: (value) => {
+        this.onBoxDoubleClick = value;
+      },
+      setOnModelLoaded: (value) => {
+        this.onModelLoaded = value;
+      },
+      getEventsManager: () => this.eventsManager,
+      setEventsManager: (value) => {
+        this.eventsManager = value;
+      },
+      getWallGizmo: () => this.wallGizmo,
+      setWallGizmo: (value) => {
+        this.wallGizmo = value;
+      },
+      getSnapDebugOverlay: () => this.snapDebugOverlay,
+      setSnapDebugOverlay: (value) => {
+        this.snapDebugOverlay = value;
+      },
+      getRoomManager: () => this.roomManager,
+      setRoomManager: (value) => {
+        this.roomManager = value;
+      },
+      setSnapshotRenderer: (value) => {
+        this.snapshotRenderer = value;
+      },
+      selectedBoxChangeListeners: this.selectedBoxChangeListeners,
+      getSelectionOpsDeps: () => this.getSelectionOpsDeps(),
+      setMultiSelectionOutline: (value) => {
+        this.multiSelectionOutline = value;
+      },
+      setHighlightManager: (value) => {
+        this.highlightManager = value;
+      },
+      setEdgeOutlineSystem: (value) => {
+        this.edgeOutlineSystem = value;
+      },
+      setInternalSelectionOutline: (value) => {
+        this.internalSelectionOutline = value;
+      },
+      dimensionsOverlay: this.dimensionsOverlay,
+      measurementEngine: this.measurementEngine,
+      getUnregisterAdminSnappingRules: () => this.unregisterAdminSnappingRules,
+      setUnregisterAdminSnappingRules: (value) => {
+        this.unregisterAdminSnappingRules = value;
+      },
+      smartSnappingEngine: this.smartSnappingEngine,
+      smartAlignOverlay: this.smartAlignOverlay,
+      remateSmartSnapping: this.remateSmartSnapping,
+      clearBoxes: () => this.clearBoxes(),
+      roomBuilder: this.roomBuilder,
+      displayMaterials: this.displayMaterials,
+      materialPipeline: this.materialPipeline,
+      rendererManager: this.rendererManager,
+    };
+  }
+
+  private getFinishTransformOpsDeps(): ViewerCoreFinishTransformOpsDeps {
+    return {
+      viewerState: this.viewerState,
+      boxes: this.boxes,
+      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
+      getDivSepMesh: (selection) => this.getDivSepMesh(selection),
+      getRemateVisualBridge: () => this.remateVisualBridge,
+      getRodapeVisualBridge: () => this.rodapeVisualBridge,
+      getDivSepVisualBridge: () => this.divSepVisualBridge,
+      hematiVisualizer: this.hematiVisualizer,
+      rodapeVisualizer: this.rodapeVisualizer,
+      onRemateTransform: this.onRemateTransform,
+      onHematiTransform: this.onHematiTransform,
+      onRodapeTransform: this.onRodapeTransform,
+      onDivSepTransform: this.onDivSepTransform,
+      lockEnabled: this.lockEnabled,
+      roomBounds: this.roomBounds,
+      roomBoxWalls: this.roomBoxWalls,
+      applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
+      isMeshInsideOrTouchingRoom: (mesh) => this.isMeshInsideOrTouchingRoom(mesh),
+    };
+  }
+
+  private getDesignOpsDeps(): ViewerCoreDesignOpsDeps {
+    return {
+      layoutEngine: this.layoutEngine,
+      smartAlignOverlay: this.smartAlignOverlay,
+      designConversationState: this.designConversationState,
+      smartLayoutBridge: this.smartLayoutBridge,
+      getRemateVisualBridge: () => this.remateVisualBridge,
+      getRodapeVisualBridge: () => this.rodapeVisualBridge,
+      smartSnappingEngine: this.smartSnappingEngine,
+      getConversationalDesignerEngine: () => this.conversationalDesignerEngine,
+      setConversationalDesignerEngine: (engine) => {
+        this.conversationalDesignerEngine = engine;
+      },
+      ensureIntelligentDesigner: () => this.ensureIntelligentDesigner(),
+      ensureManufacturingReportEngine: () => this.ensureManufacturingReportEngine(),
+      ensureCostReportEngine: () => this.ensureCostReportEngine(),
+      clearSmartAlignSnapOverlay: () => this.clearSmartAlignSnapOverlay(),
+      previewSmartWallFill: (wallId, moduleBoxId) => this.previewSmartWallFill(wallId, moduleBoxId),
+    };
+  }
+
   private getRoomUtilsDeps(): ViewerCoreRoomUtilsDeps {
     return {
       getRoomBounds: () => this.roomBounds,
@@ -3511,212 +3276,26 @@ export class ViewerCore {
   }
 
   private notifyRemateTransform(): void {
-    const remateId = this.viewerState.getSelectedRemate();
-    if (!remateId) return;
-    const rawMesh = this.getRemateMesh(remateId);
-    const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
-    if (!mesh) return;
-    const p = mesh.position;
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) {
-      console.warn("[sanity] posição inválida em notifyRemateTransform — ignorado");
-      return;
-    }
-    const boxId = mesh.userData.boxId as string | undefined;
-    const entry = boxId ? this.boxes.get(boxId) : undefined;
-
-    const tool = this.viewerState.getCurrentTool();
-    if (tool === "scale") {
-      if (!(mesh instanceof THREE.Mesh)) return;
-      mesh.geometry.computeBoundingBox();
-      const size = new THREE.Vector3();
-      mesh.geometry.boundingBox?.getSize(size);
-      const widthMm = Math.max(1, size.x * mesh.scale.x * 1000);
-      const heightMm = Math.max(1, size.y * mesh.scale.y * 1000);
-      const depthMm = Math.max(1, size.z * mesh.scale.z * 1000);
-      mesh.scale.set(1, 1, 1);
-      this.onRemateTransform?.(remateId, {
-        width: widthMm,
-        height: heightMm,
-        depth: depthMm,
-        placementMode: "FREE",
-        isInitialPlacement: false,
-      });
-      return;
-    }
-
-    const buildRemateTransformPatch = (
-      position: { xMm: number; yMm: number; zMm: number },
-      rotation: { xRad: number; yRad: number; zRad: number }
-    ) => ({
-      position,
-      rotation,
-      transform: {
-        xMm: position.xMm,
-        yMm: position.yMm,
-        zMm: position.zMm,
-        rotacaoXRad: rotation.xRad,
-        rotacaoYRad: rotation.yRad,
-        rotacaoZRad: rotation.zRad,
-      },
-      placementMode: "FREE" as const,
-      isInitialPlacement: false,
-    });
-
-    if (entry?.mesh && boxId) {
-      entry.mesh.updateMatrixWorld(true);
-      const inv = new THREE.Matrix4().copy(entry.mesh.matrixWorld).invert();
-      const local = mesh.position.clone().applyMatrix4(inv);
-      const localQuat = new THREE.Quaternion().copy(mesh.quaternion);
-      const boxQuat = new THREE.Quaternion().setFromRotationMatrix(entry.mesh.matrixWorld);
-      const invBoxQuat = boxQuat.clone().invert();
-      localQuat.premultiply(invBoxQuat);
-      const euler = new THREE.Euler().setFromQuaternion(localQuat);
-
-      const position = {
-        xMm: local.x * 1000,
-        yMm: local.y * 1000,
-        zMm: local.z * 1000,
-      };
-      const rotation = { xRad: euler.x, yRad: euler.y, zRad: euler.z };
-
-      const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === remateId);
-      if (piece && isLRematePiece(piece)) {
-        this.onRemateTransform?.(remateId, buildRemateTransformPatch(position, rotation));
-        return;
-      }
-
-      this.onRemateTransform?.(remateId, buildRemateTransformPatch(position, rotation));
-      return;
-    }
-
-    const position = {
-      xMm: mesh.position.x * 1000,
-      yMm: mesh.position.y * 1000,
-      zMm: mesh.position.z * 1000,
-    };
-    const rotation = {
-      xRad: mesh.rotation.x,
-      yRad: mesh.rotation.y,
-      zRad: mesh.rotation.z,
-    };
-    this.onRemateTransform?.(remateId, buildRemateTransformPatch(position, rotation));
+    notifyRemateTransformImpl(this.getFinishTransformOpsDeps());
   }
 
   private notifyHematiTransform(): void {
-    const hematiId = this.viewerState.getSelectedHemati();
-    if (!hematiId) return;
-    const mesh = this.hematiVisualizer.getMeshByHematiId(hematiId);
-    if (!mesh) return;
-    const boxId = mesh.userData.boxId as string | undefined;
-    if (!boxId) return;
-    const entry = this.boxes.get(boxId);
-    if (!entry) return;
-    entry.mesh.updateMatrixWorld(true);
-    const inv = new THREE.Matrix4().copy(entry.mesh.matrixWorld).invert();
-    const local = mesh.position.clone().applyMatrix4(inv);
-    this.onHematiTransform?.(hematiId, {
-      transform: {
-        xMm: local.x * 1000,
-        yMm: local.y * 1000,
-        zMm: local.z * 1000,
-        rotacaoXRad: mesh.rotation.x,
-        rotacaoYRad: mesh.rotation.y,
-        rotacaoZRad: mesh.rotation.z,
-      },
-      placementFree: true,
-    });
+    notifyHematiTransformImpl(this.getFinishTransformOpsDeps());
   }
 
   private notifyRodapeTransform(): void {
-    const rodapeId = this.viewerState.getSelectedRodape();
-    if (!rodapeId) return;
-    const mesh = this.rodapeVisualizer.getMeshByRodapeId(rodapeId);
-    if (!mesh) return;
-    const boxId = mesh.userData.boxId as string | undefined;
-    if (!boxId) return;
-    const entry = this.boxes.get(boxId);
-    if (!entry) return;
-    entry.mesh.updateMatrixWorld(true);
-    const inv = new THREE.Matrix4().copy(entry.mesh.matrixWorld).invert();
-    const local = mesh.position.clone().applyMatrix4(inv);
-    this.onRodapeTransform?.(rodapeId, {
-      transform: {
-        xMm: local.x * 1000,
-        yMm: local.y * 1000,
-        zMm: local.z * 1000,
-        rotacaoXRad: mesh.rotation.x,
-        rotacaoYRad: mesh.rotation.y,
-        rotacaoZRad: mesh.rotation.z,
-      },
-      placementFree: true,
-      isInitialPlacement: false,
-    });
+    notifyRodapeTransformImpl(this.getFinishTransformOpsDeps());
   }
 
   private notifyDivSepTransform(): void {
-    const selection = this.viewerState.getSelectedDivSep();
-    if (!selection) return;
-    const mesh = this.getDivSepMesh(selection);
-    const entry = this.boxes.get(selection.boxId);
-    const ctx = this.divSepVisualBridge?.getDivSepDragContext(
-      selection.boxId,
-      selection.kind,
-      selection.itemId
-    );
-    if (!mesh || !entry || !ctx) return;
-
-    const positionMm =
-      selection.kind === "sep"
-        ? separadorLocalYToPositionMm(
-            mesh.position.y,
-            entry.height,
-            ctx.box,
-            ctx.item as SeparadorItem
-          )
-        : divisorLocalXToPositionMm(
-            mesh.position.x,
-            entry.width,
-            ctx.box,
-            ctx.item as DivisorItem
-          );
-
-    this.onDivSepTransform?.({
-      boxId: selection.boxId,
-      kind: selection.kind,
-      itemId: selection.itemId,
-      positionMm,
-    });
+    notifyDivSepTransformImpl(this.getFinishTransformOpsDeps());
   }
 
   /**
    * Após sync visual (painel/teclado), reaplica colisão e propaga posição corrigida ao estado.
    */
   resolveFinishCollisionAfterSync(params: { remateId?: string; rodapeId?: string }): void {
-    const { remateId, rodapeId } = params;
-    if (remateId) {
-      const rawMesh = this.getRemateMesh(remateId);
-      const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
-      if (!mesh) return;
-      const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === remateId);
-      if (isTampoAngularConfig(piece?.angleConfig, piece?.height)) return;
-      const boxId = piece?.parentBoxId ?? (mesh.userData.boxId as string | undefined);
-      this.applyFinishCollisionConstraint(mesh, boxId, remateId);
-      const prev = this.viewerState.getSelectedRemate();
-      if (prev !== remateId) this.viewerState.setSelectedRemate(remateId);
-      this.notifyRemateTransform();
-      if (prev !== remateId) this.viewerState.setSelectedRemate(prev);
-      return;
-    }
-    if (rodapeId) {
-      const mesh = this.rodapeVisualizer.getMeshByRodapeId(rodapeId);
-      if (!mesh) return;
-      const boxId = mesh.userData.boxId as string | undefined;
-      this.applyFinishCollisionConstraint(mesh, boxId, undefined, rodapeId);
-      const prev = this.viewerState.getSelectedRodape();
-      if (prev !== rodapeId) this.viewerState.setSelectedRodape(rodapeId);
-      this.notifyRodapeTransform();
-      if (prev !== rodapeId) this.viewerState.setSelectedRodape(prev);
-    }
+    resolveFinishCollisionAfterSyncImpl(this.getFinishTransformOpsDeps(), params);
   }
 
   private applyFinishCollisionConstraint(
@@ -3725,63 +3304,13 @@ export class ViewerCore {
     excludeRemateId?: string,
     excludeRodapeId?: string
   ): void {
-    if (!this.lockEnabled) return;
-    if (excludeRemateId) {
-      const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === excludeRemateId);
-      if (isTampoAngularConfig(piece?.angleConfig, piece?.height)) return;
-    }
-
-    const excludeRemateIds = new Set<string>();
-    if (excludeRemateId) {
-      for (const id of listRemateIdsInSameLComposite(
-        excludeRemateId,
-        this.remateVisualBridge?.listRematePieces() ?? []
-      )) {
-        excludeRemateIds.add(id);
-      }
-    }
-
-    const otherMeshes: THREE.Object3D[] = [];
-    const seenMeshUuids = new Set<string>();
-    for (const piece of this.remateVisualBridge?.listRematePieces() ?? []) {
-      if (excludeRemateIds.has(piece.id)) continue;
-      const mesh = this.getRemateMesh(piece.id);
-      if (!mesh || mesh === movingMesh || seenMeshUuids.has(mesh.uuid)) continue;
-      seenMeshUuids.add(mesh.uuid);
-      otherMeshes.push(mesh);
-    }
-    for (const cfg of this.rodapeVisualBridge?.listBoxRodapeConfigs() ?? []) {
-      for (const rodape of cfg.rodapes) {
-        if (rodape.id === excludeRodapeId) continue;
-        const mesh = this.rodapeVisualizer.getMeshByRodapeId(rodape.id);
-        if (mesh) otherMeshes.push(mesh);
-      }
-    }
-
-    const parentBoxEntry =
-      excludeBoxId && this.boxes.has(excludeBoxId)
-        ? (() => {
-            const entry = this.boxes.get(excludeBoxId)!;
-            return {
-              boxId: excludeBoxId,
-              mesh: entry.mesh,
-              width: entry.width,
-              height: entry.height,
-              depth: entry.depth,
-            };
-          })()
-        : undefined;
-
-    applyFinishMovementConstraints({
+    applyFinishCollisionConstraintImpl(
+      this.getFinishTransformOpsDeps(),
       movingMesh,
-      boxes: this.boxes,
-      otherMeshes,
-      parentBox: parentBoxEntry,
-      applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
-      roomBounds: this.roomBounds,
-      roomWallMeshes: this.roomBoxWalls.map((w) => w.mesh),
-      isInsideRoom: (mesh) => this.isMeshInsideOrTouchingRoom(mesh),
-    });
+      excludeBoxId,
+      excludeRemateId,
+      excludeRodapeId
+    );
   }
 
   private buildSmartAlignSnapContextForDrag() {
@@ -3801,178 +3330,66 @@ export class ViewerCore {
   }
 
   private generateIntelligentDesigns(seedBoxId: string): boolean {
-    const designs = this.ensureIntelligentDesigner().buildDesigns(seedBoxId);
-    if (!designs.length) return false;
-    const overlays = this.layoutEngine.predictive.previewDesigns(
-      designs.map((d) => ({ id: d.id, plan: d.plan, label: d.label }))
-    );
-    if (overlays[0]) {
-      this.smartAlignOverlay.setState(
-        this.layoutEngine.predictive.showDesignPreview(0) ?? { visible: false, mode: "predictive", guides: [] }
-      );
-    }
-    return true;
+    return generateIntelligentDesignsImpl(this.getDesignOpsDeps(), seedBoxId);
   }
 
   private previewIntelligentDesign(id: DesignVariantId): boolean {
-    const state = this.layoutEngine.predictive.showDesignById(id);
-    if (!state) return false;
-    this.smartAlignOverlay.setState(state);
-    return true;
+    return previewIntelligentDesignImpl(this.getDesignOpsDeps(), id);
   }
 
   private applyIntelligentDesign(id: DesignVariantId): boolean {
-    const ok = this.ensureIntelligentDesigner().applyDesign(id);
-    if (ok) this.clearSmartAlignSnapOverlay();
-    return ok;
+    return applyIntelligentDesignImpl(this.getDesignOpsDeps(), id);
   }
 
   private acceptPredictiveLayoutPending(): boolean {
-    const pending = this.layoutEngine.predictive.getPending();
-    if (!pending) return false;
-    const previews = this.layoutEngine.predictive.getDesignPreviews();
-    const activeEntry = previews[this.layoutEngine.predictive.getActiveDesignIndex()];
-    const ok = this.layoutEngine.predictive.applyPending();
-    if (ok) {
-      if (activeEntry && isEnvironmentStyleId(activeEntry.id)) {
-        this.ensureIntelligentDesigner().getBehaviorStore().learnStylePreference(activeEntry.id);
-      }
-      this.clearSmartAlignSnapOverlay();
-    }
-    return ok;
+    return acceptPredictiveLayoutPendingImpl(this.getDesignOpsDeps());
   }
 
   private acceptConversationalPending(): boolean {
-    const pending = this.layoutEngine.predictive.getPending();
-    if (!pending) return false;
-    const ok = this.acceptPredictiveLayoutPending();
-    if (ok) {
-      this.designConversationState.recordApplied({
-        plan: pending.plan,
-        label: pending.label,
-      });
-    }
-    return ok;
+    return acceptConversationalPendingImpl(this.getDesignOpsDeps());
   }
 
   private previewIntelligentStyle(styleId: EnvironmentStyleId, seedBoxId: string): boolean {
-    const result = this.ensureIntelligentDesigner().buildStyleDesign(styleId, seedBoxId);
-    if (!result) return false;
-    const { overlay } = buildPredictiveLayoutResult(this.layoutEngine.predictive, result.plan, result.label);
-    this.layoutEngine.predictive.previewDesigns([{ id: styleId, plan: result.plan, label: result.label }]);
-    this.smartAlignOverlay.setState(overlay);
-    return true;
+    return previewIntelligentStyleImpl(this.getDesignOpsDeps(), styleId, seedBoxId);
   }
 
   private applyIntelligentStyle(styleId: EnvironmentStyleId, seedBoxId: string): boolean {
-    const ok = this.ensureIntelligentDesigner().applyStyle(styleId, seedBoxId);
-    if (ok) this.clearSmartAlignSnapOverlay();
-    return ok;
+    return applyIntelligentStyleImpl(this.getDesignOpsDeps(), styleId, seedBoxId);
   }
 
   private resolveCostSeedBoxId(): string {
-    return (
-      this.designConversationState.getSeedBoxId() ??
-      this.smartLayoutBridge?.getWorkspaceBoxes().find((b) => !b.locked)?.id ??
-      ""
-    );
+    return resolveCostSeedBoxIdImpl(this.getDesignOpsDeps());
   }
 
   private buildCostScanContext(): import("./snapping/costTypes").CostScanContext {
-    const ctx = this.buildManufacturingScanContext();
-    return {
-      boxes: ctx.boxes,
-      remates: ctx.remates,
-      rodapes: ctx.rodapes,
-      bounds: ctx.bounds,
-      openings: ctx.openings,
-      wallOffsetMm: ctx.wallOffsetMm,
-    };
+    return buildCostScanContextImpl(this.getDesignOpsDeps());
   }
 
   private previewCostSuggestion(suggestion: CostSuggestion): void {
-    const { overlay } = buildPredictiveLayoutResult(
-      this.layoutEngine.predictive,
-      suggestion.plan,
-      suggestion.label
-    );
-    this.layoutEngine.predictive.previewDesigns([
-      { id: `cost-${suggestion.kind}`, plan: suggestion.plan, label: suggestion.label },
-    ]);
-    this.smartAlignOverlay.setState(overlay);
+    previewCostSuggestionImpl(this.getDesignOpsDeps(), suggestion);
   }
 
   private previewCostSuggestionByTier(
     seedBoxId: string,
     tier: "cheaper" | "premium" | "balanced"
   ): boolean {
-    this.designConversationState.setSeedBoxId(seedBoxId);
-    this.ensureCostReportEngine().scanProject();
-    const suggestion =
-      tier === "cheaper"
-        ? this.ensureCostReportEngine().suggestCheaperAlternative()
-        : tier === "premium"
-          ? this.ensureCostReportEngine().suggestPremiumAlternative()
-          : this.ensureCostReportEngine().suggestBalancedAlternative();
-    if (!suggestion) return false;
-    this.previewCostSuggestion(suggestion);
-    return true;
+    return previewCostSuggestionByTierImpl(this.getDesignOpsDeps(), seedBoxId, tier);
   }
 
   private buildManufacturingScanContext(): import("./snapping/manufacturingTypes").ManufacturingScanContext {
-    const bridge = this.smartLayoutBridge;
-    const rodapeConfigs = this.rodapeVisualBridge?.listBoxRodapeConfigs() ?? [];
-    const rodapes = rodapeConfigs.flatMap((cfg) => cfg.rodapes);
-    return {
-      boxes: bridge?.getWorkspaceBoxes() ?? [],
-      remates: this.remateVisualBridge?.listRematePieces() ?? [],
-      rodapes,
-      bounds: bridge?.getRoomBoundsMm() ?? null,
-      openings: bridge?.getOpeningsMm() ?? [],
-      wallOffsetMm: bridge?.getWallOffsetMm() ?? this.smartSnappingEngine.getWallOffset(),
-    };
+    return buildManufacturingScanContextImpl(this.getDesignOpsDeps());
   }
 
   private previewManufacturingFixes(): boolean {
-    const fixPlan = this.ensureManufacturingReportEngine().buildFixPreview();
-    if (!fixPlan || !fixPlan.plan.moveBoxes.length) return false;
-    const { overlay } = buildPredictiveLayoutResult(
-      this.layoutEngine.predictive,
-      fixPlan.plan,
-      fixPlan.label
-    );
-    this.layoutEngine.predictive.previewDesigns([
-      { id: "manufacturing-fix", plan: fixPlan.plan, label: fixPlan.label },
-    ]);
-    this.smartAlignOverlay.setState(overlay);
-    return true;
+    return previewManufacturingFixesImpl(this.getDesignOpsDeps());
   }
 
   private applyManufacturingSuggestedFixes(): boolean {
-    const pending = this.layoutEngine.predictive.getPending();
-    if (pending?.label.includes("Auto-Manufacturing")) {
-      return this.acceptPredictiveLayoutPending();
-    }
-    const result = this.ensureManufacturingReportEngine().autoFix();
-    return result.ok;
+    return applyManufacturingSuggestedFixesImpl(this.getDesignOpsDeps());
   }
 
   private generateIntelligentVariations(): boolean {
-    const variations = this.ensureIntelligentDesigner().generateVariations();
-    if (!variations.length) return false;
-    const overlays = this.layoutEngine.predictive.previewDesigns(
-      variations.map((v, i) => ({
-        id: `V${i + 1}`,
-        plan: v.plan,
-        label: v.label,
-      }))
-    );
-    if (overlays[0]) {
-      this.smartAlignOverlay.setState(
-        this.layoutEngine.predictive.showDesignPreview(0) ?? { visible: false, mode: "predictive", guides: [] }
-      );
-    }
-    return true;
+    return generateIntelligentVariationsImpl(this.getDesignOpsDeps());
   }
 
   private clearSmartAlignSnapOverlay(): void {
@@ -4168,82 +3585,6 @@ export class ViewerCore {
   }
 
   dispose() {
-    this.runtimeLoop.stop();
-    this.unregisterWindowEvents?.();
-    this.unregisterWindowEvents = null;
-    this.disposeComposer();
-    this.disposeMainComposer();
-    this.controls?.dispose();
-    if (this.transformControls) {
-      this.transformControls.detach();
-      if (this.transformControlsHelper) {
-        this.sceneManager.scene.remove(this.transformControlsHelper);
-        this.transformControlsHelper = null;
-      }
-      this.transformControls.dispose();
-      this.transformControls = null;
-    }
-    this.layoutEngine?.bindBridge(null);
-    this.orlaVisualizer.bindBridge(null);
-    this.orlaVisualizer.dispose();
-    this.remateVisualBridge = null;
-    this.remateVisualizer.bindBridge(null);
-    this.remateVisualizer.dispose();
-    this.tampoVisualizer.bindBridge(null);
-    this.tampoVisualizer.dispose();
-    this.hematiVisualizer.bindBridge(null);
-    this.hematiVisualizer.dispose();
-    this.rodapeVisualBridge = null;
-    this.rodapeVisualizer.bindBridge(null);
-    this.rodapeVisualizer.dispose();
-    this.overlayCoordinator.dispose();
-    this.onBoxTransform = null;
-    this.onBoxSelected = null;
-    this.onMultiSelectToggle = null;
-    this.onInternalSurfaceSelected = null;
-    this.onInternalEdgeSelected = null;
-    this.onInternalPointSelected = null;
-    this.onDoorLayerDoubleClick = null;
-    this.onDrawerLayerDoubleClick = null;
-    this.onDrawerLayerClick = null;
-    this.onBoxDoubleClick = null;
-    this.onModelLoaded = null;
-    this.eventsManager?.unregister();
-    this.eventsManager = null;
-    if (this.wallGizmo) {
-      this.wallGizmo.dispose();
-      this.sceneManager.scene.remove(this.wallGizmo.group);
-      this.wallGizmo = null;
-    }
-    if (this.snapDebugOverlay) {
-      this.snapDebugOverlay.dispose();
-      this.snapDebugOverlay = null;
-    }
-    if (this.roomManager) {
-      this.roomManager.removeRoom();
-      this.roomManager = null;
-    }
-    this.snapshotRenderer = null;
-    this.selectedBoxChangeListeners.clear();
-    disposeSelectionSystemsImpl(this.getSelectionOpsDeps());
-    this.multiSelectionOutline = null;
-    this.highlightManager = null;
-    this.edgeOutlineSystem = null;
-    this.internalSelectionOutline = null;
-    this.dimensionsOverlay.dispose();
-    this.measurementEngine.dispose();
-    this.unregisterAdminSnappingRules?.();
-    this.unregisterAdminSnappingRules = null;
-    this.smartSnappingEngine.dispose();
-    this.smartAlignOverlay.dispose();
-    this.remateSmartSnapping.dispose();
-    // Limpar todos os caixotes corretamente
-    this.clearBoxes();
-    this.roomBuilder.clearRoom();
-    this.displayMaterials.dispose();
-    this.materialPipeline.disposeSharedPanelEdgeMaterial();
-
-    this.sceneManager.dispose();
-    this.rendererManager.dispose();
+    disposeImpl(this.getLifecycleOpsDeps());
   }
 }
