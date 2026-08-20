@@ -95,12 +95,14 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_INTERNAL_API_SECRET: ${{ secrets.VITE_INTERNAL_API_SECRET }}
         run: |
           cat > .env.production <<EOF
           VITE_API_URL=https://pimo.pro
           VITE_TEXTURES_URL=https://pimo.pro/textures
           VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
           VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+          VITE_INTERNAL_API_SECRET=${VITE_INTERNAL_API_SECRET}
           EOF
 
       - name: Build

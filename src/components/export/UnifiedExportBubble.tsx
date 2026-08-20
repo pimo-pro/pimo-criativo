@@ -4,7 +4,7 @@
  */
 
 import type { CSSProperties, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProject } from "../../context/useProject";
 import { useGerarArquivoHandlers } from "../../hooks/useGerarArquivoHandlers";
@@ -30,6 +30,10 @@ import { saveProjectRecord } from "@/app/PROJETOS/projetosSnapshotCache";
 import Button from "../ui/Button";
 import { ModalPortal } from "../ui/ModalPortal";
 import { Icon } from "@/components/icons";
+import QuoteRequestModal, { type QuoteRequestFieldsInput } from "../modals/QuoteRequestModal";
+import { captureWorkspaceProjectThumbnail } from "@/core/projects/projectThumbnail";
+import { sendQuoteRequestEmail, buildPricingSummary } from "@/core/quotes/sendQuoteRequestEmail";
+import { useToast } from "@/context/ToastContext";
 
 type Props = {
   isOpen: boolean;
@@ -125,6 +129,9 @@ function ExportRow({
 export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }: Props) {
   const navigate = useNavigate();
   const { project, actions, viewerSync } = useProject();
+  const { showToast, startLoading, stopLoading } = useToast();
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [submittingQuote, setSubmittingQuote] = useState(false);
   const sendPackage = useSendProjectPackage();
   const onlineAnalysisEnabled = industrialFeatureFlags.industrialOnlineAnalysis;
   const [openingAnalise, setOpeningAnalise] = useState(false);
@@ -194,6 +201,56 @@ export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }
     actions.setReadyForProduction(true);
   };
 
+  const handleConfirmQuoteRequest = async (fields: QuoteRequestFieldsInput) => {
+    setSubmittingQuote(true);
+    const loadingId = startLoading("A guardar projeto e a enviar pedido de orçamento…");
+    try {
+      await handlePedirFabricacao();
+      setQuoteModalOpen(false);
+
+      let attachment: Blob | null = null;
+      try {
+        attachment = await captureWorkspaceProjectThumbnail(viewerSync.renderScene);
+      } catch (err) {
+        console.error("[UnifiedExportBubble] falha ao gerar thumbnail para orçamento", err);
+      }
+
+      const result = await sendQuoteRequestEmail({
+        customerName: fields.customerName,
+        customerEmail: fields.customerEmail,
+        customerPhone: fields.customerPhone,
+        projectName: project.projectName ?? "",
+        designer: project.designer ?? "",
+        materials: project.materiaisProjeto ?? "",
+        notes: fields.notes,
+        pricingSummary: buildPricingSummary({
+          precoTotalPecas: project.precoTotalPecas,
+          precoTotalAcessorios: project.precoTotalAcessorios,
+          precoTotalProjeto: project.precoTotalProjeto,
+        }),
+        attachment,
+      });
+
+      if (result.success) {
+        showToast("Pedido de orçamento enviado com sucesso.", "success");
+      } else {
+        showToast(
+          "Projeto guardado com sucesso, mas não foi possível enviar o pedido de orçamento. Tenta novamente ou contacta-nos diretamente.",
+          "warning"
+        );
+      }
+    } catch (err) {
+      console.error("[UnifiedExportBubble] handleConfirmQuoteRequest falhou", err);
+      showToast(
+        "Não foi possível concluir o pedido — o projeto pode não ter sido guardado. Tenta novamente.",
+        "error"
+      );
+    } finally {
+      stopLoading(loadingId);
+      setSubmittingQuote(false);
+    }
+  };
+
   const handleDownloadPacote = () => {
     setSendMethod("download");
     downloadSendPackage();
@@ -211,6 +268,7 @@ export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }
   if (!isOpen) return null;
 
   return (
+    <Fragment>
     <ModalPortal>
     <div
       className="modal-overlay"
@@ -407,8 +465,8 @@ export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }
                 type="button"
                 variant="primary"
                 fullWidth
-                disabled={project.estaCarregando}
-                onClick={() => void handlePedirFabricacao()}
+                disabled={project.estaCarregando || submittingQuote}
+                onClick={() => setQuoteModalOpen(true)}
                 style={{ background: "#22c55e", borderColor: "#16a34a", color: "#fff", minHeight: 56 }}
               >
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center", width: "100%" }}>
@@ -647,5 +705,12 @@ export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }
       </div>
     </div>
     </ModalPortal>
+    <QuoteRequestModal
+      open={quoteModalOpen}
+      isSubmitting={submittingQuote}
+      onConfirm={(fields) => void handleConfirmQuoteRequest(fields)}
+      onCancel={() => setQuoteModalOpen(false)}
+    />
+    </Fragment>
   );
 }
