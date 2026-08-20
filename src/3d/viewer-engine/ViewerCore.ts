@@ -835,6 +835,7 @@ export class ViewerCore {
     void this.notifyHematiTransform;
     void this.notifyDivSepTransform;
     void this.applyDynamicAlignSnap;
+    void this.applyFinishCollisionConstraint;
     void this.clampTransform;
     void this.updateWallVisibilityBasedOnCamera;
     void this.getRoomOpeningsForSnapping;
@@ -871,9 +872,13 @@ export class ViewerCore {
     void this.generateIntelligentDesigns;
     void this.previewIntelligentDesign;
     void this.applyIntelligentDesign;
+    void this.acceptPredictiveLayoutPending;
+    void this.acceptConversationalPending;
     void this.previewIntelligentStyle;
     void this.applyIntelligentStyle;
+    void this.previewCostSuggestion;
     void this.previewCostSuggestionByTier;
+    void this.previewManufacturingFixes;
     void this.applyManufacturingSuggestedFixes;
     void this.generateIntelligentVariations;
     void this.computeDistanceToNearestBox;
