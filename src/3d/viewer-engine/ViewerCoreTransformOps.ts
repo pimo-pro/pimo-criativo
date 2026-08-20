@@ -32,11 +32,7 @@ import type { MeasurementEngine } from "./measurement/MeasurementEngine";
 import { shouldProcessTransformDragEnd } from "./transforms/transformDragLifecycle";
 import { devLogger } from "../../utils/devLogger";
 import type { Controls } from "./controls";
-
-export type ViewerCoreTransformRoomWallEntry = {
-  id: number;
-  mesh: THREE.Mesh;
-};
+import type { ViewerCoreRoomWallEntry } from "./ViewerCoreRoomGeometry";
 
 export type ViewerCoreTransformOpsDeps = {
   viewerState: ViewerState;
@@ -70,7 +66,7 @@ export type ViewerCoreTransformOpsDeps = {
   getRemateVisualBridge: () => RematePieceVisualBridge | null;
   rodapeVisualizer: RodapeVisualizer;
   getRoomBounds: () => ClampTransformContext["roomBounds"];
-  getRoomBoxWalls: () => ViewerCoreTransformRoomWallEntry[];
+  getRoomBoxWalls: () => ViewerCoreRoomWallEntry[];
   applyFloorConstraint: (mesh: THREE.Object3D) => void;
   applyRoomConstraint: (obj: THREE.Object3D, options?: { ignoreY?: boolean }) => void;
   isMeshInsideOrTouchingRoom: (obj: THREE.Object3D) => boolean;
@@ -152,10 +148,6 @@ export function setTransformModeImpl(
 
 export function refreshTransformControlsAttachmentImpl(deps: ViewerCoreTransformOpsDeps): void {
   deps.refreshGizmoAttachment();
-}
-
-export function setTransformAttachmentRefreshSuspendedImpl(_v: boolean): void {
-  void _v;
 }
 
 export function applyGroupPivotTransformImpl(deps: ViewerCoreTransformOpsDeps): void {

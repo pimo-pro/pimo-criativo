@@ -97,10 +97,6 @@ export function clearBoxChildrenRemateLegacyImpl(
   deps.remateVisualizer.clearBoxChildren(boxRoot);
 }
 
-export function syncRemateForBoxImpl(deps: ViewerCoreFinishOpsDeps, _boxId: string): void {
-  syncRemateVisualsImpl(deps);
-}
-
 export function getRemateMeshImpl(
   deps: ViewerCoreFinishOpsDeps,
   remateId: string

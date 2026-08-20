@@ -21,11 +21,7 @@ import type { MouseMenuTarget } from "../../ui/context-menu/ContextMenuEngine";
 import type { IndustrialDesignWorkspaceMode } from "./modes/IndustrialDesignWorkspaceMode";
 import type { RendererManager } from "./renderer";
 import type { CameraManager } from "./camera";
-
-export type ViewerCoreEventRoomWallEntry = {
-  id: number;
-  mesh: THREE.Mesh;
-};
+import type { ViewerCoreRoomWallEntry } from "./ViewerCoreRoomGeometry";
 
 export type ViewerCoreEventOpsDeps = {
   viewerState: ViewerState;
@@ -36,7 +32,7 @@ export type ViewerCoreEventOpsDeps = {
   raycaster: THREE.Raycaster;
   getHighlightManager: () => HighlightManager | null;
   roomBuilder: RoomBuilder;
-  getRoomBoxWalls: () => ViewerCoreEventRoomWallEntry[];
+  getRoomBoxWalls: () => ViewerCoreRoomWallEntry[];
   getWallGizmo: () => WallGizmo | null;
   getControls: () => Controls | null;
   getMouseInputPreset: () => MouseInputPreset;
@@ -57,7 +53,6 @@ export type ViewerCoreEventOpsDeps = {
   setInternalSelection: (selection: InternalSelectionState | null) => void;
   getContextMenuLayerHit: (event: { clientX: number; clientY: number }) => MouseMenuTarget | null;
   refreshTransformControlsAttachment: () => void;
-  setTransformAttachmentRefreshSuspended: (v: boolean) => void;
   refreshOutlineTarget: () => void;
   logTransformDiagnostic: (name: string, data?: Record<string, unknown>) => void;
   onRoomElementSelected: ((data: RoomElementHit | null) => void) | null;
@@ -235,7 +230,6 @@ export function getEventEngineApiImpl(deps: ViewerCoreEventOpsDeps): IViewerEven
     },
     getRoomUtilityAtPointer: (e) => getRoomUtilityAtPointerImpl(deps, e),
     refreshTransformControlsAttachment: () => deps.refreshTransformControlsAttachment(),
-    setTransformAttachmentRefreshSuspended: (v) => deps.setTransformAttachmentRefreshSuspended(v),
     refreshOutlineTarget: () => deps.refreshOutlineTarget(),
     getRoomBoxWalls: () => deps.getRoomBoxWalls(),
     getWallGizmo: () => deps.getWallGizmo(),

@@ -15,11 +15,7 @@ import type { SceneManager } from "./scene/SceneManager";
 import type { ViewerState } from "./state/ViewerState";
 import type { ViewerBoxEntry } from "./types";
 import { isObjectInScreenRect } from "./utils/screenSelection";
-
-export type ViewerCoreRoomWallEntry = {
-  id: number;
-  mesh: THREE.Mesh;
-};
+import type { ViewerCoreRoomWallEntry } from "./ViewerCoreRoomGeometry";
 
 export type ViewerCoreSelectionOpsDeps = {
   viewerState: ViewerState;

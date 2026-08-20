@@ -359,7 +359,6 @@ export function getEventOpsDepsImpl(host: ViewerCoreEngineApisOpsDeps): ViewerCo
       setInternalSelection: (selection) => host.setInternalSelection(selection),
       getContextMenuLayerHit: (e) => host.getContextMenuLayerHit(e),
       refreshTransformControlsAttachment: () => host.refreshTransformControlsAttachment(),
-      setTransformAttachmentRefreshSuspended: (v) => host.setTransformAttachmentRefreshSuspended(v),
       refreshOutlineTarget: () => host.refreshOutlineTarget(),
       logTransformDiagnostic: (name, data) => host.logTransformDiagnostic(name, data),
       onRoomElementSelected: host.onRoomElementSelected,

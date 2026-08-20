@@ -66,7 +66,7 @@ type BoxSceneVisualDeps = {
   applyPanelVisibilityForObject: (_root: THREE.Object3D) => void;
   applyExplodedViewForObject: (_root: THREE.Object3D) => void;
   syncOrlaForBox: (_boxId: string) => void;
-  syncRemateForBox: (_boxId: string) => void;
+  syncRemateVisuals: () => void;
   syncEdgeOutlines: () => void;
   reapplyDisplayMaterials: () => void;
 };
@@ -241,7 +241,7 @@ export class BoxSceneController {
     params.applyPanelVisibilityForObject(box);
     params.applyExplodedViewForObject(box);
     params.syncOrlaForBox(params.id);
-    params.syncRemateForBox(params.id);
+    params.syncRemateVisuals();
     tagBoxGroupWithId(box, params.id);
     params.syncEdgeOutlines();
     params.applyBackgroundMode();
@@ -597,7 +597,7 @@ export class BoxSceneController {
     }
     // Sem sync automático de frentes de gaveta após rebuild estrutural.
     params.syncOrlaForBox(id);
-    params.syncRemateForBox(id);
+    params.syncRemateVisuals();
     if (params.getLockEnabled()) params.applyFloorConstraint(entry.mesh);
     if (dimensionsChanged && entry.cadOnly) {
       entry.cadModels.forEach((model) => {

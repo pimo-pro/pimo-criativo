@@ -91,6 +91,7 @@ import {
   isBoxInCameraFrameImpl,
   syncCameraTargetImpl,
   updateCameraTargetImpl,
+  updateCameraTargetToBoxImpl,
 } from "./ViewerCoreCameraOps";
 import type { ViewerCoreFeetOpsDeps } from "./ViewerCoreFeetOps";
 import {
@@ -223,7 +224,6 @@ import {
   logTransformDiagnosticImpl,
   notifyGroupTransformImpl,
   refreshTransformControlsAttachmentImpl,
-  setTransformAttachmentRefreshSuspendedImpl,
   setTransformModeImpl,
 } from "./ViewerCoreTransformOps";
 import type { ViewerCoreEventOpsDeps } from "./ViewerCoreEventOps";
@@ -286,7 +286,6 @@ import {
   syncHematiVisualsImpl,
   syncOrlaForBoxImpl,
   syncOrlaVisualsImpl,
-  syncRemateForBoxImpl,
   syncRemateVisualsImpl,
   syncRodapeVisualsImpl,
 } from "./ViewerCoreFinishOps";
@@ -837,7 +836,6 @@ export class ViewerCore {
     void this.lerpLightsToTarget;
     void this.updateDimensionsOverlay;
     void this.updateReflectionProbe;
-    void this.setTransformAttachmentRefreshSuspended;
     void this.flushDeferredBoxStructureUpdates;
     void this.flushDeferredViewerVisualSyncs;
     void this.getToolsOpsDeps;
@@ -1122,10 +1120,6 @@ export class ViewerCore {
   /** Sync visual de remates — aplica apenas transform guardado no estado (sem re-snap à caixa). */
   syncRemateVisuals(): void {
     syncRemateVisualsImpl(this.getFinishOpsDeps());
-  }
-
-  private syncRemateForBox(_boxId: string): void {
-    syncRemateForBoxImpl(this.getFinishOpsDeps(), _boxId);
   }
 
   getRemateMesh(remateId: string): THREE.Object3D | null {
@@ -2410,7 +2404,7 @@ export class ViewerCore {
       applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
       applyExplodedViewForObject: (root) => this.applyExplodedViewForObject(root),
       syncOrlaForBox: (boxId) => this.syncOrlaForBox(boxId),
-      syncRemateForBox: (boxId) => this.syncRemateForBox(boxId),
+      syncRemateVisuals: () => this.syncRemateVisuals(),
       syncEdgeOutlines: () =>
         syncEdgeOutlineRootImpl(this.getSelectionOpsDeps()),
       applyBackgroundMode: () => this.applyBackgroundMode(),
@@ -2558,7 +2552,7 @@ export class ViewerCore {
         syncFeetVisualForBox: (boxEntry) => this.syncFeetVisualForBox(boxEntry),
         applyPanelVisibilityForObject: (root) => this.applyPanelVisibilityForObject(root),
         syncOrlaForBox: (boxId) => this.syncOrlaForBox(boxId),
-        syncRemateForBox: (boxId) => this.syncRemateForBox(boxId),
+        syncRemateVisuals: () => this.syncRemateVisuals(),
         getLockEnabled: () => this.lockEnabled,
         applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
         applyCatalogModelScale: (boxEntry, model) => this.applyCatalogModelScale(boxEntry, model),
@@ -2924,14 +2918,6 @@ export class ViewerCore {
   /** Delega ao GizmoEngine / ViewerTools. */
   private refreshTransformControlsAttachment(): void {
     refreshTransformControlsAttachmentImpl(this.getTransformOpsDeps());
-  }
-
-  /**
-   * Extension point interno preservado para EventsManager.
-   * Contrato atual: NO-OP, porque o refresh é controlado pelo lifecycle de drag.
-   */
-  private setTransformAttachmentRefreshSuspended(_v: boolean): void {
-    setTransformAttachmentRefreshSuspendedImpl(_v);
   }
 
   private refreshViewerAttachmentsAfterMeshMutation(): void {
@@ -3420,19 +3406,7 @@ export class ViewerCore {
     boxId: string,
     options?: { onlyMovePositionIfOutOfFrame?: boolean }
   ): void {
-    const center = this.getBoxBoundingBoxCenter(boxId);
-    if (!center) return;
-
-    if (this.cameraViewPreset != null) {
-      this.syncCameraTarget(center, { updateLookAt: false });
-      return;
-    }
-
-    this.syncCameraTarget(center);
-    const onlyIfOut = options?.onlyMovePositionIfOutOfFrame === true;
-    if (onlyIfOut && !this.isBoxInCameraFrame(boxId)) {
-      this.adjustCameraPositionToIncludeBox(boxId);
-    }
+    updateCameraTargetToBoxImpl(this.getCameraOpsDeps(), boxId, options);
   }
 
   private shouldUseFeetLock(entry: {

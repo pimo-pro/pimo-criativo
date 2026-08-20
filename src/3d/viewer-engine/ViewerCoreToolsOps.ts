@@ -7,11 +7,7 @@ import type { IViewerToolsEngine } from "./tools/ToolsEngineTypes";
 import type { GroupGizmo } from "./tools/GroupGizmo";
 import type { SelectionOutlineController } from "./overlays/SelectionOutlineController";
 import { getTransformGizmoSizeForBox as computeTransformGizmoSizeForBox } from "@/viewer/core/viewerUtils";
-
-export type ViewerCoreToolsRoomWallEntry = {
-  id: number;
-  mesh: THREE.Mesh;
-};
+import type { ViewerCoreRoomWallEntry } from "./ViewerCoreRoomGeometry";
 
 export type ViewerCoreToolsOpsDeps = {
   viewerState: ViewerState;
@@ -23,7 +19,7 @@ export type ViewerCoreToolsOpsDeps = {
   getTransformControlsHelper: () => THREE.Object3D | null;
   setTransformHelperVisible: (visible: boolean) => void;
   getGroupGizmo: () => GroupGizmo | null;
-  getRoomBoxWalls: () => ViewerCoreToolsRoomWallEntry[];
+  getRoomBoxWalls: () => ViewerCoreRoomWallEntry[];
   getDivSepMesh: (selection: SelectedDivSep) => THREE.Object3D | null;
   getHematiMesh: (hematiId: string) => THREE.Object3D | null;
   getRodapeMesh: (rodapeId: string) => THREE.Object3D | null;
