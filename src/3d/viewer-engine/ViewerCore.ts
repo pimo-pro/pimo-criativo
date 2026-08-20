@@ -236,6 +236,21 @@ import {
   syncEdgeOutlineRootImpl,
   updateSelectionOverlaysFrameImpl,
 } from "./ViewerCoreSelectionOps";
+import type { ViewerCoreTransformOpsDeps } from "./ViewerCoreTransformOps";
+import {
+  applyGroupPivotTransformImpl,
+  applySmartSnapForGroupImpl,
+  applyTransformControlsMouseGuardImpl,
+  clampGroupTransformImpl,
+  clampTransformImpl,
+  finishTransformDragImpl,
+  handleTransformObjectChangeImpl,
+  logTransformDiagnosticImpl,
+  notifyGroupTransformImpl,
+  refreshTransformControlsAttachmentImpl,
+  setTransformAttachmentRefreshSuspendedImpl,
+  setTransformModeImpl,
+} from "./ViewerCoreTransformOps";
 import type { ViewerCoreFinishOpsDeps } from "./ViewerCoreFinishOps";
 import {
   applyRemateKeyboardTransformImpl,
@@ -280,10 +295,9 @@ import type { ProjectRoomUtility, RoomFloorMode } from "./room/roomEngineTypes";
 import { devLogger } from "../../utils/devLogger";
 import { WallGizmo } from "../gizmos/WallGizmo";
 import type { SnapDebugData } from "../snapping/ModelWallSnap";
-import { keepModelInsideRoom, preventModelWallIntersection } from "../collision/ModelCollision";
 import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { ViewerRenderExporter } from "./export/ViewerRenderExporter";
-import { TransformConstraints, type ClampTransformContext } from "./constraints/TransformConstraints";
+import { TransformConstraints } from "./constraints/TransformConstraints";
 import { SnapEngine, type SnapAlignTarget } from "./snapping/SnapEngine";
 import { ensureViewerSnapEngine } from "./engines/SnapEngine";
 import { applyFinishMovementConstraints } from "./constraints/finishCollision";
@@ -354,7 +368,6 @@ import {
   resolveRemateTransformRoot,
 } from "./remate/remateLCompositeVisual";
 import { isLRematePiece } from "../../core/remate/remateLGeometry";
-import { applyRemateRotationSnapToMesh } from "../../core/remate/remateRotationSnap";
 import { isTampoAngularConfig } from "../../core/remate/tampoAngle";
 import { HematiVisualizer, type HematiVisualBridge } from "./hemati/HematiVisualizer";
 import { RodapeVisualizer, type RodapeVisualBridge } from "./rodape/RodapeVisualizer";
@@ -372,7 +385,6 @@ import { bindViewerOverlayCoordinator } from "./overlays/bindViewerOverlayCoordi
 import { createViewerVisualFacades, type ViewerVisualFacade } from "./overlays/viewerVisualFacades";
 import { registerViewerWindowEvents } from "./input/viewerWindowEvents";
 import { PointerPickingFacade } from "./input/PointerPickingFacade";
-import { shouldProcessTransformDragEnd } from "./transforms/transformDragLifecycle";
 import {
   type AlignmentType,
   type AlignableObject,
@@ -389,8 +401,6 @@ import { ViewerBoundsCache } from "./cache/ViewerBoundsCache";
 import type { MouseMenuTarget } from "../../ui/context-menu/ContextMenuEngine";
 import type { DivSepVisualBridge } from "./divSep/DivSepVisualBridge";
 import {
-  clampDivisorLocalX,
-  clampSeparadorLocalY,
   divisorLocalXToPositionMm,
   separadorLocalYToPositionMm,
 } from "../../core/divSep/dragCoords";
@@ -1663,36 +1673,7 @@ export class ViewerCore {
    * Aplica snap ao primeiro membro caixa e propaga delta ao pivô do grupo.
    */
   applySmartSnapForGroup(_pointerPosition?: { x: number; y: number; z: number }): boolean {
-    if (!this.groupGizmo?.isActive()) return false;
-    if (this.viewerState.getCurrentTool() !== "translate") return false;
-    if (!this.viewerState.getTransformControlsDragging()) return false;
-
-    const members = this.groupGizmo.getMembers();
-    let primaryBoxId: string | null = null;
-    let primaryMesh: THREE.Object3D | null = null;
-    for (const member of members) {
-      const decoded = decodeSelectionId(member.encodedId);
-      if (decoded?.kind !== "box") continue;
-      primaryBoxId = decoded.id;
-      primaryMesh = member.mesh;
-      break;
-    }
-    if (!primaryBoxId || !primaryMesh) return false;
-
-    const before = primaryMesh.position.clone();
-    this.applyDynamicAlignSnap({
-      mesh: primaryMesh,
-      entity: { kind: "box", id: primaryBoxId },
-      isDragging: true,
-      currentTool: "translate",
-    });
-    const delta = primaryMesh.position.clone().sub(before);
-    if (delta.lengthSq() < 1e-10) return false;
-
-    primaryMesh.position.copy(before);
-    this.groupGizmo.getPivot().position.add(delta);
-    this.groupGizmo.applyPivotTransform();
-    return true;
+    return applySmartSnapForGroupImpl(this.getTransformOpsDeps(), _pointerPosition);
   }
 
   resolveMemberMesh(encoded: string): THREE.Object3D | null {
@@ -1700,84 +1681,15 @@ export class ViewerCore {
   }
 
   applyGroupPivotTransform(): void {
-    this.groupGizmo?.applyPivotTransform();
+    applyGroupPivotTransformImpl(this.getTransformOpsDeps());
   }
 
   notifyGroupTransform(options?: { recordHistory?: boolean }): void {
-    if (!this.groupGizmo?.isActive()) return;
-    for (const member of this.groupGizmo.getMembers()) {
-      const decoded = decodeSelectionId(member.encodedId);
-      if (!decoded) continue;
-      if (decoded.kind === "box") {
-        const entry = this.boxes.get(decoded.id);
-        if (entry?.locked) continue;
-        const { x, y, z } = member.mesh.position;
-        const r = member.mesh.rotation;
-        this.onBoxTransform?.(decoded.id, { x, y, z }, { x: r.x, y: r.y, z: r.z });
-      } else if (decoded.kind === "remate") {
-        this.viewerState.setSelectedRemate(decoded.id);
-        this.notifyRemateTransform();
-      } else if (decoded.kind === "rodape") {
-        this.viewerState.setSelectedRodape(decoded.id);
-        this.notifyRodapeTransform();
-      }
-    }
-    if (options?.recordHistory) {
-      historyManager.recordEvent("group.transform", "Transformar grupo");
-    }
+    notifyGroupTransformImpl(this.getTransformOpsDeps(), options);
   }
 
   clampGroupTransform(): void {
-    if (!this.groupGizmo?.isActive()) return;
-    if (this.viewerState.getCurrentTool() !== "translate") return;
-    if (!this.viewerState.getTransformControlsDragging()) return;
-
-    this.applySmartSnapForGroup();
-
-    const members = this.groupGizmo.getMembers();
-    if (members.length === 0) return;
-
-    const groupBoxIds = new Set<string>();
-    for (const member of members) {
-      const decoded = decodeSelectionId(member.encodedId);
-      if (decoded?.kind === "box") groupBoxIds.add(decoded.id);
-    }
-
-    if (this.lockEnabled) {
-      this._boundingBox.makeEmpty();
-      for (const member of members) {
-        member.mesh.updateMatrixWorld(true);
-        expandBox3ByObjectExcludingLayoutProxy(this._boundingBox, member.mesh);
-      }
-      if (!this._boundingBox.isEmpty() && this._boundingBox.min.y < 0) {
-        const shiftY = -this._boundingBox.min.y;
-        this.groupGizmo.getPivot().position.y += shiftY;
-        for (const member of members) {
-          member.mesh.position.y += shiftY;
-        }
-      }
-
-      for (const member of members) {
-        const decoded = decodeSelectionId(member.encodedId);
-        if (decoded?.kind !== "box") continue;
-        const entry = this.boxes.get(decoded.id);
-        if (!entry || entry.mesh !== member.mesh) continue;
-        this.applyFloorConstraint(member.mesh);
-        this.constraints.applyCollisionConstraint(member.mesh, this.boxes, decoded.id, groupBoxIds);
-        if (this.roomBounds && this.isMeshInsideOrTouchingRoom(member.mesh)) {
-          const wallsMain = this.roomBoxWalls
-            .map((w) => w.mesh)
-            .filter((w) => w.userData?.isMainWall === true);
-          const allRoomWalls = this.roomBoxWalls.map((w) => w.mesh);
-          this.snapEngine.snapMeshToNearestMainWall(member.mesh, wallsMain);
-          preventModelWallIntersection(member.mesh, allRoomWalls);
-          keepModelInsideRoom(member.mesh, this.roomBounds);
-          this.applyRoomConstraint(member.mesh, { ignoreY: entry.manualPosition });
-        }
-      }
-    }
-
-    this.updateBoxesIntersectingWalls();
+    clampGroupTransformImpl(this.getTransformOpsDeps());
   }
 
   isPointerOnSelectableObject(event: { clientX: number; clientY: number }): boolean {
@@ -2496,33 +2408,11 @@ export class ViewerCore {
 
   /** Aplica o mapeamento canónico de Orbit/Pan/Zoom. Não depende da ferramenta activa. */
   private applyTransformControlsMouseGuard(): void {
-    const controls = this.controls?.controls;
-    if (!controls) return;
-    this.applyMousePresetToControls();
+    applyTransformControlsMouseGuardImpl(this.getTransformOpsDeps());
   }
 
   private logTransformDiagnostic(event: string, payload?: Record<string, unknown>): void {
-    if (!this.transformDiagnosticsEnabled) return;
-    const orbit = this.controls?.controls;
-    const target = this.transformControls?.object ?? null;
-    devLogger.debug(`[Viewer][TransformDiag] ${event}`, {
-      mode: this.viewerState.getCurrentTool(),
-      dragging: this.viewerState.getTransformControlsDragging(),
-      selectedBoxId: this.viewerState.getSelectedBox(),
-      orbitEnabled: orbit?.enabled ?? null,
-      transformAttached: Boolean(target),
-      targetUuid: target?.uuid ?? null,
-      targetName: target?.name ?? null,
-      targetMatrixAutoUpdate: target?.matrixAutoUpdate ?? null,
-      targetPosition: target
-        ? {
-            x: Number(target.position.x.toFixed(4)),
-            y: Number(target.position.y.toFixed(4)),
-            z: Number(target.position.z.toFixed(4)),
-          }
-        : null,
-      ...(payload ?? {}),
-    });
+    logTransformDiagnosticImpl(this.getTransformOpsDeps(), event, payload);
   }
 
   private getTransformGizmoIntersections(event: { clientX: number; clientY: number }): number {
@@ -3301,14 +3191,12 @@ export class ViewerCore {
   }
 
   setTransformMode(mode: "translate" | "rotate" | "scale" | null): void {
-    this.viewerState.setCurrentTool(mode);
-    this.refreshTransformControlsAttachment();
-    this.applyTransformControlsMouseGuard();
+    setTransformModeImpl(this.getTransformOpsDeps(), mode);
   }
 
   /** Delega ao GizmoEngine / ViewerTools. */
   private refreshTransformControlsAttachment(): void {
-    this.gizmoEngine.refreshAttachment();
+    refreshTransformControlsAttachmentImpl(this.getTransformOpsDeps());
   }
 
   /**
@@ -3316,7 +3204,7 @@ export class ViewerCore {
    * Contrato atual: NO-OP, porque o refresh é controlado pelo lifecycle de drag.
    */
   private setTransformAttachmentRefreshSuspended(_v: boolean): void {
-    void _v;
+    setTransformAttachmentRefreshSuspendedImpl(_v);
   }
 
   private refreshViewerAttachmentsAfterMeshMutation(): void {
@@ -3968,6 +3856,77 @@ export class ViewerCore {
     };
   }
 
+  private getTransformOpsDeps(): ViewerCoreTransformOpsDeps {
+    return {
+      viewerState: this.viewerState,
+      boxes: this.boxes,
+      groupGizmo: this.groupGizmo,
+      constraints: this.constraints,
+      snapEngine: this.snapEngine,
+      remateSmartSnapping: this.remateSmartSnapping,
+      smartSnappingEngine: this.smartSnappingEngine,
+      smartAlignSnapEngine: this.smartAlignSnapEngine,
+      viewerTools: this.viewerTools,
+      overlayCoordinator: this.overlayCoordinator,
+      measurementEngine: this.measurementEngine,
+      roomBuilder: this.roomBuilder,
+      boundingBox: this._boundingBox,
+      getTransformControls: () => this.transformControls,
+      getControls: () => this.controls,
+      getLockEnabled: () => this.lockEnabled,
+      getShiftKeyHeld: () => this.shiftKeyHeld,
+      getDragStartZForShiftLock: () => this.dragStartZForShiftLock,
+      setDragStartZForShiftLock: (value) => {
+        this.dragStartZForShiftLock = value;
+      },
+      getIsApplyingTransformConstraints: () => this.isApplyingTransformConstraints,
+      setIsApplyingTransformConstraints: (value) => {
+        this.isApplyingTransformConstraints = value;
+      },
+      getTransformDragEndStamp: () => this.transformDragEndStamp,
+      setTransformDragEndStamp: (stamp) => {
+        this.transformDragEndStamp = stamp;
+      },
+      getTransformDiagnosticsEnabled: () => this.transformDiagnosticsEnabled,
+      getSelectedDivSep: () => this.viewerState.getSelectedDivSep(),
+      getDivSepMesh: (selection) => this.getDivSepMesh(selection),
+      getDivSepVisualBridge: () => this.divSepVisualBridge,
+      getRemateMesh: (remateId) => this.getRemateMesh(remateId),
+      getRemateVisualBridge: () => this.remateVisualBridge,
+      rodapeVisualizer: this.rodapeVisualizer,
+      getRoomBounds: () => this.roomBounds,
+      getRoomBoxWalls: () => this.roomBoxWalls,
+      applyFloorConstraint: (mesh) => this.applyFloorConstraint(mesh),
+      applyRoomConstraint: (obj, options) => this.applyRoomConstraint(obj, options),
+      isMeshInsideOrTouchingRoom: (obj) => this.isMeshInsideOrTouchingRoom(obj),
+      clearSnapState: (obj) => this.clearSnapState(obj),
+      shouldUseFeetLock: (entry) => this.shouldUseFeetLock(entry),
+      getFixedYForCabinet: (entry) => this.getFixedYForCabinet(entry),
+      updateBoxesIntersectingWalls: () => this.updateBoxesIntersectingWalls(),
+      setLastSnapDebugData: (data) => {
+        this.lastSnapDebugData = data;
+      },
+      applyDynamicAlignSnap: (params) => this.applyDynamicAlignSnap(params),
+      applyFinishCollisionConstraint: (mesh, excludeBoxId, excludeRemateId, excludeRodapeId) =>
+        this.applyFinishCollisionConstraint(mesh, excludeBoxId, excludeRemateId, excludeRodapeId),
+      refreshGizmoAttachment: () => this.gizmoEngine.refreshAttachment(),
+      applyMousePresetToControls: () => this.applyMousePresetToControls(),
+      onBoxTransform: this.onBoxTransform,
+      notifyRemateTransform: () => this.notifyRemateTransform(),
+      notifyHematiTransform: () => this.notifyHematiTransform(),
+      notifyRodapeTransform: () => this.notifyRodapeTransform(),
+      notifyDivSepTransform: () => this.notifyDivSepTransform(),
+      notifyWallTransform: () => this.notifyWallTransform(),
+      notifyRoomElementTransform: () => this.notifyRoomElementTransform(),
+      notifyRoomUtilityTransform: () => this.notifyRoomUtilityTransform(),
+      getRoomUtilityById: (utilityId) => this.getRoomUtilityById(utilityId),
+      onTransformDragEnd: this.onTransformDragEnd,
+      flushDeferredBoxStructureUpdates: () => this.flushDeferredBoxStructureUpdates(),
+      flushDeferredViewerVisualSyncs: () => this.flushDeferredViewerVisualSyncs(),
+      refreshViewerAttachmentsAfterMeshMutation: () => this.refreshViewerAttachmentsAfterMeshMutation(),
+    };
+  }
+
   /** Mantém CameraManager.target e OrbitControls.target sincronizados. */
   private syncCameraTarget(
     center: THREE.Vector3,
@@ -4276,66 +4235,12 @@ export class ViewerCore {
    * altera mesh.position e o TransformControls re-emite objectChange na mesma stack.
    */
   private handleTransformObjectChange(): void {
-    if (this.isApplyingTransformConstraints) return;
-    this.isApplyingTransformConstraints = true;
-    try {
-      if (this.groupGizmo?.isActive()) {
-        this.groupGizmo.applyPivotTransform();
-      }
-      if (
-        this.viewerState.getTransformControlsDragging() &&
-        this.viewerState.getSelectedBox() &&
-        this.shiftKeyHeld &&
-        this.dragStartZForShiftLock !== undefined
-      ) {
-        const obj = this.transformControls!.object;
-        if (obj && "position" in obj) (obj as THREE.Object3D).position.z = this.dragStartZForShiftLock;
-      }
-      this.viewerTools.applyCurrentTool();
-      this.measurementEngine.onRulerMovementTick("transform");
-      if (this.groupGizmo?.isActive()) {
-        this.notifyGroupTransform();
-      } else if (this.viewerState.getSelectedRemate()) {
-        this.notifyRemateTransform();
-      } else {
-        this.notifyBoxTransform();
-      }
-      this.logTransformDiagnostic("drag(objectChange)");
-    } finally {
-      this.isApplyingTransformConstraints = false;
-    }
+    handleTransformObjectChangeImpl(this.getTransformOpsDeps());
   }
 
   /** Fim de drag unificado — evita duplicação mouseUp + dragging-changed. */
   private finishTransformDrag(_source: "mouseUp" | "dragging-changed"): void {
-    const stamp = performance.now();
-    if (!shouldProcessTransformDragEnd(this.transformDragEndStamp, stamp)) return;
-    this.transformDragEndStamp = stamp;
-    this.dragStartZForShiftLock = undefined;
-    this.viewerState.setTransformControlsDragging(false);
-    this.overlayCoordinator.clearTransientOverlays();
-    this.smartSnappingEngine.onDragEnd();
-    this.smartAlignSnapEngine.onDragEnd();
-    this.remateSmartSnapping.onDragEnd();
-    this.viewerState.setSuppressNextCanvasClick(true);
-    if (this.groupGizmo?.isActive()) {
-      this.notifyGroupTransform({ recordHistory: true });
-    }
-    this.viewerTools.restoreTransformGizmoPivot();
-    this.viewerTools.applyCurrentTool();
-    this.notifyBoxTransform();
-    this.notifyRemateTransform();
-    this.notifyHematiTransform();
-    this.notifyRodapeTransform();
-    this.notifyDivSepTransform();
-    this.notifyWallTransform();
-    this.notifyRoomElementTransform();
-    this.notifyRoomUtilityTransform();
-    historyManager.endDragSession();
-    this.onTransformDragEnd?.();
-    this.flushDeferredBoxStructureUpdates();
-    this.flushDeferredViewerVisualSyncs();
-    this.refreshViewerAttachmentsAfterMeshMutation();
+    finishTransformDragImpl(this.getTransformOpsDeps(), _source);
   }
 
   private notifyRemateTransform(): void {
@@ -4890,197 +4795,7 @@ export class ViewerCore {
 
   /** Só chamado em objectChange (arraste do utilizador). Nunca na criação da caixa. */
   private clampTransform() {
-    if (this.groupGizmo?.isActive()) {
-      this.clampGroupTransform();
-      return;
-    }
-    if (this.viewerState.getSelectedRoomElementId() || this.viewerState.getSelectedRoomUtilityId()) {
-      this.clampSelectedWallChildTransform();
-      return;
-    }
-
-    const selectedRemateId = this.viewerState.getSelectedRemate();
-    const isDragging = this.viewerState.getTransformControlsDragging();
-    const currentTool = this.viewerState.getCurrentTool();
-
-    const selectedDivSep = this.viewerState.getSelectedDivSep();
-    if (selectedDivSep) {
-      const mesh = this.getDivSepMesh(selectedDivSep);
-      const obj = this.transformControls?.object;
-      if (isDragging && mesh && obj === mesh && currentTool === "translate") {
-        const entry = this.boxes.get(selectedDivSep.boxId);
-        const ctx = this.divSepVisualBridge?.getDivSepDragContext(
-          selectedDivSep.boxId,
-          selectedDivSep.kind,
-          selectedDivSep.itemId
-        );
-        if (entry && ctx) {
-          const dragStart = mesh.userData.divSepDragStart as
-            | { x: number; y: number; z: number }
-            | undefined;
-          if (selectedDivSep.kind === "sep") {
-            mesh.position.x = dragStart?.x ?? mesh.position.x;
-            mesh.position.z = dragStart?.z ?? mesh.position.z;
-            mesh.position.y = clampSeparadorLocalY(
-              mesh.position.y,
-              entry.height,
-              ctx.box,
-              ctx.item as SeparadorItem
-            );
-          } else {
-            mesh.position.y = dragStart?.y ?? mesh.position.y;
-            mesh.position.z = dragStart?.z ?? mesh.position.z;
-            mesh.position.x = clampDivisorLocalX(
-              mesh.position.x,
-              entry.width,
-              ctx.box,
-              ctx.item as DivisorItem
-            );
-          }
-        }
-      }
-      return;
-    }
-
-    if (selectedRemateId) {
-      const rawMesh = this.getRemateMesh(selectedRemateId);
-      const mesh = resolveRemateTransformRoot(rawMesh) ?? rawMesh;
-      const obj = this.transformControls?.object;
-      if (isDragging && mesh && obj === mesh) {
-        const piece = this.remateVisualBridge?.listRematePieces().find((r) => r.id === selectedRemateId);
-        const angular = isTampoAngularConfig(piece?.angleConfig, piece?.height);
-        const boxId = piece?.parentBoxId ?? (mesh.userData.boxId as string | undefined);
-        const entry = boxId ? this.boxes.get(boxId) : undefined;
-
-        const snapTarget = mesh as THREE.Mesh;
-        const isLCimaComposite = mesh.userData?.isRemateLComposite === true;
-
-        if (currentTool === "translate" && entry && piece && boxId && !isLCimaComposite && !angular) {
-          const cfg = this.remateVisualBridge?.getBoxConfig(boxId);
-          if (cfg) {
-            this.remateSmartSnapping.applyDuringTranslate({
-              mesh: snapTarget,
-              boxEntry: entry,
-              boxConfig: cfg,
-            });
-          }
-        } else if (currentTool === "translate" && piece && (!boxId || angular) && !isLCimaComposite) {
-          this.remateSmartSnapping.applyStandaloneGridSnap(snapTarget);
-        } else if (currentTool === "rotate" && !isLCimaComposite && !angular) {
-          applyRemateRotationSnapToMesh(snapTarget, entry?.mesh ?? null);
-        }
-
-        if (currentTool === "translate" && !isLCimaComposite && !angular) {
-          this.applyDynamicAlignSnap({
-            mesh: snapTarget,
-            entity: { kind: "remate", id: selectedRemateId, parentBoxId: boxId },
-            isDragging,
-            currentTool,
-          });
-        }
-
-        if (currentTool === "translate" && mesh && obj === mesh && !angular) {
-          const boxId = piece?.parentBoxId ?? (mesh.userData.boxId as string | undefined);
-          this.applyFinishCollisionConstraint(mesh, boxId, selectedRemateId);
-        }
-      }
-      return;
-    }
-
-    if (this.viewerState.getSelectedHemati()) {
-      return;
-    }
-
-    const selectedRodapeId = this.viewerState.getSelectedRodape();
-    if (selectedRodapeId) {
-      const mesh = this.rodapeVisualizer.getMeshByRodapeId(selectedRodapeId);
-      const obj = this.transformControls?.object;
-      if (isDragging && mesh && obj === mesh && currentTool === "translate") {
-        const boxId = mesh.userData.boxId as string | undefined;
-        this.applyDynamicAlignSnap({
-          mesh,
-          entity: { kind: "rodape", id: selectedRodapeId, parentBoxId: boxId },
-          isDragging,
-          currentTool,
-        });
-        this.applyFinishCollisionConstraint(mesh, boxId, undefined, selectedRodapeId);
-      }
-      return;
-    }
-
-    const selectedBoxId = this.viewerState.getSelectedBox();
-    if (selectedBoxId && isDragging && currentTool === "translate") {
-      const entry = this.boxes.get(selectedBoxId);
-      const obj = this.transformControls?.object;
-      if (entry && obj === entry.mesh) {
-        this.snapEngine.applyBoxTranslatePipeline({
-          align: {
-            mesh: entry.mesh,
-            entity: { kind: "box", id: selectedBoxId },
-            isDragging,
-            currentTool,
-          },
-          clampCtx: this.getClampTransformContext(),
-        });
-        return;
-      }
-    }
-
-    this.constraints.clampTransform(this.getClampTransformContext());
-  }
-
-  private getClampTransformContext(): ClampTransformContext {
-    return {
-      transformControls: this.transformControls,
-      selectedBoxId: this.viewerState.getSelectedBox(),
-      selectedWallIndex: this.viewerState.getSelectedWallIndex(),
-      boxes: this.boxes,
-      currentTool: this.viewerState.getCurrentTool(),
-      lockEnabled: this.lockEnabled,
-      roomBounds: this.roomBounds,
-      roomBoxWalls: this.roomBoxWalls,
-      applyFloorConstraint: (obj) => this.applyFloorConstraint(obj),
-      applyRoomConstraint: (obj, options) => this.applyRoomConstraint(obj, options),
-      isMeshInsideOrTouchingRoom: (obj) => this.isMeshInsideOrTouchingRoom(obj),
-      clearSnapState: (obj) => this.clearSnapState(obj),
-      shouldUseFeetLock: (entry) => this.shouldUseFeetLock(entry),
-      getFixedYForCabinet: (entry) => this.getFixedYForCabinet(entry),
-      updateBoxesIntersectingWalls: () => this.updateBoxesIntersectingWalls(),
-      setLastSnapDebugData: (data) => {
-        this.lastSnapDebugData = data;
-      },
-      snapMeshToNearestMainWall: (mesh, walls) => this.snapEngine.snapMeshToNearestMainWall(mesh, walls),
-    };
-  }
-
-  private clampSelectedWallChildTransform(): void {
-    const selectedId = this.viewerState.getSelectedRoomElementId() ?? this.viewerState.getSelectedRoomUtilityId();
-    if (!selectedId) return;
-    const object =
-      this.viewerState.getSelectedRoomElementId()
-        ? this.roomBuilder.getElementById(selectedId)
-        : this.getRoomUtilityById(selectedId);
-    if (!object || !(object.parent instanceof THREE.Mesh)) return;
-    const wall = object.parent as THREE.Mesh;
-    const wallLenMm = (wall.userData.wallLengthMm as number | undefined) ?? 1000;
-    const wallHeightMm = (wall.userData.wallHeightMm as number | undefined) ?? 2600;
-    const wallLenM = wallLenMm / 1000;
-    const wallHeightM = wallHeightMm / 1000;
-    object.position.z = ((wall.userData.wallThicknessM as number | undefined) ?? 0.12) / 2 + 0.04;
-    const widthMm =
-      this.viewerState.getSelectedRoomElementId()
-        ? ((object.userData.config as DoorWindowConfig | undefined)?.widthMm ?? 0)
-        : 0;
-    const heightMm =
-      this.viewerState.getSelectedRoomElementId()
-        ? ((object.userData.config as DoorWindowConfig | undefined)?.heightMm ?? 0)
-        : 0;
-    const minX = -wallLenM / 2 + widthMm / 2000;
-    const maxX = wallLenM / 2 - widthMm / 2000;
-    const minY = -wallHeightM / 2 + heightMm / 2000;
-    const maxY = wallHeightM / 2 - heightMm / 2000;
-    object.position.x = THREE.MathUtils.clamp(object.position.x, minX, maxX);
-    object.position.y = THREE.MathUtils.clamp(object.position.y, minY, maxY);
+    clampTransformImpl(this.getTransformOpsDeps());
   }
 
   private computeDistanceToNearestBox(): RulerMeasurementHit | null {
@@ -5165,20 +4880,6 @@ export class ViewerCore {
 
   private getRoomOpeningsForSnapping(): import("./snapping/smartSnappingTypes").RoomOpeningLike[] {
     return getRoomOpeningsForSnappingImpl(this.getRoomUtilsDeps());
-  }
-
-  private notifyBoxTransform() {
-    if (!this.viewerState.getSelectedBox()) return;
-    const entry = this.boxes.get(this.viewerState.getSelectedBox());
-    if (!entry) return;
-    const p = entry.mesh.position;
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) {
-      console.warn("[sanity] posição inválida em notifyBoxTransform — ignorado");
-      return;
-    }
-    const { x, y, z } = p;
-    const r = entry.mesh.rotation;
-    this.onBoxTransform?.(this.viewerState.getSelectedBox(), { x, y, z }, { x: r.x, y: r.y, z: r.z });
   }
 
   private clearSnapState(object: THREE.Object3D): void {
