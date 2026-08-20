@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-19T19:21:26.983Z",
+  "updatedAt": "2026-08-20T07:13:55.625Z",
   "news": [
+    {
+      "version": "v6.0820.0813",
+      "title": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
+      "description": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
+      "publishedAt": "2026-08-20T07:13:55.451Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "00c02aa5"
+    },
     {
       "version": "v6.0819.2021",
       "title": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
       "description": "perf(viewer): Baixa renderiza direto, sem EffectComposer",
-      "publishedAt": "2026-08-19T19:21:26.804Z",
+      "publishedAt": "2026-08-19T20:23:12+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "9ec635ce"
+      "commit": "00c02aa"
     },
     {
       "version": "v6.0819.1746",
