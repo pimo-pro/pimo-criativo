@@ -23,6 +23,7 @@ import { cutlistComPrecoFromBox } from "../core/manufacturing/cutlistFromBoxes";
 import { buildCornerDoorLayerItems, getCornerCabinetConfig, isCornerLayoutSsotModel, migrateCornerDireitaInferiorBoxToV2, syncCornerWorkspaceBoxDoorsLayer } from "../core/cornerCabinet";
 import { isIndustrialFileGenerationActive } from "../core/fabrication/industrialGenerationSuspend";
 import type { RulesConfig } from "../core/rules/rulesConfig";
+import { getDrawerViewerLayoutRev } from "../3d/objects/DrawerFactory";
 
 type ViewerApi = {
   addBox: (_id: string, _options?: BoxOptions) => boolean;
@@ -99,6 +100,9 @@ function getStructureFingerprint(
     drawerGroupName: drawer.metadata?.drawerGroupName,
     frontPieceName: drawer.metadata?.frontExtPieceName ?? drawer.metadata?.frontPieceName,
     frontIntPieceName: drawer.metadata?.frontIntPieceName,
+    // Progressivas / elevação — invalidar fingerprint → refresh drillMarkers + mesh corpo
+    heightMode: drawer.metadata?.heightMode,
+    sideBaseElevationMm: drawer.metadata?.sideBaseElevationMm,
   }));
   const divSig = (wsBox.divisores ?? []).map((d) => ({
     id: d.id,
@@ -137,6 +141,7 @@ function getStructureFingerprint(
     shelves: wsBox.prateleiras,
     portaTipo: wsBox.portaTipo,
     drawerHeightMode: wsBox.drawerHeightMode,
+    drawerViewerLayoutRev: getDrawerViewerLayoutRev(),
     baseCabinetId: wsBox.baseCabinetId,
     orientation: wsBox.orientation ?? "direita",
     piHideDrawerHoles: wsBox.piHideDrawerHoles === true,
@@ -398,7 +403,15 @@ export const useCalculadoraSync = (
       // [CORRIGIDO 2026-03] Sempre recalcular cutlist a partir do box atual (dimensões + layers) para furações paramétricas.
       // drillMarkersByPanel deve SEMPRE ser recalculado e passado explicitamente para updateBox.
       // Nunca usar valor antigo/cached: isso garante atualização 100% paramétrica e elimina furos congelados.
-      const effectiveBox = box ?? convertWorkspaceToBox(syncCornerWorkspaceBoxDoorsLayer(wsBox));
+      // Cutlist/Viewer: sempre workspace actual (drawerHeightMode + drawersLayer),
+      // para Progressivas não cair no pitch por BoxModule incompleto.
+      const wsSynced = syncCornerWorkspaceBoxDoorsLayer(wsBox);
+      const effectiveBox = {
+        ...(box ?? convertWorkspaceToBox(wsSynced)),
+        drawersLayer: resolveActiveDrawersLayer(wsSynced),
+        drawerHeightMode: wsSynced.drawerHeightMode,
+        gavetas: wsSynced.gavetas,
+      };
       const cutListForBox = rules ? cutlistComPrecoFromBox(effectiveBox, rules) : [];
       const drillMarkersByPanel = buildViewerDrillMarkersByPanel(cutListForBox);
       const piLateralDrillCountSig = isPiBaseCabinetId(wsBox.baseCabinetId)

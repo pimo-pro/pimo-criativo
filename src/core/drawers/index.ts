@@ -106,12 +106,20 @@ export {
   getDrawerUsableInternalHeightMm,
   resolveDrawerVerticalPosition,
   resolveDrawerVerticalPositions,
+  resolveModuleFloorTopYMm,
 } from "./drawerVerticalPosition";
+export type { DrawerVerticalLayoutOptions } from "./drawerVerticalPosition";
 export {
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
   DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM,
+  DRAWER_GAV1_MODULE_GUIDE_AXIS_MM,
+  assertGav1IndustrialSsotOrThrow,
+  assertGavIndustrialSsotOrThrow,
+  assertGavViewerSsotOrThrow,
+  DRAWER_VIEWER_SSOT_LAYOUT_REV,
+  DRAWER_PROGRESSIVAS_H800_T19_GUIDE_FROM_FLOOR_TOP_MM,
   DRAWER_BODY_DELTA_LOWEST_MM,
   DRAWER_BODY_DELTA_UPPER_MM,
   DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
@@ -131,6 +139,7 @@ export {
   resolveDrawerBodyElevationForStackRoleMm,
   resolveDrawerBodyDeltaForStackRoleMm,
   resolveDrawerBodyBottomFromModuleBaseMm,
+  resolveGav1BodyBottomFromModuleBaseMm,
   type DrawerStackRole,
   type DrawerFrontStackGeometry,
 } from "./drawerStackPosition";

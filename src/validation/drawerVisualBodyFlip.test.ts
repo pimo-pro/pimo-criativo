@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   DRAWER_VIEWER_BODY_VERTICAL_FLIP,
+  isDrawerViewerBodyVerticalFlipActiveForElevationMm,
   resolveDrawerVisualBaseElevationMm,
   resolveDrawerVisualBodyCenterOffsetYMm,
 } from "../3d/objects/drawerVisualBodyFlip";
-import { DRAWER_BODY_ELEVATION_FROM_FRONT_MM } from "../core/drawers/drawerGeometryConstants";
+import {
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
+} from "../core/drawers/drawerGeometryConstants";
 
 describe("drawerVisualBodyFlip — Viewer only", () => {
   const industrialElev = DRAWER_BODY_ELEVATION_FROM_FRONT_MM; // 48
@@ -16,7 +20,17 @@ describe("drawerVisualBodyFlip — Viewer only", () => {
     expect(DRAWER_VIEWER_BODY_VERTICAL_FLIP).toBe(true);
   });
 
-  it("elevação visual na base = folga industrial do topo (~20,5)", () => {
+  it("flip activo para elevação middle/highest (48); inactivo para GAV_1 (16,5)", () => {
+    expect(isDrawerViewerBodyVerticalFlipActiveForElevationMm(48)).toBe(true);
+    expect(isDrawerViewerBodyVerticalFlipActiveForElevationMm(16.5)).toBe(false);
+    expect(
+      isDrawerViewerBodyVerticalFlipActiveForElevationMm(
+        DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM
+      )
+    ).toBe(false);
+  });
+
+  it("elevação visual na base = folga industrial do topo (~20,5) — middle", () => {
     const visualElev = resolveDrawerVisualBaseElevationMm(
       frontH,
       bodyH,
@@ -27,7 +41,24 @@ describe("drawerVisualBodyFlip — Viewer only", () => {
     expect(visualElev).toBeLessThan(industrialElev);
   });
 
-  it("centro do corpo: desnível grande (48) no topo, pequeno na base", () => {
+  it("GAV_1 / single: sem flip — elevação visual = industrial 16,5", () => {
+    const elevLowest = DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
+    const bodyHLowest = frontH - 85.5;
+    const visualElev = resolveDrawerVisualBaseElevationMm(
+      frontH,
+      bodyHLowest,
+      elevLowest
+    );
+    expect(visualElev).toBeCloseTo(elevLowest, 5);
+    expect(visualElev).toBeCloseTo(16.5, 5);
+  });
+
+  it("elevação não finita — nunca 0; fallback SSOT 16,5", () => {
+    expect(resolveDrawerVisualBaseElevationMm(200, 100, Number.NaN)).toBe(16.5);
+    expect(resolveDrawerVisualBaseElevationMm(200, 100, Number.NaN)).not.toBe(0);
+  });
+
+  it("centro do corpo: desnível grande (48) no topo, pequeno na base — middle", () => {
     const cy = resolveDrawerVisualBodyCenterOffsetYMm(
       frontH,
       bodyH,

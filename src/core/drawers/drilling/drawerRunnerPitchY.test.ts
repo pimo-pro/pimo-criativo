@@ -8,6 +8,7 @@ import {
   calculateDrawerHeights,
   calculateDrawerPositions,
 } from "../DrawerGroup";
+import { DRAWER_VERTICAL_BASE_OFFSET_MM } from "../drawerVerticalPosition";
 import {
   resolveDrawerBodyElevationForStackRoleMm,
   resolveDrawerStackRole,
@@ -142,12 +143,18 @@ describe("resolveEuropeanModuleRunnerLinesYMm — pitch_H_sobre_n", () => {
 });
 
 describe("resolveEuropeanModuleRunnerLinesYMm — Progressivas (corpo_base)", () => {
-  it("H=800 n=3 → fromBottom ≈ [41, 392.5, 712.5]", () => {
+  it("H=800 n=3 T=19 → fromBottom ≈ [41, 377.3, 682.1] (datum topo fundo)", () => {
     const H = 800;
-    const panelH = 762;
+    const T = 19;
+    const panelH = H - 2 * T;
     const n = 3;
-    const heights = calculateDrawerHeights(n, H, "top_small_mid_medium_bottom_large");
-    const positions = calculateDrawerPositions(heights, H);
+    const heights = calculateDrawerHeights(n, H, "top_small_mid_medium_bottom_large", undefined, {
+      topPanelThicknessMm: T,
+    });
+    const positions = calculateDrawerPositions(heights, H, DRAWER_VERTICAL_BASE_OFFSET_MM, {
+      floorThicknessMm: T,
+      topPanelThicknessMm: T,
+    });
     const drawers = heights.map((frontHeightMm, i) => {
       const role = resolveDrawerStackRole(i, n);
       return {
@@ -161,17 +168,17 @@ describe("resolveEuropeanModuleRunnerLinesYMm — Progressivas (corpo_base)", ()
       panelHeightMm: panelH,
       boxInternalHeightMm: H,
       boxExternalHeightMm: H,
-      floorThicknessMm: 19,
+      floorThicknessMm: T,
       heightMode: "top_small_mid_medium_bottom_large",
       drawers,
     });
     const fromBottom = fromTop.map((y) => panelH - y);
 
     expect(fromBottom[0]).toBeCloseTo(41, 5);
-    // bodyBottom GAV_2 = 322 + 48 = 370 → +22,5 = 392,5
-    expect(fromBottom[1]).toBeCloseTo(392.5, 5);
-    // bodyBottom GAV_3 = 642 + 48 = 690 → +22,5 = 712,5
-    expect(fromBottom[2]).toBeCloseTo(712.5, 5);
+    // bodyBottom GAV_2 = 306,8 + 48 = 354,8 → +22,5 = 377,3
+    expect(fromBottom[1]).toBeCloseTo(377.3, 5);
+    // bodyBottom GAV_3 = 611,6 + 48 = 659,6 → +22,5 = 682,1
+    expect(fromBottom[2]).toBeCloseTo(682.1, 5);
     expect(DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM).toBe(22.5);
   });
 

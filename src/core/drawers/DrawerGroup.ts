@@ -63,7 +63,10 @@ export function calculateDrawerHeights(
 ): number[] {
   if (count <= 0) return [];
 
-  const usable = getDrawerUsableInternalHeightMm(totalHeight);
+  const usable = getDrawerUsableInternalHeightMm(totalHeight, {
+    floorThicknessMm: options?.topPanelThicknessMm,
+    topPanelThicknessMm: options?.topPanelThicknessMm,
+  });
   const gapTotal = Math.max(0, count - 1) * DRAWER_VERTICAL_GAP_MM;
   const distributable = Math.max(1, usable - gapTotal);
 
@@ -123,15 +126,19 @@ export function calculateDrawerHeights(
 }
 
 /**
- * Calcula as posições Y das gavetas a partir da base do box
+ * Calcula as posições Y das gavetas a partir da face superior do fundo.
  */
 export function calculateDrawerPositions(
   heights: number[],
   boxHeight: number,
   baseOffset: number = DRAWER_VERTICAL_BASE_OFFSET_MM,
-  options?: { topPanelThicknessMm?: number }
+  options?: { topPanelThicknessMm?: number; floorThicknessMm?: number }
 ): number[] {
-  return resolveDrawerVerticalPositions(heights, boxHeight, baseOffset, options);
+  const T = options?.floorThicknessMm ?? options?.topPanelThicknessMm;
+  return resolveDrawerVerticalPositions(heights, boxHeight, baseOffset, {
+    floorThicknessMm: T,
+    topPanelThicknessMm: options?.topPanelThicknessMm ?? T,
+  });
 }
 
 /**
@@ -150,7 +157,10 @@ export function recalculateDrawerGroupLayout(group: DrawerGroup): DrawerGroup {
     heights,
     group.boxDimensions.height,
     DRAWER_VERTICAL_BASE_OFFSET_MM,
-    { topPanelThicknessMm: group.boxDimensions.thickness }
+    {
+      topPanelThicknessMm: group.boxDimensions.thickness,
+      floorThicknessMm: group.boxDimensions.thickness,
+    }
   );
 
   const updatedDrawers = group.drawers.map((drawer, index) => ({

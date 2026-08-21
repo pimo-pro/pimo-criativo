@@ -96,15 +96,17 @@ describe("stack dinâmico anti-sobreposição", () => {
     const layers = drawerGroupToLayerItems(group);
     const heights = layers.map((l) => l.height!);
     const positions = layers.map((l) => l.posY!);
-    const bottoms = heights.map((h, i) => positions[i]! - (-H / 2) - h / 2);
+    const floorTop = -H / 2 + T;
+    const bottoms = heights.map((h, i) => positions[i]! - floorTop - h / 2);
     const tops = bottoms.map((b, i) => b + heights[i]!);
 
     const anti = assertNoDrawerFrontOverlap({ bottoms, tops });
     expect(anti.ok).toBe(true);
 
-    expect(heights[0]).toBeCloseTo(249.3333333, 5);
-    expect(heights[1]).toBeCloseTo(251.3333333, 5);
-    expect(heights[2]).toBeCloseTo(251.3333333, 5);
+    // Interior H−2T−B0: usable=722 → equal_quase 236,667 / 238,667 / 238,667
+    expect(heights[0]).toBeCloseTo(236.6666667, 5);
+    expect(heights[1]).toBeCloseTo(238.6666667, 5);
+    expect(heights[2]).toBeCloseTo(238.6666667, 5);
     expect(heights[0]).toBeLessThan(heights[1]!);
     expect(heights[1]).toBeCloseTo(heights[2]!, 5);
 
@@ -116,18 +118,17 @@ describe("stack dinâmico anti-sobreposição", () => {
     expect(layers[2]!.bodyHeight).toBeCloseTo(heights[2]! - 68.5, 5);
     expect(layers[1]!.bodyHeight).toBeCloseTo(layers[2]!.bodyHeight!, 5);
 
-    const moduleBase = -H / 2;
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
-    expect(bodyBottom - moduleBase).toBeCloseTo(18.5, 5);
+    expect(bodyBottom - floorTop).toBeCloseTo(18.5, 5);
 
     const bodyH2 = layers[2]!.bodyHeight!;
     const offsetY2 = layers[2]!.bodyCenterOffsetY!;
     const bodyTop2 = layers[2]!.posY! + offsetY2 + bodyH2 / 2;
-    const cimaUnderside = moduleBase + H - T;
+    const cimaUnderside = floorTop + (H - 2 * T);
     const frontHTop = heights[2]!;
-    const expectedCimaClearance = frontHTop - 48 - bodyH2 - T;
+    const expectedCimaClearance = frontHTop - 48 - bodyH2;
     expect(cimaUnderside - bodyTop2).toBeCloseTo(expectedCimaClearance, 1);
 
     const geo2 = resolveDrawerFrontStackGeometry({
@@ -135,6 +136,8 @@ describe("stack dinâmico anti-sobreposição", () => {
       drawerHeights: heights,
       boxInternalHeightMm: H,
       posYMm: positions[2]!,
+      floorThicknessMm: T,
+      topPanelThicknessMm: T,
     });
     expect(geo2.flushToModuleTop).toBe(true);
 
@@ -156,16 +159,20 @@ describe("stack dinâmico anti-sobreposição", () => {
     expect(fromBottom[2]).toBeCloseTo(530, 3);
   });
 
-  it("calculateDrawerHeights equal_quase com B0=2", () => {
+  it("calculateDrawerHeights equal_quase com B0=2 (vão interior H−2T)", () => {
     const heights = calculateDrawerHeights(3, H, "equal", undefined, {
       topPanelThicknessMm: T,
     });
-    expect(heights[0]).toBeCloseTo(249.3333333, 5);
-    expect(heights[1]).toBeCloseTo(251.3333333, 5);
-    expect(heights[2]).toBeCloseTo(251.3333333, 5);
-    const positions = calculateDrawerPositions(heights, H);
-    const b0 = positions[0]! - (-H / 2) - heights[0]! / 2;
-    const b1 = positions[1]! - (-H / 2) - heights[1]! / 2;
+    expect(heights[0]).toBeCloseTo(236.6666667, 5);
+    expect(heights[1]).toBeCloseTo(238.6666667, 5);
+    expect(heights[2]).toBeCloseTo(238.6666667, 5);
+    const positions = calculateDrawerPositions(heights, H, B0, {
+      floorThicknessMm: T,
+      topPanelThicknessMm: T,
+    });
+    const floorTop = -H / 2 + T;
+    const b0 = positions[0]! - floorTop - heights[0]! / 2;
+    const b1 = positions[1]! - floorTop - heights[1]! / 2;
     expect(b0).toBeCloseTo(B0, 5);
     expect(b1 - (b0 + heights[0]!)).toBeCloseTo(4, 5);
   });

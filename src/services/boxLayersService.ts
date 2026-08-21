@@ -461,6 +461,10 @@ export function regenerateLayersForBox(
             sideBaseElevationMm:
               generatedDrawers[i].metadata?.sideBaseElevationMm ??
               existing.metadata?.sideBaseElevationMm,
+            // Modo de altura (Progressivas → guias bodyBottom+22,5).
+            heightMode:
+              generatedDrawers[i].metadata?.heightMode ??
+              existing.metadata?.heightMode,
             ...(gpsLayout
               ? {
                   frontHeightMm: gpsLayout.drawerFrontHeightMm,

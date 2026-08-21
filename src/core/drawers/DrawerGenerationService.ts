@@ -29,6 +29,7 @@ import {
   resolveDrawerBodyElevationForStackRoleMm,
 } from "./drawerStackPosition";
 import { resolveDrawerGroupPosZMm } from "./drawerViewerLayout";
+import { assertGavIndustrialSsotOrThrow } from "./drawerGeometryConstants";
 export interface DrawerGenerationConfig {
   // Box dimensions
   boxWidth: number;
@@ -74,6 +75,7 @@ export interface DrawerGenerationConfig {
  * REESCRITO: Distribuição proporcional e posicionamento correto
  */
 export function generateDrawerGroup(config: DrawerGenerationConfig): DrawerGroup {
+  assertGavIndustrialSsotOrThrow();
 
   const {
     boxWidth,
@@ -135,9 +137,10 @@ export function generateDrawerGroup(config: DrawerGenerationConfig): DrawerGroup
     }
   );
 
-  // Calcula posições Y (empilhamento vertical) — datum = boxHeight (igual ao cutlist/runner).
+  // Calcula posições Y — datum = face superior do fundo (T) + B0.
   const positions = calculateDrawerPositions(heights, boxHeight, DRAWER_VERTICAL_BASE_OFFSET_MM, {
     topPanelThicknessMm: boxThickness,
+    floorThicknessMm: boxThickness,
   });
 
   // Gera cada gaveta

@@ -8,7 +8,7 @@ import {
   extractDrawerIndustrialBomFromLayerItems,
   isDrawerPieceTipo,
 } from "../services/drawerCutlistAdapter";
-import { resolveDrawerVerticalPositions } from "../core/drawers/drawerVerticalPosition";
+import { resolveDrawerVerticalPositions, DRAWER_VERTICAL_BASE_OFFSET_MM } from "../core/drawers/drawerVerticalPosition";
 import { calculateDrawerHeights } from "../core/drawers/DrawerGroup";
 import {
   resolveDrawerSlideLength,
@@ -24,21 +24,31 @@ import {
 
 const SLIDE_TYPES = ["Blum Tandem", "Blum Movento", "Genérica"] as const;
 const CLEARANCE_VALUES = [20, 25, 30] as const;
+const BOX_T = 19;
+const BOX_H = 720;
 
 describe("Certificação — regressão industrial (snapshots)", () => {
   describe.each([1, 2, 3, 4])("gavetas normais — count=%i", (drawerCount) => {
     it("gera peças, dimensões e offsets consistentes", () => {
       const { layers, group } = buildDrawerScenario({
         boxWidth: 600,
-        boxHeight: 720,
+        boxHeight: BOX_H,
         boxDepth: 560,
+        boxThickness: BOX_T,
         drawerCount,
       });
 
       expect(layers).toHaveLength(drawerCount);
 
-      const heights = calculateDrawerHeights(drawerCount, 720, "equal");
-      const positions = resolveDrawerVerticalPositions(heights, 720);
+      const heights = calculateDrawerHeights(drawerCount, BOX_H, "equal", undefined, {
+        topPanelThicknessMm: BOX_T,
+      });
+      const positions = resolveDrawerVerticalPositions(
+        heights,
+        BOX_H,
+        DRAWER_VERTICAL_BASE_OFFSET_MM,
+        { floorThicknessMm: BOX_T, topPanelThicknessMm: BOX_T }
+      );
       layers.forEach((layer, i) => {
         expect(layer.posY).toBe(group.drawers[i].position.y);
         expect(layer.posY).toBeCloseTo(positions[i], 0);

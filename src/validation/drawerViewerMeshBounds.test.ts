@@ -84,7 +84,7 @@ function buildDrawerMeshForHeight(frontHeightMm: number) {
 }
 
 describe("viewer 3D — bounding boxes reais das meshes", () => {
-  // Single = elev industrial 16,5; Viewer flip → elev visual = delta−16,5 na base, 16,5 no topo.
+  // Single/GAV_1: sem flip — elevação industrial 16,5 na base (bodyBottom módulo = 18,5).
   const industrialElev = DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
 
   it("constante bodyBottom GAV_1 = 18,5 mm (intervalo 12,5…60)", () => {
@@ -98,7 +98,7 @@ describe("viewer 3D — bounding boxes reais das meshes", () => {
   });
 
   it.each([234, 390])(
-    "frente %i mm — single: flip visual — folga pequena na base, 16,5 no topo",
+    "frente %i mm — single: sem flip — base laterais a 16,5 mm da frente",
     (requestedHeightMm) => {
       const { drawerBody, actualFrontHeightMm: h } = buildDrawerMeshForHeight(requestedHeightMm);
       const front = findMesh(drawerBody, "drawer-front-ext")!;
@@ -110,7 +110,6 @@ describe("viewer 3D — bounding boxes reais das meshes", () => {
       const backB = meshLocalBoundsYMm(back, drawerBody);
 
       const expectedSideH = h - DRAWER_BODY_DELTA_LOWEST_MM;
-      const visualElevBottom = expectedSideH > 0 ? h - expectedSideH - industrialElev : 0;
 
       expect(frontB.heightMm).toBeCloseTo(h, 0);
       expect(sideB.heightMm).toBeCloseTo(expectedSideH, 0);
@@ -120,14 +119,13 @@ describe("viewer 3D — bounding boxes reais das meshes", () => {
       );
 
       expect(frontB.centerY).toBeCloseTo(0, 1);
-      expect(sideB.minY).toBeCloseTo(frontB.minY + visualElevBottom, 1);
-      expect(frontB.maxY - sideB.maxY).toBeCloseTo(industrialElev, 1);
+      expect(sideB.minY).toBeCloseTo(frontB.minY + industrialElev, 1);
       expect(sideB.maxY).toBeCloseTo(sideB.minY + expectedSideH, 1);
       expect(backB.minY).toBeGreaterThanOrEqual(sideB.minY - 1);
     }
   );
 
-  it("frente 234 mm pedida — single: valores concretos após flip visual", () => {
+  it("frente 234 mm pedida — single: base corpo = 16,5 mm (SSOT industrial)", () => {
     const { drawerBody, actualFrontHeightMm: h } = buildDrawerMeshForHeight(234);
     const front = findMesh(drawerBody, "drawer-front-ext")!;
     const left = findMesh(drawerBody, "drawer-left")!;
@@ -137,13 +135,11 @@ describe("viewer 3D — bounding boxes reais das meshes", () => {
 
     const half = h / 2;
     const sideH = h - DRAWER_BODY_DELTA_LOWEST_MM;
-    const visualElevBottom = h - sideH - industrialElev;
 
     expect(frontB.centerY).toBeCloseTo(0, 1);
     expect(frontB.minY).toBeCloseTo(-half, 1);
     expect(frontB.maxY).toBeCloseTo(half, 1);
-    expect(sideB.minY).toBeCloseTo(-half + visualElevBottom, 1);
-    expect(frontB.maxY - sideB.maxY).toBeCloseTo(industrialElev, 1);
+    expect(sideB.minY).toBeCloseTo(-half + industrialElev, 1);
     expect(sideB.maxY).toBeCloseTo(sideB.minY + sideH, 1);
     expect(sideB.heightMm).toBeCloseTo(sideH, 1);
   });

@@ -79,6 +79,8 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
       drawerHeights: heights,
       boxInternalHeightMm: boxH,
       posYMm: layers[0]!.posY!,
+      floorThicknessMm: T,
+      topPanelThicknessMm: T,
     });
 
     expect(geo0.frontBottomFromModuleBaseMm).toBeCloseTo(frontBottomIndustrial, 5);
@@ -94,12 +96,12 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     const frontH = layers[0]!.height!;
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
-    const moduleBase = -boxH / 2;
+    const floorTop = -boxH / 2 + T;
     const frontBottom = layers[0]!.posY! - frontH / 2;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
 
-    expect(frontBottom - moduleBase).toBeCloseTo(frontBottomIndustrial, 5);
-    expect(bodyBottom - moduleBase).toBeCloseTo(bodyBottomIndustrial, 5);
+    expect(frontBottom - floorTop).toBeCloseTo(frontBottomIndustrial, 5);
+    expect(bodyBottom - floorTop).toBeCloseTo(bodyBottomIndustrial, 5);
     expect(
       resolveDrawerBodyBottomFromModuleBaseMm({
         frontBottomFromModuleBaseMm: geo0.frontBottomFromModuleBaseMm,

@@ -101,21 +101,25 @@ describe("Diff 3 — stack frentes gavita 8", () => {
     const layers = drawerGroupToLayerItems(group);
     const heights = layers.map((l) => l.height!);
 
-    expect(heights[0]).toBeCloseTo(262, 5);
-    expect(heights[1]).toBeCloseTo(264, 5);
-    expect(heights[2]).toBeCloseTo(264, 5);
+    // Vão interior H−2T−B0: equal_quase 249,333 / 251,333 / 251,333
+    expect(heights[0]).toBeCloseTo(249.3333333, 5);
+    expect(heights[1]).toBeCloseTo(251.3333333, 5);
+    expect(heights[2]).toBeCloseTo(251.3333333, 5);
 
-    expect(layers[0]!.bodyHeight).toBeCloseTo(176.5, 5);
-    expect(layers[1]!.bodyHeight).toBeCloseTo(195.5, 5);
-    expect(layers[2]!.bodyHeight).toBeCloseTo(195.5, 5);
     expect(layers[0]!.bodyHeight).toBeCloseTo(heights[0]! - DRAWER_BODY_DELTA_LOWEST_MM, 5);
     expect(layers[1]!.bodyHeight).toBeCloseTo(heights[1]! - DRAWER_BODY_DELTA_UPPER_MM, 5);
+    expect(layers[2]!.bodyHeight).toBeCloseTo(heights[2]! - DRAWER_BODY_DELTA_UPPER_MM, 5);
 
-    expect(layers[0]!.backHeight).toBeCloseTo(153.5, 5);
-    expect(layers[1]!.backHeight).toBeCloseTo(172.5, 5);
-    expect(layers[2]!.backHeight).toBeCloseTo(172.5, 5);
     expect(layers[0]!.backHeight).toBeCloseTo(
       layers[0]!.bodyHeight! - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
+      5
+    );
+    expect(layers[1]!.backHeight).toBeCloseTo(
+      layers[1]!.bodyHeight! - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
+      5
+    );
+    expect(layers[2]!.backHeight).toBeCloseTo(
+      layers[2]!.bodyHeight! - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
       5
     );
 
@@ -123,11 +127,11 @@ describe("Diff 3 — stack frentes gavita 8", () => {
     expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(48);
     expect(layers[2]!.metadata?.sideBaseElevationMm).toBe(48);
 
-    const moduleBase = -H / 2;
+    const floorTop = -H / 2 + T;
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
-    expect(bodyBottom - moduleBase).toBeCloseTo(18.5, 5);
+    expect(bodyBottom - floorTop).toBeCloseTo(18.5, 5);
 
     const pitch = resolvePitchRunnerLinesFromBottomMm({
       boxExternalHeightMm: H,

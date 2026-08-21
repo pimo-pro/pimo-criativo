@@ -39,19 +39,40 @@ export const DRAWER_SIDE_BASE_ELEVATION_MIN_MM = 12.5;
 export const DRAWER_SIDE_BASE_ELEVATION_MAX_MM = 60;
 
 /**
+ * Offset da 1.ª frente relativamente à face superior do fundo (B0, mm).
+ * Segurança da FRENTE apenas — NÃO entra no cálculo de bodyBottom do corpo.
+ * bodyBottom GAV_1 é SSOT absoluto 18,5 (não B0+elev).
+ * “Base do módulo” = face superior do fundo (não a face inferior do painel).
+ */
+export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 2;
+
+/** Alias SSOT do stack — igual a B0 (frente). */
+export const DRAWER_STACK_BASE_OFFSET_MM =
+  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
+
+/**
  * Elevação corpo ↔ base da frente (mm) — middle / highest (e default).
  * Furos frente: elev+15 / elev+sideH−35 / rasgo elev+sideH−13.
  */
 export const DRAWER_BODY_ELEVATION_FROM_FRONT_MM = 48;
 
 /**
- * Elevação corpo ↔ frente — GAV_1 / single (verdade de fábrica).
- * bodyBottom = frontBottom(2) + 16,5 = 18,5 mm.
- * Com guia do módulo a 41 mm → dY lado↔guia = 22,5 mm.
+ * SSOT ABSOLUTO — base do corpo GAV_1 / single acima da face superior do fundo (mm).
+ * Valor industrial verdadeiro: 18,5. Não depende de frontBottom nem de 16,5.
+ * Layers + Viewer devem coincidir exactamente.
  */
-export const DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM = 16.5;
+export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM = 18.5;
 
-/** Alias de produção — default middle/highest (48). Lowest usa DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM. */
+/**
+ * Elevação corpo↔frente GAV_1 — DERIVADA (não é base SSOT).
+ * = bodyBottom(18,5) − frontBottom(2) = 16,5.
+ * Usar só para posicionar o corpo relativo à frente no Viewer/parametrics.
+ */
+export const DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM =
+  DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM -
+  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
+
+/** Alias de produção — default middle/highest (48). Lowest usa elevação derivada do bodyBottom 18,5. */
 export const DRAWER_SIDE_BASE_ELEVATION_MM = DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
 
 /**
@@ -61,17 +82,6 @@ export const DRAWER_SIDE_BASE_ELEVATION_MM = DRAWER_BODY_ELEVATION_FROM_FRONT_MM
 export const DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM = 12.5;
 
 /**
- * Offset da 1.ª frente relativamente à base do módulo (B0, mm).
- * Verdade de fábrica: frente inferior a 2 mm acima da base do vão.
- * bodyBottom(lowest) = B0 + elev_lowest = 2 + 16,5 = 18,5 mm.
- */
-export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 2;
-
-/** Alias SSOT do stack — igual a B0. */
-export const DRAWER_STACK_BASE_OFFSET_MM =
-  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
-
-/**
  * Ajuste da 1.ª frente no modo equal (equal_quase interno, mm).
  * hEqual = (distributable − ajuste) / n
  * frente(0) = hEqual + ajuste; frente(i>0) = (distributable − frente(0)) / (n−1)
@@ -79,21 +89,107 @@ export const DRAWER_STACK_BASE_OFFSET_MM =
 export const DRAWER_STACK_GAVETA1_ADJUST_MM = -2;
 
 /**
- * Base do corpo GAV_1 / single acima da base do módulo (mm).
- * = B0(2) + elev_lowest(16,5) = 18,5.
- * Datum montagem: guia módulo (41) − bodyBottom (18,5) = 22,5 mm.
- */
-export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM =
-  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM +
-  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
-
-/**
- * Datum industrial: eixo da guia acima da base do lado da gaveta (mm).
- * Montagem GAV_1: Y_guia_módulo=41 − bodyBottom=18,5 → 22,5.
- * Progressivas (i≥1): Y_guia = bodyBottom + esta constante (ex.: 500 → 522,5).
- * Não altera furos das corrediças no módulo fora desta regra.
+ * Datum industrial: eixo da guia acima da base do corpo (mm).
+ * SSOT fixo 22,5 — todas as gavetas: Y_guia = bodyBottom + 22,5.
+ * GAV_1: 18,5 + 22,5 = 41.
  */
 export const DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM = 22.5;
+
+/**
+ * SSOT sagrado — eixo da guia GAV_1 no módulo (mm).
+ * = bodyBottom(18,5) + offset(22,5) = 41. Protegido por assertGavIndustrialSsotOrThrow.
+ */
+export const DRAWER_GAV1_MODULE_GUIDE_AXIS_MM =
+  DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM +
+  DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM;
+
+/**
+ * Rev Viewer obrigatória — datum face superior do fundo (floorTop).
+ * Qualquer mesh legado sem esta rev é inválido.
+ */
+export const DRAWER_VIEWER_SSOT_LAYOUT_REV = "drawer-body-ssot-floor-top-v5";
+
+/**
+ * Progressivas H=800 T=19 — Y_guia desde o topo do fundo (vão interior).
+ * GAV_1 = 41; GAV_2/3 = bodyBottom + 22,5 com stack H−2T−B0.
+ * (Valores 392,5 / 712,5 eram do datum antigo face inferior — inválidos.)
+ */
+export const DRAWER_PROGRESSIVAS_H800_T19_GUIDE_FROM_FLOOR_TOP_MM = [
+  41, 377.3, 682.1,
+] as const;
+
+/**
+ * Protecção SSOT industrial gavetas — 18,5 / 22,5 / 41 + elev derivada 16,5 + floorTop.
+ * Alias histórico: `assertGav1IndustrialSsotOrThrow`.
+ */
+export function assertGavIndustrialSsotOrThrow(): void {
+  if (DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM !== 18.5) {
+    throw new Error(
+      `[SSOT GAV] bodyBottom deve ser 18,5 (obtido ${DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM})`
+    );
+  }
+  if (DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM !== 22.5) {
+    throw new Error(
+      `[SSOT GAV] offset guia deve ser 22,5 (obtido ${DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM})`
+    );
+  }
+  if (DRAWER_GAV1_MODULE_GUIDE_AXIS_MM !== 41) {
+    throw new Error(
+      `[SSOT GAV] Y_guia GAV_1 deve ser 41 (obtido ${DRAWER_GAV1_MODULE_GUIDE_AXIS_MM})`
+    );
+  }
+  if (DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM !== 16.5) {
+    throw new Error(
+      `[SSOT GAV] elevação derivada frente↔corpo deve ser 16,5 (obtido ${DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM})`
+    );
+  }
+  if (DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM !== 2) {
+    throw new Error(
+      `[SSOT GAV] B0 frente deve ser 2 (obtido ${DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM})`
+    );
+  }
+  // floorTop = -H/2 + T (H=800, T=19 → -381)
+  const H = 800;
+  const T = 19;
+  const floorTop = -H / 2 + T;
+  if (floorTop !== -381) {
+    throw new Error(
+      `[SSOT GAV] floorTop(-H/2+T) inválido: esperado -381, obtido ${floorTop}`
+    );
+  }
+  const [y0, y1, y2] = DRAWER_PROGRESSIVAS_H800_T19_GUIDE_FROM_FLOOR_TOP_MM;
+  if (y0 !== 41 || y1 !== 377.3 || y2 !== 682.1) {
+    throw new Error(
+      `[SSOT GAV] Progressivas H800 T19 devem ser [41, 377.3, 682.1] (obtido [${y0}, ${y1}, ${y2}])`
+    );
+  }
+}
+
+/** @deprecated Preferir `assertGavIndustrialSsotOrThrow`. */
+export function assertGav1IndustrialSsotOrThrow(): void {
+  assertGavIndustrialSsotOrThrow();
+}
+
+/**
+ * Protecção SSOT Viewer — rev floor-top-v5 + GAV_1 sem flip (elev 16,5).
+ * `layoutRev` deve coincidir com `DRAWER_VIEWER_SSOT_LAYOUT_REV`.
+ */
+export function assertGavViewerSsotOrThrow(layoutRev?: string): void {
+  assertGavIndustrialSsotOrThrow();
+  if (DRAWER_VIEWER_SSOT_LAYOUT_REV !== "drawer-body-ssot-floor-top-v5") {
+    throw new Error(
+      `[SSOT Viewer] DRAWER_VIEWER_SSOT_LAYOUT_REV deve ser drawer-body-ssot-floor-top-v5 (obtido ${DRAWER_VIEWER_SSOT_LAYOUT_REV})`
+    );
+  }
+  if (
+    layoutRev != null &&
+    layoutRev !== DRAWER_VIEWER_SSOT_LAYOUT_REV
+  ) {
+    throw new Error(
+      `[SSOT Viewer] layoutRev mesh legado/inválido: esperado ${DRAWER_VIEWER_SSOT_LAYOUT_REV}, obtido ${layoutRev}`
+    );
+  }
+}
 
 /**
  * @deprecated Folga single histórica T+18,5 — produção usa DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM (18,5).

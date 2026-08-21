@@ -467,7 +467,7 @@ export function cutlistComPrecoFromBox(
         heightMode:
           typeof sortedDrawers[0]?.metadata?.heightMode === "string"
             ? sortedDrawers[0].metadata.heightMode
-            : undefined,
+            : box.drawerHeightMode,
         drawers: sortedDrawers.map((d) => ({
           posYMm: Number(d.posY) || 0,
           frontHeightMm: Number(d.height) || 0,

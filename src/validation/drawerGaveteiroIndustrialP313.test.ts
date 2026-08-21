@@ -138,6 +138,8 @@ describe("P3.13 — gaveteiro industrial completo", () => {
         drawerHeights: heights,
         boxInternalHeightMm: boxInternalH,
         posYMm: layers[i]!.posY ?? 0,
+        floorThicknessMm: T,
+        topPanelThicknessMm: T,
       });
       const role = resolveDrawerStackRole(i, layers.length);
       expect(geo.role).toBe(role);

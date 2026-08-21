@@ -10,7 +10,7 @@ exports[`Certificação — regressão industrial (snapshots) > furação europe
   {
     "face": "A",
     "x": 8,
-    "y": 474.5,
+    "y": 436.5,
   },
   {
     "face": "A",
@@ -20,7 +20,7 @@ exports[`Certificação — regressão industrial (snapshots) > furação europe
   {
     "face": "A",
     "x": 490,
-    "y": 477.5,
+    "y": 439.5,
   },
 ]
 `;
@@ -28,9 +28,9 @@ exports[`Certificação — regressão industrial (snapshots) > furação europe
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=1 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 632.5,
+  "bodyHeight": 594.5,
   "bodyWidth": 548,
-  "height": 718,
+  "height": 680,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
@@ -47,14 +47,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=2 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 270.5,
+  "bodyHeight": 251.5,
   "bodyWidth": 548,
-  "height": 356,
+  "height": 337,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -180,
+  "posY": -170.5,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -66,14 +66,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=2 > gera peças, dimensões e offsets consistentes 2`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 289.5,
+  "bodyHeight": 270.5,
   "bodyWidth": 548,
-  "height": 358,
+  "height": 339,
   "index": 1,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 181,
+  "posY": 171.5,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -85,14 +85,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 149.83333333333334,
+  "bodyHeight": 137.16666666666666,
   "bodyWidth": 548,
-  "height": 235.33333333333334,
+  "height": 222.66666666666666,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -240.33333333333331,
+  "posY": -227.66666666666669,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -104,9 +104,9 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 2`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 168.83333333333331,
+  "bodyHeight": 156.16666666666669,
   "bodyWidth": 548,
-  "height": 237.33333333333331,
+  "height": 224.66666666666669,
   "index": 1,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
@@ -123,14 +123,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=3 > gera peças, dimensões e offsets consistentes 3`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 168.83333333333331,
+  "bodyHeight": 156.16666666666669,
   "bodyWidth": 548,
-  "height": 237.33333333333331,
+  "height": 224.66666666666669,
   "index": 2,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 241.3333333333333,
+  "posY": 228.6666666666667,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -142,14 +142,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 1`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 89.5,
+  "bodyHeight": 80,
   "bodyWidth": 548,
-  "height": 175,
+  "height": 165.5,
   "index": 0,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -270.5,
+  "posY": -256.25,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -161,14 +161,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 2`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 108.5,
+  "bodyHeight": 99,
   "bodyWidth": 548,
-  "height": 177,
+  "height": 167.5,
   "index": 1,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": -90.5,
+  "posY": -85.75,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -180,14 +180,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 3`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 108.5,
+  "bodyHeight": 99,
   "bodyWidth": 548,
-  "height": 177,
+  "height": 167.5,
   "index": 2,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 90.5,
+  "posY": 85.75,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",
@@ -199,14 +199,14 @@ exports[`Certificação — regressão industrial (snapshots) > gavetas normais 
 exports[`Certificação — regressão industrial (snapshots) > gavetas normais — count=4 > gera peças, dimensões e offsets consistentes 4`] = `
 {
   "bodyDepth": 500,
-  "bodyHeight": 108.5,
+  "bodyHeight": 99,
   "bodyWidth": 548,
-  "height": 177,
+  "height": 167.5,
   "index": 3,
   "metalBoxType": "Nenhuma",
   "nominalDepth": 500,
   "posX": 0,
-  "posY": 271.5,
+  "posY": 257.25,
   "posZ": 271.5,
   "pullDistanceMm": 500,
   "slideType": "Hettich Quadro V6 You M Silent System",

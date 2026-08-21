@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/assertDrawerSsot.mjs",
     "build": "tsc -b && vite build && node scripts/copyDeployApiToDist.mjs",
+    "test:ssot": "node scripts/assertDrawerSsot.mjs",
     "publish": "node scripts/releaseNotesPublishFlow.js publish",
     "deploy": "npm run build && git add . && git commit -m \"Auto deploy\" && git push origin main && node scripts/releaseNotesPublishFlow.js deploy",
     "release:daily": "node scripts/releaseNotesDailyBuilder.js",

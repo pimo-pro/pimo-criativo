@@ -87,6 +87,8 @@ export type DrawerLayerMetadata = {
   hardwareSource?: "global" | "individual";
   /** Elevação da base dos laterais acima da base do módulo (mm). */
   sideBaseElevationMm?: number;
+  /** Modo de altura do stack (ex.: Progressivas) — usado nas guias do módulo. */
+  heightMode?: string;
 };
 
 export interface DrawerLayerItem {

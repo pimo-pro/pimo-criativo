@@ -47,15 +47,21 @@ import {
   DRAWER_LAT_GROOVE_TOP_WIDTH_MM,
   DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
-  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM,
+  DRAWER_GAV1_MODULE_GUIDE_AXIS_MM,
+  assertGav1IndustrialSsotOrThrow,
+  assertGavIndustrialSsotOrThrow,
 } from "../drawerGeometryConstants";
 import {
   CAVILHA_10x40_FERRAGEM_ID,
   CAVILHA_EDGE_HOLE_TYPE_ID,
   CAVILHA_FACE_HOLE_TYPE_ID,
 } from "../../drill/cavilha10x40Rule";
-import { resolveDrawerStackRole, type DrawerStackRole } from "../drawerStackPosition";
+import {
+  resolveDrawerBodyElevationForStackRoleMm,
+  resolveDrawerStackRole,
+  type DrawerStackRole,
+} from "../drawerStackPosition";
 import {
   clampDrawerFaceDowelDepthMm,
   DRAWER_DOWEL_DIAMETER_MM,
@@ -442,11 +448,11 @@ const DRAWER_UPPER_SLIDE_AXIS_FROM_BOTTOM_MM = 22.5;
 export type CorredicaModoCalculoY =
   | "pitch_H_sobre_n"
   | "eixo_desde_frente"
-  /** Progressivas: GAV_1=41; i≥1 → bodyBottom + 22,5. */
+  /** Progressivas: Y_guia = bodyBottom + 22,5 (todas as gavetas; GAV_1 → 41). */
   | "eixo_desde_corpo_base";
 
 /** Defaults industriais (gavita 8 / drill certo) — sem schema Admin nesta fase. */
-export const DEFAULT_CORREDICA_EIXO_GAVETA1_MM = 41;
+export const DEFAULT_CORREDICA_EIXO_GAVETA1_MM = DRAWER_GAV1_MODULE_GUIDE_AXIS_MM;
 export const DEFAULT_CORREDICA_DESCONTO_PAINEL_MM = 19;
 export const DEFAULT_CORREDICA_MODO_CALCULO_Y: CorredicaModoCalculoY =
   "pitch_H_sobre_n";
@@ -488,7 +494,7 @@ export function resolvePitchRunnerLinesFromBottomMm(params: {
  *   Y_from_bottom(i) = 41 + i·(H_ext/n) − T   (i ≥ 1)
  *
  * Progressivas (`eixo_desde_corpo_base` ou heightMode Progressivas):
- *   Y(0) = 41 · Y(i≥1) = bodyBottom + 22,5
+ *   Y(i) = bodyBottom_i + 22,5  (GAV_1: 18,5+22,5=41)
  *
  * Legado (`eixo_desde_frente`): base da frente + 41/22,5 − B0.
  * Clamp: nunca < 41 mm às arestas inferior/superior do painel.
@@ -541,22 +547,41 @@ export function resolveEuropeanModuleRunnerLinesYMm(params: {
       return panelH - y;
     });
 
-  // --- Progressivas: GAV_1=41; superiores = bodyBottom + 22,5 ---
+  // --- Progressivas: Y_guia = bodyBottom + 22,5 (GAV_1 → 41 absoluto) ---
+  // Datum bodyBottom = face superior do fundo (−H/2 + T), igual ao Viewer/stack.
   if (useCorpoBase && drawerCount > 0) {
+    assertGavIndustrialSsotOrThrow();
     const H =
       params.boxExternalHeightMm != null && Number.isFinite(params.boxExternalHeightMm)
         ? Number(params.boxExternalHeightMm)
         : Math.max(1, params.boxInternalHeightMm);
-    const moduleBase = -H / 2;
+    const floorT = Math.max(
+      0,
+      Number(
+        params.floorThicknessMm ??
+          params.corredicaDescontoPainelMm ??
+          0
+      ) || 0
+    );
+    if (!(floorT > 0)) {
+      throw new Error(
+        "[SSOT Progressivas] floorThicknessMm obrigatório (datum = face superior do fundo; sem -H/2)"
+      );
+    }
+    const floorTopY = -H / 2 + floorT;
     const offsetMm = DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM;
     const fromBottom = sorted.map((d, i) => {
-      if (i === 0) return eixo1;
+      const role = resolveDrawerStackRole(i, drawerCount);
+      // GAV_1 / single: Y_guia = 18,5 + 22,5 = 41 (SSOT absoluto, sem frontBottom)
+      if (role === "lowest" || role === "single") {
+        return DRAWER_GAV1_MODULE_GUIDE_AXIS_MM;
+      }
       const frontH = Math.max(0, Number(d.frontHeightMm) || 0);
-      const frontBottom = Number(d.posYMm) - moduleBase - frontH / 2;
+      const frontBottom = Number(d.posYMm) - floorTopY - frontH / 2;
       const elev =
         d.sideBaseElevationMm != null && Number.isFinite(d.sideBaseElevationMm)
           ? Number(d.sideBaseElevationMm)
-          : DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+          : resolveDrawerBodyElevationForStackRoleMm(role);
       return frontBottom + elev + offsetMm;
     });
     return toFromTop(fromBottom);

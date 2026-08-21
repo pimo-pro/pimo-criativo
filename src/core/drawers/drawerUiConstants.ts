@@ -30,7 +30,7 @@ export const DRAWER_METAL_BOX_TYPES: readonly DrawerMetalBoxType[] = [
 ] as const;
 
 /**
- * Restrição industrial temporária (KHALED-PRO): único sistema de corrediça ativo é
+ * Restrição industrial temporária: único sistema de corrediça ativo é
  * "Hettich Quadro V6 You M Silent System" (madeira) / "Hettich AvanTech" (caixa metálica,
  * junto com "Nenhuma"). Todos os outros aparecem como "EM BREVE" na UI e não são
  * selecionáveis. Não altera geometria/drilling — apenas seleção/validação.

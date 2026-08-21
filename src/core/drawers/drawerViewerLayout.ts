@@ -9,6 +9,7 @@ import {
   DRAWER_SIDE_BASE_ELEVATION_MM,
   DRAWER_SIDE_HEIGHT_RATIO,
   DRAWER_SIDE_TOP_CLEARANCE_RATIO,
+  assertGavViewerSsotOrThrow,
 } from "./drawerGeometryConstants";
 import { resolveDrawerWoodBodyHeightForStackRoleMm } from "./drawerSolidWorksStackGeometry";
 import { isMetalBoxCatalogType } from "./drawerMetalBoxCatalog";
@@ -32,8 +33,7 @@ export type DrawerViewerPieceBox = {
 
 /** Folga vertical no topo da frente (mm) — 25% da altura da frente. */
 export function resolveDrawerSideTopClearanceMm(frontHeightMm: number): number {
-  const frontH = Math.max(0, Number(frontHeightMm));
-  return frontH * DRAWER_SIDE_TOP_CLEARANCE_RATIO;
+  return Math.max(0, Number(frontHeightMm)) * DRAWER_SIDE_TOP_CLEARANCE_RATIO;
 }
 
 /** Elevação da base das laterais acima da base da frente (mm), clamp 12,5–22. */
@@ -174,9 +174,9 @@ export function resolveDrawerViewerInternalWidthMm(
   return Math.max(0, Number(bodyWidthMm)) + 2 * Math.max(0, wallGapMm);
 }
 
-/** Posição Y do centro da lateral — base elevada acima da base da frente (coords locais, mm). */
 /** Posição Y do centro da lateral (âncora = centro da frente, mm).
  * `baseElevationMm` é confiável: industrial (já clampado) ou visual pós-flip (pode ser > MAX).
+ * Datum absoluto do stack = floorTop (−H/2+T); esta função é relativa à frente.
  */
 export function resolveDrawerViewerSidePosYMm(
   frontPosYMm: number,
@@ -184,6 +184,7 @@ export function resolveDrawerViewerSidePosYMm(
   sideHeightMm: number,
   baseElevationMm?: number
 ): number {
+  assertGavViewerSsotOrThrow();
   const elevation =
     baseElevationMm != null && Number.isFinite(baseElevationMm)
       ? Math.max(0, Number(baseElevationMm))

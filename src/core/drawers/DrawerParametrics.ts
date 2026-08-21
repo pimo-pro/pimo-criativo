@@ -371,10 +371,13 @@ export function calculateDrawerSpecs(
   );
   const bodyHeight =
     metalBoxEnabled && resolvedMetalHeight > 0 ? resolvedMetalHeight : woodBodyHeight;
+  // GAV_1 / single: elevação SSOT 16,5 — overrides não podem alterar bodyBottom 18,5.
   const sideElev =
-    overrides?.sideBaseElevationMm != null && Number.isFinite(overrides.sideBaseElevationMm)
-      ? overrides.sideBaseElevationMm
-      : resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness);
+    stackRole === "lowest" || stackRole === "single"
+      ? resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness)
+      : overrides?.sideBaseElevationMm != null && Number.isFinite(overrides.sideBaseElevationMm)
+        ? overrides.sideBaseElevationMm
+        : resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness);
   const bodyCenterOffsetY = resolveDrawerBodyCenterOffsetYMm(
     frontHeight,
     woodBodyHeight,

@@ -178,7 +178,7 @@ export function validateDrawerLayerItem(
   const softClose = drawer.softClose ?? settings.gavetaSoftClose;
   const nominalDepth = drawer.metadata?.nominalDepth ?? drawer.depth;
 
-  // Restrição industrial temporária (KHALED-PRO): apenas Quadro V6 / AvanTech ativos.
+  // Restrição industrial temporária: apenas Quadro V6 / AvanTech ativos.
   if (!isDrawerSlideTypeActive(slideType)) {
     alerts.push({
       level: "error",
