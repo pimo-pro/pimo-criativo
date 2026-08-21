@@ -2,6 +2,18 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-21T13:14:45.647Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(drawers): remover import SSOT não usado (build tsc)",
+      "version": "v6.0821.1414"
+    },
+    {
+      "publishedAt": "2026-08-21T13:13:05.123Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(drawers): SSOT floorTop + proteções industriais/Viewer (18,5/22,5/41)",
+      "version": "v6.0821.1413"
+    },
+    {
       "publishedAt": "2026-08-20T16:28:18.699Z",
       "author": "pimo-pro",
       "commitMessage": "fix(viewer): silenciar TS6133 em wrappers privados do ViewerCore para desbloquear build de deploy",

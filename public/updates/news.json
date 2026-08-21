@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-20T16:28:19.803Z",
+  "updatedAt": "2026-08-21T13:14:46.555Z",
   "news": [
+    {
+      "version": "v6.0821.1414",
+      "title": "fix(drawers): remover import SSOT não usado (build tsc)",
+      "description": "fix(drawers): remover import SSOT não usado (build tsc)",
+      "publishedAt": "2026-08-21T13:14:46.409Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "703e8896"
+    },
+    {
+      "version": "v6.0821.1413",
+      "title": "fix(drawers): SSOT floorTop + proteções industriais/Viewer (18,5/22,5/41)",
+      "description": "fix(drawers): SSOT floorTop + proteções industriais/Viewer (18,5/22,5/41)",
+      "publishedAt": "2026-08-21T13:13:05.998Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "3467edb0"
+    },
     {
       "version": "v6.0820.1728",
       "title": "fix(viewer): silenciar TS6133 em wrappers privados do ViewerCore para desbloquear build de deploy",
       "description": "fix(viewer): silenciar TS6133 em wrappers privados do ViewerCore para desbloquear build de deploy",
-      "publishedAt": "2026-08-20T16:28:19.638Z",
+      "publishedAt": "2026-08-20T17:30:12+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "5e095c37"
+      "commit": "202e0c9"
     },
     {
       "version": "v6.0820.1115",
