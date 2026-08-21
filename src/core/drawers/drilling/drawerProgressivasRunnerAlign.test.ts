@@ -39,6 +39,8 @@ describe("Progressivas — Y_guia = bodyBottom + 22,5 (drilling ≡ Viewer datum
       drawerSettings: settingsDefaults.gavetas,
       espessuraCostaMm: 10,
       costaAtiva: true,
+      // Progressivas SSOT [41, 377.3, 682.1] = vão interior H−2T + floorTop
+      interiorFrontStack: true,
     });
     const layers = drawerGroupToLayerItems(group);
     const heights = layers.map((l) => l.height!);

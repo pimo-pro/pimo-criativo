@@ -40,6 +40,7 @@ describe("Viewer sync — Progressivas via drawerHeightMode (não pitch)", () =>
       drawerSettings: settingsDefaults.gavetas,
       espessuraCostaMm: 10,
       costaAtiva: true,
+      interiorFrontStack: true,
     });
     let layers = drawerGroupToLayerItems(group);
     if (opts?.stripHeightModeMeta) {
