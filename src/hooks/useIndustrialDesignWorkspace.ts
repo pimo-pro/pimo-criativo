@@ -159,6 +159,29 @@ export function useIndustrialDesignWorkspace({
     viewerApi.setIndustrialDesignActiveHoleType?.(selectedHoleTypeId);
   }, [insertOnClick, selectedHoleTypeId, viewerApi]);
 
+  /**
+   * Auto-reparação por polling: insertOnClick (intenção do utilizador) é a
+   * única fonte de verdade. Um useEffect normal, gatilhado por array de
+   * dependências, não chega a correr de novo se nenhuma das dependências
+   * muda de referência (confirmado: o modo pode ficar enabled=false sem
+   * insertOnClick/selectedHoleTypeId/viewerApi mudarem). Por isso corrigimos
+   * por leitura periódica do estado real do viewer, não por reação a uma
+   * mudança que pode nunca ser detetada pelo React.
+   */
+  useEffect(() => {
+    if (!insertOnClick) return;
+    const id = setInterval(() => {
+      if (!isViewerApiReady(viewerApi)) return;
+      if (viewerApi.getIndustrialDesignWorkspaceEnabled?.() === false) {
+        viewerApi.setIndustrialDesignWorkspaceEnabled?.(true);
+        viewerApi.setPanelRenderingEnabled?.(true);
+        viewerApi.setPanelEdgesVisible?.(true);
+        viewerApi.setIndustrialDesignActiveHoleType?.(selectedHoleTypeId);
+      }
+    }, 300);
+    return () => clearInterval(id);
+  }, [insertOnClick, selectedHoleTypeId, viewerApi]);
+
   const viewerReady = isViewerApiReady(viewerApi);
 
   useEffect(() => {
@@ -216,7 +239,12 @@ export function useIndustrialDesignWorkspace({
       viewerApi.setOnIndustrialDesignValidationFailed?.(null);
       viewerApi.setIndustrialDesignWorkspaceEnabled?.(false);
       viewerApi.setIndustrialDesignActiveHoleType?.(null);
-      setInsertOnClickState(false);
+      // Não repor insertOnClick aqui: é a intenção do utilizador, não estado
+      // derivado do viewer. Repor a false nesta cleanup apagava-a sempre que
+      // este efeito reexecutava (mesmo sem ação do utilizador), sem nada a
+      // restaurar depois — o polling de auto-reparação abaixo trata de
+      // reativar o enabled do viewer; insertOnClick só muda por ação directa
+      // do utilizador (setInsertOnClick).
     };
   }, [enabled, viewerApi, viewerReady, workspaceBox]);
 
