@@ -73,9 +73,23 @@ export default function PimoDrillPage() {
 
           <div style={panelStyle}>
             {viewMode === '2d' ? (
-              <PimoDrillViewer2D piece={piece} holes={design.holesView} />
+              <PimoDrillViewer2D
+                piece={piece}
+                holes={design.holesView}
+                activeTool={activeTool}
+                selectedHoleId={design.selectedHoleId}
+                onSelectHole={design.selectHole}
+                onPlaceHole={design.addHoleAt}
+              />
             ) : (
-              <PimoDrillViewer3D piece={piece} holes={design.holesView} />
+              <PimoDrillViewer3D
+                piece={piece}
+                holes={design.holesView}
+                activeTool={activeTool}
+                selectedHoleId={design.selectedHoleId}
+                onSelectHole={design.selectHole}
+                onPlaceHole={design.addHoleAt}
+              />
             )}
           </div>
         </div>

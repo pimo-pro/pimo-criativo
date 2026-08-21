@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 
-import { HOLE_CATALOG, type HoleTypeId } from '@/core/drill/holeCatalog';
+import { HOLE_CATALOG, type HoleFaceKind, type HoleTypeId } from '@/core/drill/holeCatalog';
 import type { DesignValidationIssue } from '@/core/industrialDesigner';
 
 import {
@@ -181,7 +181,87 @@ export default function PimoDrillLeftPanel({
 
       <section style={{ display: 'grid', gap: 10 }}>
         <h3 style={sectionTitleStyle}>Parâmetros — {toolLabel}</h3>
-        {dynamicFields.length === 0 ? (
+        {design.selectedHoleId && design.selectedHoleSnapshot ? (
+          <>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 11, color: '#22d3ee' }}>
+                A editar furo (
+                {design.selectedHoleSnapshot.kind === 'catalog' ? 'catálogo' : 'custom'})
+              </span>
+              <button
+                type="button"
+                onClick={() => design.selectHole(null)}
+                style={{ ...toolBtnStyle(false), height: 26, fontSize: 11, padding: '0 8px' }}
+              >
+                Novo furo
+              </button>
+            </div>
+            <label style={fieldLabelStyle}>
+              X (mm)
+              <input
+                type="number"
+                value={design.selectedHoleSnapshot.xMm}
+                onChange={(e) =>
+                  design.updateSelectedHole({ xMm: Number(e.target.value) || 0 })
+                }
+                style={fieldInputStyle}
+              />
+            </label>
+            <label style={fieldLabelStyle}>
+              Y (mm)
+              <input
+                type="number"
+                value={design.selectedHoleSnapshot.yMm}
+                onChange={(e) =>
+                  design.updateSelectedHole({ yMm: Number(e.target.value) || 0 })
+                }
+                style={fieldInputStyle}
+              />
+            </label>
+            <label style={fieldLabelStyle}>
+              Ø (mm)
+              <input
+                type="number"
+                value={design.selectedHoleSnapshot.diameterMm}
+                onChange={(e) =>
+                  design.updateSelectedHole({ diameterMm: Number(e.target.value) || 0 })
+                }
+                style={fieldInputStyle}
+              />
+            </label>
+            <label style={fieldLabelStyle}>
+              Profundidade (mm)
+              <input
+                type="number"
+                value={design.selectedHoleSnapshot.depthMm}
+                onChange={(e) =>
+                  design.updateSelectedHole({ depthMm: Number(e.target.value) || 0 })
+                }
+                style={fieldInputStyle}
+              />
+            </label>
+            <label style={fieldLabelStyle}>
+              Face
+              <select
+                value={design.selectedHoleSnapshot.face}
+                onChange={(e) =>
+                  design.updateSelectedHole({ face: e.target.value as HoleFaceKind })
+                }
+                style={fieldInputStyle}
+              >
+                <option value="face">face</option>
+                <option value="espessura">espessura</option>
+              </select>
+            </label>
+          </>
+        ) : dynamicFields.length === 0 ? (
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted, #94a3b8)' }}>
             Modo de vista · sem parâmetros de feature
           </p>
@@ -291,42 +371,12 @@ export default function PimoDrillLeftPanel({
           </p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
-            {design.holes.map(({ panelId, hole }) => (
-              <li
-                key={hole.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  background: 'rgba(255,255,255,0.04)',
-                  fontSize: 11,
-                  color: '#e2e8f0',
-                }}
-              >
-                <span>{design.formatHoleLabel(hole)}</span>
-                <button
-                  type="button"
-                  title="Remover furo"
-                  onClick={() => design.removeHole(panelId, hole.id)}
-                  style={{
-                    ...toolBtnStyle(false),
-                    width: 28,
-                    height: 28,
-                    fontSize: 11,
-                  }}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-            {design.customHoles.map((hole) => {
-              const local = design.localCatalog.find((l) => l.id === hole.localHoleTypeId);
+            {design.holes.map(({ panelId, hole }) => {
+              const isSelected = design.selectedHoleId === hole.id;
               return (
                 <li
                   key={hole.id}
+                  onClick={() => design.selectHole(hole.id)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -334,9 +384,56 @@ export default function PimoDrillLeftPanel({
                     gap: 8,
                     padding: '6px 8px',
                     borderRadius: 6,
-                    background: 'rgba(249, 115, 22, 0.08)',
+                    background: isSelected
+                      ? 'rgba(34, 211, 238, 0.16)'
+                      : 'rgba(255,255,255,0.04)',
+                    outline: isSelected ? '1px solid #22d3ee' : 'none',
                     fontSize: 11,
                     color: '#e2e8f0',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>{design.formatHoleLabel(hole)}</span>
+                  <button
+                    type="button"
+                    title="Remover furo"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      design.removeHole(panelId, hole.id);
+                    }}
+                    style={{
+                      ...toolBtnStyle(false),
+                      width: 28,
+                      height: 28,
+                      fontSize: 11,
+                    }}
+                  >
+                    ×
+                  </button>
+                </li>
+              );
+            })}
+            {design.customHoles.map((hole) => {
+              const local = design.localCatalog.find((l) => l.id === hole.localHoleTypeId);
+              const isSelected = design.selectedHoleId === hole.id;
+              return (
+                <li
+                  key={hole.id}
+                  onClick={() => design.selectHole(hole.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    background: isSelected
+                      ? 'rgba(34, 211, 238, 0.16)'
+                      : 'rgba(249, 115, 22, 0.08)',
+                    outline: isSelected ? '1px solid #22d3ee' : 'none',
+                    fontSize: 11,
+                    color: '#e2e8f0',
+                    cursor: 'pointer',
                   }}
                 >
                   <span>
@@ -346,7 +443,10 @@ export default function PimoDrillLeftPanel({
                   <button
                     type="button"
                     title="Remover furo custom"
-                    onClick={() => design.removeCustomHole(hole.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      design.removeCustomHole(hole.id);
+                    }}
                     style={{
                       ...toolBtnStyle(false),
                       width: 28,

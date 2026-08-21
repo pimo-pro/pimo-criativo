@@ -101,3 +101,49 @@ export function listDesignHoles(
   }
   return rows;
 }
+
+/**
+ * Actualiza um DesignDrillHole existente in-place (preserva o id) — usado pela
+ * edição em direto de furos seleccionados no pimo-drill. Não passa por
+ * addDesignDrillHole/removeDesignDrillHole (que geram sempre id novo).
+ */
+export function updateDesignBoxHoleInPlace(
+  designBox: IndustrialDesignBox,
+  panelId: string,
+  holeId: string,
+  patch: Partial<Pick<DesignDrillHole, 'holeTypeId' | 'xMm' | 'yMm' | 'face'>>,
+): IndustrialDesignBox {
+  return {
+    ...designBox,
+    panels: designBox.panels.map((panel) =>
+      panel.id !== panelId
+        ? panel
+        : {
+            ...panel,
+            drillHoles: panel.drillHoles.map((hole) =>
+              hole.id === holeId ? { ...hole, ...patch } : hole,
+            ),
+          },
+    ),
+  };
+}
+
+/**
+ * Insere um DesignDrillHole com id explícito (preservado) — usado ao "promover"
+ * um furo custom para catálogo durante a edição em direto, mantendo o mesmo id
+ * para a selecção não saltar.
+ */
+export function insertDesignBoxHoleWithId(
+  designBox: IndustrialDesignBox,
+  panelId: string,
+  hole: DesignDrillHole,
+): IndustrialDesignBox {
+  return {
+    ...designBox,
+    panels: designBox.panels.map((panel) =>
+      panel.id === panelId
+        ? { ...panel, drillHoles: [...panel.drillHoles, hole] }
+        : panel,
+    ),
+  };
+}
