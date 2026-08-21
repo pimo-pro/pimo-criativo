@@ -989,6 +989,22 @@ export function createDrawerObject(
         combinedFrontThicknessMm: combinedFrontMm,
         floorThicknessMm: (spec.bottomThicknessM ?? 0.01) * 1000,
         backThicknessMm: (spec.backThicknessM ?? 0.016) * 1000,
+        // Fase C: Viewer herda SSOT industrial (não recalcula floorWidth/Depth).
+        bottomWidthMm:
+          spec.bottomWidthM != null && spec.bottomWidthM > 0
+            ? spec.bottomWidthM * 1000
+            : undefined,
+        bottomDepthMm:
+          spec.bottomDepthM != null && spec.bottomDepthM > 0
+            ? spec.bottomDepthM * 1000
+            : undefined,
+        bottomPosZMm: Number.isFinite(spec.bottomPosZ)
+          ? (spec.bottomPosZ as number) * 1000
+          : undefined,
+        backWidthMm:
+          spec.backWidthM != null && spec.backWidthM > 0
+            ? spec.backWidthM * 1000
+            : undefined,
       });
 
       if (spec.leftSideWidthM && spec.leftSideHeightM && spec.leftSideDepthM) {
@@ -1044,7 +1060,7 @@ export function createDrawerObject(
         const bottom = panelFactory.createPanel(
           spec.bottomWidthM,
           spec.bottomThicknessM,
-          viewerBodyDepthM,
+          spec.bottomDepthM,
           `drawer-bottom-${spec.id}`,
           "bottom",
           { singleMaterial: bodyPanelMaterial }
@@ -1052,7 +1068,9 @@ export function createDrawerObject(
         bottom.position.set(
           Number.isFinite(spec.bottomPosX) ? (spec.bottomPosX as number) : 0,
           resolveSpecBottomCenterYM(spec),
-          bodyCenterZm
+          Number.isFinite(spec.bottomPosZ)
+            ? (spec.bottomPosZ as number)
+            : bodyCenterZm
         );
         applyDrawerBodyPartIdentity(bottom, "bottom");
         drawerGroup.add(bottom);

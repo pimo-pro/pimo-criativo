@@ -65,14 +65,14 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     );
     expect(specs.gaps.bottomSlots).toEqual({
       front: 10,
-      sides: 10,
+      sides: 9,
       back: 16,
     });
   });
 
-  it("exemplo industrial: vão 1000, bodyDepth 500, costa 16 → fundo 1020×516", () => {
+  it("exemplo industrial: vão 1000, bodyDepth 500, costa 16 → fundo 1018×516", () => {
     // backWidth = boxInternal - 2*folgaLateral(7) - 2*sideT(16) = 1046 - 14 - 32 = 1000
-    // sideDepth = 500 - 10 = 490; width = 1000+20; depth = 490+10+16
+    // sideDepth = 500 - 10 = 490; width = 1000+18; depth = 490+10+16
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 1046,
@@ -93,7 +93,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
       { nominalDepthMm: 500 }
     );
     expect(specs.back.width).toBe(1000);
-    expect(specs.bottom.width).toBe(1020);
+    expect(specs.bottom.width).toBe(1018);
     expect(specs.bottom.height).toBe(516);
     expect(specs.back.height).toBeCloseTo(
       specs.leftSide.height - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
@@ -101,9 +101,9 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     );
   });
 
-  it("caso 550×500 (T=19, laterais/costa 16): gav_fundo = 486×466", () => {
+  it("caso 550×500 (T=19, laterais/costa 16): gav_fundo = 484×466", () => {
     // L int 512; bodyWidth 498; vão 466; slide 450; sideDepth 440
-    // width 466+20=486; depth 440+10+16=466
+    // width 466+18=484; depth 440+10+16=466
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 550 - 2 * 19,
@@ -125,13 +125,13 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     );
     expect(specs.back.width).toBe(466);
     expect(specs.leftSide.depth).toBe(440);
-    expect(specs.bottom.width).toBe(486);
+    expect(specs.bottom.width).toBe(484);
     expect(specs.bottom.height).toBe(466);
     expect(specs.bottom.thickness).toBe(10);
 
     // Pipeline: layer/cutlist herdam as mesmas dims (Viewer + industrial)
-    expect(specs.gaps.bottomSlots).toEqual({ front: 10, sides: 10, back: 16 });
-    expect(specs.bottom.width).toBe(specs.back.width + 20);
+    expect(specs.gaps.bottomSlots).toEqual({ front: 10, sides: 9, back: 16 });
+    expect(specs.bottom.width).toBe(specs.back.width + 18);
     expect(specs.bottom.height).toBe(specs.leftSide.depth + 10 + 16);
   });
 

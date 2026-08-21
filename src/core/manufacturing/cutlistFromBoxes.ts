@@ -680,6 +680,7 @@ export function cutlistComPrecoFromBox(
           drawerBodyWidthMm: drawerRules?.bodyWidthMm,
           drawerSideThicknessMm: drawerRules?.sideThicknessMm,
           drawerBottomThicknessMm: drawerRules?.bottomThicknessMm,
+          drawerBottomWidthMm: drawerRules?.bottomWidthMm,
           drawerSideBaseElevationMm: sideElevResolved,
           drawerStackRole: stackRole,
           isLowestDrawer:

@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-21",
+    versao: "gav-fundo-ssot-v2",
+    descricao:
+      "gav_fundo SSOT v2 — largura costa+18 (entrada lateral 9); profundidade sideDepth+10+T_costa; datum Z traseira flush; Viewer herda bottomWidth/Depth/PosZ; rasgo frente TypeNo=3 alinhado ao bottomWidth (550×500 → 484×466).",
+  },
+  {
     data: "2026-08-17",
     versao: "tampo-industrial-v1",
     descricao:

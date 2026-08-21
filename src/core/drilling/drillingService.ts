@@ -76,6 +76,8 @@ type PieceInput = {
   drawerSideThicknessMm?: number;
   /** Espessura do fundo (mm) — profundidade do rasgo = T+1. */
   drawerBottomThicknessMm?: number;
+  /** Largura SSOT do gav_fundo (mm) — comprimento do rasgo na frente. */
+  drawerBottomWidthMm?: number;
   /** Elevação da base das laterais vs frente (mm). */
   drawerSideBaseElevationMm?: number;
   /** Se false, desativa explicitamente os furos de prateleira para a peça. */
@@ -514,6 +516,7 @@ function calcDrawerStructural(piece: PieceInput, out: TechnicalDrillHole[]) {
       sideThicknessMm: sideT,
       bottomThicknessMm: bottomT,
       sideBaseElevationMm: piece.drawerSideBaseElevationMm,
+      bottomWidthMm: piece.drawerBottomWidthMm,
     });
     out.push(...holes);
   } else if (piece.tipo === "gaveta_frente_int" || piece.tipo === "gaveta_frente") {

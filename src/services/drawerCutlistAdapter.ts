@@ -332,6 +332,7 @@ export function drawerLayerItemToCutList(
     bodyWidthMm: item.bodyWidth,
     sideThicknessMm: sideThickness,
     bottomThicknessMm: bottomMaterial.thicknessMm,
+    bottomWidthMm: item.bottomWidth,
     stackRole,
     drawerCount: stackCount,
     frontHeightMm: resolvedFrontHeightMm,

@@ -12,6 +12,7 @@ import {
   computeDrawerLateralStructuralHoles,
 } from "../drawers/drilling/DrawerDrillingRules";
 import { computeDrawerLowestFrenteExtFixedHoles } from "../drawers/drilling/drawerLowestFrenteExtFixedHoles.legacy";
+import { resolveDrawerBottomWidthFromBodyMm } from "../drawers/drawerGeometryConstants";
 import { settingsDefaults } from "../settings/settingsSchema";
 
 function xmlFor(
@@ -215,9 +216,9 @@ describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
     expect(xml).toContain("<X1>33.00</X1>");
     expect(xml).toContain(`<Y1>${lowerY.toFixed(2)}</Y1>`);
     expect(xml).toContain(`<Y1>${upperY.toFixed(2)}</Y1>`);
-    // Rasgo alinhado ao gav_fundo (bottomWidth = bodyWidth − 2×(16−10)), não ao bodyWidth.
+    // Rasgo = SSOT gav_fundo (Fase D).
     const bodyWidthMm = L - 50;
-    const bottomWidthMm = bodyWidthMm - 2 * (16 - 10);
+    const bottomWidthMm = resolveDrawerBottomWidthFromBodyMm(bodyWidthMm, 16);
     const grooveOverhang = (L - bottomWidthMm) / 2;
     expect(xml).toContain(`<BeginX>${grooveOverhang.toFixed(2)}</BeginX>`);
     expect(xml).toContain(`<EndX>${(grooveOverhang + bottomWidthMm).toFixed(2)}</EndX>`);

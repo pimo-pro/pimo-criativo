@@ -1,5 +1,17 @@
 # Novidades do Sistema
 
+### Release — gav_fundo SSOT v2 (Fases A–D)
+Consolidação industrial do fundo da gaveta: largura, posicionamento, Viewer e rasgo da frente alinhados ao mesmo SSOT.
+
+- **Largura (X):** costa + 18 mm (`DRAWER_BOTTOM_SIDE_ENTRY_MM = 9` por lado; rasgo CAD lateral Depth 10 com folga ~1 mm)
+- **Profundidade (Y):** sideDepth + 10 (frente) + T_costa — inalterada face ao P3.15
+- **Datum Z:** bordo traseiro do fundo flush com laterais/costa (não ultrapassa a traseira)
+- **Viewer:** herda `bottomWidth` / `bottomDepth` / `bottomPosZ` industriais (deixa de recalcular floorWidth/Depth)
+- **Rasgo frente (TypeNo=3):** comprimento = `bottomWidth` SSOT (peça ou `resolveDrawerBottomWidthFromBodyMm`)
+- Caso 550×500 (T=19, laterais/costa 16) → **484 × 466 mm** (antes 486 × 466)
+- Caso referência 600 (costa 516) → **534 × 466 mm**
+- Cutlist / BOM / DRILL / Viewer partilham as mesmas dimensões; CNC de outras peças intacto
+
 ### Release — Correção TAMPO angular (geometria)
 Correção TAMPO angular — geometria estável, frente≠trás, ângulo real, postforming seguro; montagem retangular intacta.
 
@@ -190,10 +202,10 @@ Sistema industrial do gaveteiro certificado e pronto para produção.
 - Viewer / cutlist / DRILL / TCN / HXML herdando a mesma altura SSOT
 
 ### gav_fundo — eixos industriais corrigidos
-- Largura = vão entre laterais + 10 + 10 (encaixe nas laterais)
+- Largura = vão entre laterais + 9 + 9 (encaixe efectivo; costa + 18) — SSOT v2
 - Profundidade = sideDepth + 10 + T_costa (sideDepth = bodyDepth − 10)
-- Caso 550×500 (T=19, laterais/costa 16) → **486 × 466 mm**
-- Cutlist / Viewer / DRILL / TCN / HXML herdam as mesmas dimensões SSOT
+- Caso 550×500 (T=19, laterais/costa 16) → **484 × 466 mm**
+- Cutlist / Viewer / DRILL / TCN / HXML herdam as mesmas dimensões SSOT (Viewer alinhado na v2)
 
 ### Furos SEP alinhados ao Viewer e ao DIV
 - Y nas laterais: `absoluteY − T` (mesma convenção das prateleiras)

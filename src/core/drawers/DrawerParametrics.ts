@@ -416,7 +416,7 @@ export function calculateDrawerSpecs(
 
   // ===== FUNDO =====
   // Vão entre laterais × comprimento das laterais + entradas industriais:
-  // largura  = vão + 10 + 10 (cada lateral)
+  // largura  = vão + 9 + 9 (cada lateral) = costa + 18
   // profundidade = sideDepth + 10 (frente) + espessura_costa
   // sideDepth = bodyDepth − 10 (mesmo critério das laterais)
   const effectiveBottomThickness = metalBoxEnabled ? sideThickness : bottomThickness;

@@ -11,6 +11,7 @@ import type { DrawerCalculatedSpecs } from "./DrawerParametrics";
 import {
   resolveDrawerBackCenterZMm,
   resolveDrawerBottomCenterYMm,
+  resolveDrawerBottomCenterZMm,
 } from "./drawerViewerLayout";
 import type { DrawerHandlePosition, DrawerHandleType, DrawerMetalBoxType, DrawerSlideType } from "../settings/settingsSchema";
 
@@ -97,6 +98,12 @@ export function createDrawer(
   const woodSideDepth = specs.leftSide.depth;
   const sideCenterZ =
     woodSideDepth > 0 ? specs.positioning.sideOffsetZ : specs.positioning.bodyOffsetZ;
+  const bottomSpanDepth = woodSideDepth > 0 ? woodSideDepth : bodyDepth;
+  const bottomCenterZ = resolveDrawerBottomCenterZMm(
+    combinedFrontThickness,
+    bottomSpanDepth,
+    specs.bottom.height
+  );
 
   return {
     id,
@@ -157,14 +164,14 @@ export function createDrawer(
       },
       
       // ===== FUNDO =====
-      // Fundo entre as laterais, na base do corpo.
+      // Fundo entre as laterais; Z = âncora traseira flush (Fase B).
       bottom: {
         width: specs.bottom.width,
         height: bottomThickness,
         depth: specs.bottom.height,
         positionX: 0,
         positionY: resolveDrawerBottomCenterYMm(bodyHeight, bottomThickness, bodyCenterOffsetY),
-        positionZ: specs.positioning.bodyOffsetZ,
+        positionZ: bottomCenterZ,
       },
       
   // ===== TRASEIRA =====

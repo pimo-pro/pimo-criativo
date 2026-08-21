@@ -94,6 +94,31 @@ export function resolveDrawerBackCenterZMm(
   return -(combinedFrontThicknessMm / 2 + bodyDepthMm - backThicknessMm / 2);
 }
 
+/**
+ * Centro Z do gav_fundo (coords locais, origem = centro da frente).
+ * Âncora SSOT Fase B: bordo traseiro do fundo = face traseira das laterais/costa
+ * (flush — não ultrapassa a traseira da gaveta).
+ *
+ * rearFaceZ = −(combinedFront/2) − sideDepth
+ * centerZ   = rearFaceZ + bottomDepth/2
+ *
+ * Nota: com bottomDepth = sideDepth + 10 + T_costa, o bordo dianteiro fica
+ * ~ (10 + T_costa) mm para dentro da face traseira da frente (não só +10).
+ * Âncora alternativa (só entrada frente) seria:
+ *   −(combinedFront/2) + frontEntryMm − bottomDepth/2
+ */
+export function resolveDrawerBottomCenterZMm(
+  combinedFrontThicknessMm: number,
+  sideDepthMm: number,
+  bottomDepthMm: number
+): number {
+  const frontHalf = Math.max(0, Number(combinedFrontThicknessMm)) / 2;
+  const sideDepth = Math.max(0, Number(sideDepthMm));
+  const bottomDepth = Math.max(0, Number(bottomDepthMm));
+  const rearFaceZ = -(frontHalf + sideDepth);
+  return rearFaceZ + bottomDepth / 2;
+}
+
 /** Centro Y do fundo (painel horizontal). */
 export function resolveDrawerBottomCenterYMm(
   woodBodyHeightMm: number,
@@ -305,13 +330,21 @@ export function resolveDrawerViewerWoodBottomBackLayoutMm(input: {
   sideHeightMm: number;
   internalWidthMm: number;
   sideThicknessMm: number;
-  /** Comprimento nominal da corrediça (fundo). */
+  /** Comprimento nominal da corrediça. */
   bodyDepthMm: number;
   /** Comprimento das laterais/costa (corrediça − 10 mm). */
   sideDepthMm: number;
   combinedFrontThicknessMm: number;
   floorThicknessMm: number;
   backThicknessMm: number;
+  /** SSOT industrial — largura do gav_fundo (mm). */
+  bottomWidthMm?: number;
+  /** SSOT industrial — profundidade do gav_fundo (mm). */
+  bottomDepthMm?: number;
+  /** SSOT industrial — centro Z do fundo (mm), datum Fase B. */
+  bottomPosZMm?: number;
+  /** SSOT industrial — largura da costa (vão entre laterais). */
+  backWidthMm?: number;
 }): DrawerViewerWoodBottomBackLayoutMm {
   const sideY = Number(input.sidePosYMm);
   const sideH = Math.max(0, Number(input.sideHeightMm));
@@ -319,14 +352,33 @@ export function resolveDrawerViewerWoodBottomBackLayoutMm(input: {
   const backT = Math.max(0, Number(input.backThicknessMm));
   const bodyDepth = Math.max(0, Number(input.bodyDepthMm));
   const sideDepth = Math.max(0, Number(input.sideDepthMm));
-  const bodyCenterZ = resolveDrawerBodyCenterZMm(
-    input.combinedFrontThicknessMm,
-    bodyDepth
-  );
-  const floorWidth = resolveDrawerViewerFloorWidthMm(
+  const spanDepth = sideDepth > 0 ? sideDepth : bodyDepth;
+
+  const legacyFloorWidth = resolveDrawerViewerFloorWidthMm(
     input.internalWidthMm,
     input.sideThicknessMm
   );
+  const floorWidth =
+    input.bottomWidthMm != null &&
+    Number.isFinite(input.bottomWidthMm) &&
+    input.bottomWidthMm > 0
+      ? Number(input.bottomWidthMm)
+      : legacyFloorWidth;
+  const floorDepth =
+    input.bottomDepthMm != null &&
+    Number.isFinite(input.bottomDepthMm) &&
+    input.bottomDepthMm > 0
+      ? Number(input.bottomDepthMm)
+      : bodyDepth;
+  const floorPosZ =
+    input.bottomPosZMm != null && Number.isFinite(input.bottomPosZMm)
+      ? Number(input.bottomPosZMm)
+      : resolveDrawerBottomCenterZMm(
+          input.combinedFrontThicknessMm,
+          spanDepth,
+          floorDepth
+        );
+
   const floorPosY =
     sideY - sideH / 2 + DRAWER_VIEWER_FLOOR_ABOVE_SIDE_BASE_MM + floorT / 2;
   const backHeight = Math.max(
@@ -336,17 +388,23 @@ export function resolveDrawerViewerWoodBottomBackLayoutMm(input: {
   const backPosY = sideY + sideH / 2 - backHeight / 2;
   const backPosZ = resolveDrawerBackCenterZMm(
     input.combinedFrontThicknessMm,
-    sideDepth > 0 ? sideDepth : bodyDepth,
+    spanDepth,
     backT
   );
+  const backWidth =
+    input.backWidthMm != null &&
+    Number.isFinite(input.backWidthMm) &&
+    input.backWidthMm > 0
+      ? Number(input.backWidthMm)
+      : legacyFloorWidth;
 
   return {
     floorWidthMm: floorWidth,
-    floorDepthMm: bodyDepth,
+    floorDepthMm: floorDepth,
     floorThicknessMm: floorT,
     floorPosYMm: floorPosY,
-    floorPosZMm: bodyCenterZ,
-    backWidthMm: floorWidth,
+    floorPosZMm: floorPosZ,
+    backWidthMm: backWidth,
     backHeightMm: backHeight,
     backThicknessMm: backT,
     backPosYMm: backPosY,

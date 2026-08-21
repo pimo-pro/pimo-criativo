@@ -83,6 +83,7 @@ export type PanelDrillingInput = {
   drawerBodyWidthMm?: number;
   drawerSideThicknessMm?: number;
   drawerBottomThicknessMm?: number;
+  drawerBottomWidthMm?: number;
   drawerSideBaseElevationMm?: number;
 };
 
@@ -468,6 +469,7 @@ export function buildPanelDrillingResult(
         drawerBodyWidthMm: input.drawerBodyWidthMm,
         drawerSideThicknessMm: input.drawerSideThicknessMm,
         drawerBottomThicknessMm: input.drawerBottomThicknessMm,
+        drawerBottomWidthMm: input.drawerBottomWidthMm,
         drawerSideBaseElevationMm: input.drawerSideBaseElevationMm,
         shelfHolesEnabled,
         shelfMode: input.shelfMode,

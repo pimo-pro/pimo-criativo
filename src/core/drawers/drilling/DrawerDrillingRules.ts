@@ -33,7 +33,6 @@ import { DRAWER_VERTICAL_BASE_OFFSET_MM } from "../drawerVerticalPosition";
 import {
   DRAWER_BOTTOM_GROOVE_WIDTH_MM,
   DRAWER_BOTTOM_GROOVE_Y_FROM_TOP_MM,
-  DRAWER_BOTTOM_SIDE_ENTRY_MM,
   DRAWER_COSTA_BOTTOM_FACE_DEPTH_MM,
   DRAWER_COSTA_BOTTOM_FACE_DIAMETER_MM,
   DRAWER_FRONT_BOTTOM_GROOVE_DEPTH_MM,
@@ -50,6 +49,7 @@ import {
   DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM,
   DRAWER_GAV1_MODULE_GUIDE_AXIS_MM,
   assertGavIndustrialSsotOrThrow,
+  resolveDrawerBottomWidthFromBodyMm,
 } from "../drawerGeometryConstants";
 import {
   CAVILHA_10x40_FERRAGEM_ID,
@@ -936,6 +936,8 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
   sideThicknessMm: number;
   bottomThicknessMm: number;
   sideBaseElevationMm?: number;
+  /** SSOT — largura do gav_fundo (mm). Se omitido, deriva do corpo. */
+  bottomWidthMm?: number;
 }): TechnicalDrillHole[] {
   const {
     largura,
@@ -966,14 +968,14 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
     isLowestDrawer: isLowest,
   });
 
-  // Rasgo do fundo: deve acompanhar bottomWidthMm (peça gav_fundo), não bodyWidthMm
-  // (envelope das laterais) — bottomWidthMm = bodyWidthMm − 2×(sideThicknessMm − entrada
-  // do fundo), i.e. 16−10=6mm úteis de cada lado. Cavilhas (acima) mantêm-se em bodyWidthMm,
-  // que é o valor correto para o encaixe frente↔lateral.
-  const bottomWidthMm = Math.max(
-    0,
-    bodyWidthMm - 2 * (sideThicknessMm - DRAWER_BOTTOM_SIDE_ENTRY_MM)
-  );
+  // Rasgo do fundo = largura SSOT do gav_fundo (peça ou fórmula partilhada).
+  // Cavilhas mantêm-se em bodyWidthMm (encaixe frente↔lateral).
+  const bottomWidthMm =
+    params.bottomWidthMm != null &&
+    Number.isFinite(params.bottomWidthMm) &&
+    params.bottomWidthMm > 0
+      ? Number(params.bottomWidthMm)
+      : resolveDrawerBottomWidthFromBodyMm(bodyWidthMm, sideThicknessMm);
   const grooveW = Math.min(Math.max(0, bottomWidthMm), largura);
   const overhang = Math.max(0, (largura - grooveW) / 2);
   const groove = buildDrawerFrenteBottomGroove({

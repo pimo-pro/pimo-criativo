@@ -258,8 +258,29 @@ export const DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM = 23;
 
 /** Entrada do fundo no rasgo da frente (mm). */
 export const DRAWER_BOTTOM_FRONT_ENTRY_MM = 10;
-/** Entrada do fundo no rasgo de cada lateral (mm). */
-export const DRAWER_BOTTOM_SIDE_ENTRY_MM = 10;
+/**
+ * Entrada efectiva do fundo no rasgo de cada lateral (mm).
+ * SSOT Fase A: 9 mm por lado → largura = costa + 18.
+ * Rasgo CAD lateral mantém Depth 10 (folga ~1 mm).
+ */
+export const DRAWER_BOTTOM_SIDE_ENTRY_MM = 9;
+
+/**
+ * Largura SSOT do gav_fundo a partir do corpo (mm).
+ * Identidade: backWidth + 2×SIDE_ENTRY
+ *   = bodyWidth − 2×sideT + 2×SIDE_ENTRY
+ *   = bodyWidth − 2×(sideT − SIDE_ENTRY)
+ * Fase D: rasgo da frente usa este valor (ou bottomWidth da peça).
+ */
+export function resolveDrawerBottomWidthFromBodyMm(
+  bodyWidthMm: number,
+  sideThicknessMm: number
+): number {
+  const bodyW = Math.max(0, Number(bodyWidthMm));
+  const sideT = Math.max(0, Number(sideThicknessMm));
+  return Math.max(0, bodyW - 2 * (sideT - DRAWER_BOTTOM_SIDE_ENTRY_MM));
+}
+
 /**
  * Profundidade do rasgo na frente: espessura do fundo + 1 mm.
  * Ex.: fundo 10 → rasgo 11.
