@@ -1,10 +1,30 @@
 {
-  "updatedAt": "2026-08-21T13:33:40.658Z",
+  "updatedAt": "2026-08-21T14:59:37.760Z",
   "news": [
+    {
+      "version": "v6.0821.1559",
+      "title": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",
+      "description": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",
+      "publishedAt": "2026-08-21T14:59:37.601Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "9e68a407"
+    },
+    {
+      "version": "v6.0821.1557",
+      "title": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",
+      "description": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",
+      "publishedAt": "2026-08-21T14:57:52.800Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "9e68a407"
+    },
     {
       "version": "v6.0821.1433",
       "title": "Proteção SSOT gavetas + fix ficheiros corrompidos + integração WIP local",
-      "description": "Proteção SSOT gavetas + fix ficheiros corrompidos + integração WIP local",
+      "description": "Proteção SSOT gavetas + fix ficheiros corrompidos + integração WIP local\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
       "publishedAt": "2026-08-21T13:33:40.516Z",
       "type": "update",
       "author": "pimo-pro",

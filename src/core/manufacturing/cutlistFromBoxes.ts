@@ -631,6 +631,7 @@ export function cutlistComPrecoFromBox(
             bodyWidthMm?: number;
             sideThicknessMm?: number;
             bottomThicknessMm?: number;
+            bottomWidthMm?: number;
             stackRole?: string;
             sideBaseElevationMm?: number;
           }
