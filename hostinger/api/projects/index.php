@@ -477,6 +477,15 @@ if ($method === "POST") {
         $createdAt = is_array($old) && isset($old["createdAt"]) && is_string($old["createdAt"])
             ? $old["createdAt"]
             : $now;
+        // Merge defensivo: preservar settings.projectReport se o POST não o trouxer.
+        if (is_array($old)) {
+            $oldSettings = isset($old["settings"]) && is_array($old["settings"]) ? $old["settings"] : [];
+            $inSettings = isset($input["settings"]) && is_array($input["settings"]) ? $input["settings"] : [];
+            if (!array_key_exists("projectReport", $inSettings) && isset($oldSettings["projectReport"])) {
+                $inSettings["projectReport"] = $oldSettings["projectReport"];
+                $input["settings"] = $inSettings;
+            }
+        }
     } else {
         $createdAt = isset($input["createdAt"]) && is_string($input["createdAt"])
             ? $input["createdAt"]

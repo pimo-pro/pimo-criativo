@@ -41,6 +41,7 @@ export {
 export {
   loadProjectReport,
   saveProjectReport,
+  extractProjectReportFromPimoData,
   markManualPath,
   isManualPath,
   setReportStyle,

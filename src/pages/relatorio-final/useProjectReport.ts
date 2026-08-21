@@ -29,7 +29,7 @@ import {
 } from "@/core/projects/projectIdentity";
 import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 
-function loadReportFlexible(urlKey: string): ProjectReport | null {
+function loadReportFlexible(urlKey: string): Promise<ProjectReport | null> {
   const identity = resolveProjectIdentity(urlKey);
   const keys = [
     urlKey,
@@ -40,13 +40,15 @@ function loadReportFlexible(urlKey: string): ProjectReport | null {
   ].filter((k): k is string => Boolean(k && String(k).trim()));
 
   const seen = new Set<string>();
-  for (const key of keys) {
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const stored = loadProjectReport(key);
-    if (stored) return stored;
-  }
-  return null;
+  return (async () => {
+    for (const key of keys) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const stored = await loadProjectReport(key);
+      if (stored) return stored;
+    }
+    return null;
+  })();
 }
 
 function resolveSeedKey(urlKey: string): string {
@@ -97,7 +99,7 @@ export function useProjectReport(projectKey: string | undefined) {
         const seedKey = resolveSeedKey(projectKey);
         const state = loadProjectState(seedKey);
         const materials = loadMaterialsForFinanceiro();
-        const stored = loadReportFlexible(projectKey);
+        const stored = await loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
         const withLive = withLiveFinanceiro(merged, state, materials);
         if (!cancelled) {
@@ -224,10 +226,10 @@ export function useProjectReport(projectKey: string | undefined) {
         projectState,
         loadMaterialsForFinanceiro()
       );
-      const saved = saveProjectReport(toSave);
+      const saved = await saveProjectReport(toSave);
       setReport(saved);
       setDirty(false);
-      setSaveMsg("Altera\u00e7\u00f5es guardadas no relat\u00f3rio.");
+      setSaveMsg("Alterações guardadas no servidor.");
     } catch (err) {
       setSaveMsg(err instanceof Error ? err.message : "Falha ao guardar.");
     } finally {
