@@ -16,7 +16,7 @@ import { isViewerApiReady } from "@/core/viewer/viewerReadiness";
 import { withIndustrialOutputAuthorization } from "@/core/industrial/industrialOutputGuard";
 import type { PimoViewerApi } from "@/context/PimoViewerContextCore";
 
-function workspaceBoxToDesignBox(box: WorkspaceBox): IndustrialDesignBox {
+function buildDesignBoxTemplate(box: WorkspaceBox): IndustrialDesignBox {
   return createIndustrialDesignBox({
     id: box.id,
     nome: box.nome,
@@ -26,6 +26,67 @@ function workspaceBoxToDesignBox(box: WorkspaceBox): IndustrialDesignBox {
     espessuraMm: box.espessura,
     materialId: box.material ?? "default",
   });
+}
+
+/**
+ * Mapa ID sintético (${boxId}:cima, etc.) -> ID real da mesh (WorkspaceBox.panelIds),
+ * por posição — createIndustrialDesignBox cria sempre [cima, fundo, lateral-le,
+ * lateral-ld, costa] nesta ordem. Sem isto, o raycast do clique 3D nunca encontra o
+ * painel: a mesh usa panelIds reais (ViewerPanelVisibility.ts), o designBox usava IDs
+ * sintéticos inventados — nunca coincidiam.
+ */
+function buildRealPanelIdMap(
+  template: IndustrialDesignBox,
+  panelIds: WorkspaceBox["panelIds"]
+): Map<string, string> {
+  const map = new Map<string, string>();
+  if (!panelIds) return map;
+  const realIdsInOrder = [
+    panelIds.cima,
+    panelIds.fundo,
+    panelIds.lateral_esquerda,
+    panelIds.lateral_direita,
+    panelIds.costa,
+  ];
+  template.panels.forEach((panel, index) => {
+    const realId = realIdsInOrder[index];
+    if (realId && realId.trim().length > 0) {
+      map.set(panel.id, realId);
+    }
+  });
+  return map;
+}
+
+/** Aplica um mapa de IDs a panels[].id e constraints[].panelAId/panelBId. */
+function remapDesignBoxPanelIds(
+  box: IndustrialDesignBox,
+  idMap: Map<string, string>
+): IndustrialDesignBox {
+  if (idMap.size === 0) return box;
+  const panels = box.panels.map((panel) => ({
+    ...panel,
+    id: idMap.get(panel.id) ?? panel.id,
+  }));
+  const constraints = box.constraints.map((constraint) => ({
+    ...constraint,
+    panelAId: idMap.get(constraint.panelAId) ?? constraint.panelAId,
+    panelBId: idMap.get(constraint.panelBId) ?? constraint.panelBId,
+  }));
+  return { ...box, panels, constraints };
+}
+
+/**
+ * designBox "ao vivo" com IDs de painel reais (para o clique 3D/overlay encontrarem o
+ * painel certo) + o mapa sintético->real usado para reverter antes de gravar no
+ * catálogo (createIndustrialModel), preservando o formato de sempre em customIndustrialModel.ts.
+ */
+function workspaceBoxToDesignBox(box: WorkspaceBox): {
+  designBox: IndustrialDesignBox;
+  realIdMap: Map<string, string>;
+} {
+  const template = buildDesignBoxTemplate(box);
+  const realIdMap = buildRealPanelIdMap(template, box.panelIds);
+  return { designBox: remapDesignBoxPanelIds(template, realIdMap), realIdMap };
 }
 
 export type UseIndustrialDesignWorkspaceOptions = {
@@ -62,6 +123,8 @@ export function useIndustrialDesignWorkspace({
   const [validationIssues, setValidationIssues] = useState<DesignValidationIssue[]>([]);
   const [lastCreatedModelId, setLastCreatedModelId] = useState<string | null>(null);
   const boxIdRef = useRef<string | null>(null);
+  /** ID sintético -> ID real da mesh, para reverter antes de gravar no catálogo. */
+  const panelIdMapRef = useRef<Map<string, string>>(new Map());
 
   const syncDesignBox = useCallback(
     (box: IndustrialDesignBox | null, targetBoxId?: string | null) => {
@@ -74,26 +137,21 @@ export function useIndustrialDesignWorkspace({
 
   const setSelectedHoleTypeId = useCallback((id: HoleTypeId | null) => {
     setSelectedHoleTypeIdState(id);
-    if (!isViewerApiReady(viewerApi)) return;
-    if (!insertOnClick) {
-      viewerApi.setIndustrialDesignActiveHoleType?.(null);
-      return;
-    }
-    viewerApi.setIndustrialDesignActiveHoleType?.(id);
-  }, [insertOnClick, viewerApi]);
+  }, []);
 
   const setInsertOnClick = useCallback(
     (active: boolean) => {
       setInsertOnClickState(active);
       if (!isViewerApiReady(viewerApi)) return;
       viewerApi.setIndustrialDesignWorkspaceEnabled?.(active);
-      viewerApi.setIndustrialDesignActiveHoleType?.(active ? selectedHoleTypeId : null);
-      if (active) {
-        viewerApi.setPanelRenderingEnabled?.(true);
-        viewerApi.setPanelEdgesVisible?.(true);
+      if (!active) {
+        viewerApi.setIndustrialDesignActiveHoleType?.(null);
+        return;
       }
+      viewerApi.setPanelRenderingEnabled?.(true);
+      viewerApi.setPanelEdgesVisible?.(true);
     },
-    [selectedHoleTypeId, viewerApi]
+    [viewerApi]
   );
 
   useEffect(() => {
@@ -119,14 +177,16 @@ export function useIndustrialDesignWorkspace({
     const boxId = workspaceBox.id;
     boxIdRef.current = boxId;
 
+    const { designBox: templateDesignBox, realIdMap } = workspaceBoxToDesignBox(workspaceBox);
+    panelIdMapRef.current = realIdMap;
+
     const existing = viewerApi.getIndustrialDesignBox?.();
     if (existing?.id === boxId) {
       setDesignBox(existing);
       viewerApi.setIndustrialDesignBox?.(existing, boxId);
     } else {
-      const fresh = workspaceBoxToDesignBox(workspaceBox);
-      setDesignBox(fresh);
-      viewerApi.setIndustrialDesignBox?.(fresh, boxId);
+      setDesignBox(templateDesignBox);
+      viewerApi.setIndustrialDesignBox?.(templateDesignBox, boxId);
     }
 
     setValidationIssues(viewerApi.getIndustrialDesignValidationIssues?.() ?? []);
@@ -193,8 +253,15 @@ export function useIndustrialDesignWorkspace({
       if (!designBox) return null;
       try {
         return withIndustrialOutputAuthorization("all", () => {
+          const reverseIdMap = new Map(
+            Array.from(panelIdMapRef.current.entries()).map(([syntheticId, realId]) => [
+              realId,
+              syntheticId,
+            ])
+          );
+          const storageDesignBox = remapDesignBoxPanelIds(designBox, reverseIdMap);
           const result = createCustomIndustrialModelFromDesignBox({
-            designBox,
+            designBox: storageDesignBox,
             nome,
             project: {
               projectName: workspaceBox?.nome ?? "MODELO_INDUSTRIAL",
