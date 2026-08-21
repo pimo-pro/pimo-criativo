@@ -2,6 +2,18 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-21T16:43:00.566Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",
+      "version": "v6.0821.1743"
+    },
+    {
+      "publishedAt": "2026-08-21T16:39:05.863Z",
+      "author": "pimo-pro",
+      "commitMessage": "Restauro completo do sistema de gavetas clássico + correções GPS embutido — frente, fundo, elevação GAV_1, SSOT intacto, furos 41 mm verificados.",
+      "version": "v6.0821.1739"
+    },
+    {
       "publishedAt": "2026-08-21T14:59:36.854Z",
       "author": "pimo-pro",
       "commitMessage": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",

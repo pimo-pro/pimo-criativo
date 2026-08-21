@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-08-21T14:59:37.760Z",
+  "updatedAt": "2026-08-21T16:43:02.287Z",
   "news": [
+    {
+      "version": "v6.0821.1743",
+      "title": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",
+      "description": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",
+      "publishedAt": "2026-08-21T16:43:02.130Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "da7e6eae"
+    },
+    {
+      "version": "v6.0821.1739",
+      "title": "Restauro completo do sistema de gavetas clássico + correções GPS embutido — frente, fundo, elevação GAV_1, SSOT intac...",
+      "description": "Restauro completo do sistema de gavetas clássico + correções GPS embutido — frente, fundo, elevação GAV_1, SSOT intacto, furos 41 mm verificados.",
+      "publishedAt": "2026-08-21T16:39:06.564Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "e68d95a4"
+    },
     {
       "version": "v6.0821.1559",
       "title": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",
       "description": "fix(relatorio-final): persistir relatório no servidor (sem localStorage)",
-      "publishedAt": "2026-08-21T14:59:37.601Z",
+      "publishedAt": "2026-08-21T16:01:57+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "9e68a407"
+      "commit": "abef74d"
     },
     {
       "version": "v6.0821.1557",
