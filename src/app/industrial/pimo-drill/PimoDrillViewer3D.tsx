@@ -4,11 +4,12 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 
 import { pieceSizeM } from './geometry/pieceGeometry';
 import { viewerShellStyle } from './pimoDrillStyles';
-import type { PieceModel } from './pimoDrillTypes';
+import type { DrillHoleViewModel, PieceModel } from './pimoDrillTypes';
 import PieceMesh3D from './scene/PieceMesh3D';
 
 type Props = {
   piece: PieceModel;
+  holes: DrillHoleViewModel[];
 };
 
 /** Posição inicial fixa — NÃO depende de L/W/T (evita salto da câmara). */
@@ -17,7 +18,7 @@ const CAMERA_POSITION: [number, number, number] = [1.4, 1.05, 1.4];
 /** Pivot estável do orbit — mesma referência em todos os renders. */
 const ORBIT_TARGET: [number, number, number] = [0, 0, 0];
 
-function Scene({ piece }: Props) {
+function Scene({ piece, holes }: Props) {
   const size = pieceSizeM(piece);
   const span = Math.max(size.x, size.y, size.z, 0.2);
 
@@ -33,9 +34,10 @@ function Scene({ piece }: Props) {
       <color attach="background" args={['#020617']} />
       <ambientLight intensity={0.55} />
       <directionalLight position={[4, 6, 3]} intensity={1.1} />
-      <PieceMesh3D piece={piece} />
+      <PieceMesh3D piece={piece} holes={holes} />
       <OrbitControls
         makeDefault
+        autoRotate={false}
         enableDamping
         dampingFactor={0.06}
         minDistance={Math.max(span * 0.35, 0.15)}
@@ -46,7 +48,7 @@ function Scene({ piece }: Props) {
   );
 }
 
-export default function PimoDrillViewer3D({ piece }: Props) {
+export default function PimoDrillViewer3D({ piece, holes }: Props) {
   return (
     <div aria-label="Viewer 3D" style={viewerShellStyle}>
       <Suspense
@@ -66,7 +68,7 @@ export default function PimoDrillViewer3D({ piece }: Props) {
       >
         {/* Sem key dinâmica — Canvas não remonta ao mudar L/W/T */}
         <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: true }}>
-          <Scene piece={piece} />
+          <Scene piece={piece} holes={holes} />
         </Canvas>
       </Suspense>
     </div>

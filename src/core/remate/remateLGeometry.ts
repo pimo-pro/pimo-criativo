@@ -137,7 +137,7 @@ export function coerceLRemateMountSlot(
 }
 
 /**
- * Dimensões khaled-pro CIMA: largura=comprimento, altura=faixa, profundidade=espessura.
+ * Dimensões CIMA: largura=comprimento, altura=faixa, profundidade=espessura.
  * `primarySlot` mantido por compatibilidade; ignorado (sempre modelo CIMA).
  */
 export function computeLRemateSheetDimensions(params: {
@@ -414,7 +414,7 @@ export function applyLRemateGroupCoupling(remates: RematePiece[], movedId: strin
   );
 }
 
-/** Converte patch vindo do viewer (centro) para canto khaled-pro. */
+/** Converte patch vindo do viewer (centro) para canto CIMA. */
 export function normalizeLRemateTransformPatch<T extends Partial<Pick<RematePiece, "position" | "rotation" | "faceOffsets" | "placementMode">>>(
   piece: RematePiece,
   patch: T,

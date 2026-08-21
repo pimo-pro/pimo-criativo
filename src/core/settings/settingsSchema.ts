@@ -329,7 +329,7 @@ export const settingsDefaults: SettingsSchema = {
     gavetaProfundidadesDisponiveisMm: [350, 400, 450, 500, 550, 600],
     gavetaAlturaMinimaMm: 80,
     gavetaAlturaMaximaMm: 350,
-    // Único sistema ativo (KHALED-PRO); restantes = "EM BREVE" (ver drawerUiConstants.ts).
+    // Único sistema ativo; restantes = "EM BREVE" (ver drawerUiConstants.ts).
     gavetaTipoCorredica: "Hettich Quadro V6 You M Silent System",
     gavetaSoftClose: true,
     gavetaCursoTotalMm: 0,

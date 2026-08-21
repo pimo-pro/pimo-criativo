@@ -9,7 +9,7 @@
 
 ## 1. Resumo executivo
 
-Após as **Fases 0–4** do plano PIMO (khaled-pro), o sistema industrial mantém:
+Após as **Fases 0–4** do plano PIMO, o sistema industrial mantém:
 
 | Garantia | Estado |
 |----------|--------|

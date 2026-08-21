@@ -1,9 +1,10 @@
 import { sanitizePiece } from './geometry/pieceGeometry';
 import { axesOverlayStyle, viewerShellStyle } from './pimoDrillStyles';
-import type { PieceModel } from './pimoDrillTypes';
+import type { DrillHoleViewModel, PieceModel } from './pimoDrillTypes';
 
 type Props = {
   piece: PieceModel;
+  holes: DrillHoleViewModel[];
 };
 
 const VIEW_W = 480;
@@ -29,7 +30,7 @@ function AxesOverlay() {
   );
 }
 
-export default function PimoDrillViewer2D({ piece }: Props) {
+export default function PimoDrillViewer2D({ piece, holes }: Props) {
   const p = sanitizePiece(piece);
   const usableW = VIEW_W - PAD * 2;
   const usableH = VIEW_H - PAD * 2;
@@ -92,7 +93,24 @@ export default function PimoDrillViewer2D({ piece }: Props) {
             T = {p.thicknessMm} mm
           </text>
         </g>
-        <g id="layer-features" />
+        <g id="layer-features">
+          {holes.map((hole) => {
+            const hx = originX + hole.xMm * scale;
+            const hy = originY - hole.yMm * scale;
+            const hr = Math.max(1, (hole.diameterMm / 2) * scale);
+            return (
+              <circle
+                key={hole.id}
+                cx={hx}
+                cy={hy}
+                r={hr}
+                fill="rgba(15, 23, 42, 0.85)"
+                stroke="#f97316"
+                strokeWidth={1.5}
+              />
+            );
+          })}
+        </g>
       </svg>
     </div>
   );

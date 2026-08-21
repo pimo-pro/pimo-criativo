@@ -11,6 +11,7 @@ const PIMO_PROJECTS: SwitcherItem[] = [
   { id: "projetos", label: "PIMO PROJETOS", path: "/PROJETOS" },
   { id: "nesting", label: "PIMO NESTING", path: "/nesting_v3" },
   { id: "industrial", label: "PIMO Industrial", path: "/industrial" },
+  { id: "drill", label: "PIMO DRILL", path: "/industrial/pimo-drill" },
 ];
 
 function ProjectsGridIcon() {

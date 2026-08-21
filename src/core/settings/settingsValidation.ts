@@ -12,7 +12,7 @@ import { FINANCEIRO_IVA_DEFAULT_PCT } from "../financeiro/financeiroUnificadoTyp
 import { orcamentosDefaultsFromCentral } from "../pricing/centralPricingConfig";
 
 /**
- * Restrição industrial temporária (KHALED-PRO): apenas estes tipos são aceites na
+ * Restrição industrial temporária: apenas estes tipos são aceites na
  * normalização de settings globais — qualquer outro valor (legado ou "EM BREVE")
  * é silenciosamente substituído pelo default via pickOption (sem erro/crash).
  * Ver drawerUiConstants.ts para a mesma restrição espelhada na UI.

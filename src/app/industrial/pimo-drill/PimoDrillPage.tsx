@@ -25,7 +25,7 @@ import {
 /**
  * PIMO DRILL — estado actual.
  *
- * TODO / NOTA TÉCNICA INTERNA (Khaled-PRO):
+ * TODO / NOTA TÉCNICA INTERNA:
  * Simulador DRILL — incompleto, requer desenvolvimento futuro.
  * Ainda não é funcional: não é possível inserir furos de forma operativa,
  * nem validar, nem operar o fluxo completo. Não avançar fases até nova ordem.
@@ -37,7 +37,7 @@ export default function PimoDrillPage() {
   const [viewMode, setViewMode] = useState<PimoDrillViewMode>(DEFAULT_VIEW_MODE);
   const [activeTool, setActiveTool] = useState<PimoDrillToolId>('hole');
   const [piece, setPiece] = useState<PieceModel>(DEFAULT_PIECE);
-  const design = useDrillDesignWorkspace(piece);
+  const design = useDrillDesignWorkspace(piece, setPiece);
 
   const handleSelectView = (mode: PimoDrillViewMode) => {
     setViewMode(mode);
@@ -73,9 +73,9 @@ export default function PimoDrillPage() {
 
           <div style={panelStyle}>
             {viewMode === '2d' ? (
-              <PimoDrillViewer2D piece={piece} />
+              <PimoDrillViewer2D piece={piece} holes={design.holesView} />
             ) : (
-              <PimoDrillViewer3D piece={piece} />
+              <PimoDrillViewer3D piece={piece} holes={design.holesView} />
             )}
           </div>
         </div>

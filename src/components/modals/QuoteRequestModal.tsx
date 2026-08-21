@@ -1,6 +1,6 @@
 // Modal de captação de dados do cliente antes de "Salvar e pedir orçamento".
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { ModalPortal } from "../ui/ModalPortal";
 
 export type QuoteRequestFieldsInput = {
@@ -13,6 +13,10 @@ export type QuoteRequestFieldsInput = {
 export type QuoteRequestModalProps = {
   open: boolean;
   isSubmitting?: boolean;
+  /** Utilizador autenticado: esconde o campo Nome (preenchido em background). */
+  isAuthenticated?: boolean;
+  /** Username da sessão autenticada — usado como nome quando isAuthenticated=true. */
+  authenticatedUserName?: string;
   onConfirm: (fields: QuoteRequestFieldsInput) => void;
   onCancel: () => void;
 };
@@ -36,12 +40,26 @@ const errorStyle: CSSProperties = {
   color: "#f87171",
 };
 
-export default function QuoteRequestModal({ open, isSubmitting = false, onConfirm, onCancel }: QuoteRequestModalProps) {
+export default function QuoteRequestModal({
+  open,
+  isSubmitting = false,
+  isAuthenticated = false,
+  authenticatedUserName = "",
+  onConfirm,
+  onCancel,
+}: QuoteRequestModalProps) {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof QuoteRequestFieldsInput, string>>>({});
+
+  // Utilizador autenticado: preencher nome em background sempre que o modal abre.
+  useEffect(() => {
+    if (open && isAuthenticated) {
+      setCustomerName(authenticatedUserName.trim());
+    }
+  }, [open, isAuthenticated, authenticatedUserName]);
 
   if (!open) return null;
 
@@ -58,7 +76,7 @@ export default function QuoteRequestModal({ open, isSubmitting = false, onConfir
   const handleConfirm = () => {
     if (isSubmitting) return;
     const nextErrors: Partial<Record<keyof QuoteRequestFieldsInput, string>> = {};
-    if (!customerName.trim()) nextErrors.customerName = "Indique o nome do cliente.";
+    if (!isAuthenticated && !customerName.trim()) nextErrors.customerName = "Indique o nome do cliente.";
     if (!customerEmail.trim()) {
       nextErrors.customerEmail = "Indique o email do cliente.";
     } else if (!EMAIL_REGEX.test(customerEmail.trim())) {
@@ -95,21 +113,25 @@ export default function QuoteRequestModal({ open, isSubmitting = false, onConfir
           </div>
 
           <p style={{ fontSize: 12, opacity: 0.85, marginBottom: 16 }}>
-            Precisamos destes dados para enviar o pedido de orçamento.
+            {isAuthenticated
+              ? "Confirme o email e telefone para enviarmos o pedido de orçamento."
+              : "Precisamos destes dados para enviar o pedido de orçamento."}
           </p>
 
-          <div style={fieldStyle}>
-            <span style={labelStyle}>Nome *</span>
-            <input
-              type="text"
-              className="input input-sm"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="Nome do cliente"
-            />
-            {errors.customerName ? <span style={errorStyle}>{errors.customerName}</span> : null}
-          </div>
+          {!isAuthenticated ? (
+            <div style={fieldStyle}>
+              <span style={labelStyle}>Nome *</span>
+              <input
+                type="text"
+                className="input input-sm"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Nome do cliente"
+              />
+              {errors.customerName ? <span style={errorStyle}>{errors.customerName}</span> : null}
+            </div>
+          ) : null}
 
           <div style={fieldStyle}>
             <span style={labelStyle}>Email *</span>

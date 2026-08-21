@@ -1,3 +1,5 @@
+import { useRef, useState } from 'react';
+
 import { HOLE_CATALOG, type HoleTypeId } from '@/core/drill/holeCatalog';
 import type { DesignValidationIssue } from '@/core/industrialDesigner';
 
@@ -38,6 +40,32 @@ export default function PimoDrillLeftPanel({
         ? 'Vista 3D'
         : PIMO_DRILL_FEATURE_TOOLS.find((t) => t.id === activeTool)?.label ?? activeTool;
   const dynamicFields = TOOL_UI_FIELDS[activeTool];
+
+  const [xMm, setXMm] = useState(() => piece.lengthMm / 2);
+  const [yMm, setYMm] = useState(() => piece.widthMm / 2);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [persistMessage, setPersistMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const summary = design.importFromKdtXml(String(reader.result ?? ''));
+        setImportMessage(
+          `${summary.imported} furo(s) importado(s) (${summary.matched} do catálogo, ` +
+            `${summary.customCreated} custom) · ${summary.groovesSkipped} rasgo(s) não ` +
+            `suportado(s), ignorado(s).`,
+        );
+      } catch (err) {
+        setImportMessage(err instanceof Error ? err.message : 'Falha ao importar XML.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const errorCount = design.validationIssues.filter((i) => i.severity === 'error').length;
   const warnCount = design.validationIssues.filter((i) => i.severity === 'warning').length;
@@ -97,12 +125,105 @@ export default function PimoDrillLeftPanel({
         </label>
       </section>
 
+      <section style={{ display: 'grid', gap: 8 }}>
+        <h3 style={sectionTitleStyle}>Import / Guardar</h3>
+        <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted, #94a3b8)' }}>
+          Import lê o XML uma única vez e substitui a peça/furos actuais — isolado do
+          pipeline real (não escreve em ficheiros de produção).
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xml,text/xml"
+          onChange={handleImportFile}
+          style={{ display: 'none' }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          style={{ ...toolBtnStyle(false), width: '100%', height: 32, fontSize: 12 }}
+        >
+          Importar XML (DRILL/KDT)
+        </button>
+        {importMessage && (
+          <p style={{ margin: 0, fontSize: 11, color: '#93c5fd', lineHeight: 1.4 }}>
+            {importMessage}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              design.saveState();
+              setPersistMessage('Estado guardado.');
+            }}
+            style={{ ...toolBtnStyle(false), flex: 1, height: 32, fontSize: 12 }}
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const ok = design.loadState();
+              setPersistMessage(ok ? 'Estado carregado.' : 'Sem estado guardado.');
+            }}
+            style={{ ...toolBtnStyle(false), flex: 1, height: 32, fontSize: 12 }}
+          >
+            Carregar
+          </button>
+        </div>
+        {persistMessage && (
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted, #94a3b8)' }}>
+            {persistMessage}
+          </p>
+        )}
+      </section>
+
       <section style={{ display: 'grid', gap: 10 }}>
         <h3 style={sectionTitleStyle}>Parâmetros — {toolLabel}</h3>
         {dynamicFields.length === 0 ? (
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted, #94a3b8)' }}>
             Modo de vista · sem parâmetros de feature
           </p>
+        ) : activeTool === 'hole' ? (
+          dynamicFields.map((field) => {
+            if (field.key === 'x' || field.key === 'y') {
+              const value = field.key === 'x' ? xMm : yMm;
+              const onChange = field.key === 'x' ? setXMm : setYMm;
+              return (
+                <label key={field.key} style={fieldLabelStyle}>
+                  {field.label}
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) => onChange(Number(e.target.value) || 0)}
+                    style={fieldInputStyle}
+                  />
+                </label>
+              );
+            }
+            const readOnlyValue =
+              field.key === 'diameter'
+                ? design.selectedHoleType?.diametroMm ?? ''
+                : field.key === 'depth'
+                  ? design.selectedHoleType?.profundidadeMm ?? ''
+                  : field.key === 'face'
+                    ? design.selectedHoleType?.face ?? ''
+                    : '';
+            return (
+              <label key={field.key} style={fieldLabelStyle}>
+                {field.label}
+                <input
+                  type="text"
+                  disabled
+                  readOnly
+                  value={readOnlyValue}
+                  placeholder="—"
+                  style={fieldInputDisabledStyle}
+                />
+              </label>
+            );
+          })
         ) : (
           dynamicFields.map((field) => (
             <label key={field.key} style={fieldLabelStyle}>
@@ -146,7 +267,7 @@ export default function PimoDrillLeftPanel({
         <button
           type="button"
           disabled={!design.selectedHoleTypeId}
-          onClick={() => design.addHoleAtCenter()}
+          onClick={() => design.addHoleAt(xMm, yMm)}
           style={{
             ...toolBtnStyle(Boolean(design.selectedHoleTypeId)),
             width: '100%',
@@ -156,15 +277,15 @@ export default function PimoDrillLeftPanel({
             cursor: design.selectedHoleTypeId ? 'pointer' : 'default',
           }}
         >
-          Adicionar furo no centro
+          Adicionar furo em X/Y
         </button>
       </section>
 
       <section style={{ display: 'grid', gap: 8 }}>
         <h3 style={sectionTitleStyle}>
-          Furos ({design.holes.length})
+          Furos ({design.holes.length + design.customHoles.length})
         </h3>
-        {design.holes.length === 0 ? (
+        {design.holes.length === 0 && design.customHoles.length === 0 ? (
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted, #94a3b8)' }}>
             Nenhum furo na peça.
           </p>
@@ -201,6 +322,43 @@ export default function PimoDrillLeftPanel({
                 </button>
               </li>
             ))}
+            {design.customHoles.map((hole) => {
+              const local = design.localCatalog.find((l) => l.id === hole.localHoleTypeId);
+              return (
+                <li
+                  key={hole.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    background: 'rgba(249, 115, 22, 0.08)',
+                    fontSize: 11,
+                    color: '#e2e8f0',
+                  }}
+                >
+                  <span>
+                    Ø{local?.diametroMm ?? '?'}×{local?.profundidadeMm ?? '?'}mm (custom) @ (
+                    {hole.xMm.toFixed(0)}, {hole.yMm.toFixed(0)}) mm
+                  </span>
+                  <button
+                    type="button"
+                    title="Remover furo custom"
+                    onClick={() => design.removeCustomHole(hole.id)}
+                    style={{
+                      ...toolBtnStyle(false),
+                      width: 28,
+                      height: 28,
+                      fontSize: 11,
+                    }}
+                  >
+                    ×
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

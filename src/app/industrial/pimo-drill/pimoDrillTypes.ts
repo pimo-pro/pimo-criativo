@@ -86,6 +86,45 @@ export type PieceModel = PieceDimsMm & {
   id: string;
 };
 
+/**
+ * Tipo de furo local ao pimo-drill — usado quando um furo importado (XML DRILL/KDT)
+ * não tem correspondência no catálogo oficial (core/drill/holeCatalog). Nunca escrito
+ * no catálogo oficial nem em IndustrialDesignBox/DesignDrillHole (domínio partilhado).
+ */
+export type LocalHoleType = {
+  id: string;
+  nome: string;
+  diametroMm: number;
+  profundidadeMm: number;
+  face: import('@/core/drill/holeCatalog').HoleFaceKind;
+};
+
+/** Furo que referencia um LocalHoleType em vez do catálogo oficial. */
+export type PimoDrillCustomHole = {
+  id: string;
+  localHoleTypeId: string;
+  xMm: number;
+  yMm: number;
+  face: import('@/core/drill/holeCatalog').HoleFaceKind;
+};
+
+/** Vista normalizada de um furo (catálogo oficial ou local) para os viewers 2D/3D. */
+export type DrillHoleViewModel = {
+  id: string;
+  xMm: number;
+  yMm: number;
+  diameterMm: number;
+  depthMm: number;
+};
+
+/** Resultado de uma importação de ficheiro XML DRILL/KDT. */
+export type ImportSummary = {
+  imported: number;
+  matched: number;
+  customCreated: number;
+  groovesSkipped: number;
+};
+
 export const DEFAULT_PIECE: PieceModel = {
   id: 'piece-main',
   lengthMm: 600,

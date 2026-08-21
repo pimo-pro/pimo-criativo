@@ -46,7 +46,7 @@ export function getInwardAxisForHole(panelType: PanelType, _hole: TechnicalDrill
 }
 
 /**
- * khaled-pro — laterais: furos sempre na face interior.
+ * laterais: furos sempre na face interior.
  * lateral_esquerda (panelType left) → interior = +X local, sem espelhamento do lado direito.
  */
 export function isLateralInteriorDrill(panelType: PanelType, hole: TechnicalDrillHole): boolean {

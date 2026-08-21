@@ -6,6 +6,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../auth/useAuth";
 import { useProject } from "../../context/useProject";
 import { useGerarArquivoHandlers } from "../../hooks/useGerarArquivoHandlers";
 import { useIndustrialBottomPdf } from "../../hooks/useIndustrialBottomPdf";
@@ -129,6 +130,7 @@ function ExportRow({
 export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }: Props) {
   const navigate = useNavigate();
   const { project, actions, viewerSync } = useProject();
+  const { user: authUser, isAuthenticated } = useAuth();
   const { showToast, startLoading, stopLoading } = useToast();
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [submittingQuote, setSubmittingQuote] = useState(false);
@@ -708,6 +710,8 @@ export default function UnifiedExportBubble({ isOpen, onClose, onOpenNestingV3 }
     <QuoteRequestModal
       open={quoteModalOpen}
       isSubmitting={submittingQuote}
+      isAuthenticated={isAuthenticated()}
+      authenticatedUserName={authUser?.username ?? ""}
       onConfirm={(fields) => void handleConfirmQuoteRequest(fields)}
       onCancel={() => setQuoteModalOpen(false)}
     />
