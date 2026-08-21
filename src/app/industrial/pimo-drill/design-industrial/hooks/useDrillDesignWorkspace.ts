@@ -22,6 +22,7 @@ import type {
   LocalHoleType,
   PieceModel,
   PimoDrillCustomHole,
+  PimoDrillGroove,
 } from '../../pimoDrillTypes';
 import {
   formatDesignHoleLabel,
@@ -71,6 +72,8 @@ export type UseDrillDesignWorkspaceResult = {
   removeCustomHole: (id: string) => void;
   /** Vista normalizada (catálogo + local) para os viewers 2D/3D. */
   holesView: DrillHoleViewModel[];
+  /** Rasgos importados (TypeNo=3) — sem desenho/edição nesta fase, só dados. */
+  customGrooves: PimoDrillGroove[];
   /** Furo actualmente seleccionado (clique 2D/3D/lista) para edição em direto. */
   selectedHoleId: string | null;
   selectHole: (id: string | null) => void;
@@ -104,6 +107,7 @@ export function useDrillDesignWorkspace(
   );
   const [customHoles, setCustomHoles] = useState<PimoDrillCustomHole[]>([]);
   const [localCatalog, setLocalCatalog] = useState<LocalHoleType[]>([]);
+  const [customGrooves, setCustomGrooves] = useState<PimoDrillGroove[]>([]);
   const [selectedHoleId, setSelectedHoleId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -348,16 +352,29 @@ export function useDrillDesignWorkspace(
         });
       }
 
+      const nextGrooves: PimoDrillGroove[] = parsed.grooves.map((g) => ({
+        id: nextDesignId('groove'),
+        beginXMm: g.beginXMm,
+        beginYMm: g.beginYMm,
+        endXMm: g.endXMm,
+        endYMm: g.endYMm,
+        widthMm: g.widthMm,
+        depthMm: g.depthMm,
+        correctionMm: g.correctionMm,
+      }));
+
       onChangePiece(newPiece);
       setDesignBox(freshBox);
       setCustomHoles(nextCustomHoles);
       setLocalCatalog(nextLocalCatalog);
+      setCustomGrooves(nextGrooves);
       setSelectedHoleId(null);
 
       return {
         imported: matched + nextCustomHoles.length,
         matched,
         customCreated: nextCustomHoles.length,
+        groovesImported: nextGrooves.length,
         groovesSkipped: parsed.groovesSkipped,
       };
     },
@@ -365,8 +382,8 @@ export function useDrillDesignWorkspace(
   );
 
   const saveState = useCallback(() => {
-    writeDrillState({ piece, designBox, customHoles, localCatalog });
-  }, [piece, designBox, customHoles, localCatalog]);
+    writeDrillState({ piece, designBox, customHoles, localCatalog, customGrooves });
+  }, [piece, designBox, customHoles, localCatalog, customGrooves]);
 
   const loadState = useCallback((): boolean => {
     const saved = readDrillState();
@@ -375,6 +392,7 @@ export function useDrillDesignWorkspace(
     setDesignBox(saved.designBox);
     setCustomHoles(saved.customHoles);
     setLocalCatalog(saved.localCatalog);
+    setCustomGrooves(saved.customGrooves ?? []);
     setSelectedHoleId(null);
     return true;
   }, [onChangePiece]);
@@ -394,6 +412,7 @@ export function useDrillDesignWorkspace(
     localCatalog,
     removeCustomHole,
     holesView,
+    customGrooves,
     selectedHoleId,
     selectHole,
     selectedHoleSnapshot,

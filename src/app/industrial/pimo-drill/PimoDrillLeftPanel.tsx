@@ -57,8 +57,11 @@ export default function PimoDrillLeftPanel({
         const summary = design.importFromKdtXml(String(reader.result ?? ''));
         setImportMessage(
           `${summary.imported} furo(s) importado(s) (${summary.matched} do catálogo, ` +
-            `${summary.customCreated} custom) · ${summary.groovesSkipped} rasgo(s) não ` +
-            `suportado(s), ignorado(s).`,
+            `${summary.customCreated} custom) · ${summary.groovesImported} rasgo(s) ` +
+            `importado(s)` +
+            (summary.groovesSkipped > 0
+              ? `, ${summary.groovesSkipped} rasgo(s) ignorado(s) (expressão inválida).`
+              : '.'),
         );
       } catch (err) {
         setImportMessage(err instanceof Error ? err.message : 'Falha ao importar XML.');

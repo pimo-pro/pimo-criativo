@@ -59,10 +59,18 @@ export default function PimoDrillViewer2D({
 
   const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const scaleX = VIEW_W / rect.width;
-    const scaleY = VIEW_H / rect.height;
-    const svgX = (e.clientX - rect.left) * scaleX;
-    const svgY = (e.clientY - rect.top) * scaleY;
+    // O SVG usa o preserveAspectRatio default ("xMidYMid meet"): o conteúdo do
+    // viewBox é escalado UNIFORMEMENTE e centrado (letterbox), não esticado em
+    // cada eixo de forma independente — por isso a conversão px→viewBox tem de
+    // usar a MESMA escala em X/Y mais o offset de centragem, e não VIEW_W/rect.width
+    // e VIEW_H/rect.height em separado (confirmado por medição real do DOM: com
+    // rect 867×420 e viewBox 480×320, o retângulo da peça só fica correto com
+    // escala uniforme + offset centrado).
+    const trueScale = Math.min(rect.width / VIEW_W, rect.height / VIEW_H);
+    const offsetX = (rect.width - VIEW_W * trueScale) / 2;
+    const offsetY = (rect.height - VIEW_H * trueScale) / 2;
+    const svgX = (e.clientX - rect.left - offsetX) / trueScale;
+    const svgY = (e.clientY - rect.top - offsetY) / trueScale;
 
     // Hit-test furos existentes — clicar num furo sempre selecciona, independente
     // da ferramenta activa.
@@ -157,6 +165,22 @@ export default function PimoDrillViewer2D({
             const hy = pieceOriginY + hole.yMm * scale;
             const hr = Math.max(1, (hole.diameterMm / 2) * scale);
             const isSelected = hole.id === selectedHoleId;
+            const labelColor = isSelected ? '#22d3ee' : '#cbd5e1';
+            // Distância à borda mais próxima em cada eixo — yMm=0 é a borda
+            // superior (Top), xMm=0 é a borda direita (Right), ver convenção
+            // no cabeçalho do ficheiro/AxesOverlay.
+            const distTop = hole.yMm;
+            const distBottom = p.widthMm - hole.yMm;
+            const distRight = hole.xMm;
+            const distLeft = p.lengthMm - hole.xMm;
+            const vLabel =
+              distTop <= distBottom
+                ? `Top ${Math.round(distTop)}`
+                : `Bottom ${Math.round(distBottom)}`;
+            const hLabel =
+              distRight <= distLeft
+                ? `Right ${Math.round(distRight)}`
+                : `Left ${Math.round(distLeft)}`;
             return (
               <g key={hole.id}>
                 <circle
@@ -167,14 +191,11 @@ export default function PimoDrillViewer2D({
                   stroke={isSelected ? '#22d3ee' : '#f97316'}
                   strokeWidth={isSelected ? 2.5 : 1.5}
                 />
-                <text
-                  x={hx}
-                  y={hy - hr - 4}
-                  textAnchor="middle"
-                  fill={isSelected ? '#22d3ee' : '#cbd5e1'}
-                  fontSize={9}
-                >
-                  Ø{hole.diameterMm}
+                <text x={hx} y={hy - hr - 14} textAnchor="middle" fill={labelColor} fontSize={9}>
+                  {vLabel}
+                </text>
+                <text x={hx} y={hy - hr - 4} textAnchor="middle" fill={labelColor} fontSize={9}>
+                  {hLabel}
                 </text>
               </g>
             );

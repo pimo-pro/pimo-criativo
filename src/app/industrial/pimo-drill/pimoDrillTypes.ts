@@ -117,11 +117,31 @@ export type DrillHoleViewModel = {
   depthMm: number;
 };
 
+/**
+ * Rasgo/entalhe (TypeNo=3, "Vertical Line" no XML DRILL/KDT) — estrutura real:
+ * início/fim + largura, ao contrário dos furos (ponto + diâmetro). Local ao
+ * pimo-drill; nunca escrito em core/industrialDesigner (que não modela rasgos).
+ */
+export type PimoDrillGroove = {
+  id: string;
+  beginXMm: number;
+  beginYMm: number;
+  endXMm: number;
+  endYMm: number;
+  widthMm: number;
+  depthMm: number;
+  /** Compensação de raio de fresa (kerf/tool-radius) do ficheiro de origem —
+   * guardado para fidelidade, não usado no desenho 2D/3D (que representa a
+   * geometria final do rasgo, não o percurso de ferramenta da máquina). */
+  correctionMm?: number;
+};
+
 /** Resultado de uma importação de ficheiro XML DRILL/KDT. */
 export type ImportSummary = {
   imported: number;
   matched: number;
   customCreated: number;
+  groovesImported: number;
   groovesSkipped: number;
 };
 

@@ -58,8 +58,7 @@ function Scene({ piece, holes, activeTool, selectedHoleId, onSelectHole, onPlace
           makeDefault
           camera={camera}
           autoRotate={false}
-          enableDamping
-          dampingFactor={0.06}
+          enableDamping={false}
           rotateSpeed={0.5}
           minDistance={Math.max(span * 0.35, 0.15)}
           maxDistance={Math.max(span * 14, 8)}

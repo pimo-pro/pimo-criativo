@@ -1,6 +1,11 @@
 import type { IndustrialDesignBox } from '@/core/industrialDesigner';
 
-import type { LocalHoleType, PieceModel, PimoDrillCustomHole } from './pimoDrillTypes';
+import type {
+  LocalHoleType,
+  PieceModel,
+  PimoDrillCustomHole,
+  PimoDrillGroove,
+} from './pimoDrillTypes';
 
 const STORAGE_KEY = 'pimo_drill_state_v1';
 
@@ -9,6 +14,7 @@ export type PimoDrillSavedState = {
   designBox: IndustrialDesignBox;
   customHoles: PimoDrillCustomHole[];
   localCatalog: LocalHoleType[];
+  customGrooves: PimoDrillGroove[];
 };
 
 /**
