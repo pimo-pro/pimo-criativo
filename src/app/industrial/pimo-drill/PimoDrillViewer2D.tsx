@@ -19,15 +19,15 @@ const MIN_HIT_RADIUS_PX = 8;
 function AxesOverlay() {
   return (
     <div style={axesOverlayStyle} aria-hidden>
-      <svg width="56" height="56" viewBox="0 0 56 56">
-        <line x1="28" y1="28" x2="8" y2="28" stroke="#ef4444" strokeWidth="2" />
-        <polygon points="8,28 14,24 14,32" fill="#ef4444" />
-        <text x="6" y="26" fill="#ef4444" fontSize="9">
+      <svg width="168" height="168" viewBox="0 0 168 168">
+        <line x1="84" y1="84" x2="24" y2="84" stroke="#ef4444" strokeWidth="6" />
+        <polygon points="24,84 42,72 42,96" fill="#ef4444" />
+        <text x="18" y="78" fill="#ef4444" fontSize="27">
           X+
         </text>
-        <line x1="28" y1="28" x2="28" y2="48" stroke="#3b82f6" strokeWidth="2" />
-        <polygon points="28,48 24,42 32,42" fill="#3b82f6" />
-        <text x="30" y="46" fill="#3b82f6" fontSize="9">
+        <line x1="84" y1="84" x2="84" y2="144" stroke="#3b82f6" strokeWidth="6" />
+        <polygon points="84,144 72,126 96,126" fill="#3b82f6" />
+        <text x="90" y="138" fill="#3b82f6" fontSize="27">
           Y+
         </text>
       </svg>

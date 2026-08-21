@@ -134,8 +134,8 @@ export const axesOverlayStyle: CSSProperties = {
   position: 'absolute',
   top: 12,
   right: 12,
-  width: 56,
-  height: 56,
+  width: 168,
+  height: 168,
   pointerEvents: 'none',
   zIndex: 2,
 };
