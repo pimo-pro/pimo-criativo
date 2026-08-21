@@ -47,6 +47,8 @@ import {
   DRAWER_LAT_GROOVE_TOP_WIDTH_MM,
   DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM,
 } from "../drawerGeometryConstants";
 import {
   CAVILHA_10x40_FERRAGEM_ID,
@@ -437,7 +439,11 @@ export function computePiModuleLateralCorredicaHoles(params: {
 const DRAWER_UPPER_SLIDE_AXIS_FROM_BOTTOM_MM = 22.5;
 
 /** Modo de cálculo Y das corrediças nos laterais do módulo. */
-export type CorredicaModoCalculoY = "pitch_H_sobre_n" | "eixo_desde_frente";
+export type CorredicaModoCalculoY =
+  | "pitch_H_sobre_n"
+  | "eixo_desde_frente"
+  /** Progressivas: GAV_1=41; i≥1 → bodyBottom + 22,5. */
+  | "eixo_desde_corpo_base";
 
 /** Defaults industriais (gavita 8 / drill certo) — sem schema Admin nesta fase. */
 export const DEFAULT_CORREDICA_EIXO_GAVETA1_MM = 41;
@@ -480,7 +486,9 @@ export function resolvePitchRunnerLinesFromBottomMm(params: {
  * Default industrial (`pitch_H_sobre_n`, gavita 8):
  *   Y_from_bottom(0) = 41
  *   Y_from_bottom(i) = 41 + i·(H_ext/n) − T   (i ≥ 1)
- *   sem eixo 22,5 e sem dupla subtração de B0.
+ *
+ * Progressivas (`eixo_desde_corpo_base` ou heightMode Progressivas):
+ *   Y(0) = 41 · Y(i≥1) = bodyBottom + 22,5
  *
  * Legado (`eixo_desde_frente`): base da frente + 41/22,5 − B0.
  * Clamp: nunca < 41 mm às arestas inferior/superior do painel.
@@ -489,12 +497,18 @@ export function resolveEuropeanModuleRunnerLinesYMm(params: {
   panelHeightMm: number;
   /** Datum legado / stack — em cutlist já é H externa. */
   boxInternalHeightMm: number;
-  drawers: Array<{ posYMm: number; frontHeightMm: number }>;
+  drawers: Array<{
+    posYMm: number;
+    frontHeightMm: number;
+    sideBaseElevationMm?: number;
+  }>;
   rules?: DrawerSlideDrillingRules;
   /** H externa do módulo (pitch). Default = boxInternalHeightMm. */
   boxExternalHeightMm?: number;
   /** T fundo / desconto painel. Default 19. */
   floorThicknessMm?: number;
+  /** Modo de altura do stack — Progressivas activa eixo_desde_corpo_base. */
+  heightMode?: string;
   corredicaModoCalculo?: CorredicaModoCalculoY;
   corredicaEixoGaveta1Mm?: number;
   corredicaDescontoPainelMm?: number;
@@ -516,6 +530,37 @@ export function resolveEuropeanModuleRunnerLinesYMm(params: {
   );
   const minFromPanelBottomMm = eixo1;
   const modo = params.corredicaModoCalculo ?? DEFAULT_CORREDICA_MODO_CALCULO_Y;
+  const useCorpoBase =
+    modo === "eixo_desde_corpo_base" ||
+    params.heightMode === "top_small_mid_medium_bottom_large";
+
+  const toFromTop = (fromBottom: number[]): number[] =>
+    fromBottom.map((yFromBottom) => {
+      let y = Math.max(minFromPanelBottomMm, yFromBottom);
+      y = Math.min(panelH - minFromPanelBottomMm, y);
+      return panelH - y;
+    });
+
+  // --- Progressivas: GAV_1=41; superiores = bodyBottom + 22,5 ---
+  if (useCorpoBase && drawerCount > 0) {
+    const H =
+      params.boxExternalHeightMm != null && Number.isFinite(params.boxExternalHeightMm)
+        ? Number(params.boxExternalHeightMm)
+        : Math.max(1, params.boxInternalHeightMm);
+    const moduleBase = -H / 2;
+    const offsetMm = DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM;
+    const fromBottom = sorted.map((d, i) => {
+      if (i === 0) return eixo1;
+      const frontH = Math.max(0, Number(d.frontHeightMm) || 0);
+      const frontBottom = Number(d.posYMm) - moduleBase - frontH / 2;
+      const elev =
+        d.sideBaseElevationMm != null && Number.isFinite(d.sideBaseElevationMm)
+          ? Number(d.sideBaseElevationMm)
+          : DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+      return frontBottom + elev + offsetMm;
+    });
+    return toFromTop(fromBottom);
+  }
 
   // --- Modo industrial dinâmico (gavita 8 / drill certo) ---
   if (modo === "pitch_H_sobre_n" && drawerCount > 0) {
@@ -532,11 +577,7 @@ export function resolveEuropeanModuleRunnerLinesYMm(params: {
         params.floorThicknessMm ??
         DEFAULT_CORREDICA_DESCONTO_PAINEL_MM,
     });
-    return fromBottom.map((yFromBottom) => {
-      let y = Math.max(minFromPanelBottomMm, yFromBottom);
-      y = Math.min(panelH - minFromPanelBottomMm, y);
-      return panelH - y;
-    });
+    return toFromTop(fromBottom);
   }
 
   // --- Legado: eixo desde base da frente (41 / 22,5 + subtração B0) ---

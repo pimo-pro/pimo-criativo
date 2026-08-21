@@ -89,8 +89,9 @@ export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM =
 
 /**
  * Datum industrial: eixo da guia acima da base do lado da gaveta (mm).
- * Montagem: Y_guia_módulo(GAV_1)=41 − bodyBottom=18,5 → 22,5.
- * Não altera furos das corrediças no módulo.
+ * Montagem GAV_1: Y_guia_módulo=41 − bodyBottom=18,5 → 22,5.
+ * Progressivas (i≥1): Y_guia = bodyBottom + esta constante (ex.: 500 → 522,5).
+ * Não altera furos das corrediças no módulo fora desta regra.
  */
 export const DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM = 22.5;
 

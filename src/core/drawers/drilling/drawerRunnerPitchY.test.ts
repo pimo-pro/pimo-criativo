@@ -1,8 +1,18 @@
 /**
  * Diff 1 — alturas Y das corrediças (modo pitch_H_sobre_n).
  * Referência industrial: gavita 8 / drill certo.
+ * Progressivas: eixo_desde_corpo_base (bodyBottom + 22,5).
  */
 import { describe, expect, it } from "vitest";
+import {
+  calculateDrawerHeights,
+  calculateDrawerPositions,
+} from "../DrawerGroup";
+import {
+  resolveDrawerBodyElevationForStackRoleMm,
+  resolveDrawerStackRole,
+} from "../drawerStackPosition";
+import { DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM } from "../drawerGeometryConstants";
 import {
   DEFAULT_CORREDICA_DESCONTO_PAINEL_MM,
   DEFAULT_CORREDICA_EIXO_GAVETA1_MM,
@@ -128,5 +138,60 @@ describe("resolveEuropeanModuleRunnerLinesYMm — pitch_H_sobre_n", () => {
     expect(fromBottom[0]).toBeCloseTo(41, 3);
     // Upper: 22,5 + (bottom − B0_SSOT); B0=2 → 287,833
     expect(fromBottom[1]).toBeCloseTo(287.833, 1);
+  });
+});
+
+describe("resolveEuropeanModuleRunnerLinesYMm — Progressivas (corpo_base)", () => {
+  it("H=800 n=3 → fromBottom ≈ [41, 392.5, 712.5]", () => {
+    const H = 800;
+    const panelH = 762;
+    const n = 3;
+    const heights = calculateDrawerHeights(n, H, "top_small_mid_medium_bottom_large");
+    const positions = calculateDrawerPositions(heights, H);
+    const drawers = heights.map((frontHeightMm, i) => {
+      const role = resolveDrawerStackRole(i, n);
+      return {
+        posYMm: positions[i]!,
+        frontHeightMm,
+        sideBaseElevationMm: resolveDrawerBodyElevationForStackRoleMm(role),
+      };
+    });
+
+    const fromTop = resolveEuropeanModuleRunnerLinesYMm({
+      panelHeightMm: panelH,
+      boxInternalHeightMm: H,
+      boxExternalHeightMm: H,
+      floorThicknessMm: 19,
+      heightMode: "top_small_mid_medium_bottom_large",
+      drawers,
+    });
+    const fromBottom = fromTop.map((y) => panelH - y);
+
+    expect(fromBottom[0]).toBeCloseTo(41, 5);
+    // bodyBottom GAV_2 = 322 + 48 = 370 → +22,5 = 392,5
+    expect(fromBottom[1]).toBeCloseTo(392.5, 5);
+    // bodyBottom GAV_3 = 642 + 48 = 690 → +22,5 = 712,5
+    expect(fromBottom[2]).toBeCloseTo(712.5, 5);
+    expect(DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM).toBe(22.5);
+  });
+
+  it("equal sem heightMode Progressivas mantém pitch", () => {
+    const panelH = 762;
+    const fromTop = resolveEuropeanModuleRunnerLinesYMm({
+      panelHeightMm: panelH,
+      boxInternalHeightMm: 800,
+      boxExternalHeightMm: 800,
+      floorThicknessMm: 19,
+      heightMode: "equal",
+      drawers: [
+        { posYMm: -200, frontHeightMm: 260, sideBaseElevationMm: 16.5 },
+        { posYMm: 0, frontHeightMm: 260, sideBaseElevationMm: 48 },
+        { posYMm: 200, frontHeightMm: 260, sideBaseElevationMm: 48 },
+      ],
+    });
+    const fromBottom = fromTop.map((y) => panelH - y);
+    expect(fromBottom[0]).toBeCloseTo(41, 5);
+    expect(fromBottom[1]).toBeCloseTo(288.6666666667, 5);
+    expect(fromBottom[2]).toBeCloseTo(555.3333333333, 5);
   });
 });

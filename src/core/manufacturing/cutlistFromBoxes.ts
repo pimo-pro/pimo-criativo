@@ -464,9 +464,17 @@ export function cutlistComPrecoFromBox(
         boxInternalHeightMm: boxExternalHeightMm,
         boxExternalHeightMm,
         floorThicknessMm,
+        heightMode:
+          typeof sortedDrawers[0]?.metadata?.heightMode === "string"
+            ? sortedDrawers[0].metadata.heightMode
+            : undefined,
         drawers: sortedDrawers.map((d) => ({
           posYMm: Number(d.posY) || 0,
           frontHeightMm: Number(d.height) || 0,
+          sideBaseElevationMm:
+            typeof d.metadata?.sideBaseElevationMm === "number"
+              ? d.metadata.sideBaseElevationMm
+              : undefined,
         })),
       });
       const firstDrawer = sortedDrawers[0];

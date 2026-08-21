@@ -8,18 +8,25 @@
 import type { DrawerLayerItem } from "../../../models/BoxLayers";
 import type { Drawer } from "../Drawer";
 import type { DrawerGroup } from "../DrawerGroup";
+import type { DrawerHeightMode } from "../drawerHeightModeTypes";
 
 /**
  * Converte um grupo de gavetas para o formato de layers
  */
 export function drawerGroupToLayerItems(group: DrawerGroup): DrawerLayerItem[] {
-  return group.drawers.map((drawer) => drawerToLayerItem(drawer, group.boxDimensions.depth));
+  return group.drawers.map((drawer) =>
+    drawerToLayerItem(drawer, group.boxDimensions.depth, group.heightMode)
+  );
 }
 
 /**
  * Converte uma gaveta individual para LayerItem
  */
-export function drawerToLayerItem(drawer: Drawer, profundidadeUtilMm?: number): DrawerLayerItem {
+export function drawerToLayerItem(
+  drawer: Drawer,
+  profundidadeUtilMm?: number,
+  heightMode?: DrawerHeightMode
+): DrawerLayerItem {
   const {
     id,
     parentBoxId,
@@ -128,6 +135,7 @@ export function drawerToLayerItem(drawer: Drawer, profundidadeUtilMm?: number): 
       softClose: specs.slide.softClose,
       drawerType: type,
       sideBaseElevationMm: specs.sideBaseElevationMm,
+      heightMode,
       profundidadeUtilMm:
         Number.isFinite(profundidadeUtilMm) && (profundidadeUtilMm ?? 0) > 0
           ? profundidadeUtilMm
