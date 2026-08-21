@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-21T13:14:46.555Z",
+  "updatedAt": "2026-08-21T13:33:40.658Z",
   "news": [
+    {
+      "version": "v6.0821.1433",
+      "title": "Proteção SSOT gavetas + fix ficheiros corrompidos + integração WIP local",
+      "description": "Proteção SSOT gavetas + fix ficheiros corrompidos + integração WIP local",
+      "publishedAt": "2026-08-21T13:33:40.516Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "9dacfde9"
+    },
     {
       "version": "v6.0821.1414",
       "title": "fix(drawers): remover import SSOT não usado (build tsc)",
       "description": "fix(drawers): remover import SSOT não usado (build tsc)",
-      "publishedAt": "2026-08-21T13:14:46.409Z",
+      "publishedAt": "2026-08-21T14:16:47+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "703e8896"
+      "commit": "1dbc007"
     },
     {
       "version": "v6.0821.1413",

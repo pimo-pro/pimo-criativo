@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-21T13:33:39.799Z",
+      "author": "pimo-pro",
+      "commitMessage": "Proteção SSOT gavetas + fix ficheiros corrompidos + integração WIP local",
+      "version": "v6.0821.1433"
+    },
+    {
       "publishedAt": "2026-08-21T13:14:45.647Z",
       "author": "pimo-pro",
       "commitMessage": "fix(drawers): remover import SSOT não usado (build tsc)",
