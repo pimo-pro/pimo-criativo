@@ -1,6 +1,6 @@
 /**
- * Stack dinâmico anti-sobreposição — Diff 3 equal_quase.
- * B0=0 · G=4 · ajuste 1.ª = −2 · corpo Diff 2 · runners Diff 1.
+ * Stack dinâmico anti-sobreposição — equal_quase com B0=2.
+ * B0=2 · G=4 · ajuste 1.ª = −2 · corpo Diff 2 · runners Diff 1.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -27,25 +27,26 @@ import { settingsDefaults } from "../core/settings/settingsSchema";
 describe("stack dinâmico anti-sobreposição", () => {
   const H = 762;
   const T = 19;
+  const B0 = 2;
 
   it("fórmula equal_quase: zero overlap, gaps 4, slides = bottom+41", () => {
-    // distributable = 762 − 0 − 8 = 754; hEqual = (754−(−2))/3 = 252
-    // frente0 = 250; frente1/2 = 252
+    // distributable = 762 − 2 − 8 = 752; hEqual = (752−(−2))/3 = 251.333…
+    // frente0 = 249.333; frente1/2 = 251.333
     const layout = resolveDynamicEqualDrawerStackLayout({
       count: 3,
       boxHeightMm: H,
       slideOffsetFromBottomMm: DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM,
     });
-    expect(layout.heights[0]).toBeCloseTo(250, 5);
-    expect(layout.heights[1]).toBeCloseTo(252, 5);
-    expect(layout.heights[2]).toBeCloseTo(252, 5);
-    expect(layout.bottoms[0]).toBeCloseTo(0, 5);
-    expect(layout.bottoms[1]).toBeCloseTo(254, 5);
-    expect(layout.bottoms[2]).toBeCloseTo(510, 5);
+    expect(layout.heights[0]).toBeCloseTo(249.3333333, 5);
+    expect(layout.heights[1]).toBeCloseTo(251.3333333, 5);
+    expect(layout.heights[2]).toBeCloseTo(251.3333333, 5);
+    expect(layout.bottoms[0]).toBeCloseTo(B0, 5);
+    expect(layout.bottoms[1]).toBeCloseTo(B0 + 249.3333333 + 4, 5);
+    expect(layout.bottoms[2]).toBeCloseTo(B0 + 249.3333333 + 4 + 251.3333333 + 4, 5);
     expect(layout.tops[2]).toBeCloseTo(H, 3);
-    expect(layout.slides[0]).toBeCloseTo(41, 3);
-    expect(layout.slides[1]).toBeCloseTo(295, 3);
-    expect(layout.slides[2]).toBeCloseTo(551, 3);
+    expect(layout.slides[0]).toBeCloseTo(B0 + 41, 3);
+    expect(layout.slides[1]).toBeCloseTo(layout.bottoms[1]! + 41, 3);
+    expect(layout.slides[2]).toBeCloseTo(layout.bottoms[2]! + 41, 3);
 
     const anti = assertNoDrawerFrontOverlap({
       bottoms: layout.bottoms,
@@ -65,8 +66,8 @@ describe("stack dinâmico anti-sobreposição", () => {
     expect(cover.ok).toBe(true);
   });
 
-  it("laterais industriais frente−delta; elev 48", () => {
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
+  it("laterais industriais frente−delta; bodyBottom GAV_1 = 18,5", () => {
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(18.5);
     expect(DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM).toBe(12.5); // legado
     expect(DRAWER_FRONT_LATERAL_GAP_MM).toBe(2);
     expect(settingsDefaults.gavetas.gavetaFolgaFrenteMm).toBe(2);
@@ -77,7 +78,7 @@ describe("stack dinâmico anti-sobreposição", () => {
     expect(resolveDrawerWoodBodyHeightForStackRoleMm(h, "highest")).toBeCloseTo(h - 68.5, 3);
   });
 
-  it("generateDrawerGroup 3 gavetas — equal_quase; delta 85,5/68,5; elev 48", () => {
+  it("generateDrawerGroup 3 gavetas — equal_quase; elev lowest 16,5 / upper 48", () => {
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: H,
@@ -101,13 +102,13 @@ describe("stack dinâmico anti-sobreposição", () => {
     const anti = assertNoDrawerFrontOverlap({ bottoms, tops });
     expect(anti.ok).toBe(true);
 
-    expect(heights[0]).toBeCloseTo(250, 5);
-    expect(heights[1]).toBeCloseTo(252, 5);
-    expect(heights[2]).toBeCloseTo(252, 5);
+    expect(heights[0]).toBeCloseTo(249.3333333, 5);
+    expect(heights[1]).toBeCloseTo(251.3333333, 5);
+    expect(heights[2]).toBeCloseTo(251.3333333, 5);
     expect(heights[0]).toBeLessThan(heights[1]!);
     expect(heights[1]).toBeCloseTo(heights[2]!, 5);
 
-    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(48);
+    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(16.5);
     expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(48);
     expect(layers[2]!.metadata?.sideBaseElevationMm).toBe(48);
     expect(layers[0]!.bodyHeight).toBeCloseTo(heights[0]! - 85.5, 5);
@@ -119,7 +120,7 @@ describe("stack dinâmico anti-sobreposição", () => {
     const bodyH = layers[0]!.bodyHeight!;
     const offsetY = layers[0]!.bodyCenterOffsetY!;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
-    expect(bodyBottom - moduleBase).toBeCloseTo(0 + 48, 5);
+    expect(bodyBottom - moduleBase).toBeCloseTo(18.5, 5);
 
     const bodyH2 = layers[2]!.bodyHeight!;
     const offsetY2 = layers[2]!.bodyCenterOffsetY!;
@@ -155,17 +156,17 @@ describe("stack dinâmico anti-sobreposição", () => {
     expect(fromBottom[2]).toBeCloseTo(530, 3);
   });
 
-  it("calculateDrawerHeights equal_quase com B0=0", () => {
+  it("calculateDrawerHeights equal_quase com B0=2", () => {
     const heights = calculateDrawerHeights(3, H, "equal", undefined, {
       topPanelThicknessMm: T,
     });
-    expect(heights[0]).toBeCloseTo(250, 5);
-    expect(heights[1]).toBeCloseTo(252, 5);
-    expect(heights[2]).toBeCloseTo(252, 5);
+    expect(heights[0]).toBeCloseTo(249.3333333, 5);
+    expect(heights[1]).toBeCloseTo(251.3333333, 5);
+    expect(heights[2]).toBeCloseTo(251.3333333, 5);
     const positions = calculateDrawerPositions(heights, H);
     const b0 = positions[0]! - (-H / 2) - heights[0]! / 2;
     const b1 = positions[1]! - (-H / 2) - heights[1]! / 2;
-    expect(b0).toBeCloseTo(0, 5);
+    expect(b0).toBeCloseTo(B0, 5);
     expect(b1 - (b0 + heights[0]!)).toBeCloseTo(4, 5);
   });
 });

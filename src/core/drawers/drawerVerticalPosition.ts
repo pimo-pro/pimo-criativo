@@ -14,7 +14,7 @@ export { DRAWER_VERTICAL_GAP_MM };
 
 /**
  * Offset da 1ª frente relativamente à base do módulo (mm).
- * SSOT = `DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM` (Diff 3: B0 = 0).
+ * SSOT = `DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM` (B0 = 2 mm).
  */
 export const DRAWER_VERTICAL_BASE_OFFSET_MM = DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM;
 

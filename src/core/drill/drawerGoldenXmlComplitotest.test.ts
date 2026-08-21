@@ -165,7 +165,7 @@ describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
   const sideH = 195.5;
   const elev = 18;
 
-  it("legado fixed holes: rasgo W-56.5; cavilhas = elev+15 e elev+(sideH-35); X=33", () => {
+  it("legado fixed holes: rasgo W-56.5; cavilhas = elev+54 e elev+(sideH-35); X=33", () => {
     const holes = computeDrawerLowestFrenteExtFixedHoles({
       largura: L,
       altura: W,
@@ -184,7 +184,7 @@ describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
 
     const cav = holes.filter((h) => h.tipo === "cavilha");
     expect(cav).toHaveLength(4);
-    const lowerY = elev + 15;
+    const lowerY = elev + 54;
     const upperY = elev + (sideH - 35);
     expect(cav.filter((h) => Math.abs(h.y - lowerY) < 0.01)).toHaveLength(2);
     expect(cav.filter((h) => Math.abs(h.y - upperY) < 0.01)).toHaveLength(2);
@@ -193,8 +193,8 @@ describe("golden XML_COMPLITO — frente inferior pairing laterais", () => {
     expect(Math.abs(upperY - lowerY)).toBeGreaterThan(50);
   });
 
-  it("produção GAV_FRENTE_EXT_01 (lowest): mesmo padrão 02/03 — elev+15 / elev+sideH−35; rasgo elev+sideH−13", () => {
-    const lowerY = elev + 15;
+  it("produção GAV_FRENTE_EXT_01 (lowest): elev+54 / elev+sideH−35; rasgo elev+sideH−13 → Y_peça 70,5", () => {
+    const lowerY = elev + 54;
     const upperY = elev + (sideH - 35);
     const grooveY = elev + sideH - 13;
 

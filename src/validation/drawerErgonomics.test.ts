@@ -66,16 +66,18 @@ describe("drawerErgonomicsHeights", () => {
     expect(sumWithGaps(auto)).toBeCloseTo(USABLE, 0);
   });
 
-  it("calculateDrawerHeights delega modos ergonómicos sem alterar equal/custom", () => {
+  it("calculateDrawerHeights delega modos ergonómicos sem alterar equal_quase/custom", () => {
     const equal = calculateDrawerHeights(3, BOX_H, "equal");
     const ergonomic = calculateDrawerHeights(3, BOX_H, "ergonomic");
-    expect(equal.every((h) => Math.abs(h - equal[0]!) < 0.01)).toBe(true);
+    // equal = equal_quase: 1.ª frente −2 mm vs restantes
+    expect(equal[1]).toBeCloseTo(equal[2]!, 5);
+    expect(equal[0]!).toBeLessThan(equal[1]!);
     expect(ergonomic).not.toEqual(equal);
     expect(ergonomic[2]!).toBeGreaterThan(ergonomic[0]!);
   });
 });
 
-describe("distribuições de referência (720 mm útil)", () => {
+describe("distribuições de referência (módulo 720 mm; útil = 720−B0)", () => {
   const round = (vals: number[]) => vals.map((v) => Math.round(v));
 
   it("2 gavetas — ergonomic (limite máx. 350 mm)", () => {
@@ -92,7 +94,7 @@ describe("distribuições de referência (720 mm útil)", () => {
     );
     expect(h[0]).toBeLessThan(h[1]!);
     expect(h[1]).toBeLessThan(h[2]!);
-    expect(h).toEqual([125, 237, 350]);
+    expect(h).toEqual([124, 236, 350]);
   });
 
   it("4 gavetas — kitchen_zones", () => {
@@ -100,7 +102,7 @@ describe("distribuições de referência (720 mm útil)", () => {
       calculateErgonomicDrawerHeights({ drawerCount: 4, usableHeightMm: USABLE, mode: "kitchen_zones" })
     );
     expect(h[0]).toBeLessThan(h[3]!);
-    expect(h).toEqual([99, 156, 212, 241]);
+    expect(h).toEqual([99, 155, 212, 240]);
   });
 
   it("5 gavetas — auto", () => {
@@ -110,6 +112,6 @@ describe("distribuições de referência (720 mm útil)", () => {
     expect(h).toHaveLength(5);
     expect(h[4]).toBeGreaterThanOrEqual(ERGONOMIC_MIN_DRAWER_HEIGHT_MM);
     expect(h[4]!).toBeGreaterThan(h[0]!);
-    expect(h).toEqual([87, 136, 180, 151, 151]);
+    expect(h).toEqual([87, 135, 180, 150, 150]);
   });
 });

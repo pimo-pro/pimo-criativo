@@ -17,7 +17,7 @@ import {
   buildEuropeanModuleLateralCorredicaDrilling,
   resolveEuropeanModuleRunnerLinesYMm,
 } from "../core/drawers/drilling/DrawerDrillingRules";
-import { DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM } from "../core/drawers/drilling/drawerDowelInterlock";
+import { DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM } from "../core/drawers/drilling/drawerDowelInterlock";
 import {
   buildDrawerScenario,
   minimalBoxWithDrawers,
@@ -82,14 +82,14 @@ describe("P3.13 — gaveteiro industrial completo", () => {
       relativePatterns[2]!.cav.map((c) => c.yRel)
     );
     expect(relativePatterns[1]!.grooveRel).toBe(relativePatterns[2]!.grooveRel);
-    expect(relativePatterns[0]!.elev).toBe(48);
+    expect(relativePatterns[0]!.elev).toBe(16.5);
     expect(relativePatterns[1]!.elev).toBe(48);
     // Upper yRel = sideH−35 → GAV1 < GAV2 (delta lowest maior).
     const yUpper0 = Math.max(...relativePatterns[0]!.cav.map((c) => c.yRel));
     const yUpper1 = Math.max(...relativePatterns[1]!.cav.map((c) => c.yRel));
     expect(yUpper0).toBeLessThan(yUpper1);
     expect(Math.min(...relativePatterns[0]!.cav.map((c) => c.yRel))).toBe(
-      DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM
+      DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM
     );
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {
@@ -109,7 +109,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
     expect(xml01!.xml).not.toContain("<BeginY>53.00</BeginY>");
   });
 
-  it("2) GAV_LAT_DIR/ESQ_01 — cavilha de aresta inferior Y=15 presente", () => {
+  it("2) GAV_LAT_DIR/ESQ_01 — cavilha de aresta inferior Y=54 presente", () => {
     const { cutlist } = buildEqualStack();
     for (const tipo of ["gaveta_lat_esq", "gaveta_lat_dir"] as const) {
       const lat01 = cutlist
@@ -123,7 +123,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
         .filter((h) => h.holeType === "cavilha" && h.topDrillable !== true)
         .map((h) => h.y)
         .sort((a, b) => a - b);
-      expect(edgeYs[0]).toBeCloseTo(DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM, 5);
+      expect(edgeYs[0]).toBeCloseTo(DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM, 5);
       expect(edgeYs.length).toBeGreaterThanOrEqual(2);
     }
   });
@@ -160,7 +160,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
     }
   });
 
-  it("4) Corpos — 2ª≡3ª (delta upper); 1ª mais baixa (delta lowest); elev 48", () => {
+  it("4) Corpos — 2ª≡3ª (delta upper); 1ª mais baixa (delta lowest); elev 16,5/48/48", () => {
     const { cutlist } = buildEqualStack();
     const byTipo = (tipo: string) =>
       cutlist
@@ -194,7 +194,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
         )
       );
     });
-    expect(elevs[0]).toBeCloseTo(48, 5);
+    expect(elevs[0]).toBeCloseTo(16.5, 5);
     expect(elevs[1]).toBeCloseTo(48, 5);
     expect(elevs[2]).toBeCloseTo(48, 5);
   });

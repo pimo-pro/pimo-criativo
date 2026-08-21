@@ -854,10 +854,10 @@ export function computeDrawerFrenteIntStructuralHoles(params: {
 }
 
 /**
- * Frente externa madeira — regra global CAVILHA_10×40 (todas as frentes, incl. GAV_FRENTE_EXT_01):
+ * Frente externa madeira — regra global CAVILHA_10×40:
  * cada 10×30 na aresta dos laterais → 10×13 na face da frente (Y = elev + Y_lateral).
- * Rasgo (todas as gavetas): Y = elev + sideH − 13 (distância fixa 22 mm à cavilha superior).
- * Padrão idêntico em 01/02/03 — orientação e furação coerentes para CNC/DRILL.
+ * GAV_1 / single: Y_aresta inferior = 54 → Y_peça = elev+54 = 70,5; middle/highest: 15.
+ * Rasgo (todas): Y = elev + sideH − 13 (22 mm à cavilha superior).
  * Furação exclusiva DRILL — o pipeline CNC remove estes furos do TCN.
  */
 export function computeDrawerFrenteExtStructuralHoles(params: {
@@ -885,6 +885,10 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
     params.sideBaseElevationMm != null && Number.isFinite(params.sideBaseElevationMm)
       ? params.sideBaseElevationMm
       : DRAWER_SIDE_BASE_ELEVATION_MM;
+  const isLowest =
+    params.isLowestDrawer === true ||
+    params.stackRole === "lowest" ||
+    params.stackRole === "single";
 
   const holes = projectDrawerLateralEdgeCavilhasOntoFront({
     frontWidthMm: largura,
@@ -894,8 +898,7 @@ export function computeDrawerFrenteExtStructuralHoles(params: {
     sideBaseElevationMm: elev,
     bodyWidthMm,
     sideThicknessMm,
-    // Uniforme: não especializar lowest (mesma tabela 15 / H−35).
-    isLowestDrawer: false,
+    isLowestDrawer: isLowest,
   });
 
   // Rasgo do fundo: deve acompanhar bottomWidthMm (peça gav_fundo), não bodyWidthMm

@@ -175,13 +175,19 @@ export function resolveDrawerViewerInternalWidthMm(
 }
 
 /** Posição Y do centro da lateral — base elevada acima da base da frente (coords locais, mm). */
+/** Posição Y do centro da lateral (âncora = centro da frente, mm).
+ * `baseElevationMm` é confiável: industrial (já clampado) ou visual pós-flip (pode ser > MAX).
+ */
 export function resolveDrawerViewerSidePosYMm(
   frontPosYMm: number,
   frontHeightMm: number,
   sideHeightMm: number,
-  baseElevationMm: number = resolveDrawerSideBaseElevationMm()
+  baseElevationMm?: number
 ): number {
-  const elevation = resolveDrawerSideBaseElevationMm(baseElevationMm);
+  const elevation =
+    baseElevationMm != null && Number.isFinite(baseElevationMm)
+      ? Math.max(0, Number(baseElevationMm))
+      : resolveDrawerSideBaseElevationMm();
   return (
     Number(frontPosYMm) -
     Number(frontHeightMm) / 2 +

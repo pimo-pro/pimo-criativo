@@ -57,6 +57,7 @@ export function computeDrawerLowestFrenteExtFixedHoles(params: {
           bodyWidthMm: params.bodyWidthMm,
           sideThicknessMm: params.sideThicknessMm,
           xInsetMm: DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
+          isLowestDrawer: true,
         })
       : [];
 

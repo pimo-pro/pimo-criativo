@@ -13,6 +13,7 @@ import {
 } from "../core/drawers";
 import {
   DRAWER_SIDE_BASE_ELEVATION_MM,
+  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_VERTICAL_GAP_MM,
 } from "../core/drawers/drawerGeometryConstants";
 import { resolveDrawerWoodBodyHeightMm } from "../core/drawers/drawerViewerLayout";
@@ -33,11 +34,11 @@ import {
 } from "./drawerCertificationTestHelpers";
 
 describe("gav_frente — stack vertical por posição no módulo", () => {
-  it("offset de base = 0 mm (Diff 3 — B0 flush)", () => {
-    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(0);
+  it("offset de base = 2 mm (B0 fábrica)", () => {
+    expect(DRAWER_VERTICAL_BASE_OFFSET_MM).toBe(2);
   });
 
-  it("módulo 2 gavetas equal_quase 720 mm — 1.ª −2; datum B0=0 e CIMA", () => {
+  it("módulo 2 gavetas equal_quase 720 mm — 1.ª −2; datum B0=2 e CIMA", () => {
     const boxH = 720;
     const heights = calculateDrawerHeights(2, boxH, "equal");
     const distributable = boxH - DRAWER_VERTICAL_BASE_OFFSET_MM - DRAWER_VERTICAL_GAP_MM;
@@ -68,7 +69,7 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
     expect(upper.frontTopFromModuleBaseMm).toBeCloseTo(boxH, 5);
   });
 
-  it("furos/rasgo — inferior e superior: mesmo padrão elev+15 / elev+sideH−35; rasgo a 22 mm da cavilha superior", () => {
+  it("furos/rasgo — superior elev+15; lowest elev+54; rasgo a 22 mm da cavilha superior", () => {
     const frontH = 358;
     const sideH = resolveDrawerWoodBodyHeightMm(frontH);
     const elev = DRAWER_SIDE_BASE_ELEVATION_MM;
@@ -97,21 +98,22 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
       sideBaseElevationMm: elev,
     });
 
-    const expectedYs = getDrawerFrontDowelYPositionsMm(sideH, false).map((y) => y + elev);
+    const expectedYsUpper = getDrawerFrontDowelYPositionsMm(sideH, false).map((y) => y + elev);
+    const expectedYsLowest = getDrawerFrontDowelYPositionsMm(sideH, true).map((y) => y + elev);
     const ysUpper = [...new Set(holesUpper.filter((h) => h.tipo === "cavilha").map((h) => h.y))].sort(
       (a, b) => a - b
     );
     const ysLowest = [...new Set(holesLowest.filter((h) => h.tipo === "cavilha").map((h) => h.y))].sort(
       (a, b) => a - b
     );
-    expect(ysUpper).toEqual(expectedYs);
-    expect(ysLowest).toEqual(expectedYs);
+    expect(ysUpper).toEqual(expectedYsUpper);
+    expect(ysLowest).toEqual(expectedYsLowest);
     const grooveY = elev + sideH - 13;
     expect(holesUpper.find((h) => h.holeSubtype === "groove")?.y).toBe(grooveY);
     expect(holesLowest.find((h) => h.holeSubtype === "groove")?.y).toBe(grooveY);
-    const upperCavY = Math.max(...expectedYs);
-    expect(grooveY - upperCavY).toBeCloseTo(22, 5);
-    expect(Math.min(...expectedYs)).toBe(elev + 15);
+    expect(grooveY - Math.max(...expectedYsUpper)).toBeCloseTo(22, 5);
+    expect(Math.min(...expectedYsUpper)).toBe(elev + 15);
+    expect(Math.min(...expectedYsLowest)).toBe(elev + 54);
   });
 
   it("pipeline 2 gavetas — cutlist + DRILL: roles e furos", () => {
@@ -147,8 +149,8 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
     expect(groove0!.y - upperCav0).toBeCloseTo(22, 5);
     expect(groove1!.y - upperCav1).toBeCloseTo(22, 5);
     const lowerCav0 = Math.min(...cav0.map((h) => h.y));
-    // Inferior (GAV_1): elev = 48; cavilha inferior em elev+15.
-    expect(lowerCav0).toBeCloseTo(DRAWER_SIDE_BASE_ELEVATION_MM + 15, 5);
+    // Inferior (GAV_1): elev = 16,5; cavilha inferior em elev+54 → Y_peça 70,5.
+    expect(lowerCav0).toBeCloseTo(DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM + 54, 5);
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {
       projectName: "STACK2",

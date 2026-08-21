@@ -4,7 +4,7 @@ import { generateDrawerGroup, drawerGroupToLayerItems } from "../core/drawers";
 import { buildDrawerSpecs, createDrawerObject } from "../3d/objects/DrawerFactory";
 import {
   DRAWER_BODY_DELTA_LOWEST_MM,
-  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_SIDE_BASE_ELEVATION_MAX_MM,
   DRAWER_SIDE_BASE_ELEVATION_MIN_MM,
@@ -84,21 +84,21 @@ function buildDrawerMeshForHeight(frontHeightMm: number) {
 }
 
 describe("viewer 3D — bounding boxes reais das meshes", () => {
-  // Industrial elev=48 na base; Viewer flip → elev visual = delta−48 na base, 48 no topo.
-  const industrialElev = DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+  // Single = elev industrial 16,5; Viewer flip → elev visual = delta−16,5 na base, 16,5 no topo.
+  const industrialElev = DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
 
-  it("constante elevação corpo = 48 mm (intervalo 12,5…60)", () => {
+  it("constante bodyBottom GAV_1 = 18,5 mm (intervalo 12,5…60)", () => {
     expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBeGreaterThanOrEqual(
       DRAWER_SIDE_BASE_ELEVATION_MIN_MM
     );
     expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBeLessThanOrEqual(
       DRAWER_SIDE_BASE_ELEVATION_MAX_MM
     );
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(18.5);
   });
 
   it.each([234, 390])(
-    "frente %i mm — single: flip visual — folga pequena na base, 48 no topo",
+    "frente %i mm — single: flip visual — folga pequena na base, 16,5 no topo",
     (requestedHeightMm) => {
       const { drawerBody, actualFrontHeightMm: h } = buildDrawerMeshForHeight(requestedHeightMm);
       const front = findMesh(drawerBody, "drawer-front-ext")!;

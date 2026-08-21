@@ -39,13 +39,19 @@ export const DRAWER_SIDE_BASE_ELEVATION_MIN_MM = 12.5;
 export const DRAWER_SIDE_BASE_ELEVATION_MAX_MM = 60;
 
 /**
- * Elevação corpo ↔ base da frente (mm) — SSOT industrial gavita 8 / drill certo.
- * Unificada em todas as gavetas (lowest/middle/highest/single).
+ * Elevação corpo ↔ base da frente (mm) — middle / highest (e default).
  * Furos frente: elev+15 / elev+sideH−35 / rasgo elev+sideH−13.
  */
 export const DRAWER_BODY_ELEVATION_FROM_FRONT_MM = 48;
 
-/** Alias de produção — aponta para elevação unificada 48. */
+/**
+ * Elevação corpo ↔ frente — GAV_1 / single (verdade de fábrica).
+ * bodyBottom = frontBottom(2) + 16,5 = 18,5 mm.
+ * Com guia do módulo a 41 mm → dY lado↔guia = 22,5 mm.
+ */
+export const DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM = 16.5;
+
+/** Alias de produção — default middle/highest (48). Lowest usa DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM. */
 export const DRAWER_SIDE_BASE_ELEVATION_MM = DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
 
 /**
@@ -56,10 +62,10 @@ export const DRAWER_HIGHEST_BODY_ELEVATION_FROM_FRONT_MM = 12.5;
 
 /**
  * Offset da 1.ª frente relativamente à base do módulo (B0, mm).
- * Diff 3 / gavita 8: B0 = 0 — frente inferior flush à base do vão.
- * bodyBottom = B0 + E(48) = 48 mm.
+ * Verdade de fábrica: frente inferior a 2 mm acima da base do vão.
+ * bodyBottom(lowest) = B0 + elev_lowest = 2 + 16,5 = 18,5 mm.
  */
-export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 0;
+export const DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM = 2;
 
 /** Alias SSOT do stack — igual a B0. */
 export const DRAWER_STACK_BASE_OFFSET_MM =
@@ -73,17 +79,27 @@ export const DRAWER_STACK_BASE_OFFSET_MM =
 export const DRAWER_STACK_GAVETA1_ADJUST_MM = -2;
 
 /**
- * Alias GAV_1 — mesma elevação unificada 48 (já não 16,5).
- * Furos da frente: pairing `elev+15` / `elev+sideH−35` / rasgo `elev+sideH−13`.
+ * Base do corpo GAV_1 / single acima da base do módulo (mm).
+ * = B0(2) + elev_lowest(16,5) = 18,5.
+ * Datum montagem: guia módulo (41) − bodyBottom (18,5) = 22,5 mm.
  */
 export const DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM =
-  DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+  DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM +
+  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
 
 /**
- * @deprecated Folga single T+18,5 — Diff 2 unifica elevação em 48.
+ * Datum industrial: eixo da guia acima da base do lado da gaveta (mm).
+ * Montagem: Y_guia_módulo(GAV_1)=41 − bodyBottom=18,5 → 22,5.
+ * Não altera furos das corrediças no módulo.
  */
-export const DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM = 18.5;
-/** @deprecated Alias — aponta para elevação unificada 48. */
+export const DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM = 22.5;
+
+/**
+ * @deprecated Folga single histórica T+18,5 — produção usa DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM (18,5).
+ */
+export const DRAWER_SINGLE_BODY_CLEARANCE_ABOVE_FLOOR_MM =
+  DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
+/** @deprecated Alias — aponta para bodyBottom GAV_1 (18,5). */
 export const DRAWER_LOWEST_CLEARANCE_ABOVE_FLOOR_PANEL_MM =
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
 

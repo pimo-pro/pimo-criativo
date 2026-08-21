@@ -56,7 +56,7 @@ describe("altura do corpo da gaveta (delta industrial)", () => {
     expect(specs.body.height).toBeCloseTo(lat, 5);
     expect(specs.back.height).toBeCloseTo(lat - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM, 5);
     expect(specs.leftSide.height).toBeCloseTo(lat, 5);
-    expect(specs.sideBaseElevationMm).toBe(48);
+    expect(specs.sideBaseElevationMm).toBe(16.5);
   });
 
   it("bounding boxes madeira — frente mais alta que laterais, base elevada 48", () => {
@@ -139,7 +139,8 @@ describe("posição vertical — ordem do utilizador preservada", () => {
         layer.bodyHeight!,
         5
       );
-      expect(layer.metadata?.sideBaseElevationMm).toBe(48);
+      const expectedElev = role === "lowest" ? 16.5 : 48;
+      expect(layer.metadata?.sideBaseElevationMm).toBe(expectedElev);
     });
   });
 });

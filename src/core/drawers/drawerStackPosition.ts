@@ -2,16 +2,16 @@
  * Posição da gaveta no stack vertical do módulo (SSOT industrial).
  *
  * Ordem física: índice 0 = inferior (perto da base); último = superior (perto da CIMA).
- * Com `DRAWER_VERTICAL_BASE_OFFSET_MM = 0` (Diff 3 / gavita 8):
- * - frente inferior flush à base do vão (B0 = 0)
- * - frente superior chega à borda superior (CIMA)
- * - modo `"equal"` = equal_quase (1.ª frente −2 mm)
+ * B0 = 2 mm (frente inferior); elevação lowest/single = 16,5 → bodyBottom = 18,5.
+ * Middle/highest: elevação 48 mm. Guias do módulo (pitch 41) intocadas.
+ * Modo `"equal"` = equal_quase (1.ª frente −2 mm de altura).
  */
 
 import {
   DRAWER_BODY_DELTA_LOWEST_MM,
   DRAWER_BODY_DELTA_UPPER_MM,
   DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
+  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM,
 } from "./drawerGeometryConstants";
 
@@ -30,36 +30,44 @@ export function resolveDrawerStackRole(
 }
 
 /**
- * Elevação do corpo vs base da frente (mm) — constante industrial 48 (gavita 8).
+ * Elevação do corpo vs base da frente (mm) — GAV_1 = 16,5 (fábrica).
  * `boxFloorThicknessMm` mantido na assinatura por compatibilidade de callers.
  */
 export function resolveLowestDrawerBodyElevationFromFrontMm(
   boxFloorThicknessMm: number = 19
 ): number {
   void boxFloorThicknessMm;
-  return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+  return DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
 }
 
 /**
- * Single alinhado ao modelo unificado (48 mm) — já não T+18,5.
+ * Single — mesma elevação que GAV_1 (16,5 mm).
  */
 export function resolveSingleDrawerBodyElevationFromFrontMm(
   boxFloorThicknessMm: number = 19
 ): number {
   void boxFloorThicknessMm;
-  return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+  return DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
 }
 
 /**
- * Elevação industrial do corpo vs frente — todas as gavetas = 48 mm.
+ * Elevação industrial do corpo vs frente por papel no stack.
+ * lowest / single → 16,5 · middle / highest → 48.
  */
 export function resolveDrawerBodyElevationForStackRoleMm(
   stackRole: DrawerStackRole,
   boxFloorThicknessMm: number = 19
 ): number {
-  void stackRole;
   void boxFloorThicknessMm;
-  return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+  switch (stackRole) {
+    case "lowest":
+    case "single":
+      return DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
+    case "highest":
+    case "middle":
+    default:
+      return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
+  }
 }
 
 /**

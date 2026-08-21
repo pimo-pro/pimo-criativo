@@ -58,15 +58,15 @@ describe("drawerDowelInterlock — profundidade e centro (golden)", () => {
     expect(DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM).toBe(15);
   });
 
-  it("Y aresta / frente = 15 e H?35", () => {
+  it("Y aresta / frente — middle 15; lowest 54; H−35", () => {
     expect(getDrawerLateralEdgeDowelYPositionsMm(178)).toEqual([15, 143]);
     expect(getDrawerFrontDowelYPositionsMm(178)).toEqual([15, 143]);
-    expect(getDrawerFrontDowelYPositionsMm(178, true)).toEqual([15, 143]);
+    expect(getDrawerFrontDowelYPositionsMm(178, true)).toEqual([54, 143]);
     expect(DRAWER_LAT_EDGE_DOWEL_Y_FROM_TOP_MM).toBe(35);
   });
 
-  it("P3.12 — laterais lowest: cavilhas de aresta 15 e H−35 (iguais a middle/highest)", () => {
-    expect(getDrawerLateralEdgeDowelYPositionsMm(178, true)).toEqual([15, 143]);
+  it("laterais lowest: cavilhas de aresta 54 e H−35", () => {
+    expect(getDrawerLateralEdgeDowelYPositionsMm(178, true)).toEqual([54, 143]);
     const latEsq = computeDrawerLateralStructuralHoles({
       largura: 500,
       altura: 178,
@@ -83,8 +83,8 @@ describe("drawerDowelInterlock — profundidade e centro (golden)", () => {
     });
     const edgeEsq = latEsq.filter((h) => h.tipo === "cavilha" && !h.topDrillable);
     const edgeDir = latDir.filter((h) => h.tipo === "cavilha" && !h.topDrillable);
-    expect(edgeEsq.map((h) => h.y).sort((a, b) => a - b)).toEqual([15, 143]);
-    expect(edgeDir.map((h) => h.y).sort((a, b) => a - b)).toEqual([15, 143]);
+    expect(edgeEsq.map((h) => h.y).sort((a, b) => a - b)).toEqual([54, 143]);
+    expect(edgeDir.map((h) => h.y).sort((a, b) => a - b)).toEqual([54, 143]);
     expect(edgeEsq).toHaveLength(2);
     expect(edgeDir).toHaveLength(2);
   });
@@ -155,8 +155,8 @@ describe.each([
   });
 });
 
-describe("stack — Y frontais golden (isLowest ignorado)", () => {
-  it("mesma tabela 15 / H?35 com ou sem isLowestDrawer", () => {
+describe("stack — frente int propaga isLowestDrawer na tabela de Y", () => {
+  it("com isLowestDrawer: Y inferior = 54", () => {
     const holes = computeDrawerFrenteIntStructuralHoles({
       largura: 600,
       altura: 178,
@@ -164,7 +164,7 @@ describe("stack — Y frontais golden (isLowest ignorado)", () => {
       isLowestDrawer: true,
     });
     const ys = [...new Set(holes.map((h) => h.y))].sort((a, b) => a - b);
-    expect(ys).toEqual([15, 143]);
+    expect(ys).toEqual([54, 143]);
   });
 });
 

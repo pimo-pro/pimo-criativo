@@ -26,7 +26,12 @@ import {
   quadroV6IntermediateDistanceFromFaceMm,
 } from "./hettichQuadroV6B1Config";
 
-/** Altura estrutural partilhada com o stack de gavetas (mm). */
+/**
+ * Eixo Y da corrediça GAV_1 no **lateral do módulo** (mm desde a base do painel).
+ * Não confundir com o datum de montagem no lado da gaveta (22,5 mm acima da base
+ * da lateral — ver DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM).
+ * Com bodyBottom(lowest)=18,5 → dY guia↔lado = 41 − 18,5 = 22,5.
+ */
 export const SLIDE_AXIS_FROM_DRAWER_BOTTOM_MM = 41;
 
 /** Recuo frontal / traseiro simetrico nos laterais do modulo (mm). */

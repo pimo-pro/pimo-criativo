@@ -20,18 +20,24 @@ export const DRAWER_DOWEL_EDGE_DEPTH_MM = 30;
 /** Folga m²nima legado (face through-thickness). */
 export const DRAWER_DOWEL_EDGE_CLEARANCE_MM = 2;
 
-/** Y inferior golden (desde a base). */
+/** Y inferior aresta — middle/highest (desde a base da lateral). */
 export const DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM = 15;
 /**
- * @deprecated Especialização lowest removida (P3.12) — todas as gavetas usam
- * `DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM` (15). Mantido só para compatibilidade de import.
+ * Y inferior aresta — GAV_1 / single (desde a base da lateral).
+ * Pairing: Y_peça = elev(16,5) + Y_aresta = 70,5 (datum = base da frente).
+ * Y_aresta = 70,5 − 16,5 = 54. frontBottom(2) não entra no Y da peça.
  */
-export const DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM = DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM;
+export const DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM = 54;
+/** Alvo industrial: centro da cavilha inferior GAV_1 desde a base da frente (peça). */
+export const DRAWER_LOWEST_FRONT_LOWER_DOWEL_FROM_FRONT_BASE_MM = 70.5;
+/** @deprecated Nome enganador — usar FROM_FRONT_BASE. */
+export const DRAWER_LOWEST_FRONT_LOWER_DOWEL_FROM_MODULE_BASE_MM =
+  DRAWER_LOWEST_FRONT_LOWER_DOWEL_FROM_FRONT_BASE_MM;
 /** Face superior: W?38. */
 export const DRAWER_LAT_FACE_DOWEL_Y_FROM_TOP_MM = 38;
 /** Aresta superior (interlock frente): W?35. */
 export const DRAWER_LAT_EDGE_DOWEL_Y_FROM_TOP_MM = 35;
-/** Costa: sim²trico 15 mm de cada bordo. */
+/** Costa: simétrico 15 mm de cada bordo. */
 export const DRAWER_COSTA_DOWEL_Y_FROM_EDGE_MM = 15;
 
 /** @deprecated Prefer DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM — alias legado. */
@@ -73,17 +79,17 @@ export function getDrawerLateralFaceDowelYPositionsMm(alturaMm: number): number[
 }
 
 /**
- * Y aresta laterais (TypeNo=2, interlock frente): 15 e H−35.
- * Todas as gavetas (incl. 01 / lowest) partilham a mesma tabela — coerência industrial.
- * `isLowestDrawer` ignorado (legado).
+ * Y aresta laterais (TypeNo=2, interlock frente): y0 e H−35.
+ * lowest/single → y0 = 54; middle/highest → y0 = 15.
  */
 export function getDrawerLateralEdgeDowelYPositionsMm(
   alturaMm: number,
-  _isLowestDrawer?: boolean
+  isLowestDrawer?: boolean
 ): number[] {
-  void _isLowestDrawer;
   const h = Math.max(0, Number(alturaMm) || 0);
-  const y0 = DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM;
+  const y0 = isLowestDrawer
+    ? DRAWER_LOWEST_LAT_EDGE_DOWEL_Y_FROM_BOTTOM_MM
+    : DRAWER_LAT_DOWEL_Y_FROM_BOTTOM_MM;
   const y1 = h - DRAWER_LAT_EDGE_DOWEL_Y_FROM_TOP_MM;
   if (h <= 0) return [];
   if (y1 <= y0 + 1) return [Math.min(y0, h / 2)];
@@ -108,14 +114,14 @@ export function getDrawerRearDowelYPositionsMm(alturaMm: number): number[] {
 }
 
 /**
- * Y frontais sincronizados com aresta das laterais (15 / H?35).
- * `isLowestDrawer` ignorado no modelo golden (mesma tabela).
+ * Y frontais sincronizados com aresta das laterais (y0 / H−35).
+ * Propaga especialização GAV_1 quando `isLowestDrawer`.
  */
 export function getDrawerFrontDowelYPositionsMm(
   alturaMm: number,
-  _isLowestDrawer?: boolean
+  isLowestDrawer?: boolean
 ): number[] {
-  return getDrawerLateralEdgeDowelYPositionsMm(alturaMm);
+  return getDrawerLateralEdgeDowelYPositionsMm(alturaMm, isLowestDrawer);
 }
 
 export function assertDowelDoesNotThrough(

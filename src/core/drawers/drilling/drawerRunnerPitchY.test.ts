@@ -110,7 +110,7 @@ describe("resolveEuropeanModuleRunnerLinesYMm — pitch_H_sobre_n", () => {
     const H = 800;
     const heights = [263.333, 263.333, 263.333];
     const drawers = heights.map((h, i) => {
-      // Diff 3: B0=0 — base da 1.ª frente flush
+      // Stack sintético com B0=0 local; VERTICAL_BASE_OFFSET (B0 SSOT=2) ainda entra no legado.
       let offset = 0;
       for (let j = 0; j < i; j++) offset += heights[j]! + 4;
       return {
@@ -126,7 +126,7 @@ describe("resolveEuropeanModuleRunnerLinesYMm — pitch_H_sobre_n", () => {
     });
     const fromBottom = fromTop.map((y) => panelH - y);
     expect(fromBottom[0]).toBeCloseTo(41, 3);
-    // Upper usa 22,5 + (bottom−B0) — distinto do pitch.
-    expect(fromBottom[1]).toBeCloseTo(289.83, 1);
+    // Upper: 22,5 + (bottom − B0_SSOT); B0=2 → 287,833
+    expect(fromBottom[1]).toBeCloseTo(287.833, 1);
   });
 });

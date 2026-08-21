@@ -2,10 +2,10 @@
  * Viewer-only — inversão controlada do desnível vertical corpo ↔ frente.
  *
  * Industrial (SSOT, intocado):
- *   elevação na base = 48 mm · folga pequena no topo ≈ 20,5 mm
+ *   lowest/single elev = 16,5 mm · middle/highest = 48 mm
  *
  * Visual (esta camada, quando activa):
- *   folga pequena na base · elevação 48 mm no topo
+ *   folga pequena na base · elevação industrial no topo
  *
  * Remover / pôr `DRAWER_VIEWER_BODY_VERTICAL_FLIP = false` na revisão industrial futura.
  * Não altera cutlist, XML, furos nem DrawerParametrics.

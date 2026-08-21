@@ -126,7 +126,7 @@ export type DrawerSpec = {
   backPosZ?: number;
   woodBodyHeightM?: number;
   bodyCenterOffsetYM?: number;
-  /** Elevação da base do corpo vs frente (mm). Inferior = 18.5. */
+  /** Elevação da base do corpo vs frente (mm). Lowest/single = 16,5; middle/highest = 48. */
   sideBaseElevationMm?: number;
   frontIntPosZ?: number;
   x: number;

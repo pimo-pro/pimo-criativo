@@ -10,6 +10,7 @@ import {
 import { computeDrawerLowestFrenteExtFixedHoles } from "../core/drawers/drilling/drawerLowestFrenteExtFixedHoles.legacy";
 import {
   DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
+  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM,
   DRAWER_LOWEST_FRONT_GROOVE_FROM_TOP_MM,
   DRAWER_LOWEST_FRONT_GROOVE_X_INSET_MM,
@@ -29,14 +30,14 @@ describe("gav_frente_ext — pairing com laterais (regra global)", () => {
     expect(DRAWER_LOWEST_FRONT_GROOVE_FROM_TOP_MM).toBe(56.5);
     expect(DRAWER_LOWEST_FRONT_GROOVE_X_INSET_MM).toBe(12);
     expect(DRAWER_LOWEST_FRONT_DOWEL_X_INSET_MM).toBe(33);
-    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(48);
+    expect(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM).toBe(18.5);
   });
 
   it("lowest: exactamente 4 cavilhas = elev+Y_aresta laterais (sem W?73.5 duplicado)", () => {
     const L = 798;
     const W = 260.67;
     const sideH = 195.5;
-    const elev = DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM;
+    const elev = DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
     const holes = computeDrawerLowestFrenteExtFixedHoles({
       largura: L,
       altura: W,
@@ -48,8 +49,8 @@ describe("gav_frente_ext — pairing com laterais (regra global)", () => {
       sideThicknessMm: 16,
     });
     const cav = holes.filter((h) => h.tipo === "cavilha");
-    const edgeYs = getDrawerLateralEdgeDowelYPositionsMm(sideH);
-    expect(edgeYs).toEqual([15, sideH - 35]);
+    const edgeYs = getDrawerLateralEdgeDowelYPositionsMm(sideH, true);
+    expect(edgeYs).toEqual([54, sideH - 35]);
     expect(cav).toHaveLength(4);
 
     const expectedYs = edgeYs.map((y) => elev + y);
