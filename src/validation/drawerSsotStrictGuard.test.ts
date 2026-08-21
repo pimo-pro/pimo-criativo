@@ -43,10 +43,11 @@ describe("Strict SSOT gavetas — build guard", () => {
     expect(isDrawerViewerBodyVerticalFlipActiveForElevationMm(48)).toBe(true);
   });
 
-  it("Progressivas H=800 T=19 — guias [41, 377.3, 682.1] desde floorTop", () => {
+  it("Progressivas H=800 T=19 — guias [41, 377.3, 682.1] desde floorTop (vão interior)", () => {
     const H = 800;
     const T = 19;
     const panelH = H - 2 * T;
+    // SSOT Progressivas = stack interior H−2T (não o clássico exterior que cobre o módulo).
     const group = generateDrawerGroup({
       boxWidth: 600,
       boxHeight: H,
@@ -60,6 +61,7 @@ describe("Strict SSOT gavetas — build guard", () => {
       drawerSettings: settingsDefaults.gavetas,
       espessuraCostaMm: 10,
       costaAtiva: true,
+      interiorFrontStack: true,
     });
     const layers = drawerGroupToLayerItems(group);
     const fromTop = resolveEuropeanModuleRunnerLinesYMm({

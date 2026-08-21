@@ -6,6 +6,8 @@ import type { BoxModule, WorkspaceBox } from "../types";
 import { regenerateLayersForBox } from "../../services/boxLayersService";
 import {
   assertDoorStartsAtSepMid,
+  assertFrontCoversDrawerZone,
+  assertFrontOverlaysFundo,
   boxUsesGavetaPortaSep,
   computeGavetaPortaSepLayout,
   GAVETA_PORTA_SEP_FRONT_GAP_MM,
@@ -62,12 +64,20 @@ describe("gaveta_porta_sep_prateleiras Fase B", () => {
     ).toBe(false);
   });
 
-  it("layout: porta começa no meio do SEP; folga 2 mm na frente", () => {
+  it("layout: frente = zona − 2×folga; porta no meio do SEP", () => {
     const box = baseBox();
     const layout = computeGavetaPortaSepLayout(box);
+    // T=19, zona=180, gap=2 → frente 176; base = T+gap = 21; topo = T+zona−gap = 197
     expect(layout.drawerFrontWidthMm).toBe(600 - 2 * GAVETA_PORTA_SEP_FRONT_GAP_MM);
-    expect(layout.drawerFrontHeightMm).toBe(180 - 2 * GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(layout.drawerFrontHeightMm).toBe(176);
+    expect(layout.drawerFrontBottomAbsMm).toBe(19 + GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(layout.drawerFrontTopAbsMm).toBe(19 + 180 - GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(layout.drawerFrontBottomFromFloorTopMm).toBe(GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(layout.drawerBodyElevationFromFrontMm).toBe(16.5);
+    expect(layout.drawerPosition).toBe("bottom");
     expect(layout.doorWidthMm).toBe(600 - 2 * GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(assertFrontCoversDrawerZone(layout)).toBe(true);
+    expect(assertFrontOverlaysFundo(layout)).toBe(true);
 
     const door = {
       height: layout.doorHeightMm,
@@ -103,6 +113,39 @@ describe("gaveta_porta_sep_prateleiras Fase B", () => {
     expect(drawer.height).toBeCloseTo(layout.drawerFrontHeightMm, 5);
   });
 
+  it("layers Fase 4: posY = centro frente embutida; elevação GPS; clássico intacto", () => {
+    const box = asWorkspace(baseBox());
+    const layout = computeGavetaPortaSepLayout(box);
+    const layers = regenerateLayersForBox(box);
+    const d = layers.drawersLayer[0]!;
+    expect(d.posY).toBeCloseTo(layout.drawerFrontCenterYLocalMm, 5);
+    expect(d.height).toBeCloseTo(layout.drawerFrontHeightMm, 5);
+    expect(d.width).toBeCloseTo(layout.drawerFrontWidthMm, 5);
+    expect(d.metadata?.sideBaseElevationMm).toBeCloseTo(layout.drawerBodyElevationFromFrontMm, 5);
+    expect(d.metadata?.drawerFrontBottomFromFloorTopMm).toBeCloseTo(
+      layout.drawerFrontBottomFromFloorTopMm,
+      5
+    );
+    expect(d.metadata?.gavetaPortaSep).toBe(true);
+
+    const classicLayers = regenerateLayersForBox(
+      asWorkspace(
+        baseBox({
+          baseCabinetId: "base-600-1porta",
+          gavetas: 0,
+          portaTipo: "porta_simples",
+          prateleiras: 1,
+          drawersLayer: [],
+          doorsLayer: [],
+          separadores: [],
+        })
+      )
+    );
+    expect(classicLayers.drawersLayer).toHaveLength(0);
+    expect(classicLayers.doorsLayer.length).toBeGreaterThanOrEqual(1);
+    expect(classicLayers.separadores).toBeUndefined();
+  });
+
   it("cutlist: gaveta + porta parcial + SEP + prateleiras; sem regressão clássica", () => {
     const gpsBox = asWorkspace(baseBox({ costaAtiva: true }));
     const layers = regenerateLayersForBox(gpsBox);
@@ -110,6 +153,7 @@ describe("gaveta_porta_sep_prateleiras Fase B", () => {
       ...gpsBox,
       ...layers,
     }) as BoxModule;
+    const layout = computeGavetaPortaSepLayout(moduleBox);
 
     const cutlist = cutlistComPrecoFromBox(moduleBox, defaultRulesConfig);
     const tipos = cutlist.map((i) => i.tipo);
@@ -121,6 +165,23 @@ describe("gaveta_porta_sep_prateleiras Fase B", () => {
 
     const frente = cutlist.find((i) => i.tipo === "gaveta_frente_ext" || i.tipo === "gaveta_frente");
     expect(frente?.dimensoes.largura).toBe(600 - 2 * GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(frente?.dimensoes.altura).toBe(176);
+    expect(frente?.metadata?.gavetaPortaSep).toBe(true);
+    expect(frente?.metadata?.sideBaseElevationMm).toBeCloseTo(layout.drawerBodyElevationFromFrontMm, 5);
+    expect(frente?.metadata?.drawerFrontBottomFromFloorTopMm).toBeCloseTo(
+      layout.drawerFrontBottomFromFloorTopMm,
+      5
+    );
+
+    // DRILL: laterais recebem furação (corrediças) com elevação GPS no layer.
+    const latEsq = cutlist.find((i) => i.tipo === "lateral_esquerda");
+    const latDir = cutlist.find((i) => i.tipo === "lateral_direita");
+    expect((latEsq?.drillHoles ?? []).length).toBeGreaterThan(0);
+    expect((latDir?.drillHoles ?? []).length).toBeGreaterThan(0);
+    expect(layers.drawersLayer[0]?.metadata?.sideBaseElevationMm).toBeCloseTo(
+      layout.drawerBodyElevationFromFrontMm,
+      5
+    );
 
     const classic = cutlistComPrecoFromBox(
       baseBox({
@@ -135,5 +196,6 @@ describe("gaveta_porta_sep_prateleiras Fase B", () => {
     );
     expect(classic.some((i) => i.metadata?.gavetaPortaSep === true)).toBe(false);
     expect(classic.some((i) => i.metadata?.portaParcial === true)).toBe(false);
+    expect(classic.some((i) => i.metadata?.sideBaseElevationMm === 16.5)).toBe(false);
   });
 });

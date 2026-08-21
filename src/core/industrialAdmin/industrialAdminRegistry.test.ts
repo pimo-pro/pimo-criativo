@@ -23,6 +23,7 @@ import {
 } from "./industrialSettings";
 import { HINGE_COMPENSATION_MM } from "../innerCabinet/hingeCompensation40";
 import { DRAWER_FRONT_LATERAL_GAP_MM } from "../drawers/drawerGeometryConstants";
+import { GAVETA_PORTA_SEP_NOME_INDUSTRIAL, GAVETA_PORTA_SEP_PRODUCT_MODE_ID } from "../productModes/gavetaPortaSepLayout";
 
 describe("industrialAdminRegistry Fase E", () => {
   it("regista exactamente os 4 modos industriais sem duplicação", () => {
@@ -47,6 +48,9 @@ describe("industrialAdminRegistry Fase E", () => {
     }
     const allAdapters = INDUSTRIAL_MODELS.flatMap((m) => m.adapters);
     expect(allAdapters).toEqual(expect.arrayContaining(["cxGavCutlistAdapter", "a1CutlistAdapter"]));
+    expect(
+      INDUSTRIAL_MODELS.find((m) => m.id === GAVETA_PORTA_SEP_PRODUCT_MODE_ID)?.nomeIndustrial
+    ).toBe(GAVETA_PORTA_SEP_NOME_INDUSTRIAL);
   });
 
   it("consolida todas as regras industriais sem duplicação", () => {

@@ -137,6 +137,7 @@ export {
   resolveLowestDrawerBodyElevationFromFrontMm,
   resolveSingleDrawerBodyElevationFromFrontMm,
   resolveDrawerBodyElevationForStackRoleMm,
+  resolveClassicExteriorLowestBodyElevationFromFrontMm,
   resolveDrawerBodyDeltaForStackRoleMm,
   resolveDrawerBodyBottomFromModuleBaseMm,
   resolveGav1BodyBottomFromModuleBaseMm,

@@ -79,13 +79,15 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
       drawerHeights: heights,
       boxInternalHeightMm: boxH,
       posYMm: layers[0]!.posY!,
-      floorThicknessMm: T,
-      topPanelThicknessMm: T,
     });
 
     expect(geo0.frontBottomFromModuleBaseMm).toBeCloseTo(frontBottomIndustrial, 5);
     expect(geo0.flushToModuleBase).toBe(true);
-    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(elevLowest);
+    expect(layers[0]!.metadata?.sideBaseElevationMm).toBeCloseTo(
+      DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM -
+        (DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM - T),
+      5
+    );
     expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(elevUpper);
 
     const frontH0 = layers[0]!.height!;
@@ -100,12 +102,14 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     const frontBottom = layers[0]!.posY! - frontH / 2;
     const bodyBottom = layers[0]!.posY! + offsetY - bodyH / 2;
 
-    expect(frontBottom - floorTop).toBeCloseTo(frontBottomIndustrial, 5);
+    // Frente na base exterior; corpo a 18,5 acima do floorTop (SSOT).
+    expect(frontBottom - (-boxH / 2)).toBeCloseTo(frontBottomIndustrial, 5);
     expect(bodyBottom - floorTop).toBeCloseTo(bodyBottomIndustrial, 5);
     expect(
       resolveDrawerBodyBottomFromModuleBaseMm({
         frontBottomFromModuleBaseMm: geo0.frontBottomFromModuleBaseMm,
         sideBaseElevationMm: elevLowest,
+        stackRole: "lowest",
       })
     ).toBeCloseTo(bodyBottomIndustrial, 5);
   });
@@ -150,7 +154,7 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     expect(lowest.find((h) => h.holeSubtype === "groove")?.profundidade).toBe(11);
   });
 
-  it("viewer/layout: lateral inferior elev=16,5 vs frente; delta 85,5", () => {
+  it("viewer/layout: GAV_1 clássico — elev compensada; bodyBottom floorTop+18,5; delta 85,5", () => {
     const boxH = 720;
     const group = generateDrawerGroup({
       boxWidth: 600,
@@ -169,7 +173,11 @@ describe("gaveta inferior — posição absoluta corpo/frente", () => {
     const layers = drawerGroupToLayerItems(group);
     const L0 = layers[0]!;
     const elevMeta = L0.metadata?.sideBaseElevationMm as number;
-    expect(elevMeta).toBe(elevLowest);
+    const floorTop = -boxH / 2 + T;
+    const bodyBottom =
+      L0.posY! + (L0.bodyCenterOffsetY ?? 0) - L0.bodyHeight! / 2;
+    expect(elevMeta).toBeCloseTo(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM - (DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM - T), 5);
+    expect(bodyBottom - floorTop).toBeCloseTo(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM, 5);
     expect(L0.bodyHeight).toBeCloseTo(L0.height! - DRAWER_BODY_DELTA_LOWEST_MM, 5);
 
     const layout = resolveDrawerViewerWoodSideLayoutMm({

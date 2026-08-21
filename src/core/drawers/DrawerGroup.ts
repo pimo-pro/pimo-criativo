@@ -145,22 +145,18 @@ export function calculateDrawerPositions(
  * Recalcula o layout de todas as gavetas do grupo
  */
 export function recalculateDrawerGroupLayout(group: DrawerGroup): DrawerGroup {
+  // Clássico: cobre módulo exterior (sem H−2T). GPS regenera via generateDrawerGroup.
   const heights = calculateDrawerHeights(
     group.drawers.length,
     group.boxDimensions.height,
     group.heightMode,
-    group.customHeights,
-    { topPanelThicknessMm: group.boxDimensions.thickness }
+    group.customHeights
   );
 
   const positions = calculateDrawerPositions(
     heights,
     group.boxDimensions.height,
-    DRAWER_VERTICAL_BASE_OFFSET_MM,
-    {
-      topPanelThicknessMm: group.boxDimensions.thickness,
-      floorThicknessMm: group.boxDimensions.thickness,
-    }
+    DRAWER_VERTICAL_BASE_OFFSET_MM
   );
 
   const updatedDrawers = group.drawers.map((drawer, index) => ({

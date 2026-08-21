@@ -68,6 +68,18 @@ export interface DrawerGenerationConfig {
    */
   originX?: number;
   originY?: number;
+
+  /**
+   * Offset da frente relativamente ao floorTop (mm).
+   * Default B0 = 2. GPS embutido (zona − 2×folga): tipicamente +folga (= 2).
+   */
+  verticalBaseOffsetMm?: number;
+
+  /**
+   * true = vão interior H−2T + datum floorTop (GPS embutido).
+   * false/omit = gaveteiro clássico: cobre o módulo exterior (H−B0, base exterior + B0).
+   */
+  interiorFrontStack?: boolean;
 }
 
 /**
@@ -99,6 +111,8 @@ export function generateDrawerGroup(config: DrawerGenerationConfig): DrawerGroup
     maxDrawerHeightMm,
     espessuraCostaMm,
     costaAtiva,
+    verticalBaseOffsetMm,
+    interiorFrontStack,
   } = config;
 
   const runnerClearanceMm =
@@ -123,6 +137,8 @@ export function generateDrawerGroup(config: DrawerGenerationConfig): DrawerGroup
     profundidadeInternaUtilMm - runnerClearanceMm
   );
 
+  // Clássico: cobre o módulo (H−B0, base exterior). GPS: vão interior + floorTop.
+  const stackPanelT = interiorFrontStack === true ? boxThickness : undefined;
   const heights = calculateDrawerHeights(
     drawerCount,
     boxHeight,
@@ -133,15 +149,26 @@ export function generateDrawerGroup(config: DrawerGenerationConfig): DrawerGroup
       kitchenZoneProfile,
       minHeightMm: minDrawerHeightMm ?? drawerSettings?.gavetaAlturaMinimaMm,
       maxHeightMm: maxDrawerHeightMm ?? drawerSettings?.gavetaAlturaMaximaMm,
-      topPanelThicknessMm: boxThickness,
+      ...(stackPanelT != null ? { topPanelThicknessMm: stackPanelT } : {}),
     }
   );
 
-  // Calcula posições Y — datum = face superior do fundo (T) + B0.
-  const positions = calculateDrawerPositions(heights, boxHeight, DRAWER_VERTICAL_BASE_OFFSET_MM, {
-    topPanelThicknessMm: boxThickness,
-    floorThicknessMm: boxThickness,
-  });
+  // Clássico: datum = base exterior + B0. GPS: floorTop + offset (ou B0).
+  const baseOffset =
+    verticalBaseOffsetMm != null && Number.isFinite(verticalBaseOffsetMm)
+      ? verticalBaseOffsetMm
+      : DRAWER_VERTICAL_BASE_OFFSET_MM;
+  const positions = calculateDrawerPositions(
+    heights,
+    boxHeight,
+    baseOffset,
+    stackPanelT != null
+      ? {
+          topPanelThicknessMm: stackPanelT,
+          floorThicknessMm: stackPanelT,
+        }
+      : undefined
+  );
 
   // Gera cada gaveta
   const drawers: Drawer[] = [];
@@ -149,12 +176,16 @@ export function generateDrawerGroup(config: DrawerGenerationConfig): DrawerGroup
     const drawerHeight = heights[i];
     const posY = positions[i];
     const stackRole = resolveDrawerStackRole(i, drawerCount);
+    const classicExterior = interiorFrontStack !== true;
     const perDrawerOverrides = {
       ...drawerOverrides?.[i],
-      // Elevação corpo: lowest/single = 16,5 · middle/highest = 48.
+      // GAV_1/single: bodyBottom = floorTop + 18,5 (elev 16,5 se frente em floorTop+B0;
+      // clássico exterior: elevação compensada). Middle/highest: 48.
       sideBaseElevationMm:
         drawerOverrides?.[i]?.sideBaseElevationMm ??
-        resolveDrawerBodyElevationForStackRoleMm(stackRole, boxThickness),
+        resolveDrawerBodyElevationForStackRoleMm(stackRole, boxThickness, {
+          classicExteriorFrontStack: classicExterior,
+        }),
     };
     const effectiveDrawerType = perDrawerOverrides?.drawerType ?? drawerType;
 
@@ -239,6 +270,8 @@ export function regenerateDrawerGroup(
     kitchenZoneProfile: config.kitchenZoneProfile,
     minDrawerHeightMm: config.minDrawerHeightMm,
     maxDrawerHeightMm: config.maxDrawerHeightMm,
+    verticalBaseOffsetMm: config.verticalBaseOffsetMm,
+    interiorFrontStack: config.interiorFrontStack,
   };
 
   return generateDrawerGroup(fullConfig);

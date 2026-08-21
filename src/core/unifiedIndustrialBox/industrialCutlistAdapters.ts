@@ -74,6 +74,8 @@ export const INDUSTRIAL_CUTLIST_ADAPTERS: readonly IndustrialCutlistAdapter[] = 
             ...(item.metadata ?? {}),
             industrialGapMm: GAVETA_PORTA_SEP_FRONT_GAP_MM,
             gavetaPortaSep: true,
+            sideBaseElevationMm: layout.drawerBodyElevationFromFrontMm,
+            drawerFrontBottomFromFloorTopMm: layout.drawerFrontBottomFromFloorTopMm,
           };
         }
         if (isIndustrialDoorPanelTipo(item.tipo)) {

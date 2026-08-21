@@ -101,10 +101,10 @@ describe("Diff 3 — stack frentes gavita 8", () => {
     const layers = drawerGroupToLayerItems(group);
     const heights = layers.map((l) => l.height!);
 
-    // Vão interior H−2T−B0: equal_quase 249,333 / 251,333 / 251,333
-    expect(heights[0]).toBeCloseTo(249.3333333, 5);
-    expect(heights[1]).toBeCloseTo(251.3333333, 5);
-    expect(heights[2]).toBeCloseTo(251.3333333, 5);
+    // Exterior H−B0: equal_quase 262 / 264 / 264 (H=800)
+    expect(heights[0]).toBeCloseTo(262, 5);
+    expect(heights[1]).toBeCloseTo(264, 5);
+    expect(heights[2]).toBeCloseTo(264, 5);
 
     expect(layers[0]!.bodyHeight).toBeCloseTo(heights[0]! - DRAWER_BODY_DELTA_LOWEST_MM, 5);
     expect(layers[1]!.bodyHeight).toBeCloseTo(heights[1]! - DRAWER_BODY_DELTA_UPPER_MM, 5);
@@ -123,7 +123,7 @@ describe("Diff 3 — stack frentes gavita 8", () => {
       5
     );
 
-    expect(layers[0]!.metadata?.sideBaseElevationMm).toBe(16.5);
+    expect(layers[0]!.metadata?.sideBaseElevationMm).toBeCloseTo(16.5 + T, 5);
     expect(layers[1]!.metadata?.sideBaseElevationMm).toBe(48);
     expect(layers[2]!.metadata?.sideBaseElevationMm).toBe(48);
 

@@ -40,14 +40,11 @@ describe("Certificação — regressão industrial (snapshots)", () => {
 
       expect(layers).toHaveLength(drawerCount);
 
-      const heights = calculateDrawerHeights(drawerCount, BOX_H, "equal", undefined, {
-        topPanelThicknessMm: BOX_T,
-      });
+      const heights = calculateDrawerHeights(drawerCount, BOX_H, "equal");
       const positions = resolveDrawerVerticalPositions(
         heights,
         BOX_H,
-        DRAWER_VERTICAL_BASE_OFFSET_MM,
-        { floorThicknessMm: BOX_T, topPanelThicknessMm: BOX_T }
+        DRAWER_VERTICAL_BASE_OFFSET_MM
       );
       layers.forEach((layer, i) => {
         expect(layer.posY).toBe(group.drawers[i].position.y);

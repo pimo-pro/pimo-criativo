@@ -4,6 +4,7 @@
  * Z+ = para a frente do módulo; Y+ = para cima.
  */
 import {
+  DRAWER_BOTTOM_FRONT_ENTRY_MM,
   DRAWER_SIDE_BASE_ELEVATION_MAX_MM,
   DRAWER_SIDE_BASE_ELEVATION_MIN_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
@@ -95,17 +96,11 @@ export function resolveDrawerBackCenterZMm(
 }
 
 /**
- * Centro Z do gav_fundo (coords locais, origem = centro da frente).
- * Âncora SSOT Fase B: bordo traseiro do fundo = face traseira das laterais/costa
- * (flush — não ultrapassa a traseira da gaveta).
+ * Centro Z do gav_fundo — âncora traseira flush (legado Fase B / testes).
+ * Produção (clássico + GPS) usa `resolveDrawerBottomCenterZFrontEntryMm`.
  *
  * rearFaceZ = −(combinedFront/2) − sideDepth
  * centerZ   = rearFaceZ + bottomDepth/2
- *
- * Nota: com bottomDepth = sideDepth + 10 + T_costa, o bordo dianteiro fica
- * ~ (10 + T_costa) mm para dentro da face traseira da frente (não só +10).
- * Âncora alternativa (só entrada frente) seria:
- *   −(combinedFront/2) + frontEntryMm − bottomDepth/2
  */
 export function resolveDrawerBottomCenterZMm(
   combinedFrontThicknessMm: number,
@@ -117,6 +112,21 @@ export function resolveDrawerBottomCenterZMm(
   const bottomDepth = Math.max(0, Number(bottomDepthMm));
   const rearFaceZ = -(frontHalf + sideDepth);
   return rearFaceZ + bottomDepth / 2;
+}
+
+/**
+ * Produção (clássico + GPS): bordo dianteiro do fundo = face traseira da frente + entrada (10 mm).
+ * Evita o avanço ~T_costa da âncora traseira flush para fora da frente.
+ */
+export function resolveDrawerBottomCenterZFrontEntryMm(
+  combinedFrontThicknessMm: number,
+  bottomDepthMm: number,
+  frontEntryMm: number = DRAWER_BOTTOM_FRONT_ENTRY_MM
+): number {
+  const frontHalf = Math.max(0, Number(combinedFrontThicknessMm)) / 2;
+  const bottomDepth = Math.max(0, Number(bottomDepthMm));
+  const entry = Math.max(0, Number(frontEntryMm));
+  return -frontHalf + entry - bottomDepth / 2;
 }
 
 /** Centro Y do fundo (painel horizontal). */
@@ -373,9 +383,8 @@ export function resolveDrawerViewerWoodBottomBackLayoutMm(input: {
   const floorPosZ =
     input.bottomPosZMm != null && Number.isFinite(input.bottomPosZMm)
       ? Number(input.bottomPosZMm)
-      : resolveDrawerBottomCenterZMm(
+      : resolveDrawerBottomCenterZFrontEntryMm(
           input.combinedFrontThicknessMm,
-          spanDepth,
           floorDepth
         );
 

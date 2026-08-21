@@ -115,14 +115,11 @@ describe("Geometria da gaveta no módulo", () => {
       drawerSettings,
     });
     const layers = drawerGroupToLayerItems(group);
-    const heights = calculateDrawerHeights(3, boxH, "equal", undefined, {
-      topPanelThicknessMm: boxT,
-    });
+    const heights = calculateDrawerHeights(3, boxH, "equal");
     const positions = resolveDrawerVerticalPositions(
       heights,
       boxH,
-      DRAWER_VERTICAL_BASE_OFFSET_MM,
-      { floorThicknessMm: boxT, topPanelThicknessMm: boxT }
+      DRAWER_VERTICAL_BASE_OFFSET_MM
     );
     layers.forEach((layer, i) => {
       expect(layer.posY).toBeCloseTo(positions[i]!, 0);

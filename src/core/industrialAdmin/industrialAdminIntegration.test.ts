@@ -4,9 +4,16 @@ import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
 import { getPieceLabel } from "../manufacturing/boxManufacturing";
 import { resolveOrlaSidesForPieceTipo } from "../orla/orlaIndustrialRules";
 import { defaultRulesConfig } from "../rules/rulesConfig";
-import type { BoxModule } from "../types";
+import type { BoxModule, WorkspaceBox } from "../types";
 import { CX_GAV_PRODUCT_MODE_ID } from "../cxGav/cxGavGeometry";
-import { GAVETA_PORTA_SEP_PRODUCT_MODE_ID } from "../productModes/gavetaPortaSepLayout";
+import {
+  computeGavetaPortaSepLayout,
+  GAVETA_PORTA_SEP_FRONT_GAP_MM,
+  GAVETA_PORTA_SEP_NOME_INDUSTRIAL,
+  GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
+  syncGavetaPortaSepBox,
+} from "../productModes/gavetaPortaSepLayout";
+import { regenerateLayersForBox } from "../../services/boxLayersService";
 import {
   WARDROBE_PARTIAL_SEP_ID_RIGHT,
   WARDROBE_PARTIAL_SEP_PRODUCT_MODE,
@@ -14,6 +21,7 @@ import {
 import { INNER_CABINET_A1_PRODUCT_MODE } from "../innerCabinet/a1Geometry";
 import { A1_COMP_TIPO } from "../innerCabinet/hingeCompensation40";
 import {
+  INDUSTRIAL_MODELS,
   INDUSTRIAL_ORLA_SIDES,
   resolveActiveIndustrialModels,
 } from "./industrialModelsRegistry";
@@ -62,22 +70,40 @@ describe("industrialAdminIntegration Fase E", () => {
     expect(cx.some((i) => i.metadata?.industrialLabel)).toBe(true);
   });
 
-  it("gaveta_porta_sep: cutlist com SEP/gaveta/porta; clássico intacto noutro box", () => {
-    const gps = cutlistComPrecoFromBox(
-      baseBox({
-        baseCabinetId: GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
-        dimensoes: { largura: 600, altura: 720, profundidade: 560 },
-        portaTipo: "porta_simples",
-        gavetas: 1,
-        prateleiras: 2,
-        alturaGaveta: 180,
-      }),
-      defaultRulesConfig
-    );
-    expect(gps.some((i) => i.tipo === "separador" || i.tipo === "gaveta_frente_ext")).toBe(true);
-    expect(resolveActiveIndustrialModels({ baseCabinetId: GAVETA_PORTA_SEP_PRODUCT_MODE_ID })).toHaveLength(
-      1
-    );
+  it("gaveta_porta_sep: cutlist embutida + nome industrial; clássico intacto", () => {
+    const raw = baseBox({
+      baseCabinetId: GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
+      dimensoes: { largura: 600, altura: 720, profundidade: 560 },
+      portaTipo: "porta_simples",
+      gavetas: 1,
+      prateleiras: 2,
+      alturaGaveta: 180,
+    });
+    const ws = {
+      ...raw,
+      posicaoX_mm: 0,
+      posicaoY_mm: 0,
+      rotacaoY_90: false,
+    } as WorkspaceBox;
+    const layers = regenerateLayersForBox(ws);
+    const moduleBox = syncGavetaPortaSepBox({ ...ws, ...layers }) as BoxModule;
+    const layout = computeGavetaPortaSepLayout(moduleBox);
+
+    const gps = cutlistComPrecoFromBox(moduleBox, defaultRulesConfig);
+    const frente = gps.find((i) => i.tipo === "gaveta_frente_ext" || i.tipo === "gaveta_frente");
+    expect(frente?.dimensoes.altura).toBe(176);
+    expect(frente?.dimensoes.largura).toBe(600 - 2 * GAVETA_PORTA_SEP_FRONT_GAP_MM);
+    expect(frente?.metadata?.gavetaPortaSep).toBe(true);
+    expect(frente?.metadata?.sideBaseElevationMm).toBeCloseTo(layout.drawerBodyElevationFromFrontMm, 5);
+    expect(gps.some((i) => i.tipo === "separador")).toBe(true);
+    expect((gps.find((i) => i.tipo === "lateral_esquerda")?.drillHoles ?? []).length).toBeGreaterThan(0);
+
+    const mode = resolveActiveIndustrialModels({ baseCabinetId: GAVETA_PORTA_SEP_PRODUCT_MODE_ID });
+    expect(mode).toHaveLength(1);
+    expect(mode[0]?.nomeIndustrial).toBe(GAVETA_PORTA_SEP_NOME_INDUSTRIAL);
+    expect(
+      INDUSTRIAL_MODELS.find((m) => m.id === GAVETA_PORTA_SEP_PRODUCT_MODE_ID)?.nomeIndustrial
+    ).toBe(GAVETA_PORTA_SEP_NOME_INDUSTRIAL);
 
     const classic = cutlistComPrecoFromBox(
       baseBox({ baseCabinetId: "base-600-1porta", portaTipo: "porta_simples" }),
@@ -86,6 +112,7 @@ describe("industrialAdminIntegration Fase E", () => {
     expect(classic.some((i) => String(i.tipo).startsWith("cx_gav"))).toBe(false);
     expect(classic.some((i) => String(i.tipo).startsWith("a1_cx"))).toBe(false);
     expect(classic.some((i) => i.tipo === "cima" || i.tipo === "fundo")).toBe(true);
+    expect(classic.some((i) => i.metadata?.gavetaPortaSep === true)).toBe(false);
   });
 
   it("wardrobe SEP parcial: activa modo C sem peças a1", () => {

@@ -90,7 +90,7 @@ describe("SSOT absoluto GAV_1 — 18,5 / 22,5 / 41", () => {
     });
     const layers = drawerGroupToLayerItems(group);
     const L0 = layers[0]!;
-    const floorTop = -H / 2 + T; // face superior do fundo
+    const floorTop = -H / 2 + T;
     const frontH = L0.height!;
     const bodyH = L0.bodyHeight!;
     const frontBottom = L0.posY! - frontH / 2 - floorTop;
@@ -98,10 +98,11 @@ describe("SSOT absoluto GAV_1 — 18,5 / 22,5 / 41", () => {
       L0.posY! + (L0.bodyCenterOffsetY ?? 0) - bodyH / 2 - floorTop;
     const elevDerived = bodyBottomLayer - frontBottom;
 
-    expect(frontBottom).toBeCloseTo(DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM, 5);
-    expect(bodyBottomLayer).toBeCloseTo(18.5, 5);
-    expect(elevDerived).toBeCloseTo(16.5, 5);
-    expect(L0.metadata?.sideBaseElevationMm).toBe(16.5);
+    // Frente clássica na base exterior (+B0) → frontBottom vs floorTop = B0−T
+    expect(frontBottom).toBeCloseTo(DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM - T, 5);
+    expect(bodyBottomLayer).toBeCloseTo(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM, 5);
+    expect(elevDerived).toBeCloseTo(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM - frontBottom, 5);
+    expect(L0.metadata?.sideBaseElevationMm).toBeCloseTo(elevDerived, 5);
 
     const fromTop = resolveEuropeanModuleRunnerLinesYMm({
       panelHeightMm: panelH,
@@ -143,8 +144,8 @@ describe("SSOT absoluto GAV_1 — 18,5 / 22,5 / 41", () => {
     const bodyBottomViewer =
       drawerLayer.position.y * 1000 + leftMin - floorTop;
 
-    expect(elevViewer).toBeCloseTo(16.5, 1);
-    expect(bodyBottomViewer).toBeCloseTo(18.5, 1);
+    expect(elevViewer).toBeCloseTo(elevDerived, 1);
+    expect(bodyBottomViewer).toBeCloseTo(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM, 1);
     expect(bodyBottomViewer).toBeGreaterThan(10);
     expect(Math.abs(bodyBottomViewer)).not.toBeLessThan(1);
   });

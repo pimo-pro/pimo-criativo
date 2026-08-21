@@ -89,6 +89,10 @@ export type DrawerLayerMetadata = {
   sideBaseElevationMm?: number;
   /** Modo de altura do stack (ex.: Progressivas) — usado nas guias do módulo. */
   heightMode?: string;
+  /** Product mode GPS (gaveta + porta + SEP). */
+  gavetaPortaSep?: boolean;
+  /** GPS embutido: base da frente relativa ao floorTop (mm; tipicamente +folga na zona). */
+  drawerFrontBottomFromFloorTopMm?: number;
 };
 
 export interface DrawerLayerItem {

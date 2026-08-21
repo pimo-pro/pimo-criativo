@@ -184,22 +184,17 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
 
     const heights = layers.map((l) => l.height);
     const positions = layers.map((l) => l.posY!);
-    const T = 19;
     const geo0 = resolveDrawerFrontStackGeometry({
       drawerIndex0Based: 0,
       drawerHeights: heights,
       boxInternalHeightMm: boxH,
       posYMm: positions[0]!,
-      floorThicknessMm: T,
-      topPanelThicknessMm: T,
     });
     const geo1 = resolveDrawerFrontStackGeometry({
       drawerIndex0Based: 1,
       drawerHeights: heights,
       boxInternalHeightMm: boxH,
       posYMm: positions[1]!,
-      floorThicknessMm: T,
-      topPanelThicknessMm: T,
     });
     expect(geo0.flushToModuleBase).toBe(true);
     expect(geo1.flushToModuleTop).toBe(true);

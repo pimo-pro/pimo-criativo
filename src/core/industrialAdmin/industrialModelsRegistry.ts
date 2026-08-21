@@ -10,6 +10,7 @@ import {
 } from "../cxGav/cxGavGeometry";
 import {
   boxUsesGavetaPortaSep,
+  GAVETA_PORTA_SEP_NOME_INDUSTRIAL,
   GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
 } from "../productModes/gavetaPortaSepLayout";
 import {
@@ -100,7 +101,7 @@ export const INDUSTRIAL_MODELS: readonly IndustrialModelEntry[] = [
   {
     id: GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
     nomeTecnico: "gaveta_porta_sep_prateleiras",
-    nomeIndustrial: "Gaveta + porta + SEP + prateleiras",
+    nomeIndustrial: GAVETA_PORTA_SEP_NOME_INDUSTRIAL,
     phase: "B",
     pieceTipos: ["separador", "gaveta_frente_ext", "porta_simples", "prateleira"],
     pieceLabels: {},

@@ -11,7 +11,7 @@ import type { DrawerCalculatedSpecs } from "./DrawerParametrics";
 import {
   resolveDrawerBackCenterZMm,
   resolveDrawerBottomCenterYMm,
-  resolveDrawerBottomCenterZMm,
+  resolveDrawerBottomCenterZFrontEntryMm,
 } from "./drawerViewerLayout";
 import type { DrawerHandlePosition, DrawerHandleType, DrawerMetalBoxType, DrawerSlideType } from "../settings/settingsSchema";
 
@@ -98,10 +98,9 @@ export function createDrawer(
   const woodSideDepth = specs.leftSide.depth;
   const sideCenterZ =
     woodSideDepth > 0 ? specs.positioning.sideOffsetZ : specs.positioning.bodyOffsetZ;
-  const bottomSpanDepth = woodSideDepth > 0 ? woodSideDepth : bodyDepth;
-  const bottomCenterZ = resolveDrawerBottomCenterZMm(
+  // Clássico + GPS: bordo dianteiro do fundo = face traseira da frente + 10 mm.
+  const bottomCenterZ = resolveDrawerBottomCenterZFrontEntryMm(
     combinedFrontThickness,
-    bottomSpanDepth,
     specs.bottom.height
   );
 
@@ -164,7 +163,7 @@ export function createDrawer(
       },
       
       // ===== FUNDO =====
-      // Fundo entre as laterais; Z = âncora traseira flush (Fase B).
+      // Entrada frontal 10 mm (clássico e GPS) — sem âncora traseira flush.
       bottom: {
         width: specs.bottom.width,
         height: bottomThickness,

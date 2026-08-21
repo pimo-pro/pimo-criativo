@@ -6,6 +6,7 @@
 import { boxUsesCxGav, CX_GAV_PRODUCT_MODE_ID } from "../cxGav/cxGavGeometry";
 import {
   boxUsesGavetaPortaSep,
+  GAVETA_PORTA_SEP_NOME_INDUSTRIAL,
   GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
 } from "../productModes/gavetaPortaSepLayout";
 import {
@@ -42,7 +43,7 @@ export const INDUSTRIAL_FEATURES: readonly IndustrialFeatureDefinition[] = [
   {
     id: GAVETA_PORTA_SEP_PRODUCT_MODE_ID,
     nomeTecnico: "gaveta_porta_sep_prateleiras",
-    nomeIndustrial: "Gaveta + porta + SEP + prateleiras",
+    nomeIndustrial: GAVETA_PORTA_SEP_NOME_INDUSTRIAL,
     phase: "B",
     ruleIds: [
       "folga_2mm_gaveta_porta",

@@ -100,6 +100,11 @@ export interface DrawerCalculatedSpecs {
   bodyCenterOffsetY: number;
   /** Elevação da base do corpo vs base da frente (mm). Gaveta inferior = 18. */
   sideBaseElevationMm: number;
+  /**
+   * GPS embutido (gaveta_porta_sep): fundo ancora na entrada da frente (10 mm),
+   * não na traseira flush do clássico.
+   */
+  gpsEmbeddedFront?: boolean;
   
   // Posicionamento
   positioning: {
@@ -165,6 +170,12 @@ export type DrawerParametricOverrides = {
   metalBoxHeightMm?: number;
   /** Elevação do corpo vs base da frente (mm). Default 17; gaveta inferior = 18. */
   sideBaseElevationMm?: number;
+  /**
+   * GPS embutido: permite elevação custom em single/lowest e
+   * corpo derivado de drawerHeight (zona), não de frontHeight − delta.
+   * Default false — gaveteiro clássico intacto.
+   */
+  gpsEmbeddedFront?: boolean;
 };
 
 const MIN_BODY_DEPTH_MM = DRAWER_SLIDE_LENGTHS_MM[0];
@@ -366,18 +377,24 @@ export function calculateDrawerSpecs(
   // lateral = frente − delta(role); costa = lateral − 23; elevação = 48.
   // Stack B0/gap e folga frente ficam para Diff 3/4.
   const stackRole = dimensions.stackRole ?? "middle";
+  const gpsEmbedded = overrides?.gpsEmbeddedFront === true;
+  // GPS embutido: corpo pela zona (drawerHeight); clássico: corpo pela frente − delta.
   const woodBodyHeight = clampMm(
-    Math.max(1, frontHeight - resolveDrawerBodyDeltaForStackRoleMm(stackRole))
+    Math.max(
+      1,
+      (gpsEmbedded ? drawerHeight : frontHeight) -
+        resolveDrawerBodyDeltaForStackRoleMm(stackRole)
+    )
   );
   const bodyHeight =
     metalBoxEnabled && resolvedMetalHeight > 0 ? resolvedMetalHeight : woodBodyHeight;
-  // GAV_1 / single: elevação SSOT 16,5 — overrides não podem alterar bodyBottom 18,5.
+  // GAV_1 / single: bodyBottom = floorTop + 18,5.
+  // Override de elevação (Generation clássico exterior / GPS) é honrado quando presente.
   const sideElev =
-    stackRole === "lowest" || stackRole === "single"
-      ? resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness)
-      : overrides?.sideBaseElevationMm != null && Number.isFinite(overrides.sideBaseElevationMm)
-        ? overrides.sideBaseElevationMm
-        : resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness);
+    overrides?.sideBaseElevationMm != null &&
+    Number.isFinite(overrides.sideBaseElevationMm)
+      ? overrides.sideBaseElevationMm
+      : resolveDrawerBodyElevationForStackRoleMm(stackRole, dimensions.boxThickness);
   const bodyCenterOffsetY = resolveDrawerBodyCenterOffsetYMm(
     frontHeight,
     woodBodyHeight,
@@ -497,6 +514,7 @@ export function calculateDrawerSpecs(
     },
     bodyCenterOffsetY,
     sideBaseElevationMm: sideElev,
+    gpsEmbeddedFront: gpsEmbedded,
     leftSide: {
       width: leftSideWidth,
       height: leftSideHeight,

@@ -13,28 +13,23 @@
  */
 
 import {
-  DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM,
+  DRAWER_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
 } from "../../core/drawers/drawerGeometryConstants";
 
 export const DRAWER_VIEWER_BODY_VERTICAL_FLIP = true;
 
-/** Flip activo só se a flag global estiver ligada e NÃO for elevação GAV_1/single (16,5). */
+/**
+ * Flip activo só para middle/highest (elevação industrial 48).
+ * GAV_1/single nunca — 16,5 (floorTop+B0) ou elevação clássica exterior compensada.
+ */
 export function isDrawerViewerBodyVerticalFlipActiveForElevationMm(
   industrialBaseElevationMm: number
 ): boolean {
-  const elev = Number(industrialBaseElevationMm);
-  // GAV_1 / single: flip SEMPRE proibido (16,5 industrial ou 18,5 bodyBottom confundido)
-  if (
-    Number.isFinite(elev) &&
-    (Math.abs(elev - DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM) <= 0.05 ||
-      Math.abs(elev - DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM) <= 0.05)
-  ) {
-    return false;
-  }
   if (!DRAWER_VIEWER_BODY_VERTICAL_FLIP) return false;
+  const elev = Number(industrialBaseElevationMm);
   if (!Number.isFinite(elev)) return false;
-  return true;
+  return Math.abs(elev - DRAWER_BODY_ELEVATION_FROM_FRONT_MM) <= 0.05;
 }
 
 /**

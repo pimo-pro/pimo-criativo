@@ -39,7 +39,8 @@ export function resolveGav1BodyBottomFromModuleBaseMm(): number {
 
 /**
  * Elevação corpo vs frente GAV_1 — DERIVADA de bodyBottom − frontBottom.
- * Não é base SSOT; bodyBottom absoluto é 18,5.
+ * Não é base SSOT; bodyBottom absoluto é 18,5 (desde floorTop).
+ * Com frente em floorTop+B0 → 16,5.
  */
 export function resolveLowestDrawerBodyElevationFromFrontMm(
   boxFloorThicknessMm: number = 19
@@ -47,6 +48,21 @@ export function resolveLowestDrawerBodyElevationFromFrontMm(
   void boxFloorThicknessMm;
   assertGav1IndustrialSsotOrThrow();
   return DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM;
+}
+
+/**
+ * Clássico com frente na base exterior (+B0): elevação compensada para
+ * bodyBottom permanecer floorTop + 18,5.
+ * elev = 18,5 − (B0 − T) = 16,5 + T
+ */
+export function resolveClassicExteriorLowestBodyElevationFromFrontMm(
+  boxFloorThicknessMm: number
+): number {
+  assertGav1IndustrialSsotOrThrow();
+  const T = Math.max(1, Number(boxFloorThicknessMm) || 19);
+  const frontBottomFromFloorTopMm =
+    DRAWER_LOWEST_FRONT_BOTTOM_FROM_MODULE_BASE_MM - T;
+  return DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM - frontBottomFromFloorTopMm;
 }
 
 /**
@@ -61,21 +77,29 @@ export function resolveSingleDrawerBodyElevationFromFrontMm(
 
 /**
  * Elevação industrial do corpo vs frente por papel no stack.
- * lowest / single → derivada do bodyBottom 18,5 (=16,5) · middle / highest → 48.
- * Overrides de elevação GAV_1 são ignorados (sempre SSOT).
+ * lowest / single → derivada do bodyBottom 18,5 (=16,5 com frente em floorTop+B0)
+ * · classicExteriorFrontStack → elevação compensada (corpo ainda floorTop+18,5)
+ * · middle / highest → 48.
+ * Overrides de elevação GAV_1 são ignorados (sempre SSOT) excepto via Generation.
  */
 export function resolveDrawerBodyElevationForStackRoleMm(
   stackRole: DrawerStackRole,
-  boxFloorThicknessMm: number = 19
+  boxFloorThicknessMm: number = 19,
+  options?: { classicExteriorFrontStack?: boolean }
 ): number {
-  void boxFloorThicknessMm;
   switch (stackRole) {
     case "lowest":
     case "single":
+      if (options?.classicExteriorFrontStack === true) {
+        return resolveClassicExteriorLowestBodyElevationFromFrontMm(
+          boxFloorThicknessMm
+        );
+      }
       return resolveLowestDrawerBodyElevationFromFrontMm();
     case "highest":
     case "middle":
     default:
+      void boxFloorThicknessMm;
       return DRAWER_BODY_ELEVATION_FROM_FRONT_MM;
   }
 }

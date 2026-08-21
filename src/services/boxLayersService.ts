@@ -7,6 +7,7 @@ import {
   drawerToLayerItem,
   type DrawerGenerationConfig,
 } from "../core/drawers";
+import { resolveDrawerBodyCenterOffsetYMm } from "../core/drawers/drawerViewerLayout";
 import { buildDrawerParametricOverridesList } from "../core/drawers/drawerParametricOverrides";
 import { resolveDrawerErgonomicsRules } from "../core/drawers/drawerErgonomicsContext";
 import { isErgonomicDrawerHeightMode } from "../core/drawers/drawerHeightModeTypes";
@@ -324,14 +325,17 @@ export function regenerateLayersForBox(
       if (gps && gpsLayout) {
         return {
           boxWidth,
-          boxHeight: thickness * 2 + gpsLayout.drawerZoneHeightMm,
+          boxHeight, // altura real do módulo (frente embutida alinhada ao floorTop real)
           boxDepth,
           boxThickness: thickness,
           boxId: box.id,
           drawerCount: 1,
           drawerType,
           heightMode: "custom" as const,
+          // drawerHeight = zona (corpo); frente vem do override embutido
           customHeights: [gpsLayout.drawerZoneHeightMm],
+          verticalBaseOffsetMm: gpsLayout.drawerFrontBottomFromFloorTopMm,
+          interiorFrontStack: true,
           availableDepths: drawerSettings.gavetaProfundidadesDisponiveisMm,
           drawerSettings: {
             ...drawerSettings,
@@ -341,6 +345,8 @@ export function regenerateLayersForBox(
           drawerOverrides: [
             {
               frontHeightMm: gpsLayout.drawerFrontHeightMm,
+              sideBaseElevationMm: gpsLayout.drawerBodyElevationFromFrontMm,
+              gpsEmbeddedFront: true,
             },
           ],
           ergonomicsRules,
@@ -468,9 +474,9 @@ export function regenerateLayersForBox(
             ...(gpsLayout
               ? {
                   frontHeightMm: gpsLayout.drawerFrontHeightMm,
-                  ...({
-                    gavetaPortaSep: true,
-                  } as object),
+                  sideBaseElevationMm: gpsLayout.drawerBodyElevationFromFrontMm,
+                  drawerFrontBottomFromFloorTopMm: gpsLayout.drawerFrontBottomFromFloorTopMm,
+                  gavetaPortaSep: true,
                 }
               : {}),
             ...(a1Layout
@@ -515,9 +521,9 @@ export function regenerateLayersForBox(
             metadata: {
               ...generatedDrawers[i].metadata,
               frontHeightMm: gpsLayout.drawerFrontHeightMm,
-              ...({
-                gavetaPortaSep: true,
-              } as object),
+              sideBaseElevationMm: gpsLayout.drawerBodyElevationFromFrontMm,
+              drawerFrontBottomFromFloorTopMm: gpsLayout.drawerFrontBottomFromFloorTopMm,
+              gavetaPortaSep: true,
             },
           };
         }
@@ -540,6 +546,26 @@ export function regenerateLayersForBox(
             },
           };
         }
+      }
+
+      // GPS embutido: posY + elevação alinhados ao layout (frente = zona − 2×folga).
+      if (gpsLayout) {
+        const d = generatedDrawers[i]!;
+        d.height = gpsLayout.drawerFrontHeightMm;
+        d.width = gpsLayout.drawerFrontWidthMm;
+        d.posY = gpsLayout.drawerFrontCenterYLocalMm;
+        d.bodyCenterOffsetY = resolveDrawerBodyCenterOffsetYMm(
+          gpsLayout.drawerFrontHeightMm,
+          d.bodyHeight,
+          gpsLayout.drawerBodyElevationFromFrontMm
+        );
+        d.metadata = {
+          ...d.metadata,
+          frontHeightMm: gpsLayout.drawerFrontHeightMm,
+          sideBaseElevationMm: gpsLayout.drawerBodyElevationFromFrontMm,
+          drawerFrontBottomFromFloorTopMm: gpsLayout.drawerFrontBottomFromFloorTopMm,
+          gavetaPortaSep: true,
+        };
       }
     }
 
