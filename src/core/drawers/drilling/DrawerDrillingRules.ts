@@ -49,7 +49,6 @@ import {
   DRAWER_SIDE_BASE_ELEVATION_MM,
   DRAWER_SLIDE_AXIS_FROM_DRAWER_SIDE_BOTTOM_MM,
   DRAWER_GAV1_MODULE_GUIDE_AXIS_MM,
-  assertGav1IndustrialSsotOrThrow,
   assertGavIndustrialSsotOrThrow,
 } from "../drawerGeometryConstants";
 import {
