@@ -2,16 +2,6 @@
   "updatedAt": "2026-08-22T14:52:09.949Z",
   "news": [
     {
-      "version": "v6.0822.1552",
-      "title": "Auto deploy",
-      "description": "Auto deploy",
-      "publishedAt": "2026-08-22T14:52:09.777Z",
-      "type": "update",
-      "author": "pimo-pro",
-      "icon": "update",
-      "commit": "b5e3d6c2"
-    },
-    {
       "version": "v6.0822.1452",
       "title": "fix(drawer): corrigido comprimento industrial do gav_fundo (SSOT sideDepth+10)",
       "description": "fix(drawer): corrigido comprimento industrial do gav_fundo (SSOT sideDepth+10) — traseira flush com gav_cost; largura inalterada; viewer/cutlist/BOM alinhados (550×500 → 484×450).",
@@ -20,16 +10,6 @@
       "author": "pimo-pro",
       "icon": "fix",
       "commit": "ebfd19b"
-    },
-    {
-      "version": "v6.0822.1540",
-      "title": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
-      "description": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
-      "publishedAt": "2026-08-22T14:40:53.636Z",
-      "type": "update",
-      "author": "pimo-pro",
-      "icon": "update",
-      "commit": "df027e7b"
     },
     {
       "version": "v6.0821.1743",
