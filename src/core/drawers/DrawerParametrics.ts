@@ -443,7 +443,7 @@ export function calculateDrawerSpecs(
     internalWidth + DRAWER_BOTTOM_SIDE_ENTRY_MM + DRAWER_BOTTOM_SIDE_ENTRY_MM
   );
   const bottomDepth = clampMm(
-    sideDepthForBottom + DRAWER_BOTTOM_FRONT_ENTRY_MM + backThickness
+    sideDepthForBottom + DRAWER_BOTTOM_FRONT_ENTRY_MM
   );
 
   // ===== POSICIONAMENTO =====

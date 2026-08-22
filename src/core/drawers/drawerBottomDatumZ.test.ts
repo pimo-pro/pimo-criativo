@@ -5,10 +5,10 @@ import {
 } from "./drawerViewerLayout";
 
 describe("gav_fundo datum Z — traseira flush", () => {
-  it("bordo traseiro do fundo = face traseira das laterais (sideDepth 440, bottom 466)", () => {
+  it("bordo traseiro do fundo = face traseira das laterais (sideDepth 440, bottom 450)", () => {
     const frontT = 19;
     const sideDepth = 440;
-    const bottomDepth = 466; // sideDepth + 10 + 16
+    const bottomDepth = 450; // sideDepth + 10
     const centerZ = resolveDrawerBottomCenterZMm(frontT, sideDepth, bottomDepth);
     const rearEdge = centerZ - bottomDepth / 2;
     const sideRear = -(frontT / 2 + sideDepth);

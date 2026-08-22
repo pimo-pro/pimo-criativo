@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-08-21T16:43:02.287Z",
+  "updatedAt": "2026-08-22T14:52:00.000Z",
   "news": [
+    {
+      "version": "v6.0822.1452",
+      "title": "fix(drawer): corrigido comprimento industrial do gav_fundo (SSOT sideDepth+10)",
+      "description": "fix(drawer): corrigido comprimento industrial do gav_fundo (SSOT sideDepth+10) — traseira flush com gav_cost; largura inalterada; viewer/cutlist/BOM alinhados (550×500 → 484×450).",
+      "publishedAt": "2026-08-22T14:52:00.000Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix"
+    },
     {
       "version": "v6.0821.1743",
       "title": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",

@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-08-22",
+    versao: "gav-fundo-comprimento-ssot",
+    descricao:
+      "fix(drawer): comprimento industrial gav_fundo = sideDepth+10 (removido +T_costa); traseira flush com gav_cost; viewer/cutlist/BOM alinhados (550×500 → 484×450).",
+  },
+  {
     data: "2026-08-21",
     versao: "gav-fundo-ssot-v2",
     descricao:

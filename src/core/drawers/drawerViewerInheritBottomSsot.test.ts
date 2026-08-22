@@ -7,7 +7,7 @@ import {
 describe("Fase C — Viewer herda SSOT do gav_fundo", () => {
   it("floorWidth/Depth/PosZ vêm do industrial; costa mantém backWidth (vão)", () => {
     const bottomWidthMm = 534;
-    const bottomDepthMm = 466;
+    const bottomDepthMm = 450;
     const sideDepthMm = 440;
     const frontT = 19;
     const bottomPosZMm = resolveDrawerBottomCenterZMm(frontT, sideDepthMm, bottomDepthMm);
@@ -29,7 +29,7 @@ describe("Fase C — Viewer herda SSOT do gav_fundo", () => {
     });
 
     expect(layout.floorWidthMm).toBe(534);
-    expect(layout.floorDepthMm).toBe(466);
+    expect(layout.floorDepthMm).toBe(450);
     expect(layout.floorPosZMm).toBeCloseTo(bottomPosZMm, 5);
     expect(layout.backWidthMm).toBe(516);
 

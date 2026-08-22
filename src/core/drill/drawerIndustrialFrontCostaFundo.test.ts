@@ -13,7 +13,12 @@ import {
   DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
   DRAWER_SIDE_BASE_ELEVATION_MM,
 } from "../drawers/drawerGeometryConstants";
+import { createDrawer } from "../drawers/Drawer";
 import { calculateDrawerSpecs } from "../drawers/DrawerParametrics";
+import {
+  resolveDrawerBackCenterZMm,
+  resolveDrawerBottomCenterZFrontEntryMm,
+} from "../drawers/drawerViewerLayout";
 import { resolveDrawerSideDepthMm } from "../drawers/drawerSlideDepth";
 import { settingsDefaults } from "../settings/settingsSchema";
 import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
@@ -34,7 +39,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(resolveXmlMachineTarget("gaveta_lat_esq")).toBe("drill");
   });
 
-  it("SSOT: costa = laterais − 23; fundo = vão+laterais / sideDepth+frente+costa", () => {
+  it("SSOT: costa = laterais − 23; fundo = vão+laterais / sideDepth+10", () => {
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 1046,
@@ -60,9 +65,7 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(specs.bottom.width).toBe(
       internalW + DRAWER_BOTTOM_SIDE_ENTRY_MM + DRAWER_BOTTOM_SIDE_ENTRY_MM
     );
-    expect(specs.bottom.height).toBe(
-      sideDepth + DRAWER_BOTTOM_FRONT_ENTRY_MM + 16
-    );
+    expect(specs.bottom.height).toBe(sideDepth + DRAWER_BOTTOM_FRONT_ENTRY_MM);
     expect(specs.gaps.bottomSlots).toEqual({
       front: 10,
       sides: 9,
@@ -70,9 +73,9 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     });
   });
 
-  it("exemplo industrial: vão 1000, bodyDepth 500, costa 16 → fundo 1018×516", () => {
+  it("exemplo industrial: vão 1000, bodyDepth 500, costa 16 → fundo 1018×500", () => {
     // backWidth = boxInternal - 2*folgaLateral(7) - 2*sideT(16) = 1046 - 14 - 32 = 1000
-    // sideDepth = 500 - 10 = 490; width = 1000+18; depth = 490+10+16
+    // sideDepth = 500 - 10 = 490; width = 1000+18; depth = 490+10
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 1046,
@@ -94,16 +97,16 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     );
     expect(specs.back.width).toBe(1000);
     expect(specs.bottom.width).toBe(1018);
-    expect(specs.bottom.height).toBe(516);
+    expect(specs.bottom.height).toBe(500);
     expect(specs.back.height).toBeCloseTo(
       specs.leftSide.height - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM,
       5
     );
   });
 
-  it("caso 550×500 (T=19, laterais/costa 16): gav_fundo = 484×466", () => {
+  it("caso 550×500 (T=19, laterais/costa 16): gav_fundo = 484×450", () => {
     // L int 512; bodyWidth 498; vão 466; slide 450; sideDepth 440
-    // width 466+18=484; depth 440+10+16=466
+    // width 466+18=484; depth 440+10=450
     const specs = calculateDrawerSpecs(
       {
         boxInternalWidth: 550 - 2 * 19,
@@ -126,13 +129,52 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
     expect(specs.back.width).toBe(466);
     expect(specs.leftSide.depth).toBe(440);
     expect(specs.bottom.width).toBe(484);
-    expect(specs.bottom.height).toBe(466);
+    expect(specs.bottom.height).toBe(450);
     expect(specs.bottom.thickness).toBe(10);
 
     // Pipeline: layer/cutlist herdam as mesmas dims (Viewer + industrial)
     expect(specs.gaps.bottomSlots).toEqual({ front: 10, sides: 9, back: 16 });
     expect(specs.bottom.width).toBe(specs.back.width + 18);
-    expect(specs.bottom.height).toBe(specs.leftSide.depth + 10 + 16);
+    expect(specs.bottom.height).toBe(specs.leftSide.depth + 10);
+  });
+
+  it("createDrawer: traseira gav_fun flush com traseira gav_cost (âncora frente + sideDepth+10)", () => {
+    const specs = calculateDrawerSpecs(
+      {
+        boxInternalWidth: 550 - 2 * 19,
+        boxInternalHeight: 720,
+        boxInternalDepth: 450,
+        boxThickness: 19,
+        drawerHeight: 200,
+      },
+      settingsDefaults.gavetas.gavetaProfundidadesDisponiveisMm,
+      {
+        gavetaEspessuraLateralMm: 16,
+        gavetaEspessuraTraseiraMm: 16,
+        gavetaEspessuraFundoMm: 10,
+        gavetaTipoCaixaMetalica: "Nenhuma",
+        gavetaValidarProfundidadeCompativel: false,
+        gavetaFolgaLateralMm: 7,
+      },
+      { nominalDepthMm: 450 }
+    );
+    const drawer = createDrawer("flush-test", "box-1", specs, { x: 0, y: 0, z: 0 });
+    const frontT = specs.frontExt.thickness;
+    const sideDepth = specs.leftSide.depth;
+    const bottomDepth = specs.bottom.height;
+    expect(bottomDepth).toBe(sideDepth + DRAWER_BOTTOM_FRONT_ENTRY_MM);
+
+    const bottomRearZ =
+      drawer.pieces.bottom.positionZ - drawer.pieces.bottom.depth / 2;
+    const costaRearZ =
+      drawer.pieces.back.positionZ - drawer.pieces.back.depth / 2;
+    expect(bottomRearZ).toBeCloseTo(costaRearZ, 5);
+
+    const expectedCenterZ = resolveDrawerBottomCenterZFrontEntryMm(frontT, bottomDepth);
+    expect(drawer.pieces.bottom.positionZ).toBeCloseTo(expectedCenterZ, 5);
+
+    const costaCenterZ = resolveDrawerBackCenterZMm(frontT, sideDepth, specs.back.thickness);
+    expect(drawer.pieces.back.positionZ).toBeCloseTo(costaCenterZ, 5);
   });
 
   it("frente_ext (highest): cavilhas sync Y aresta laterais + elev; rasgo fundo+1", () => {

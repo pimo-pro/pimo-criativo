@@ -1,5 +1,15 @@
 # Novidades do Sistema
 
+### Release — gav_fundo comprimento SSOT (sideDepth+10)
+Correcção industrial do comprimento do fundo da gaveta (`gav_fun`): alinhamento traseiro flush com a costa (`gav_cost`).
+
+- **Comprimento (Y):** `sideDepth + 10 mm` (entrada frontal industrial) — removido o termo `+ T_costa` do comprimento do painel
+- **Largura (X):** inalterada — `costa + 18 mm` (entrada 9 mm por lateral)
+- **Datum Z:** bordo traseiro do fundo flush com laterais/costa (âncora frente +10 mm mantida)
+- **Viewer / cutlist / BOM:** herdam o novo comprimento via `DrawerParametrics` → `createDrawer` → layer
+- Caso 550×500 (T=19, laterais/costa 16) → **484 × 450 mm** (antes 484 × 466)
+- Caso referência vão 1000 / corrediça 500 → **1018 × 500 mm** (antes 1018 × 516)
+
 ### Release — gav_fundo SSOT v2 (Fases A–D)
 Consolidação industrial do fundo da gaveta: largura, posicionamento, Viewer e rasgo da frente alinhados ao mesmo SSOT.
 
