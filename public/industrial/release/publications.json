@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-22T14:40:52.887Z",
+      "author": "pimo-pro",
+      "commitMessage": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
+      "version": "v6.0822.1540"
+    },
+    {
       "publishedAt": "2026-08-22T13:55:24.162Z",
       "author": "pimo-pro",
       "commitMessage": "Auto deploy",

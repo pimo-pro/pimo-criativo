@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-22T13:55:25.043Z",
+  "updatedAt": "2026-08-22T14:40:53.827Z",
   "news": [
     {
       "version": "v6.0822.1452",
@@ -8,7 +8,28 @@
       "publishedAt": "2026-08-22T14:52:00.000Z",
       "type": "fix",
       "author": "pimo-pro",
-      "icon": "fix"
+      "icon": "fix",
+      "commit": "ebfd19b"
+    },
+    {
+      "version": "v6.0822.1540",
+      "title": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
+      "description": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
+      "publishedAt": "2026-08-22T14:40:53.636Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "df027e7b"
+    },
+    {
+      "version": "v6.0822.1455",
+      "title": "Auto deploy",
+      "description": "Auto deploy",
+      "publishedAt": "2026-08-22T14:57:16+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "0103224"
     },
     {
       "version": "v6.0821.1743",
