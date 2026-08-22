@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-22T15:22:02.946Z",
+      "author": "pimo-pro",
+      "commitMessage": "chore(news): remoção das entradas de pipeline v6.0822.1540 e v6.0822.1552",
+      "version": "v6.0822.1622"
+    },
+    {
       "publishedAt": "2026-08-22T14:52:09.412Z",
       "author": "pimo-pro",
       "commitMessage": "Auto deploy",
