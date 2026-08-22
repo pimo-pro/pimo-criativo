@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-22T13:55:24.162Z",
+      "author": "pimo-pro",
+      "commitMessage": "Auto deploy",
+      "version": "v6.0822.1455"
+    },
+    {
       "publishedAt": "2026-08-21T16:43:00.566Z",
       "author": "pimo-pro",
       "commitMessage": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",
