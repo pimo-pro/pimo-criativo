@@ -22,16 +22,6 @@
       "commit": "df027e7b"
     },
     {
-      "version": "v6.0822.1455",
-      "title": "Auto deploy",
-      "description": "Auto deploy",
-      "publishedAt": "2026-08-22T14:57:16+01:00",
-      "type": "update",
-      "author": "pimo-pro",
-      "icon": "update",
-      "commit": "0103224"
-    },
-    {
       "version": "v6.0821.1743",
       "title": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",
       "description": "fix(drawers): alinhar testes Progressivas ao stack interior SSOT (interiorFrontStack)",
