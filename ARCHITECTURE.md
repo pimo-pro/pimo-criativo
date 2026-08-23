@@ -1,4 +1,4 @@
-# Arquitectura — PIMO-Criativo (estado pós Z-03.8)
+# Arquitectura — PIMO-Criativo (estado pós Z-03.10 / hub v1.40)
 
 ## 1. Modelo de estado (Project)
 
@@ -25,7 +25,8 @@ Persistência e compatibilidade:
 
 - Entrada UI: `Workspace.tsx` → `usePimoViewer` → `ViewerApi`.
 - Implementação 3D:
-  - `src/3d/viewer-engine/ViewerCore.ts` (~6300+ linhas; monolítico).
+  - `src/3d/viewer-engine/ViewerCore.ts` (~**3570** linhas; fachada/orquestração — **não** monolito ~6300).
+  - Engines e `ViewerCore*Ops` já extraídos (Z-01.2 / Z-03.10).
   - `src/3d/core/Viewer.ts` é apenas uma fachada/alias.
 
 Engines internas ao ViewerCore (exemplos):
@@ -33,7 +34,7 @@ Engines internas ao ViewerCore (exemplos):
 - `ViewerRoomEngine` (sala no viewer)
 - `DesignerEngine`, `MeasurementEngine`
 - `SnapEngine`, `SmartAlignSnapEngine`
-- `SceneEngine`, `CameraEngine`, `LightingEngine`, `ComposerEngine`
+- `SceneEngine`, `CameraEngine`, `LightingEngine`, `ComposerEngine`, `MaterialEngine`
 
 Sala no viewer:
 - `RoomManager` (src/3d/room/) + `RoomBuilder` para aberturas (portas/janelas).
