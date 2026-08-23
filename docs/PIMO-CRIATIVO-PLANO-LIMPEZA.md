@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.39 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1** diagnóstico; **Z-03.2** classificação; **Z-03.3** unificação SSOT sala (tag z-03-3-room-ssot); **Z-03.4** remoção legado sala (tag z-03-4-room-legacy-removal); **Z-03.5** limpeza sistemas paralelos sala (tag z-03-5-room-parallel-cleanup); **Z-03.6** remoção de dead code (tag z-03-6-dead-code-removal); **Z-03.7** consolidação roomSnapshot (tag z-03-7-roomSnapshot-consolidation); **Z-03.8** remoção completa V4 (tag z-03-8-remove-v4) |
-| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5; Z-03.1–3.8 sala (Z-03.3 SSOT; Z-03.4 remoção legado; Z-03.5 paralelos limpos; Z-03.6 dead code; Z-03.7 unificação persistência; Z-03.8 V4 removido) |
+| **Versão do plano** | 1.40 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos (sala SSOT, remoção V4, docs arquitectura, organização ViewerCore). |
+| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5, Z-03.1–3.10. Hub alinhado ao código em 23-08-2026 (v1.40). |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
-| **Última actualização do plano** | 19 de Agosto de 2026 |
+| **Última actualização do plano** | 23 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-03.9 documentação arquitectural + alinhamento final (esta fase). Depois: Z-03.10 organização interna opcional do ViewerCore; Z-03.11 revisão final duplicações/nomenclaturas; Z-03.12 validação de Zero-Legacy. L-01/L-02, 1.13 (L-12/L-13) e 1.14 (L-18/L-20) continuam pendentes. |
+| **Próximo passo** | Preparar remoções L- de baixo risco (1.13 L-12/L-13 e resíduos) só após aprovação item a item. Depois: Z-03.11 (duplicações/nomenclaturas) e Z-03.12 (Zero-Legacy). L-01/L-02, L-18/L-20/L-22 e ponte `window.viewerCore` exigem investigação de uso antes de qualquer remoção. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -163,7 +163,7 @@ Fabricação (core, sem servidor)
 | `context/` | ~55 | ProjectState, viewer context |
 | `v4/` | ~24 | Experimento TEMPORARY |
 | `viewer/` | 4 | Fachada de tipos/utils (não é o motor) |
-| `src/services/` | 3 | `boxLayersService` + `drawerCutlistAdapter` (**vivos**) + `apiClient.js` (**morto** L-04) |
+| `src/services/` | 2+ | `boxLayersService` + `drawerCutlistAdapter` (**vivos**); `apiClient.js` **já removido** (L-04, 18-08-2026) |
 
 ### 1.3 Fluxo crítico runtime (zona P — não mexer sem plano dedicado)
 
@@ -171,7 +171,7 @@ Fabricação (core, sem servidor)
 2. `cutlistComPrecoFromBox` (`cutlistFromBoxes.ts`) — única fonte cutlist paramétrica (auditoria Fase 7).
 3. `drillingService` + `drillingAdapter` — faces A/B, topDrillable (zona P-03).
 4. `useCalculadoraSync` → fingerprints → `addBox` / `updateBox` / `removeBox`.
-5. `ViewerCore` (~6112 linhas) → `BoxSceneController` → `buildBoxLegacy` (= `buildBoxGroup`).
+5. `ViewerCore` (~3570 linhas; engines/`ViewerCore*Ops` já extraídos) → `BoxSceneController` → `buildBoxLegacy` (= `buildBoxGroup`).
 6. Export: `industrialOutputGuard` → `cutlayout` → `cncExport` (4 geradores TCN — zona P-04 observação only).
 
 Unidades: **mm** no domínio, **metros** no Three.js.
@@ -392,12 +392,12 @@ Padrões **sem hits** neste clone: `backup_*`, `notes_*`, `analysis_*`, `draft_*
 | ID | Sistemas | Caminhos | Relação | Sugestão (texto only) | Impacto |
 |----|----------|----------|---------|----------------------|---------|
 | D-01 | 3 locais PHP | `api/`, `hostinger/`, `public_html/` | `copyDeployApiToDist.mjs` | Uma fonte deploy | Manutenção |
-| D-02 | 3 clientes projectos | `src/api/projectsApi.ts`, `core/projects/*`, `apiClient.js` | Axios vs Fetch vs morto | Só `core/projects/*` | F-01 |
+| D-02 | 2 clientes projectos (activo) | `src/api/projectsApi.ts`, `core/projects/*` | Axios vs Fetch; `src/services/apiClient.js` **já removido** (L-04) | Preferir `core/projects/*` como SSOT | F-01 |
 | D-03 | Work orders legado vs TRAK | `work_orders` vs `industrial_work_orders` | UI TRAK vs `industrial/core/work-orders/actions.ts` | Migração dados | R-07 |
 | D-04 | Auth dupla | JWT PHP + Supabase + `local-auth` | Sessões independentes | Plataforma | SSO |
 | D-05 | 4 geradores TCN | `tcnGenerator*.ts` | `settings.cnc.tcnMetodo` default `nesting_mo` | Deprecar v1/v2 (**P-04**) | Alto industrial |
 | D-06 | 3 nestings | `cutlayout/`, `nesting3/`, `nesting-v3/` | Fallback híbrido em `nestingV3Engine` | Fundir após validar flag | Bundle |
-| D-07 | 5 viewers 3D | ViewerCore, `src/viewer/`, v4, showroom, pimo-drill | Modos derivados + experimento | Isolar v4 | Confusão |
+| D-07 | Viewers 3D restantes | ViewerCore (canónico), `src/viewer/` (utils), showroom, pimo-drill | **v4 removido** em Z-03.8; pimo-drill = shell incompleto (dívida fora de âmbito) | Não reintroduzir V4; isolação showroom/drill | Confusão residual |
 | D-08 | API tripla viewer | `window.viewerCore`, Context, `useViewerSync` | Stubs triplicados | Unificar API | React |
 | D-09 | Sala dupla | `RoomManager` vs `RoomEngine` | Bind duplo em `useViewerRoom` | Interface única | Bugs parede |
 | D-10 | Snap parede duplo | `ModelWallSnap` vs `SmartSnapping` | `ViewerCoreAudit.ts` | **Mitigado** em Z-01.2.3 (`SnapEngine`; SmartSnapping overlay-only) | Drag |
@@ -444,7 +444,7 @@ Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01
 
 | ID | Item | Caminho | Evidência | Porque não é L- |
 |----|------|---------|-----------|-----------------|
-| **Z-01** | **Expositor geral do Viewer** | `src/3d/viewer-engine/ViewerCore.ts` | **6112 linhas** — maior ficheiro TS/TSX de `src/`; orquestra cena, boxes, sala, snap, régua, materiais e engines de layout | **Vivo e crítico** — auditoria §6.1; plano de modularização **§6.2 (Z-01.2)**; **não apagar** |
+| **Z-01** | **Expositor geral do Viewer** | `src/3d/viewer-engine/ViewerCore.ts` | **~3570 linhas** (23-08-2026; era ~6112 em 18-08 antes de Z-01.2/Z-03.10) — maior ficheiro TS/TSX de `src/`; fachada + orquestração; engines e `ViewerCore*Ops` extraídos | **Vivo e crítico** — auditoria §6.1; modularização **§6.2** + **Z-03.10** executados; **não apagar** |
 | Z-02 | Dashboard + analytics | `industrial/core/dashboard/*`, `analytics/stats.ts` | Cadeia interna metrics→dashboard; sem UI | Pode alimentar supervisor futuro |
 | **Z-02.0** | **Toolbar superior do Viewer** | `UnifiedTopToolbar.tsx` + `ViewerToolbar.tsx` | Chrome UI **vivo**; 20 controlos visíveis + faixa vazia + popovers | **Auditoria §6.3** — diagnóstico only; **não apagar** sem gatilho Z-02.1+ |
 | Z-03 | Adapter WO legado | `legacyWorkflowWorkOrderAdapter.ts` | Exportado; documentado como ponte read-only | Transição TRAK (D-03) |
@@ -466,7 +466,7 @@ Nota de governança (v1.14): o prefixo `Z-` nasceu como «zona dormida». **Z-01
 | **Gatilho de código** | Nenhum. Qualquer fatiamento futuro exige pedido explícito (ex.: «aplica Z-01 — extrair módulo X»). |
 | **Ficheiro alvo** | `src/3d/viewer-engine/ViewerCore.ts` |
 | **Caminho absoluto** | `c:\Users\Mofreita\pimo-v3\pimo-criativo\src\3d\viewer-engine\ViewerCore.ts` |
-| **Linhas** | **6112** (contagem PowerShell, 18-08-2026) |
+| **Linhas** | **~3570** (contagem PowerShell, 23-08-2026; histórico Z-01: 6112 em 18-08-2026 antes das extracções) |
 | **Instanciação** | `Workspace.tsx` → `loadViewerCore()` dinâmico → `new ViewerCore(container)` |
 | **Fachada legado** | `src/3d/core/Viewer.ts` (8 linhas: `export class Viewer extends ViewerCore {}`) |
 | **Exclusões** | BoxBuilder, DrawerFactory, TCN/DRILL/PI, PHP, Supabase, `src/validation/` — **não tocar** nesta fase |
@@ -479,7 +479,7 @@ Comparação (linhas com conteúdo, `src/`, excl. testes):
 
 | Ficheiro | Linhas | Papel |
 |----------|--------|--------|
-| **`src/3d/viewer-engine/ViewerCore.ts`** | **6112** | **Alvo Z-01** — orquestrador / expositor 3D |
+| **`src/3d/viewer-engine/ViewerCore.ts`** | **~3570** | **Alvo Z-01** — orquestrador / expositor 3D (pós Z-01.2 / Z-03.10) |
 | `src/components/admin/SystemSettingsBase.tsx` | 1597 | Admin (fora do Viewer) |
 | `src/components/layout/workspace/Workspace.tsx` | 1439 | Contentor React (montagem + sync) |
 | `src/3d/viewer-engine/panels/ViewerPanelVisibility.ts` | 990 | Já extraído (visibilidade / exploded) |
@@ -569,7 +569,7 @@ Consumidores principais: `Workspace.tsx`, `usePimoViewer.ts`, `ContextMenu.tsx`,
 
 | ID interno | Tema | Severidade | Nota |
 |------------|------|------------|------|
-| R-05 | Monólito 6112 linhas | **Alta** | Qualquer bug de drag/snap/câmara passa por este ficheiro |
+| R-05 | Orquestrador ViewerCore ainda grande | **~3570 linhas** | **Média–Alta** | Qualquer bug de drag/snap/câmara passa por este ficheiro; engines já extraídas |
 | — | RAF + dois composers | **Alta** runtime | Bloom no modo normal todos os frames; showcase acrescenta bokeh |
 | D-10 | Dual/triplo snap | **Mitigado** | Orquestrador `SnapEngine` (Z-01.2.3); tolerâncias de produto intocadas |
 | — | `window.viewerCore` | **Média** | HMR, acesso antes de ready, `as unknown` |
@@ -727,7 +727,7 @@ Os nomes A–E são o vocabulário Z-01.2. A extração **reutiliza** ficheiros 
 |---------------|--------------|---------------|------------------|
 | `ViewerRuntimeLoop.ts` | já existe | Vivo | RAF, resize, escolha composer vs `renderScene` |
 | `ViewerState.ts` | já existe | Vivo; superfície ainda larga | Flags de tool, selecção, drag; sem Three.js pesado |
-| `ViewerFacade.ts` | **é o próprio `ViewerCore.ts` reduzido** | 6112 linhas | API pública estável; re-exporta engines |
+| `ViewerFacade.ts` | **é o próprio `ViewerCore.ts` reduzido** | ~3570 linhas | API pública estável; re-exporta engines |
 
 ### 6.2.4 `ProjectFormatAdapter` — formatos futuros
 
@@ -780,7 +780,7 @@ Ordem obrigatória: **2.1 → 2.2 → 2.3 → 2.4** antes de fatiar ficheiros gr
 | Eixo | Hoje | Depois (se o plano for executado) | Risco se avançar cedo |
 |------|------|-----------------------------------|------------------------|
 | **Desempenho** | RAF + dois composers; engines pesadas no constructor | Constructor leve; composer atrás de `ComposerEngine`; lazy designer | Unificar snap mal → drag «salta» |
-| **Manutenção** | 6112 linhas, API ~430 linhas de `d.ts` | Fachada &lt; ~800 linhas alvo; engines testáveis | Extrair sem testes = regressão silenciosa |
+| **Manutenção** | ~3570 linhas (era 6112 em 18-08), API `d.ts` ainda ampla | Fachada mais fina; engines testáveis | Extrair sem testes = regressão silenciosa |
 | **API pública** | `window.viewerCore` + `PimoViewerApi` + aliases | Uma `PimoViewerApi`; global só ponte de transição | Quebrar ContextMenu/remates se o global cair cedo |
 | **Formatos** | JSON PIMO + GLB por caixa | Loader + adapters; DXF/IFC/STEP **opt-in** | Parser no ViewerCore = novo monólito |
 | **Industrial** | Cutlist a partir de boxes paramétricas | Inalterado; imports CAD com `industrialReady: false` | Gerar TCN de STEP = **proibido** |
@@ -2032,7 +2032,7 @@ senão (3 paredes U) → loadRoomConfig legado (sem promover SSOT)
 | R-02 | CORS `*` ordens industriais | `api/industrial/orders/index.php` | **Média** | Restringir origem |
 | R-03 | GitHub sync config | `.gitignore` cobre `githubSyncConfig.php`; só `.example` no repo | **Controlado** | Validar servidor |
 | R-04 | `users.json` gitignored | `api/data/users.json` | **Controlado** | — |
-| R-05 | ViewerCore monolítico | **6112 linhas** (confirmado Z-01, 18-08-2026) | **Alta** manutenção | §6.1 + §6.2; Fase 5 só com gatilho |
+| R-05 | ViewerCore ainda grande | **~3570 linhas** (23-08-2026; era 6112 em Z-01 18-08) | **Média–Alta** manutenção | §6.1 + §6.2 + Z-03.10 feitos; fatiamento extra adiado |
 | R-06 | TCN multi-gerador | 4 implementações importadas | **Alta** industrial | P-04 |
 | R-07 | Dual work_orders Supabase | Legado + TRAK paralelos | **Alta** dados | D-03 |
 | R-08 | `tsc:strict` fora do build | Script separado | **Média** | Dívida tipos |
@@ -2312,7 +2312,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | 2026-08-18 | 1.11 | **Fase 1.11 — remoção definitiva aprovada** para L-29 (`ViewerCleanupReport.ts`). Texto oficial: «Remoção segura — ViewerCleanupReport.ts — zero referências — aprovado pelo dono do produto (Khaled).» Status: **Ready for Removal**. Execução **não** iniciada. **Não** arquivar. **Excluído:** ViewerCore, resto de `viewer-engine`, BoxBuilder, L-12. Gatilho: «aplica Fase 1.11 — L-29». | Khaled (dono do produto) |
 | 2026-08-18 | 1.12 | **Fase 1.12 — remoção definitiva aprovada** para L-30 (resíduos `backup_*` / `*.bak` / equivalentes). Texto oficial: «Remoção segura — resíduos finais no raiz e pastas secundárias — zero referências — aprovado pelo dono do produto (Khaled).» Status: **Ready for Removal**. L-16 e L-17 absorvidos. Execução **não** iniciada. Gatilho: «aplica Fase 1.12 — L-30». | Khaled (dono do produto) |
 | 2026-08-18 | 1.13 | **Execução completa Fases 1.3–1.12 (L-03 → L-30).** Ficheiros removidos; `.gitignore` actualizado (`tmp/`, `test-output/`). Companion: `layout/utils.ts` removido com L-05. **Não** tocados: ViewerCore, BoxBuilder, TCN/DRILL/PI, PHP, Supabase, L-12/L-13/L-18/L-20. | Khaled (dono do produto) + execução Cursor |
-| 2026-08-18 | 1.14 | **Z-01 iniciado:** auditoria completa do expositor geral. Alvo: `src/3d/viewer-engine/ViewerCore.ts` (6112 linhas). Relatório + plano de divisão em §6.1. **Zero** alterações ao Viewer. Antiga Z-01 (integration UI) reatribuída a **Z-04**. | Khaled (dono do produto) + auditoria Cursor |
+| 2026-08-18 | 1.14 | **Z-01 iniciado:** auditoria completa do expositor geral. Alvo: `src/3d/viewer-engine/ViewerCore.ts` (na altura 6112 linhas; actual ~3570 após Z-01.2/Z-03.10). Relatório + plano de divisão em §6.1. **Zero** alterações ao Viewer nesse dia. Antiga Z-01 (integration UI) reatribuída a **Z-04**. | Khaled (dono do produto) + auditoria Cursor |
 | 2026-08-18 | 1.15 | **Z-01.2:** plano de modularização (fachada fina, módulos A–E, ProjectLoader/FormatAdapter, ordem Z-01.2.1…2.9). **Zero** alterações ao Viewer. Motor universal = visualização via `ProjectState`; CAD externo não gera TCN/DRILL. | Khaled (dono do produto) + plano Cursor |
 | 2026-08-18 | 1.16 | **Z-01.2.1 executado:** remoção de NO-OPs (`events.emit`, régua legada, aliases, sync drawer NO-OP, `refineLayoutPlan`, `onAfterRenderTick`, `Tools3DToolbar`). `createRoom` e BoxBuilder intocados. Tag `z-01-2-1-noops`. | Khaled (dono do produto) + execução Cursor |
 | 2026-08-18 | 1.17 | **Z-01.2.2 executado:** régua unificada via `MeasurementEngine`; botão duplicado do ContextMenu removido; aliases públicos da régua interna apagados. Tag `z-01-2-2-ruler`. | Khaled (dono do produto) + execução Cursor |
@@ -2488,7 +2488,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 
 | Tipo | Mudança |
 |------|---------|
-| **Z-01** | Reatribuído ao expositor Viewer: `src/3d/viewer-engine/ViewerCore.ts` (6112 linhas) |
+| **Z-01** | Reatribuído ao expositor Viewer: `src/3d/viewer-engine/ViewerCore.ts` (~3570 linhas actuais) |
 | **Z-04** | Nova ID para integration UI industrial (ex-Z-01 / L-23) |
 | **Secção** | Nova §6.1 — auditoria, duplicações, NO-OPs, plano de módulos, recomendações |
 | **Execução de código** | Nenhuma — ViewerCore, BoxBuilder e `viewer-engine` vivo **intocados** |
@@ -2732,18 +2732,30 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | Tipo | Mudança |
 |------|---------|
 | **Z-03.9** | Documentação arquitectural completa: `CLAUDE.md` + novo `ARCHITECTURE.md` + actualização do hub e docs internos (V4 removido) |
-| **Tag** | `z-03-9-docs-update` |
+| **Tag** | `z-03-9-docs-update` (`f1ac12b8`, 19-08-2026) |
 | **Intocado** | Industrial e lógica de sala/ViewerCore: sem alterações |
+
+### 13.41 Changelog v1.39 → v1.40 (23-08-2026)
+
+| Tipo | Mudança |
+|------|---------|
+| **Z-03.9** | Marcado **concluído** no cabeçalho e §15 (já executado em 19-08; hub estava atrasado) |
+| **Z-03.10** | Marcado **concluído**: organização ViewerCore (factories Selection/Gizmo/Box/Room/Measurement/Snap/Scene/Camera/Lighting/Composer/Designer); tags `z-03-10-*`; commit final `b49a2dd3` |
+| **Contagem ViewerCore** | Actualizada para **~3570 linhas** (era 6112/6300 nos docs) |
+| **D-02 / D-07 / R-05** | Corrigidos (apiClient.js removido; v4 removido; R-05 reflecte tamanho actual) |
+| **Dívida técnica** | Nova §15.3 — Z-02, Z-04, mocks admin roles/permissions, PIMO-DRILL fora de âmbito |
+| **Código** | Nenhuma alteração funcional nesta actualização documental |
 
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
 
 ### 15.1 Fases futuras recomendadas
-1. **Z-03.9** — Documentação arquitectural e alinhamento com o código (esta fase)
-2. **Z-03.10** — Limpeza opcional do `ViewerCore` (organização interna; sem mudança funcional)
+1. ~~**Z-03.9** — Documentação arquitectural~~ — **Concluído** 19-08-2026 (tag `z-03-9-docs-update`, commit `f1ac12b8`). Hub realinhado em v1.40 (23-08-2026).
+2. ~~**Z-03.10** — Organização interna do `ViewerCore`~~ — **Concluído** 19-08-2026 (tags `z-03-10-viewercore-organization` / `z-03-10-viewercore-organization-final`; último passo `b49a2dd3`). Fatiamento **adicional** adiado (fora de âmbito).
 3. **Z-03.11** — Revisão final de duplicações e nomenclaturas (garantir zero “paralelos” restantes)
 4. **Z-03.12** — Validação de Zero‑Legacy (critério de “OK” + build/prod/testes e inspeção de imports)
+5. **Lotes L- pendentes** — 1.13 (L-12/L-13), resíduos (`admin-icons-etapa2.diff`, pasta `src/core/export/` vazia), e só após investigação: L-01/L-02, L-18/L-20/L-22, ponte `window.viewerCore`
 
 ### 15.2 Estado Zero‑Legacy — critérios de “OK”
 - **Zero código morto:** nenhum stub no-op / export sem consumidores.
@@ -2753,6 +2765,17 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 - **Viewer sem módulos paralelos:** `V4` removido; rotas `/v4` inexistentes; apenas fluxos canónicos.
 - **Industrial 100% isolado:** CNC, DRILL, PI, TCN, NQR, etiquetas, técnico, XLSX sem dependências do subsistema sala.
 - **Documentação alinhada:** `CLAUDE.md` + docs referenciam apenas arquitectura real e não citam managers/rotas removidas.
+
+### 15.3 Dívida técnica registada (fora do âmbito desta iniciativa)
+
+Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de remoção até decisão explícita de produto.
+
+| Item | O quê | Porque fica fora |
+|------|--------|------------------|
+| **Z-02** | Dashboard + analytics em `industrial/core/dashboard/*` (cadeia interna sem UI TRAK) | Sistema dormido; pode alimentar supervisor futuro — arquivar ou ligar é decisão de produto, não limpeza mecânica |
+| **Z-04** | Integration UI em `src/industrial/integration/ui/*` (sem imports desde `src/app`) | UI industrial dormida; tipos podem ser úteis a TRAK — não apagar sem dono industrial |
+| **ManageRolesPage / ManagePermissionsPage** | CRUD em memória com listas `INITIAL_*`; sem API | Mock/placeholder de admin RBAC; reescrever exige backend e papéis reais — dívida de produto |
+| **PIMO-DRILL** | Shell em `src/app/industrial/pimo-drill` (2D/3D R3F); zero testes locais; nota interna de incompleto | Protótipo industrial incompleto; validação 3D e fluxo de furos exigem trabalho dedicado, não “limpeza” |
 
 ---
 
@@ -2764,4 +2787,4 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.39).
+Fim do documento de planeamento (v1.40).
