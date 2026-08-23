@@ -66,16 +66,15 @@ ProjectContext (src/context/)
 Workspace.tsx
   └── usePimoViewer(containerRef, options)  →  PimoViewerApi (viewerApi)
       └── 3d/core/Viewer.ts (1-line alias for ViewerCore)
-          └── src/3d/viewer-engine/ViewerCore.ts (~6300 lines, monolithic)
-              ├── Managers: SceneManager, CameraManager, RendererManager,
-              │             EventsManager, SelectionManager, HighlightManager, BoxManager
+          └── src/3d/viewer-engine/ViewerCore.ts (~3570 lines; fachada + orquestração)
+              ├── ViewerCore*Ops (17 módulos) + factories Z-03.10
               ├── Engines:  BoxEngine, SelectionEngine, GizmoEngine, ViewerRoomEngine,
               │             DesignerEngine, MeasurementEngine, SnapEngine, SmartAlignSnapEngine,
-              │             SceneEngine, CameraEngine, LightingEngine, ComposerEngine
+              │             SceneEngine, CameraEngine, LightingEngine, ComposerEngine, MaterialEngine
               └── Room:     RoomManager (src/3d/room/) — 3D walls/openings
 ```
 
-The `Viewer` class at `src/3d/core/Viewer.ts` is a 1-line alias (`class Viewer extends ViewerCore {}`) — all implementation lives in `src/3d/viewer-engine/ViewerCore.ts`.
+The `Viewer` class at `src/3d/core/Viewer.ts` is a 1-line alias (`class Viewer extends ViewerCore {}`). Implementation lives in `ViewerCore.ts` plus engines/`ViewerCore*Ops` already extracted (Z-01.2 / Z-03.10) — **not** a ~6300-line monolith.
 
 **PimoViewerContext** (`src/context/PimoViewerContext.tsx`) registers the active viewer API so that panels (LeftPanel, RightPanel, etc.) can call viewer operations without prop-drilling.
 
