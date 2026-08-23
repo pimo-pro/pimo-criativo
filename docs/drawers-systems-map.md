@@ -1,39 +1,55 @@
 # Sistemas de Gavetas — Mapa Completo
 
-> **Fase:** análise e documentação apenas (PASSOS 0–5).  
-> **Sem remoções, sem comentários de código, sem alteração de menus ou flags.**  
-> **Âmbito do código:** `pimo-criativo/` (código activo).  
-> **Referência histórica:** `pimo-safe-pre-purge-build/` — snapshot **sem** Modelo B / hub `Gavetas` (útil para comparar o estado pré-novo-sistema).  
-> **Data do mapa:** 2026-07-27.  
-> **Método:** verificação directa no código (ficheiros, flags, Admin menu, gates de geração/cutlist/PDF/Viewer).
+> **ESTADO (23-08-2026): documento HISTÓRICO / OBSOLETO como SSOT de runtime.**  
+> O mapa abaixo foi escrito em 2026-07-27 quando o Modelo B / `european/` ainda era o default de produto.  
+> **Runtime actual (código):** só o **Modelo A** está activo (`isDrawerModeloAActive()` sempre `true`; `isDrawerModeloBActive()` sempre `false`).  
+> A pasta `src/core/drawers/european/` **não existe**. Não usar este ficheiro para decisões de limpeza ou flags sem revalidar o código.  
+> Fonte de verdade de flags: `src/core/drawers/drawerSystemFlags.ts` + `drawerModeloAGate.ts`.
+
+> **Fase original:** análise e documentação apenas (PASSOS 0–5), data 2026-07-27.  
+> **Âmbito histórico:** `pimo-criativo/` na altura do mapa.
 
 ---
 
-## Glossário (terminologia no código vs UI)
+## Snapshot de runtime CORRECTO (substitui a secção antiga «Estado actual»)
+
+| Item | Valor actual (23-08-2026) |
+|---|---|
+| Sistema activo | **Modelo A** (Sistema Unificado / pipeline clássico em `src/core/drawers/**`) |
+| Modelo B / europeu | **Morto em runtime**; pasta `european/` **ausente** |
+| `isDrawerModeloAActive()` | Sempre `true` (restauro) |
+| `isDrawerModeloBActive()` | Sempre `false` |
+| `DRAWER_MODELO_A_DEFAULT_ENABLED` | `true` |
+| Migração B | `applyModeloBProductDefaultMigration()` é no-op |
+
+O texto restante deste ficheiro mantém-se como **arquivo histórico** (glossário, inventário de ficheiros de Jul/2026) e **pode estar errado** face ao código actual — sobretudo onde afirma «Modelo B ON por default» ou existência de `european/`.
+
+---
+
+## Glossário (terminologia no código vs UI) — histórico Jul/2026
 
 | Termo do utilizador | Termo no código | Onde aparece na UI |
 |---|---|---|
-| **Sistema antigo (Modelo A)** | Pipeline clássico em `src/core/drawers/**` (excepto `european/`) | Admin → Produtos → **Configurações das Gavetas (Sistema Unificado)** + **Regras das Gavetas** + UI clássica no Viewer |
-| **Sistema novo** | **Modelo B** / Sistema Europeu (`src/core/drawers/european/**`) + hub Admin | Admin → Produtos → **Gavetas** (`DrawersAdminHubPage`) |
-| Flag de escolha | `isDrawerModeloAActive()` em `drawerSystemFlags.ts` | Toggle no hub **Gavetas**: «Desativar Sistema Atual de Gavetas (Modelo A)» |
+| **Sistema antigo (Modelo A)** | Pipeline clássico em `src/core/drawers/**` | Admin → Produtos → **Configurações das Gavetas (Sistema Unificado)** + **Regras das Gavetas** + UI clássica no Viewer |
+| **Sistema novo (histórico)** | **Modelo B** / Sistema Europeu (`european/**`) — **removido / inexistente no código actual** | Hub Admin «Gavetas» (legado documental) |
+| Flag de escolha | `isDrawerModeloAActive()` em `drawerSystemFlags.ts` | Toggle histórico; restauro ignora desactivação |
 
-**Nota importante:** a página **«Configurações das Gavetas (Sistema Unificado)»** (`DrawerSystemUnifiedAdminPage`) é sobretudo um **centro de referência/mapeamento** do Modelo A (`DrawerSystemReference.ts`) + leitura live de `settings.gavetas`. A **configuração editável** do Modelo A está em **«Regras das Gavetas»** (`DrawerRulesAdminPage` → `settings.gavetas`). O runtime do Modelo A é o domínio clássico (`generateDrawerGroup`, etc.).
-
-**Nota de docs desactualizada:** `src/core/drawers/README.md` ainda descreve Modelo B como «só estrutura» e Modelo A com default ON — isso **não** reflecte o runtime actual (B é o default de produto; A fica off por omissão).
+**Nota:** `src/core/drawers/README.md` foi corrigido em 23-08-2026 para reflectir só Modelo A activo.
 
 ---
 
-## Estado actual de runtime (interferência crítica)
+## Estado actual de runtime (interferência crítica) — OBSOLETO (Jul/2026)
 
-| Item | Valor actual |
+> **Não usar.** Ver snapshot correcto no topo. O quadro seguinte é o texto original e está **errado** face ao código de 23-08-2026.
+
+| Item | Valor no mapa original (obsoleto) |
 |---|---|
-| Default produto | **Modelo A OFF** → **Modelo B ON** (`DRAWER_MODELO_A_DEFAULT_ENABLED = false` fora de Vitest) |
-| Persistência | `localStorage["pimo_drawer_modelo_a_enabled"]` |
-| Migração one-shot | `applyModeloBProductDefaultMigration()` força `false` na 1.ª carga (chave `pimo_drawer_modelo_b_product_default_v1`) |
-| Efeito | UI, geração de layers, cutlist filtrada, PDF unificado e Viewer usam **europeu** por omissão; layers clássicas sem `metadata.modeloB` são **filtradas** quando A está off |
-| Regra de escolha | **Não** existe flag «enable Modelo B». **B = !A** (`isDrawerModeloBActive()`) |
+| Default produto | ~~Modelo A OFF → Modelo B ON~~ → **corrigido: só A ON** |
+| Persistência | `localStorage["pimo_drawer_modelo_a_enabled"]` (legado; restauro força A) |
+| Migração one-shot | ~~força false~~ → **no-op no código actual** |
+| Regra de escolha | ~~B = !A~~ → **B sempre false** |
 
-Conclusão: o sistema novo **não apaga** o Modelo A, mas **desactiva-o em runtime por default** e substitui o pipeline de geração/visualização/export parcial.
+Conclusão actual: o Modelo B **não** substitui o A em runtime; o pipeline clássico (A) é o único activo.
 
 ---
 
