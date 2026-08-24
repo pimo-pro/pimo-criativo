@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.50 |
-| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** / **Fase 7b CNC** concluídas; **checkpoint pós-limpeza-CNC** `v6.0824.1042`; **Fase 7d** limpeza de artefactos arrastados pelo publish. |
-| **Modo actual** | Pós-deploy limpeza CNC. Hub v1.50. Checkpoint produção: `v6.0824.1042` / `d9a475e3`. |
+| **Versão do plano** | 1.51 |
+| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** / **Fase 7 CNC** concluídas; **checkpoint testes máquina** publicado (`v6.0824.1107`). |
+| **Modo actual** | Produção alinhada a `main` pós-7d–7f. Hub v1.51. Checkpoint testes industriais: `v6.0824.1107` / `b9d56a3d`. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-03.12 (checklist Zero-Legacy) ou decisão de produto. Pendentes: L-18/L-20. Dívida §15.3 fora de âmbito. |
+| **Próximo passo** | Testes reais em máquina (`NESTING MO` + `v2_new`). Depois Z-03.12 ou decisão de produto. Pendentes: L-18/L-20. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
