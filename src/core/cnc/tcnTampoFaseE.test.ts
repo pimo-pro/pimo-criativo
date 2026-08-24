@@ -11,7 +11,6 @@ import {
 } from "../materials/materials.api";
 import { generateTcnForPanelNestingMo } from "./tcnGeneratorNestingMo";
 import { generateTcnForPanelV2New } from "./tcnGeneratorV2New";
-import { generateTcnForPanelV3New } from "./tcnGeneratorV3New";
 import {
   buildPlacementExteriorContourPath,
   buildPlacementInnerContourPaths,
@@ -125,7 +124,6 @@ describe("Fase E — TCN industrial TAMPO", () => {
   it("caixaria 19 mm → TCN idêntico ao golden actual", () => {
     expect(sha256(generateTcnForPanelNestingMo(GOLDEN19_SHEET, 3, "Golden19"))).toBe(GOLDEN19_MO);
     expect(sha256(generateTcnForPanelV2New(GOLDEN19_SHEET, 3, "Golden19"))).toBe(GOLDEN19_V2);
-    expect(sha256(generateTcnForPanelV3New(GOLDEN19_SHEET, 3, "Golden19"))).toBe(GOLDEN19_MO);
   });
 
   it("TAMPO sem recorte → um path exterior (rect ou trapézio)", () => {

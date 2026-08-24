@@ -14,7 +14,6 @@ import type { CutPlacement, SheetResult } from "../cutlayout/cutLayoutTypes";
 import { getFastCncLayoutOptions } from "../cnc/cncPipeline";
 import { generateTcnForPanelNestingMo } from "../cnc/tcnGeneratorNestingMo";
 import { generateTcnForPanelV2New } from "../cnc/tcnGeneratorV2New";
-import { generateTcnForPanelV3New } from "../cnc/tcnGeneratorV3New";
 import {
   buildCncXmlFilesForProject,
   buildDrillFilesForProject,
@@ -46,7 +45,6 @@ const INDUSTRIAL_SOURCES = [
   "../cnc/tcnContourPaths.ts",
   "../cnc/tcnGeneratorNestingMo.ts",
   "../cnc/tcnGeneratorV2New.ts",
-  "../cnc/tcnGeneratorV3New.ts",
   "../cnc/cncPipeline.ts",
   "../cutlayout/cutLayoutPdf.ts",
   "../cutlayout/cutLayoutEngine.ts",
@@ -277,7 +275,6 @@ describe("Fase F — fecho industrial TAMPO", () => {
 
     expect(sha256(generateTcnForPanelNestingMo(GOLDEN19_SHEET, 3, "Golden19"))).toBe(GOLDEN19_MO);
     expect(sha256(generateTcnForPanelV2New(GOLDEN19_SHEET, 3, "Golden19"))).toBe(GOLDEN19_V2);
-    expect(sha256(generateTcnForPanelV3New(GOLDEN19_SHEET, 3, "Golden19"))).toBe(GOLDEN19_MO);
   });
 
   it("indústria não importa Three.js nem o Viewer", () => {
