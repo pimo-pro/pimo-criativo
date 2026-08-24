@@ -10,13 +10,7 @@ import { cutlistToPieces, runCutLayout } from "../src/core/cutlayout/cutLayoutEn
 import { exportCncFiles } from "../src/core/cnc/cncExport";
 import { getLayoutKerfMmForCncNesting } from "../src/core/cnc/tcnLayoutKerf";
 
-type TcnMetodo =
-  | "v1_corner"
-  | "v2_ramp"
-  | "v3_ramp_noflip"
-  | "v4_corner_noflip"
-  | "v5_ramp_noanchor"
-  | "v6_ramp";
+type TcnMetodo = "nesting_mo" | "v2_new";
 
 type InputProject = {
   projectName?: string;
@@ -31,12 +25,8 @@ type W2201Point = { x: number; y: number; z: number };
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(__dirname, "..", "dist", "tcn");
 const METODOS: Array<{ metodo: TcnMetodo; fileLabel: string }> = [
-  { metodo: "v1_corner", fileLabel: "v1" },
-  { metodo: "v2_ramp", fileLabel: "v2" },
-  { metodo: "v3_ramp_noflip", fileLabel: "v3" },
-  { metodo: "v4_corner_noflip", fileLabel: "v4" },
-  { metodo: "v5_ramp_noanchor", fileLabel: "v5" },
-  { metodo: "v6_ramp", fileLabel: "v6" },
+  { metodo: "nesting_mo", fileLabel: "nesting_mo" },
+  { metodo: "v2_new", fileLabel: "v2_new" },
 ];
 
 // Polyfill localStorage para execução Node.
