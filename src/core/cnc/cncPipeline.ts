@@ -1,7 +1,7 @@
 import { cutlistToPieces, runCutLayout, type CutLayoutEngineOptions, type CutlistItemForPieces } from "../cutlayout/cutLayoutEngine";
 import type { CutLayoutResult, SheetDefinition } from "../cutlayout/cutLayoutTypes";
 import { exportCncFiles } from "./cncExport";
-import { getLayoutKerfMmForCncNesting } from "./tcnGenerator";
+import { getLayoutKerfMmForCncNesting } from "./tcnLayoutKerf";
 import { getSettings } from "../settings/settingsService";
 import { listMaterials, getMaterialByIdOrLabel } from "../materials/service";
 import {

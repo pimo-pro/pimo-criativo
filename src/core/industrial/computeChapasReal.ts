@@ -18,7 +18,7 @@ import { inferCutlistItemThicknessMm } from "../cnc/industrialNestingGroup";
 import { resolveIndustrialThicknesses } from "../cnc/industrialThicknessResolution";
 import { enrichPiecesWithMaterialSheetDimensions } from "../cnc/preparePiecesForNesting";
 import { listMaterials } from "../materials/service";
-import { getLayoutKerfMmForCncNesting } from "../cnc/tcnGenerator";
+import { getLayoutKerfMmForCncNesting } from "../cnc/tcnLayoutKerf";
 import { getSettings } from "../settings/settingsService";
 import { CHAPA_PADRAO_LARGURA, CHAPA_PADRAO_ALTURA } from "../manufacturing/materials";
 import {

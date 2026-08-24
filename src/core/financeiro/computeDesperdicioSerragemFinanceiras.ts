@@ -5,7 +5,7 @@
  */
 
 import type { CutListItemComPreco } from "../types";
-import { getLayoutKerfMmForCncNesting } from "../cnc/tcnGenerator";
+import { getLayoutKerfMmForCncNesting } from "../cnc/tcnLayoutKerf";
 import { getSettings } from "../settings/settingsService";
 import { getCentralPricingCached } from "../pricing/centralPricingConfig";
 import type { OrcamentosCustosIndustriaisSettings } from "../orcamentos";

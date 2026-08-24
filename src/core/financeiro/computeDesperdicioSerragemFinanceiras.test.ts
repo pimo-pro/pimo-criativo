@@ -4,7 +4,7 @@ import {
   computeDesperdicioSerragemFinanceiras,
   estimateSerragemM2,
 } from "./computeDesperdicioSerragemFinanceiras";
-import * as tcnGenerator from "../cnc/tcnGenerator";
+import * as tcnLayoutKerf from "../cnc/tcnLayoutKerf";
 
 function piece(
   partial: Partial<CutListItemComPreco> & { id: string; w?: number; h?: number; qty?: number }
@@ -27,7 +27,7 @@ function piece(
 
 describe("computeDesperdicioSerragemFinanceiras (P3.9 F3b)", () => {
   beforeEach(() => {
-    vi.spyOn(tcnGenerator, "getLayoutKerfMmForCncNesting").mockReturnValue(3);
+    vi.spyOn(tcnLayoutKerf, "getLayoutKerfMmForCncNesting").mockReturnValue(3);
   });
   afterEach(() => {
     vi.restoreAllMocks();

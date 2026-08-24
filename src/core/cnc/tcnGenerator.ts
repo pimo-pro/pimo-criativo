@@ -48,21 +48,6 @@ type TcnMetodo =
   | "v5_ramp_noanchor"
   | "v6_ramp";
 
-/**
- * Kerf usado no motor de nesting quando o resultado alimenta TCN/CNC:
- * dist?ncia m?nima entre arestas das pe?as no layout tal que, com offset exterior +R,
- * o espa?o entre contornos de ferramenta seja ? `cnc.minSpacingMm`.
- */
-export function getLayoutKerfMmForCncNesting(settings: {
-  cnc?: { diametroFresaContornoMm?: number; minSpacingMm?: number };
-} = getSettings()): number {
-  const toolRadiusMm = getContourToolDiameterMm(settings) / 2;
-  const minSpacingMm = Number.isFinite(Number(settings?.cnc?.minSpacingMm))
-    ? Math.max(0, Number(settings?.cnc?.minSpacingMm))
-    : DEFAULT_MIN_SPACING_BETWEEN_PIECES_MM;
-  return minSpacingMm + 2 * Math.max(0, toolRadiusMm);
-}
-
 function getContourToolDiameterMm(settings: {
   cnc?: { diametroFresaContornoMm?: number };
 }): number {

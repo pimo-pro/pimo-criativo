@@ -8,7 +8,7 @@ import { getSettings, saveSettings } from "../src/core/settings/settingsStorage"
 import { cutlistComPrecoFromBoxes } from "../src/core/manufacturing/cutlistFromBoxes";
 import { cutlistToPieces, runCutLayout } from "../src/core/cutlayout/cutLayoutEngine";
 import { exportCncFiles } from "../src/core/cnc/cncExport";
-import { getLayoutKerfMmForCncNesting } from "../src/core/cnc/tcnGenerator";
+import { getLayoutKerfMmForCncNesting } from "../src/core/cnc/tcnLayoutKerf";
 
 type TcnMetodo =
   | "v1_corner"
