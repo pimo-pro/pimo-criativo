@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-24T08:31:01.201Z",
+      "author": "pimo-pro",
+      "commitMessage": "docs(limpeza): fechar mapas Z-03.11.1–11.3 (hub v1.45)",
+      "version": "v6.0824.0931"
+    },
+    {
       "publishedAt": "2026-08-22T15:22:02.946Z",
       "author": "pimo-pro",
       "commitMessage": "chore(news): remoção das entradas de pipeline v6.0822.1540 e v6.0822.1552",

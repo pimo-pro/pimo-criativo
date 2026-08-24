@@ -1,6 +1,26 @@
 {
-  "updatedAt": "2026-08-22T15:22:03.445Z",
+  "updatedAt": "2026-08-24T08:31:01.940Z",
   "news": [
+    {
+      "version": "v6.0824.0931",
+      "title": "docs(limpeza): fechar mapas Z-03.11.1–11.3 (hub v1.45)",
+      "description": "docs(limpeza): fechar mapas Z-03.11.1–11.3 (hub v1.45)",
+      "publishedAt": "2026-08-24T08:31:01.789Z",
+      "type": "docs",
+      "author": "pimo-pro",
+      "icon": "docs",
+      "commit": "d955f6c8"
+    },
+    {
+      "version": "v6.0822.1622",
+      "title": "chore(news): remoção das entradas de pipeline v6.0822.1540 e v6.0822.1552",
+      "description": "chore(news): remoção das entradas de pipeline v6.0822.1540 e v6.0822.1552",
+      "publishedAt": "2026-08-22T16:24:06+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "96f8a31"
+    },
     {
       "version": "v6.0822.1452",
       "title": "fix(drawer): corrigido comprimento industrial do gav_fundo (SSOT sideDepth+10)",
@@ -10,6 +30,36 @@
       "author": "pimo-pro",
       "icon": "fix",
       "commit": "ebfd19b"
+    },
+    {
+      "version": "v6.0822.1540",
+      "title": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
+      "description": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
+      "publishedAt": "2026-08-22T15:42:56+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "ef324ac"
+    },
+    {
+      "version": "v6.0822.1537-clean",
+      "title": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)",
+      "description": "chore(news): remoção da entrada automática v6.0822.1455 (limpeza do WhatsNew)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-22T15:37:35+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "df027e7"
+    },
+    {
+      "version": "v6.0822.1455",
+      "title": "Auto deploy",
+      "description": "Auto deploy",
+      "publishedAt": "2026-08-22T14:57:16+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "0103224"
     },
     {
       "version": "v6.0821.1743",
