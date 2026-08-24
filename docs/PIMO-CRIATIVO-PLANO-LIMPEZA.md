@@ -207,7 +207,7 @@ Critério: zero consumidores externos, stub no-op, placeholder de teste, ou arte
 
 | ID | Item | Caminho | Evidência | Impacto runtime | Risco remoção |
 |----|------|---------|-----------|-----------------|---------------|
-| L-01 | Pasta `services/` + stubs vazios | `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` | Ficheiros 0 bytes; zero consumidores | Nenhum | **Nulo** — **Executado / Concluído** (Fase 3b; 24-08-2026; pasta raiz removida) |
+| L-01 | Pasta `services/` + stubs vazios | `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` | Ficheiros 0 bytes; zero consumidores | Nenhum | **Nulo** — **Executado / Concluído** (Fase 3b; 24-08-2026; commit `aa1cb063`) |
 | L-02 | Fixture backend | `backend/backend/data/projects/project-pimo-mn5tsivc-zcrvwgfl.json` | Sem servidor; sem imports | Nenhum | Nulo |
 | L-03 | Hook projectos JS | `src/hooks/useProjects.js` | Zero imports `from ".../useProjects"` | Nenhum | **Nulo** — **Executado** (Fase 1.3; executado 18-08-2026) |
 | L-04 | Cliente API JS legado | `src/services/apiClient.js` | Só usado por L-03; zero referências no código actual | Nenhum | **Nulo** — **Executado** (Fase 1.3; executado 18-08-2026) |
@@ -2763,7 +2763,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 
 | Tipo | Mudança |
 |------|---------|
-| **L-01** | Removidos stubs vazios `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` e a pasta raiz `services/` — **Concluído** |
+| **L-01** | Removidos stubs vazios `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` e a pasta raiz `services/` — **Concluído** (commit `aa1cb063`) |
 | **D-20** | Namespace raiz `services/` desapareceu; `src/services/` permanece vivo |
 | **Verificação** | `tsc -b` exit 0; `npm run build` exit 0; suite de testes sem regressão face à baseline |
 | **Intocado** | L-02, L-18, L-20, ponte `window.viewerCore`, Z-02, Z-04, mocks admin, PIMO-DRILL |
