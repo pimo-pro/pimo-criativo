@@ -1,7 +1,6 @@
-/**
+﻿/**
  * Módulo de seleção (estado selectedBoxId + seleção interna) do Viewer Engine.
  */
-export { ViewerSelectionManager } from "./SelectionManager";
 export type {
   InternalSelectionHit,
   InternalSelectionState,
