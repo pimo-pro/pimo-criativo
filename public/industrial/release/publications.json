@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-24T10:07:22.002Z",
+      "author": "pimo-pro",
+      "commitMessage": "chore: remover residual test_output_v1.tcn",
+      "version": "v6.0824.1107"
+    },
+    {
       "publishedAt": "2026-08-24T09:42:48.335Z",
       "author": "pimo-pro",
       "commitMessage": "chore(tcn): alinhar gen-test-tcn com nesting_mo e v2_new",

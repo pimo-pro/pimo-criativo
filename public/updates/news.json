@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-24T09:42:49.108Z",
+  "updatedAt": "2026-08-24T10:07:22.794Z",
   "news": [
+    {
+      "version": "v6.0824.1107",
+      "title": "chore: remover residual test_output_v1.tcn",
+      "description": "chore: remover residual test_output_v1.tcn",
+      "publishedAt": "2026-08-24T10:07:22.625Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "25e4b5fd"
+    },
     {
       "version": "v6.0824.1042",
       "title": "chore(tcn): alinhar gen-test-tcn com nesting_mo e v2_new",
       "description": "chore(tcn): alinhar gen-test-tcn com nesting_mo e v2_new",
-      "publishedAt": "2026-08-24T09:42:48.970Z",
+      "publishedAt": "2026-08-24T10:44:18+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "5bbb3be8"
+      "commit": "d9a475e"
     },
     {
       "version": "v6.0824.0931",
