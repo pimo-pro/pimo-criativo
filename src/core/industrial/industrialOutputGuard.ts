@@ -61,9 +61,7 @@ export class IndustrialRequiredArtifactsMissingError extends Error {
 
 /** Módulos geradores protegidos — não alterar sem comando explícito do utilizador. */
 export const INDUSTRIAL_LOCKED_GENERATOR_PATHS = [
-  "src/core/cnc/tcnGenerator.ts",
   "src/core/cnc/tcnGeneratorV2New.ts",
-  "src/core/cnc/tcnGeneratorV3New.ts",
   "src/core/cnc/tcnGeneratorNestingMo.ts",
   "src/core/cnc/cncExport.ts",
   "src/core/drill/drillExport.ts",
