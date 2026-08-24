@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.42 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Fase 3** (L-12, L-13, L-22, `admin-icons-etapa2.diff`) e **Fase 3b** (L-01 stubs `services/*.js`) executadas 24-08-2026. |
-| **Modo actual** | Pós-execução L- (Fases 3 e 3b), Z-01.2, Z-02.1–2.5, Z-03.1–3.10. Hub alinhado em v1.42. |
+| **Versão do plano** | 1.43 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Z-03.11.0** (inventário fechado documental) executado; **Fase 3** (L-12, L-13, L-22, `admin-icons-etapa2.diff`) e **Fase 3b** (L-01 stubs `services/*.js`) executadas 24-08-2026. |
+| **Modo actual** | Pós-execução L- (Fases 3 e 3b), Z-01.2, Z-02.1–2.5, Z-03.1–3.10 e inventário Z-03.11.0. Hub alinhado em v1.43. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-03.11 (duplicações/nomenclaturas) e Z-03.12 (Zero-Legacy) — só após aprovação de sub-passos. Pendentes: L-02, L-18/L-20. Ponte `window.viewerCore` e dívida §15.3 fora de âmbito até decisão. |
+| **Próximo passo** | Z-03.11.1–11.3 (mapas e recomendações sem fundir código) ou Z-03.12 (checklist Zero-Legacy), conforme decisão do produto. Pendentes: L-02, L-18/L-20. Ponte `window.viewerCore` e dívida §15.3 fora de âmbito até decisão. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -413,6 +413,63 @@ Padrões **sem hits** neste clone: `backup_*`, `notes_*`, `analysis_*`, `draft_*
 | D-18 | Materiais localStorage vs API | `core/materials/service.ts` vs `/api/materials` | SSOT split | Unificar | Preços |
 | D-19 | Alias `buildBoxLegacy` | `BoxBuilder.ts:540` | Alias de `buildBoxGroup`; usado em 6+ sítios | Renomear gradualmente | Nomenclatura only |
 | D-20 | `src/services/` vs raiz `services/` | Dois namespaces «services» | Raiz **removida** (L-01 Fase 3b); `src/services/` vivo | Documentar só `src/services/` | Resolvido em grande parte |
+
+---
+
+## 4.1 Z-03.11.0 — Inventário fechado de duplicações e nomenclaturas
+
+**Escopo:** documentação apenas. Nenhuma alteração funcional; nenhum merge de sistemas; nenhuma mudança em `src/industrial/**`.
+
+### 4.1.1 `window.viewerCore` (ponte transitória)
+
+| Tipo | Local | Papel | Estado |
+|------|-------|-------|--------|
+| Escrita | `src/components/layout/workspace/Workspace.tsx` | Atribuição em `setOnViewerReady`; ponte HMR / dispose | **Activo** |
+| Tipo | `src/hooks/viewer/viewerCoreWindow.d.ts` | Declara `viewerCore?: PimoViewerApi` | **Activo** |
+| Runtime | `src/core/viewer/pimoViewerRuntime.ts` | Documenta `PimoViewerApi` como canónico e `window.viewerCore` como compatibilidade | **Activo** |
+| Ready/bind | `src/core/viewer/viewerReadiness.ts` | Regra de atribuição do viewer activo | **Activo** |
+| Classe | `src/3d/viewer-engine/ViewerCore.ts` | Comentário de ponte no callback ready | **Activo** |
+| Teste de guarda | `tests/viewer/PimoViewerApi.test.ts` | Garante que consumidores de produto não usam o global | **Activo** |
+| Docs históricas | `src/3d/viewer-engine/API.md`, `docs/RELATORIO_VIEWER_MULTI_SELECTION_FASE2.md` | Ainda referem o global; alinhar nomenclatura sem o remover | **A corrigir em docs** |
+
+**Regra de uso:** código novo deve usar `PimoViewerApi`. `window.viewerCore` fica como ponte transitória confirmada, fora de lotes L- até decisão explícita.
+
+### 4.1.2 Camadas de materiais (3 camadas reais)
+
+| Camada | Caminhos principais | Responsabilidade canónica | Observação |
+|--------|---------------------|----------------------------|------------|
+| Domínio / catálogo | `src/core/materials/**` | IDs, persistência, inferência, serviço de materiais, dados de negócio | **Canónico** para regras e dados |
+| 3D legacy / helpers | `src/3d/materials/**` e satélites visuais antigos | Helpers/intermédios de rendering fora do viewer-engine actual | Observação / nomenclatura |
+| Engine 3D actual | `src/3d/viewer-engine/materials/**` | PBR, cache de texturas, aplicação de materiais ao viewer | **Canónico** para rendering do viewer |
+
+**Regra de uso:** preços/catálogo/persistência em `core/materials`; rendering actual em `viewer-engine/materials`; qualquer peça legacy em `3d/materials` fica mapeada antes de decisão de fusão.
+
+### 4.1.3 Geradores de ID (inventário)
+
+| Domínio | Local principal | Mecanismo | Regra recomendada |
+|---------|-----------------|-----------|-------------------|
+| Projectos | `src/core/projects/projectsMappers.ts` + `projectsClient` / `projectsOfflineStore` / `projectsMerge` | `makeId(prefix)` | Usar para IDs de projectos e sync local |
+| Materiais | `src/core/materials/service.ts` | `generateId()` | Usar para registos de materiais |
+| Box layers / portas | `src/services/boxLayersService.ts` | `createId(prefix)` + `crypto.randomUUID` | Usar para layers/doors gerados pelo viewer |
+| Guest auth | `src/core/auth/authGuest.ts` | `crypto.randomUUID` com fallback | Usar só para identidade guest |
+| PIPRO | `src/core/pipro/piproModelsRegistry.ts`, `PiproDesignWorkspace.ts` | prefixo + `crypto.randomUUID` | Usar só no domínio PIPRO |
+| Stores UI | `src/stores/invariantNotificationStore.ts`, `industrialExportPanelStore.ts` | `makeId()` local | Usar só para estado efémero UI |
+| Industrial designer | `src/core/industrialDesigner/customIndustrialModel.ts` | `idFactory` / `crypto.randomUUID` | Observação apenas; não unificar nesta fase |
+| Industrial / analytics | `src/core/industrial/onlineAnalysis/industrialOnlineAnalysisRowIds.ts`, `src/industrial/core/rules/rules.ts` | `crypto.randomUUID` / `generateId()` | **Observação apenas, fora do âmbito sem dono de produto** |
+
+**Regra de uso:** não criar helper global nesta fase. Cada domínio mantém o seu gerador até auditoria dedicada; `src/industrial/**` e industrial-adjacente ficam só mapeados.
+
+### 4.1.4 Nomenclatura residual / D-02
+
+| Item | Estado actual | Canónico / acção documental |
+|------|---------------|-----------------------------|
+| D-02 clientes de projectos | `src/api/projectsApi.ts` + `src/core/projects/*` | **Canónico:** `src/core/projects/*`; `projectsApi.ts` fica documentado como alternativo/legado activo |
+| `window.viewerCore` | Ponte ainda documentada como API em alguns ficheiros | Corrigir docs para “ponte transitória”, sem remover código |
+| Modelo B / `european/` | Restos textuais em documentação histórica | Marcar como histórico/inexistente |
+| `/v4` | Restos textuais em docs históricas | Manter só como referência histórica explícita |
+| `apiClient.js` | Já removido do runtime; ainda pode aparecer em changelogs antigos | Manter menções históricas só quando contextualizadas |
+
+**Nota:** Z-03.11.0 regista o inventário; Z-03.11.1–11.3 tratam apenas de mapas/recomendações, sem fundir código.
 
 ---
 
@@ -2768,6 +2825,14 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Verificação** | `tsc -b` exit 0; `npm run build` exit 0; suite de testes sem regressão face à baseline |
 | **Intocado** | L-02, L-18, L-20, ponte `window.viewerCore`, Z-02, Z-04, mocks admin, PIMO-DRILL |
 
+### 13.44 Changelog v1.42 → v1.43 (24-08-2026) — Z-03.11.0
+
+| Tipo | Mudança |
+|------|---------|
+| **Inventário** | Nova §4.1 com tabelas de `window.viewerCore`, camadas de materiais, geradores de ID e D-02/nomenclatura residual |
+| **Escopo** | Documentação apenas; zero alterações a código funcional |
+| **Industrial** | Entradas em `src/industrial/**` e industrial-adjacente marcadas como observação apenas |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2809,4 +2874,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.42).
+Fim do documento de planeamento (v1.43).
