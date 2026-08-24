@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.43 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Z-03.11.0** (inventário fechado documental) executado; **Fase 3** (L-12, L-13, L-22, `admin-icons-etapa2.diff`) e **Fase 3b** (L-01 stubs `services/*.js`) executadas 24-08-2026. |
-| **Modo actual** | Pós-execução L- (Fases 3 e 3b), Z-01.2, Z-02.1–2.5, Z-03.1–3.10 e inventário Z-03.11.0. Hub alinhado em v1.43. |
+| **Versão do plano** | 1.44 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Z-03.11.0** (inventário fechado documental) executado; **Fase 3** (L-12, L-13, L-22, `admin-icons-etapa2.diff`), **Fase 3b** (L-01 stubs `services/*.js`) e **L-02** executadas 24-08-2026. |
+| **Modo actual** | Pós-execução L- (incl. L-02), Z-01.2, Z-02.1–2.5, Z-03.1–3.10 e inventário Z-03.11.0. Hub alinhado em v1.44. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-03.11.1–11.3 (mapas e recomendações sem fundir código) ou Z-03.12 (checklist Zero-Legacy), conforme decisão do produto. Pendentes: L-02, L-18/L-20. Ponte `window.viewerCore` e dívida §15.3 fora de âmbito até decisão. |
+| **Próximo passo** | Z-03.11.1–11.3 (mapas e recomendações sem fundir código) ou Z-03.12 (checklist Zero-Legacy), conforme decisão do produto. Pendentes: L-18/L-20. Ponte `window.viewerCore` e dívida §15.3 fora de âmbito até decisão. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -49,9 +49,10 @@ A regra L- («remover ficheiros sem uso») está **activa**. As fases 1.3–1.12
 
 **Companion necessário:** `src/core/layout/utils.ts` removido com L-05 porque importava `./types.ts` e não tinha consumidores — caso contrário o `tsc` quebrava.
 
-**Não executado:** L-02, L-18, L-20, zonas P-/Z- restantes, `dist/`, `docs/RELATORIO_*`, `ferragens_3d/RELATORIO_*`.  
+**Não executado:** L-18, L-20, zonas P-/Z- restantes, `dist/`, `docs/RELATORIO_*`, `ferragens_3d/RELATORIO_*`.  
 **Executado na Fase 3 (24-08-2026):** L-12, L-13, L-22, resíduo `admin-icons-etapa2.diff`.  
 **Executado na Fase 3b (24-08-2026):** L-01 (stubs vazios `services/*.js` + pasta raiz).
+**Executado nesta fase (24-08-2026):** L-02 (fixture `backend/backend/data/projects/project-pimo-mn5tsivc-zcrvwgfl.json`).
 
 ### Ficheiros removidos por fase
 
@@ -208,7 +209,7 @@ Critério: zero consumidores externos, stub no-op, placeholder de teste, ou arte
 | ID | Item | Caminho | Evidência | Impacto runtime | Risco remoção |
 |----|------|---------|-----------|-----------------|---------------|
 | L-01 | Pasta `services/` + stubs vazios | `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` | Ficheiros 0 bytes; zero consumidores | Nenhum | **Nulo** — **Executado / Concluído** (Fase 3b; 24-08-2026; commit `aa1cb063`) |
-| L-02 | Fixture backend | `backend/backend/data/projects/project-pimo-mn5tsivc-zcrvwgfl.json` | Sem servidor; sem imports | Nenhum | Nulo |
+| L-02 | Fixture backend | `backend/backend/data/projects/project-pimo-mn5tsivc-zcrvwgfl.json` | Sem servidor; zero consumidores do path específico; `hostinger/` e `public_html/` usam **outros** `project-*.json` | Nenhum | **Nulo** — **Executado / Concluído** (24-08-2026; `tsc -b`, build e testes sem regressão) |
 | L-03 | Hook projectos JS | `src/hooks/useProjects.js` | Zero imports `from ".../useProjects"` | Nenhum | **Nulo** — **Executado** (Fase 1.3; executado 18-08-2026) |
 | L-04 | Cliente API JS legado | `src/services/apiClient.js` | Só usado por L-03; zero referências no código actual | Nenhum | **Nulo** — **Executado** (Fase 1.3; executado 18-08-2026) |
 | L-05 | Layout engine skeleton | `src/core/layout/service.ts`, `hooks.ts`, `types.ts` | `@placeholder`; `useLayoutEngine` sem consumidores | Nenhum | **Nulo** — **Executado** (Fase 1.4; executado 18-08-2026) |
@@ -2541,7 +2542,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Companion** | `src/core/layout/utils.ts` removido com L-05 (dependia de `types.ts`; zero consumidores) |
 | **`.gitignore`** | Adicionados `tmp/` e `test-output/` |
 | **Intocado** | ViewerCore, `viewer-engine` (excepto L-29), BoxBuilder, TCN/DRILL/PI, PHP, Supabase, `layoutWarnings.ts` |
-| **Pendente** | L-02, L-18, L-20 (L-01/L-12/L-13/L-22 concluídos nas Fases 3/3b, 24-08-2026) |
+| **Pendente** | L-18, L-20 (L-01/L-02/L-12/L-13/L-22 concluídos nas Fases 3/3b/5, 24-08-2026) |
 
 ### 13.15 Changelog v1.13 → v1.14
 
@@ -2833,6 +2834,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Escopo** | Documentação apenas; zero alterações a código funcional |
 | **Industrial** | Entradas em `src/industrial/**` e industrial-adjacente marcadas como observação apenas |
 
+### 13.45 Changelog v1.43 → v1.44 (24-08-2026) — L-02
+
+| Tipo | Mudança |
+|------|---------|
+| **L-02** | Removido `backend/backend/data/projects/project-pimo-mn5tsivc-zcrvwgfl.json` |
+| **Verificação** | `tsc -b` exit 0; `npm run build` exit 0; suite de testes igual à baseline (`20 failed / 348 passed`; `27 failed / 1675 passed`) |
+| **Confirmação de escopo** | `hostinger/` e `public_html/` usam outros `project-*.json` e **não foram tocados** |
+| **Intocado** | L-18, L-20, `src/validation/**`, `src/industrial/**`, PHP/Supabase de produção |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2842,7 +2852,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 2. ~~**Z-03.10** — Organização interna do `ViewerCore`~~ — **Concluído** 19-08-2026 (tags `z-03-10-viewercore-organization` / `z-03-10-viewercore-organization-final`; último passo `b49a2dd3`). Fatiamento **adicional** adiado (fora de âmbito).
 3. **Z-03.11** — Revisão final de duplicações e nomenclaturas (garantir zero “paralelos” restantes)
 4. **Z-03.12** — Validação de Zero‑Legacy (critério de “OK” + build/prod/testes e inspeção de imports)
-5. **Lotes L- pendentes** — L-02, L-18/L-20 (após decisão de produto). ~~L-01~~ (Fase 3b), ~~1.13 L-12/L-13~~, ~~L-22~~ e ~~`admin-icons-etapa2.diff`~~ — **Concluídos** (24-08-2026).
+5. **Lotes L- pendentes** — L-18/L-20 (após decisão de produto). ~~L-01~~, ~~L-02~~, ~~1.13 L-12/L-13~~, ~~L-22~~ e ~~`admin-icons-etapa2.diff`~~ — **Concluídos** (24-08-2026).
 
 ### 15.2 Estado Zero‑Legacy — critérios de “OK”
 - **Zero código morto:** nenhum stub no-op / export sem consumidores.
@@ -2874,4 +2884,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.43).
+Fim do documento de planeamento (v1.44).
