@@ -2919,6 +2919,14 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Dívida §15.3** | Registado risco de `publish.js` / `git add .` |
 | **Intocado** | `docs/REPORTE-SISTEMAS-NOMES-IDS-V2.md` (conteúdo sem alteração) |
 
+### 13.52 Changelog v1.50 → v1.51 (24-08-2026) — Checkpoint testes máquina
+
+| Tipo | Mudança |
+|------|---------|
+| **Checkpoint** | `v6.0824.1107` — publicação final pós-7d–7f para testes industriais reais |
+| **HEAD** | `b9d56a3d` (tag `v6.0824.1107`); conteúdo base `25e4b5fd` + commit de publicação |
+| **Deploy** | Actions [32715338617](https://github.com/pimo-pro/pimo-criativo/actions/runs/32715338617) sucesso; `pimo.pro/version.json` confirmado |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2928,6 +2936,8 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 **Checkpoint pré-limpeza-CNC:** versão `v6.0824.0931` publicada em 24-08-2026, HEAD `d8d64026459de194cc39ae0927fc29c0f8db54b1` (tag `v6.0824.0931`) — ponto de rollback antes da Fase 7 industrial. Deploy Actions: sucesso ([run 32706853314](https://github.com/pimo-pro/pimo-criativo/actions/runs/32706853314)).
 
 **Checkpoint pós-limpeza-CNC:** versão `v6.0824.1042` publicada em 24-08-2026, HEAD `d9a475e3c6d38a629300606f6b0a8a19bae413c1` (tag `v6.0824.1042`) — estado estável após remoção dos modos TCN legados. Deploy Actions: sucesso ([run 32713152090](https://github.com/pimo-pro/pimo-criativo/actions/runs/32713152090)).
+
+**Checkpoint testes máquina (Fase 7g):** versão `v6.0824.1107` publicada em 24-08-2026, HEAD `b9d56a3df64b51cd6443748afe6fe8fe6696c779` (tag `v6.0824.1107`) — produção alinhada a `main` após limpezas 7d–7f; referência para testes reais `NESTING MO` + `v2_new`. Deploy Actions: sucesso ([run 32715338617](https://github.com/pimo-pro/pimo-criativo/actions/runs/32715338617)).
 
 ### 15.4 Fase 7 — Inventário modos CNC/TCN (System Settings → Fabricação/TCN)
 
@@ -3003,4 +3013,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.50).
+Fim do documento de planeamento (v1.51).
