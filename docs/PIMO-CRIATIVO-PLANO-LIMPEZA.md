@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.48 |
-| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** concluídas; **checkpoint pré-Fase 7** `v6.0824.0931`; **Fase 7b concluída** (limpeza modos CNC/TCN — só `nesting_mo` + `v2_new`). |
-| **Modo actual** | Pós-Fase 7b. Hub v1.48. Rollback pré-limpeza: tag `v6.0824.0931` / `d8d64026`. |
+| **Versão do plano** | 1.49 |
+| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** / **Fase 7b CNC** concluídas; **checkpoint pós-limpeza-CNC** publicado (`v6.0824.1042`). |
+| **Modo actual** | Pós-deploy limpeza CNC. Hub v1.49. Rollback pré-limpeza: `v6.0824.0931` / `d8d64026`. Checkpoint actual: `v6.0824.1042` / `d9a475e3`. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
@@ -2903,6 +2903,14 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Estado** | §15.4 / limpeza CNC marcada **Concluída** com evidência de commits e goldens |
 | **Código** | Já aplicado em `main` (commits A→B); este changelog só documenta o fecho |
 
+### 13.50 Changelog v1.48 → v1.49 (24-08-2026) — Checkpoint pós-limpeza-CNC
+
+| Tipo | Mudança |
+|------|---------|
+| **Checkpoint** | `v6.0824.1042` publicada; deploy Actions `32713152090` sucesso |
+| **HEAD** | `d9a475e3` (tag `v6.0824.1042`) |
+| **Nota** | Rollback pré-limpeza continua `v6.0824.0931` / `d8d64026` |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2910,6 +2918,8 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 ### 15.0 Checkpoint pré-limpeza-CNC (rollback)
 
 **Checkpoint pré-limpeza-CNC:** versão `v6.0824.0931` publicada em 24-08-2026, HEAD `d8d64026459de194cc39ae0927fc29c0f8db54b1` (tag `v6.0824.0931`) — ponto de rollback antes da Fase 7 industrial. Deploy Actions: sucesso ([run 32706853314](https://github.com/pimo-pro/pimo-criativo/actions/runs/32706853314)).
+
+**Checkpoint pós-limpeza-CNC:** versão `v6.0824.1042` publicada em 24-08-2026, HEAD `d9a475e3c6d38a629300606f6b0a8a19bae413c1` (tag `v6.0824.1042`) — estado estável após remoção dos modos TCN legados. Deploy Actions: sucesso ([run 32713152090](https://github.com/pimo-pro/pimo-criativo/actions/runs/32713152090)).
 
 ### 15.4 Fase 7 — Inventário modos CNC/TCN (System Settings → Fabricação/TCN)
 
@@ -2984,4 +2994,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.48).
+Fim do documento de planeamento (v1.49).
