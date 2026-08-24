@@ -10,9 +10,19 @@ type Props = {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  closeDisabled?: boolean;
+  maxWidth?: number;
 };
 
-export default function EditableModal({ open, title, onClose, children, footer }: Props) {
+export default function EditableModal({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  closeDisabled = false,
+  maxWidth,
+}: Props) {
   if (!open) return null;
 
   const stop = (e: MouseEvent) => {
@@ -26,11 +36,11 @@ export default function EditableModal({ open, title, onClose, children, footer }
         role="presentation"
         data-testid="report-editable-modal-backdrop"
         onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
+          if (e.target === e.currentTarget && !closeDisabled) onClose();
         }}
       >
         <div
-          style={reportModalPanel}
+          style={{ ...reportModalPanel, ...(maxWidth != null ? { maxWidth } : {}) }}
           role="dialog"
           aria-modal="true"
           aria-label={title}
@@ -40,7 +50,7 @@ export default function EditableModal({ open, title, onClose, children, footer }
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
             <h3 style={{ margin: 0, fontSize: 16 }}>{title}</h3>
-            <Button type="button" variant="ghost" onClick={onClose}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={closeDisabled}>
               {R.fechar}
             </Button>
           </div>

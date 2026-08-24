@@ -7,9 +7,12 @@ import {
   deriveMetricas,
   emptyQualidade,
   exportProjectReportPdf,
+  exportProjectReportPdfBytes,
   resolveReportCoverImage,
+  sendFinalReportEmail,
   type ReportStyle,
 } from "@/core/projectReport";
+import { useToast } from "@/context/ToastContext";
 import { findOfflineProjectByAnyKey, resolveProjectIdentity } from "@/core/projects/projectIdentity";
 import { printHideClass, reportPageShell, reportSection, reportSectionTitle } from "./reportStyles";
 import { useProjectReport } from "./useProjectReport";
@@ -21,11 +24,13 @@ import FinanceiroBlock from "./components/FinanceiroBlock";
 import NotasBlock from "./components/NotasBlock";
 import QualidadeBlock from "./components/QualidadeBlock";
 import HistoricoModal from "./components/HistoricoModal";
+import EnviarRelatorioEmailModal from "./components/EnviarRelatorioEmailModal";
 
 export default function RelatorioFinalProjeto() {
   const { projectId, project } = useParams<{ projectId?: string; project?: string }>();
   const urlKey = (project ?? projectId ?? "").trim();
   const identity = useMemo(() => resolveProjectIdentity(urlKey), [urlKey]);
+  const { showToast, startLoading, stopLoading } = useToast();
   const {
     report,
     projectState,
@@ -45,6 +50,8 @@ export default function RelatorioFinalProjeto() {
     : "/projects";
   const [histOpen, setHistOpen] = useState(false);
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
 
   const metricas = useMemo(() => (report ? deriveMetricas(report) : null), [report]);
 
@@ -69,24 +76,67 @@ export default function RelatorioFinalProjeto() {
 
   const style: ReportStyle = report.reportStyle;
 
+  const resolveCoverImageDataUrl = (): string | null => {
+    const offline = findOfflineProjectByAnyKey(urlKey);
+    return (
+      resolveReportCoverImage([
+        report.projectId,
+        identity?.persistenceId,
+        identity?.slug,
+        identity?.remoteId,
+        identity?.localId,
+        urlKey,
+      ]) ??
+      offline?.thumbnailDataUrl ??
+      null
+    );
+  };
+
   const handleExportPdf = () => {
     try {
-      const offline = findOfflineProjectByAnyKey(urlKey);
-      const coverImageDataUrl =
-        resolveReportCoverImage([
-          report.projectId,
-          identity?.persistenceId,
-          identity?.slug,
-          identity?.remoteId,
-          identity?.localId,
-          urlKey,
-        ]) ??
-        offline?.thumbnailDataUrl ??
-        null;
-      exportProjectReportPdf(report, { coverImageDataUrl });
+      exportProjectReportPdf(report, { coverImageDataUrl: resolveCoverImageDataUrl() });
       setPdfMsg(R.pdfOk);
     } catch (err) {
       setPdfMsg(err instanceof Error ? err.message : R.pdfFail);
+    }
+  };
+
+  const handleSendEmail = async (recipientEmail: string) => {
+    setEmailSending(true);
+    const loadingId = startLoading(R.emailAEnviar);
+    try {
+      const attachment = exportProjectReportPdfBytes(report, {
+        coverImageDataUrl: resolveCoverImageDataUrl(),
+      });
+      const result = await sendFinalReportEmail({
+        recipientEmail,
+        projectName: report.gerais.nomeProjeto,
+        designer: report.gerais.designer,
+        boxCount: report.producao.caixas.length,
+        pecasCount: report.producao.pecas.length,
+        qualityRating: (report.qualidade ?? emptyQualidade()).rating,
+        subtotal: report.financeiro.subtotal,
+        ivaPct: report.financeiro.ivaPct,
+        ivaValor: report.financeiro.ivaValor,
+        totalProjeto: report.financeiro.totalProjeto,
+        attachment,
+        attachmentFileName: `Relatorio_Final_${(report.gerais.nomeProjeto || "projeto")
+          .replace(/[^\w\- ]+/g, "")
+          .trim()
+          .replace(/\s+/g, "_")
+          .slice(0, 60) || "projeto"}.pdf`,
+      });
+      if (result.success) {
+        showToast(R.emailOk, "success");
+        setEmailOpen(false);
+      } else {
+        showToast(result.error ?? R.emailFail, "error");
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : R.emailFail, "error");
+    } finally {
+      stopLoading(loadingId);
+      setEmailSending(false);
     }
   };
 
@@ -144,7 +194,12 @@ export default function RelatorioFinalProjeto() {
             <Button type="button" variant="primary" disabled={saving} onClick={() => void save()}>
               {saving ? R.aGuardar : R.guardar}
             </Button>
-            <Button type="button" variant="ghost" disabled title="Em breve">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={emailSending}
+              onClick={() => setEmailOpen(true)}
+            >
               {R.email}
             </Button>
             <Link to={backHref} style={{ alignSelf: "center", fontSize: 13 }}>
@@ -260,6 +315,12 @@ export default function RelatorioFinalProjeto() {
         open={histOpen}
         history={report.history ?? []}
         onClose={() => setHistOpen(false)}
+      />
+      <EnviarRelatorioEmailModal
+        open={emailOpen}
+        isSubmitting={emailSending}
+        onConfirm={(email) => void handleSendEmail(email)}
+        onCancel={() => setEmailOpen(false)}
       />
     </PageContainer>
   );

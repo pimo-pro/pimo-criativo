@@ -225,6 +225,8 @@ export {
   exportProjectReportPdfBytes,
 } from "./exportPdf";
 export type { ExportProjectReportPdfOptions } from "./exportPdf";
+export { sendFinalReportEmail } from "./sendFinalReportEmail";
+export type { FinalReportEmailPayload, FinalReportEmailResult } from "./sendFinalReportEmail";
 export { getReportCoverImage, resolveReportCoverImage, setReportCoverImage } from "./reportCoverImageCache";
 
 export {
