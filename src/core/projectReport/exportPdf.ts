@@ -50,10 +50,10 @@ function reportDisplayName(report: ProjectReport): string {
   return "Projeto";
 }
 
-function sectionTitle(doc: jsPDF, text: string, y: number): number {
+function sectionTitle(doc: jsPDF, text: string, y: number, x = 14): number {
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(text, 14, y);
+  doc.text(text, x, y);
   return y + 6;
 }
 
@@ -133,22 +133,32 @@ function buildReportPdfDocument(
     y = addCoverImage(doc, cover, y);
   }
 
-  y = sectionTitle(doc, "Metricas", y);
+  y = ensureSpace(doc, y, 50);
+  const pageW = doc.internal.pageSize.getWidth();
+  const colGap = 4;
+  const colW = (pageW - 28 - colGap) / 2;
+  const leftX = 14;
+  const rightX = leftX + colW + colGap;
+  const dualTitleY = y;
+  sectionTitle(doc, "Metricas", dualTitleY, leftX);
+  y = sectionTitle(doc, "Painel grafico (resumo visual)", dualTitleY, rightX);
+  const dualTablesY = y;
+
   const metrics = buildChartMetrics(metricas);
   autoTable(doc, {
-    startY: y,
+    startY: dualTablesY,
     head: [["Indicador", "Valor"]],
     body: metrics.map((m) => [m.label, String(m.value)]),
     styles: { fontSize: 8 },
-    margin: { left: 14, right: 14 },
+    margin: { left: leftX, right: pageW - (leftX + colW) },
+    tableWidth: colW,
   });
-  y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
+  const metricsFinalY =
+    (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? dualTablesY;
 
-  y = ensureSpace(doc, y);
-  y = sectionTitle(doc, "Painel grafico (resumo visual)", y);
   const contagens = report.painelContagens ?? buildRelatorioPainelContagens(report);
   autoTable(doc, {
-    startY: y,
+    startY: dualTablesY,
     head: [["Indicador", "Valor"]],
     body: [
       ["Modulos", String(contagens.modulos)],
@@ -157,9 +167,12 @@ function buildReportPdfDocument(
       ["Gavetas", String(contagens.gavetas)],
     ],
     styles: { fontSize: 8 },
-    margin: { left: 14, right: 14 },
+    margin: { left: rightX, right: 14 },
+    tableWidth: colW,
   });
-  y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
+  const painelFinalY =
+    (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? dualTablesY;
+  y = Math.max(metricsFinalY, painelFinalY) + 8;
 
   y = ensureSpace(doc, y);
   y = sectionTitle(doc, "Design", y);
@@ -241,38 +254,44 @@ function buildReportPdfDocument(
     );
     y += 5;
   }
+  const financeiroRows = report.financeiro.linhas.filter((l) => l.key !== "chapasReais");
   autoTable(doc, {
     startY: y,
     head: [["Linha", "Qtd", "Preco unit.", "Total", "Nota"]],
-    body: report.financeiro.linhas
-      .filter((l) => l.key !== "chapasReais")
-      .map((l) => {
-        const key = l.key;
-        const isOv =
-          key !== "iva" &&
-          key !== "total" &&
-          report.financeiro.lineOverrides != null &&
-          Object.prototype.hasOwnProperty.call(report.financeiro.lineOverrides, key);
-        const official =
-          key !== "iva" && key !== "total"
-            ? report.financeiro.officialSnapshot?.[key as keyof typeof report.financeiro.officialSnapshot]
-            : undefined;
-        return [
-          l.key in FINANCEIRO_REPORT_LABELS
-            ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
-            : l.label,
-          l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
-          l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
-          l.total.toFixed(2),
-          isOv
-            ? `override (oficial ${typeof official === "number" ? official.toFixed(2) : "-"})`
-            : key === "iva" || key === "total"
-              ? "-"
-              : "SSOT",
-        ];
-      }),
+    body: financeiroRows.map((l) => {
+      const key = l.key;
+      const isOv =
+        key !== "iva" &&
+        key !== "total" &&
+        report.financeiro.lineOverrides != null &&
+        Object.prototype.hasOwnProperty.call(report.financeiro.lineOverrides, key);
+      const official =
+        key !== "iva" && key !== "total"
+          ? report.financeiro.officialSnapshot?.[key as keyof typeof report.financeiro.officialSnapshot]
+          : undefined;
+      return [
+        l.key in FINANCEIRO_REPORT_LABELS
+          ? FINANCEIRO_REPORT_LABELS[l.key as keyof typeof FINANCEIRO_REPORT_LABELS]
+          : l.label,
+        l.quantidade == null || l.quantidade === 0 ? "-" : String(l.quantidade),
+        l.precoUnitario == null || l.precoUnitario === 0 ? "-" : l.precoUnitario.toFixed(2),
+        l.total.toFixed(2),
+        isOv
+          ? `override (oficial ${typeof official === "number" ? official.toFixed(2) : "-"})`
+          : key === "iva" || key === "total"
+            ? "-"
+            : "SSOT",
+      ];
+    }),
     styles: { fontSize: 7 },
     margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section !== "body") return;
+      if (financeiroRows[data.row.index]?.key !== "total") return;
+      data.cell.styles.fontStyle = "bold";
+      data.cell.styles.textColor = [0, 0, 0];
+      data.cell.styles.fontSize = 8;
+    },
   });
   y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 8;
 
