@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-24T09:42:48.335Z",
+      "author": "pimo-pro",
+      "commitMessage": "chore(tcn): alinhar gen-test-tcn com nesting_mo e v2_new",
+      "version": "v6.0824.1042"
+    },
+    {
       "publishedAt": "2026-08-24T08:31:01.201Z",
       "author": "pimo-pro",
       "commitMessage": "docs(limpeza): fechar mapas Z-03.11.1–11.3 (hub v1.45)",

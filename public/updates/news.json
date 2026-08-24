@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-24T08:31:01.940Z",
+  "updatedAt": "2026-08-24T09:42:49.108Z",
   "news": [
+    {
+      "version": "v6.0824.1042",
+      "title": "chore(tcn): alinhar gen-test-tcn com nesting_mo e v2_new",
+      "description": "chore(tcn): alinhar gen-test-tcn com nesting_mo e v2_new",
+      "publishedAt": "2026-08-24T09:42:48.970Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "5bbb3be8"
+    },
     {
       "version": "v6.0824.0931",
       "title": "docs(limpeza): fechar mapas Z-03.11.1–11.3 (hub v1.45)",
       "description": "docs(limpeza): fechar mapas Z-03.11.1–11.3 (hub v1.45)",
-      "publishedAt": "2026-08-24T08:31:01.789Z",
+      "publishedAt": "2026-08-24T09:32:35+01:00",
       "type": "docs",
       "author": "pimo-pro",
       "icon": "docs",
-      "commit": "d955f6c8"
+      "commit": "d8d6402"
     },
     {
       "version": "v6.0822.1622",
