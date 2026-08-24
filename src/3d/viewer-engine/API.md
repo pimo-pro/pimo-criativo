@@ -1,6 +1,6 @@
 # ViewerCore — API pública (resumo Fase 3)
 
-**Estabilidade:** API `window.viewerCore` e métodos públicos da classe não devem mudar sem deprecação.
+**Compatibilidade:** `window.viewerCore` é uma **ponte transitória de compatibilidade** (HMR / dispose) e **não deve ser usada em código novo**. O ponto de entrada canónico é `PimoViewerApi`; quaisquer mudanças ao global exigem deprecação/documentação.
 
 ## Construção
 

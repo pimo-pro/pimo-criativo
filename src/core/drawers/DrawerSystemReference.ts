@@ -4,9 +4,10 @@
  * Centro de documentação e mapeamento do sistema de gavetas (FASE 1 — Master Plan).
  * Apenas dados de referência — não altera comportamento industrial.
  *
- * Modelo A (atual): pode ser desativado em runtime via drawerSystemFlags
- *   (Admin → Produtos → Gavetas). Código preservado; gates em UI/cutlist/PDF/viewer.
- * Modelo B (europeu): esqueleto em ./european/ — sem implementação nesta fase.
+ * Modelo A (atual): único sistema activo em runtime; código preservado e
+ *   consumido por UI/cutlist/PDF/viewer.
+ * Modelo B (europeu): referência histórica. A pasta ./european/ não existe
+ *   neste repositório e não há opção activa de runtime associada.
  *
  * Pipeline oficial alvo:
  *   DrawerParametrics → DrawerGenerationService → DrawerGroup

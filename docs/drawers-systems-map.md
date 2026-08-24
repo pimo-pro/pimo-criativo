@@ -244,14 +244,14 @@ Ordem actual no menu Produtos (verificado):
 | `drawersLayer[].metadata.europeanSystemId` | ex. `blum-legrabox` |
 | Flag runtime | **browser localStorage** (não no JSON do projecto) |
 
-Sistemas europeus catalogados (`european/README.md` / `catalog.ts`):
+Sistemas europeus catalogados no **mapa histórico de Jul/2026** (`european/README.md` / `catalog.ts` na altura):
 
 - `blum-legrabox`
 - `blum-tandembox-antaro`
 - `hettich-innotech-atira`
 - `grass-nova-pro-scala`
 
-### Ficheiros envolvidos — sistema novo (CANDIDATOS A REMOÇÃO FUTURA)
+### Ficheiros envolvidos — sistema novo (INVENTÁRIO HISTÓRICO, não estado actual do repo)
 
 #### Hub Admin e bridges de escolha A/B
 
@@ -263,18 +263,18 @@ Sistemas europeus catalogados (`european/README.md` / `catalog.ts`):
 - `src/hooks/useDrawerModeloAActive.ts`
 - `src/viewer/layers/resolveActiveDrawersLayer.ts` (re-export do gate)
 
-#### Domínio europeu completo
+#### Domínio europeu completo (histórico Jul/2026)
 
-- **Pasta inteira:** `src/core/drawers/european/**` (**152 ficheiros** verificados)  
-  Inclui: `adapter`, `assembly`, `cnc`, `consistency`, `cutlist`, `docs`, `drilling`, `dxf`, `geometry`, `measures`, `models/*`, `naming`, `overlay`, `pdf`, `perf`, `placement`, `qa`, `release`, `robustness`, `safety`, `transforms`, `ui`, `validation`, `viewer`, `catalog.ts`, `config.ts`, `types.ts`, `index.ts`, testes, READMEs.
+- **Pasta inteira:** `src/core/drawers/european/**` (**152 ficheiros** no inventário de Jul/2026; **ausente** no repo actual)  
+  Incluía: `adapter`, `assembly`, `cnc`, `consistency`, `cutlist`, `docs`, `drilling`, `dxf`, `geometry`, `measures`, `models/*`, `naming`, `overlay`, `pdf`, `perf`, `placement`, `qa`, `release`, `robustness`, `safety`, `transforms`, `ui`, `validation`, `viewer`, `catalog.ts`, `config.ts`, `types.ts`, `index.ts`, testes, READMEs.
 
-UI europeia:
+UI europeia (histórica):
 
 - `src/core/drawers/european/ui/EuropeanDrawerConfigPanel.tsx`
 - `src/core/drawers/european/ui/EuropeanFrontConfigPanel.tsx`
 - `src/core/drawers/european/ui/index.ts`
 
-#### Satélites criados em torno do Modelo B
+#### Satélites criados em torno do Modelo B (histórico)
 
 | Pasta / ficheiro | Contagem aprox. | Notas de remoção |
 |---|---|---|
@@ -283,7 +283,7 @@ UI europeia:
 | `src/core/pricing/**` | ~16 ficheiros | Builder/testes ligados a B — **rever** se algum pricing genérico é partilhado |
 | `src/core/release-final/**` | ~8 ficheiros | Anúncio/versionamento Modelo B |
 | `src/pages/KitchenPlannerPage.tsx` | 1 | Página planner |
-| `src/validation/drawerEuropeanSystem.test.ts` | 1 | + testes sob `european/**` |
+| `src/validation/drawerEuropeanSystem.test.ts` | 1 | + testes sob `european/**` no inventário histórico |
 
 Consumidores externos de `src/core/kitchen` (além do próprio domínio): `DrawersAdminHubPage`, `release-final`, `pricing`, `planner`.  
 `kitchenFinish` / rodapé / hemati / remate usam **outro** módulo (`kitchenFinish`) — fora do âmbito de remoção B.
