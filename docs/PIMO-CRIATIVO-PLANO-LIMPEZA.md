@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.51 |
-| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** / **Fase 7 CNC** concluídas; **checkpoint testes máquina** publicado (`v6.0824.1107`). |
-| **Modo actual** | Produção alinhada a `main` pós-7d–7f. Hub v1.51. Checkpoint testes industriais: `v6.0824.1107` / `b9d56a3d`. |
+| **Versão do plano** | 1.52 |
+| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.12** / **Fase 7 CNC** concluídas; **selo Zero-Legacy** aplicado (§15.4). Checkpoint testes máquina: `v6.0824.1107`. |
+| **Modo actual** | Produção alinhada a `main`. Hub v1.52. Gaps aceites em §15.4; dívida fora de âmbito em §15.3. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Testes reais em máquina (`NESTING MO` + `v2_new`). Depois Z-03.12 ou decisão de produto. Pendentes: L-18/L-20. |
+| **Próximo passo** | Decisões de produto fora da limpeza (L-18/L-20, IDs/materiais, dívida §15.3). Testes reais em máquina (`NESTING MO` + `v2_new`) conforme agenda industrial. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -2977,8 +2977,8 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 ### 15.1 Fases futuras recomendadas
 1. ~~**Z-03.9** — Documentação arquitectural~~ — **Concluído** 19-08-2026 (tag `z-03-9-docs-update`, commit `f1ac12b8`). Hub realinhado em v1.40 (23-08-2026).
 2. ~~**Z-03.10** — Organização interna do `ViewerCore`~~ — **Concluído** 19-08-2026 (tags `z-03-10-viewercore-organization` / `z-03-10-viewercore-organization-final`; último passo `b49a2dd3`). Fatiamento **adicional** adiado (fora de âmbito).
-3. **Z-03.11** — Revisão final de duplicações e nomenclaturas (garantir zero “paralelos” restantes)
-4. **Z-03.12** — Validação de Zero‑Legacy (critério de “OK” + build/prod/testes e inspeção de imports)
+3. ~~**Z-03.11** — Revisão final de duplicações e nomenclaturas~~ — **Concluído** 24-08-2026 (Z-03.11.0–11.3; mapas fechados; fusões IDs/materiais aguardam decisão de produto).
+4. ~~**Z-03.12** — Validação de Zero‑Legacy~~ — **Concluído** 24-08-2026 (auditoria + selo; ver §15.4).
 5. **Lotes L- pendentes** — L-18/L-20 (após decisão de produto). ~~L-01~~, ~~L-02~~, ~~1.13 L-12/L-13~~, ~~L-22~~ e ~~`admin-icons-etapa2.diff`~~ — **Concluídos** (24-08-2026).
 
 ### 15.2 Estado Zero‑Legacy — critérios de “OK”
@@ -3003,6 +3003,62 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 | **Benchmarks cutlayout** | Testes `src/validation/cutlayout*Benchmark.test.ts` escrevem `generatedAt`/`executionMs` em JSON versionados em `scripts/cnc-examples-output/` a cada corrida, sujando o working tree | Não corrigir agora, só registado — decisão futura (gitignore / não escrever por omissão) |
 | **`publish.js` / `git add .`** | `scripts/publish.js` faz `git add .` (excluindo só `backend/`) e pode arrastar ficheiros não relacionados (ex.: smoke `.tcn`, docs untracked) no commit de publicação | Não corrigir agora — decisão futura: staging seletivo / allowlist; registado após Fase 7d |
 
+### 15.4 Z-03.12 — Checklist Zero-Legacy (auditoria + selo)
+
+**Data:** 24-08-2026. **Âmbito:** validação formal de fecho da iniciativa de limpeza; **sem** remoção nem alteração de código de produto nesta fase.
+
+#### 15.4.1 Checklist fechada (critérios §15.2)
+
+| # | Critério | Resultado |
+|---|----------|-----------|
+| C1 | Código morto residual dos lotes L- alvo | **OK** — L-01/L-02/L-12/L-13/L-22 e `admin-icons` ausentes; `services/` na raiz inexistente |
+| C2 | Duplicações / paralelos activos | **OK no âmbito** — mapas Z-03.11 fechados; fusões IDs/materiais **não** feitas (gap aceite) |
+| C3 | Sidecars | **OK** — só vistas derivadas documentadas (`wallStore`, `roomSnapshot`) |
+| C4 | Sala SSOT | **OK** — `ProjectState.room` (mm) canónico; sem imports sala↔CNC em `src/core/cnc` |
+| C5 | Ausência V4 | **OK** — `src/v4` e rota `/v4` inexistentes |
+| C6 | Isolamento industrial | **OK** — CNC sem dependências de sala |
+| C7 | Docs alinhadas ao código | **OK com resíduo documental aceite** — hub/CLAUDE alinhados; docs históricas (`viewer-engine-etapa4.md`) ainda citam nomes mortos |
+| C8 | Modos CNC removidos | **OK** — só `nesting_mo` + `v2_new` em runtime; geradores mortos apagados |
+| C9 | Wrappers L-18 / L-20 | **Mantidos por decisão** (não falha) |
+| C10 | `eventsSystem` em `src/` | **OK** — sem implementação runtime (só docs/rules) |
+
+#### 15.4.2 Grep de resíduos (resumo)
+
+| Alvo | Resultado |
+|------|-----------|
+| `european/` | Pasta **inexistente**; só menções históricas em flags/comentários de drawers |
+| `/v4`, `src/v4` | **Ausentes** |
+| `ViewerSelectionManager` | **Zero** em `src/`; só doc histórica `docs/viewer-engine-etapa4.md` (**resíduo histórico aceite**) |
+| L-18 / L-20 | **Existem** — decisão de produto: manter |
+| `services/` na raiz | **Não existe**; vivo só `src/services/` |
+| `eventsSystem` em `src/` | Sem hits de feature/runtime |
+| Modos CNC removidos | Em código: só comentário de proveniência em `tcnGeneratorNestingMo.ts` («cópia literal do `v3_new`») — **resíduo histórico aceite**; hub/changelog OK |
+| `window.viewerCore` | Só ponte Workspace + tipos/docs — mantida por decisão |
+
+#### 15.4.3 Build + testes vs baseline
+
+| Comando | Resultado | vs baseline |
+|---------|-----------|-------------|
+| `npx tsc -b` | exit **0** | OK |
+| `npm run build` | exit **0** | OK |
+| `npm run test` | **20 failed \| 348 passed \| 1 skipped** (ficheiros); **27 failed \| 1675 passed**; **7 errors** (`document is not defined` / Three.js) | **Idêntico** à baseline aceite |
+
+Falhas pré-existentes **aceites**; não corrigidas nesta fase (incluindo `src/validation/**` e testes industriais).
+
+#### 15.4.4 Gaps aceites (decisão consciente)
+
+| Gap | Porque é aceite |
+|-----|-----------------|
+| `tsconfig.app.json` com `strict: false` (só cobertura parcial em `tsconfig.strict.json`) | Decisão consciente de adoptar strict incrementalmente, sem big-bang no app principal. |
+| `deploy.yml` sem step de testes antes do publish | Deploy por tag focado em build/publish; suite completa fica local/CI à parte por escolha operacional. |
+| L-18, L-20 e ponte `window.viewerCore` | Mantidos por decisão explícita do dono do produto (compatibilidade / HMR / páginas utilitárias). |
+| Z-02, Z-04, mocks `ManageRolesPage`/`ManagePermissionsPage`, PIMO-DRILL incompleto | Dívida técnica já em §15.3; fora do âmbito de limpeza Zero-Legacy. |
+| Unificação real de geradores de ID/nomes e fusão das camadas de materiais | Inventariados em Z-03.11; implementação bloqueada até decisão de produto à parte. |
+
+#### 15.4.5 Selo Zero-Legacy
+
+> **Selo Zero-Legacy** — A fase de limpeza Zero-Legacy do PIMO-Criativo considera-se **concluída** na data desta validação (Z-03.12). Critérios de §15.2 cumpridos no âmbito da iniciativa; gaps conscientes listados em **§15.4** (e dívida fora de âmbito em §15.3). Este selo **não** implica `strict` total, CI de testes no deploy, nem unificação de IDs/materiais.
+
 ---
 
 ## 14. Como usar este hub (execução futura)
@@ -3013,4 +3069,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.51).
+Fim do documento de planeamento (v1.52).
