@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.40 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos (sala SSOT, remoção V4, docs arquitectura, organização ViewerCore). |
-| **Modo actual** | Pós-execução L-, Z-01.2, Z-02.1–2.5, Z-03.1–3.10. Hub alinhado ao código em 23-08-2026 (v1.40). |
+| **Versão do plano** | 1.41 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Fase 3 Zero-Legacy parcial** (L-12, L-13, L-22, `admin-icons-etapa2.diff`) executada 24-08-2026. |
+| **Modo actual** | Pós-execução L- (incl. Fase 3), Z-01.2, Z-02.1–2.5, Z-03.1–3.10. Hub alinhado em v1.41. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
-| **Última actualização do plano** | 23 de Agosto de 2026 |
+| **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Preparar remoções L- de baixo risco (1.13 L-12/L-13 e resíduos) só após aprovação item a item. Depois: Z-03.11 (duplicações/nomenclaturas) e Z-03.12 (Zero-Legacy). L-01/L-02, L-18/L-20/L-22 e ponte `window.viewerCore` exigem investigação de uso antes de qualquer remoção. |
+| **Próximo passo** | Z-03.11 (duplicações/nomenclaturas) e Z-03.12 (Zero-Legacy). Pendentes com investigação: L-01/L-02, L-18/L-20, ponte `window.viewerCore`. Dívida fora de âmbito: §15.3. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -49,7 +49,8 @@ A regra L- («remover ficheiros sem uso») está **activa**. As fases 1.3–1.12
 
 **Companion necessário:** `src/core/layout/utils.ts` removido com L-05 porque importava `./types.ts` e não tinha consumidores — caso contrário o `tsc` quebrava.
 
-**Não executado:** L-01, L-02, L-12, L-13, L-18, L-20, L-22, zonas P-/Z-, `dist/`, `docs/RELATORIO_*`, `ferragens_3d/RELATORIO_*`.
+**Não executado:** L-01, L-02, L-18, L-20, zonas P-/Z- restantes, `dist/`, `docs/RELATORIO_*`, `ferragens_3d/RELATORIO_*`.  
+**Executado na Fase 3 (24-08-2026):** L-12, L-13, L-22, resíduo `admin-icons-etapa2.diff`.
 
 ### Ficheiros removidos por fase
 
@@ -216,15 +217,15 @@ Critério: zero consumidores externos, stub no-op, placeholder de teste, ou arte
 | L-09 | Stub gaveta 3D grupo | `src/3d/groups/drawerGroup3D.ts` | Modelo B removido; zero imports | Nenhum | **Nulo** — **Executado** (Fase 1.5; executado 18-08-2026) |
 | L-10 | Stub transforms gaveta | `src/3d/transforms/drawerTransforms.ts` | Devolve `null`; zero imports | Nenhum | **Nulo** — **Executado** (Fase 1.5; executado 18-08-2026) |
 | L-11 | Stub placement gaveta | `src/3d/placement/drawerPlacement3D.ts` | Modelo B removido; zero imports | Nenhum | **Nulo** — **Executado** (Fase 1.5; executado 18-08-2026) |
-| L-12 | SelectionManager deprecated | `src/3d/viewer-engine/selection/SelectionManager.ts` | `@deprecated`; export no barrel local; ViewerState activo | Nenhum | Baixo |
-| L-13 | Re-export drawers viewer | `src/viewer/layers/resolveActiveDrawersLayer.ts` | Zero imports; SSOT em `core/drawers` | Nenhum | Nulo |
+| L-12 | SelectionManager deprecated | `src/3d/viewer-engine/selection/SelectionManager.ts` | `@deprecated`; export no barrel local; ViewerState activo | Nenhum | **Nulo** — **Executado** (Fase 3 Zero-Legacy; 24-08-2026; commit `bdd6a23d`) |
+| L-13 | Re-export drawers viewer | `src/viewer/layers/resolveActiveDrawersLayer.ts` | Zero imports; SSOT em `core/drawers` | Nenhum | **Nulo** — **Executado** (Fase 3 Zero-Legacy; 24-08-2026; commit `59f9ee5a`) |
 | L-14 | Teste placeholder export | `tests/export.test.ts` | `expect(true).toBe(true)` | CI falso-positivo | **Nulo** — **Executado** (Fase 1.6; executado 18-08-2026) |
 | L-15 | Teste placeholder projectState | `tests/projectState.test.ts` | Idem | CI falso-positivo | **Nulo** — **Executado** (Fase 1.6; executado 18-08-2026) |
 | L-16 | Archive `.bak` | `src/core/docs/archive/DocumentacaoSistemaLegacy.tsx.bak` | Backup | Nenhum | **Absorvido em L-30** — **Executado** (Fase 1.12; 18-08-2026) |
 | L-17 | Extract preview JSON | `src/core/docs/archive/_extract_preview.json` | Artefacto equivalente na mesma pasta | Nenhum | **Absorvido em L-30** — **Executado** (Fase 1.12; 18-08-2026) |
 | L-18 | Recover hub | `scripts/_ProjectProgress_recover.tsx` | Fora da app | Nenhum | Nulo |
 | L-20 | Wrapper Ajuda deprecated | `src/pages/Ajuda.tsx` | Re-export; zero imports (rota usa `ajuda/AjudaPage`) | Nenhum | Nulo |
-| L-22 | Wrapper relatório final | `src/pages/RelatorioFinalProjeto.tsx` | Re-export; rota usa `RelatorioFinalRoute` | Indireto | Baixo |
+| L-22 | Wrapper relatório final | `src/pages/RelatorioFinalProjeto.tsx` | Re-export; rota usa `RelatorioFinalRoute` | Indireto | **Nulo** — **Executado / Concluído** (Fase 3 Zero-Legacy; 24-08-2026; commit `4cc57d92`) — página real `relatorio-final/` intacta |
 | L-25 | Patches/diffs raiz | 16× `*.diff` / `*.patch` na raiz do repo | Histórico git; zero imports; fora de CI/build/deploy | Nenhum | **Nulo** — **Executado** (Fase 1.7; executado 18-08-2026) |
 | L-26 | Relatórios antigos na raiz (lote 4) | `RELATORIO-FINAL.md`, `RELATORIO_EXECUTIVO.txt`, `RELATORIO_TECNICO_COMPLETO.html`, `RELATORIO_TECNICO_FINAL_RECONSTRUCAO_DOORS_DRAWERS.html` | Resíduos documentais; zero imports; fora de CI | Nenhum | **Nulo** — **Executado** (Fase 1.8; executado 18-08-2026) |
 | L-27 | Relatórios `RELATORIO_*.md` na raiz | 33× `RELATORIO_*.md` na raiz | Não importados; SSOT falso (F-12); fora de CI/build/deploy | Nenhum | **Nulo** — **Executado** (Fase 1.9; executado 18-08-2026) |
@@ -2231,7 +2232,7 @@ Ordem proposta: L-01/L-02 → L-03/L-04 → L-05…L-08 → L-09…L-11 → L-12
 | **1.10** | **L-28** | Remover `tmp/` e `test-output/`; acrescentar ambos ao `.gitignore`. **Não** tocar em `dist/`, `node_modules` nem `*.legacy.ts` (P-09). | **Ready for Removal** — decisão: remoção definitiva; execução: pendente. Remoção segura — sobras internas em pastas secundárias — zero referências — aprovado pelo dono do produto (Khaled). **Executado 18-08-2026.** Gatilho futuro: «aplica Fase 1.10 — L-28» |
 | **1.11** | **L-29** | Remover `src/3d/viewer-engine/cleanup/ViewerCleanupReport.ts` e a pasta `cleanup/` se ficar vazia. **Não** tocar em ViewerCore, resto de `viewer-engine`, BoxBuilder nem L-12. | **Ready for Removal** — decisão: remoção definitiva (não arquivar); execução: pendente. Remoção segura — ViewerCleanupReport.ts — zero referências — aprovado pelo dono do produto (Khaled). **Executado 18-08-2026.** Gatilho futuro: «aplica Fase 1.11 — L-29» |
 | **1.12** | **L-30** | Remover resíduos `backup_*` / `notes_*` / `analysis_*` / `draft_*` / `temp_*` / `*.old` / `*.bak` / `*.copy` / `*.unused` / `*.deprecated` e equivalentes (inventário em §3.1). **Não** tocar em `scripts/backupManager.ts` nem P-09. | **Ready for Removal** — decisão: remoção definitiva; execução: pendente. Remoção segura — resíduos finais no raiz e pastas secundárias — zero referências — aprovado pelo dono do produto (Khaled). **Executado 18-08-2026.** Gatilho futuro: «aplica Fase 1.12 — L-30» |
-| 1.13 | L-12, L-13 | Remover `SelectionManager` deprecated e re-export drawers (`src/viewer/layers/`) | Proposta — antigo passo 1.9, reatribuído |
+| 1.13 | L-12, L-13 | Remover `SelectionManager` deprecated e re-export drawers (`src/viewer/layers/`) | **Executado** 24-08-2026 (Fase 3; commits `bdd6a23d`, `59f9ee5a`) |
 | 1.14 | L-18, L-20 | Remover recover hub e wrapper `Ajuda.tsx` | Proposta — L-16/L-17 absorvidos em L-30 |
 
 **Excluído:** TCN, ViewerCore split, Supabase, PHP prod, v4, **tudo P-**.
@@ -2482,7 +2483,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Companion** | `src/core/layout/utils.ts` removido com L-05 (dependia de `types.ts`; zero consumidores) |
 | **`.gitignore`** | Adicionados `tmp/` e `test-output/` |
 | **Intocado** | ViewerCore, `viewer-engine` (excepto L-29), BoxBuilder, TCN/DRILL/PI, PHP, Supabase, `layoutWarnings.ts` |
-| **Pendente** | L-01, L-02, L-12, L-13, L-18, L-20 |
+| **Pendente** | L-01, L-02, L-18, L-20 (L-12/L-13/L-22 concluídos na Fase 3, 24-08-2026) |
 
 ### 13.15 Changelog v1.13 → v1.14
 
@@ -2746,6 +2747,17 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Dívida técnica** | Nova §15.3 — Z-02, Z-04, mocks admin roles/permissions, PIMO-DRILL fora de âmbito |
 | **Código** | Nenhuma alteração funcional nesta actualização documental |
 
+### 13.42 Changelog v1.40 → v1.41 (24-08-2026) — Fase 3 Zero-Legacy (parcial)
+
+| Tipo | Mudança |
+|------|---------|
+| **L-12** | Removido `SelectionManager.ts` + export no barrel — commit `bdd6a23d` |
+| **L-13** | Removido `src/viewer/layers/resolveActiveDrawersLayer.ts` — commit `59f9ee5a` |
+| **Resíduo** | Removido `admin-icons-etapa2.diff` — commit `6b4c5cc6` |
+| **L-22** | Removido wrapper órfão `src/pages/RelatorioFinalProjeto.tsx` — **Concluído** (antes adiado) — commit `4cc57d92`; página `relatorio-final/` e rota intactas |
+| **Verificação** | `tsc -b` exit 0; `npm run build` exit 0; suite de testes sem regressão face à baseline |
+| **Intocado** | `src/validation/**`, `src/industrial/**`, PHP Hostinger, Supabase, pipeline CNC/DRILL/PI |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2755,7 +2767,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 2. ~~**Z-03.10** — Organização interna do `ViewerCore`~~ — **Concluído** 19-08-2026 (tags `z-03-10-viewercore-organization` / `z-03-10-viewercore-organization-final`; último passo `b49a2dd3`). Fatiamento **adicional** adiado (fora de âmbito).
 3. **Z-03.11** — Revisão final de duplicações e nomenclaturas (garantir zero “paralelos” restantes)
 4. **Z-03.12** — Validação de Zero‑Legacy (critério de “OK” + build/prod/testes e inspeção de imports)
-5. **Lotes L- pendentes** — 1.13 (L-12/L-13), resíduos (`admin-icons-etapa2.diff`, pasta `src/core/export/` vazia), e só após investigação: L-01/L-02, L-18/L-20/L-22, ponte `window.viewerCore`
+5. **Lotes L- pendentes** — L-01/L-02, L-18/L-20 (após decisão de produto). ~~1.13 L-12/L-13~~, ~~L-22~~ e ~~`admin-icons-etapa2.diff`~~ — **Concluídos** na Fase 3 (24-08-2026).
 
 ### 15.2 Estado Zero‑Legacy — critérios de “OK”
 - **Zero código morto:** nenhum stub no-op / export sem consumidores.
@@ -2787,4 +2799,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.40).
+Fim do documento de planeamento (v1.41).
