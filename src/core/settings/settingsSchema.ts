@@ -87,16 +87,7 @@ export interface SettingsSchema {
     toleranciaPosicionamentoMm: number;
     /** Diâmetro da fresa para compensação geométrica no TCN (contorno já compensado no CAM; 0 = usar Kerf padrão ou 12 mm). */
     diametroFresaContornoMm: number;
-    tcnMetodo:
-      | "nesting_mo"
-      | "v1_corner"
-      | "v2_ramp"
-      | "v3_ramp_noflip"
-      | "v4_corner_noflip"
-      | "v5_ramp_noanchor"
-      | "v6_ramp"
-      | "v2_new"
-      | "v3_new";
+    tcnMetodo: "nesting_mo" | "v2_new";
     zSafetyMm: number;
     minSpacingMm: number;
     contourEntryMode: "corner" | "midside";

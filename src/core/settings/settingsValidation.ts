@@ -177,14 +177,7 @@ export function validateSettings(input: Partial<SettingsSchema> | SettingsSchema
       toleranciaPosicionamentoMm: clamp(toNumber(merged.cnc.toleranciaPosicionamentoMm, settingsDefaults.cnc.toleranciaPosicionamentoMm), 0, 10),
       diametroFresaContornoMm: clamp(toNumber(merged.cnc.diametroFresaContornoMm, settingsDefaults.cnc.diametroFresaContornoMm), 0, 30),
       tcnMetodo:
-        merged.cnc.tcnMetodo === "nesting_mo" ||
-        merged.cnc.tcnMetodo === "v2_ramp" ||
-        merged.cnc.tcnMetodo === "v3_ramp_noflip" ||
-        merged.cnc.tcnMetodo === "v4_corner_noflip" ||
-        merged.cnc.tcnMetodo === "v5_ramp_noanchor" ||
-        merged.cnc.tcnMetodo === "v6_ramp" ||
-        merged.cnc.tcnMetodo === "v2_new" ||
-        merged.cnc.tcnMetodo === "v3_new"
+        merged.cnc.tcnMetodo === "nesting_mo" || merged.cnc.tcnMetodo === "v2_new"
           ? merged.cnc.tcnMetodo
           : "nesting_mo",
       zSafetyMm: clamp(toNumber(merged.cnc.zSafetyMm, settingsDefaults.cnc.zSafetyMm), 0, 100),

@@ -245,27 +245,13 @@ function pdfToBlob(doc: { output: (_type: string) => ArrayBuffer | Uint8Array })
   return new Blob([buffer], { type: "application/pdf" });
 }
 
-function tcnMethodSuffix(tcnMetodo: string | undefined): "mo" | "v1" | "v2" | "v2n" | "v3" | "v3n" | "v4" | "v5" | "v6" {
+function tcnMethodSuffix(tcnMetodo: string | undefined): "mo" | "v2n" {
   switch (tcnMetodo) {
-    case "nesting_mo":
-      return "mo";
     case "v2_new":
       return "v2n";
-    case "v2_ramp":
-      return "v2";
-    case "v3_new":
-      return "v3n";
-    case "v3_ramp_noflip":
-      return "v3";
-    case "v4_corner_noflip":
-      return "v4";
-    case "v5_ramp_noanchor":
-      return "v5";
-    case "v6_ramp":
-      return "v6";
-    case "v1_corner":
+    case "nesting_mo":
     default:
-      return "v1";
+      return "mo";
   }
 }
 
