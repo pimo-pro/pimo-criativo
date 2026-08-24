@@ -95,10 +95,11 @@ function addCoverImage(doc: jsPDF, dataUrl: string, y: number): number {
   }
 }
 
-export function exportProjectReportPdf(
+/** Constrói o documento PDF preenchido, sem gravar nem devolver bytes. */
+function buildReportPdfDocument(
   reportInput: ProjectReport,
   options?: ExportProjectReportPdfOptions
-): void {
+): jsPDF {
   const report = sanitizeFinanceiroForPdf(reportInput);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   let y = 16;
@@ -341,6 +342,23 @@ export function exportProjectReportPdf(
     margin: { left: 14, right: 14 },
   });
 
-  const file = `Relatorio_Final_${safeName(reportDisplayName(report))}.pdf`;
+  return doc;
+}
+
+export function exportProjectReportPdf(
+  reportInput: ProjectReport,
+  options?: ExportProjectReportPdfOptions
+): void {
+  const doc = buildReportPdfDocument(reportInput, options);
+  const file = `Relatorio_Final_${safeName(reportDisplayName(reportInput))}.pdf`;
   doc.save(file);
+}
+
+/** Mesmo PDF que o download, em Blob (ex.: anexo de email). */
+export function exportProjectReportPdfBytes(
+  reportInput: ProjectReport,
+  options?: ExportProjectReportPdfOptions
+): Blob {
+  const doc = buildReportPdfDocument(reportInput, options);
+  return doc.output("blob");
 }
