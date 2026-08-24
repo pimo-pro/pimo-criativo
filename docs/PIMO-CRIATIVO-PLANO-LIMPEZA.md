@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.53 |
+| **Versão do plano** | 1.54 |
 | **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.12** / **Fase 7 CNC** concluídas; **selo Zero-Legacy** (§15.4). Branches obsoletas fechadas (§15.5). Checkpoint testes máquina: `v6.0824.1107`. |
-| **Modo actual** | Produção alinhada a `main`. Hub v1.53. Gaps aceites em §15.4; dívida fora de âmbito em §15.3. |
+| **Modo actual** | Produção alinhada a `main`. Hub v1.54. Gaps aceites em §15.4; dívida fora de âmbito em §15.3. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Decisões de produto fora da limpeza (L-18/L-20, IDs/materiais, dívida §15.3). `fix/avoid-duplicate-doors` analisada — aguarda decisão (§15.5). |
+| **Próximo passo** | Decisões de produto fora da limpeza (L-18/L-20, IDs/materiais, dívida §15.3). |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -3067,10 +3067,11 @@ Falhas pré-existentes **aceites**; não corrigidas nesta fase (incluindo `src/v
 - **Decisão do dono do produto:** modelo `cx gav lat` **ultrapassado**; o SSOT actual em `main` (rasgos + golden LAT_ESQ) é o correcto e permanece.
 - **Acção:** branch remota apagada; **não** aplicar o commit. Incompatível com o SSOT actual de gavetas e com evoluções posteriores em `main`.
 
-#### 15.5.2 `fix/avoid-duplicate-doors` (analisada — pendente de decisão)
+#### 15.5.2 `fix/avoid-duplicate-doors` (obsoleta — apagada)
 
-- Commit exclusivo `3ac490c8` (Fev/2026): dedupe de portas em `cutlistToPieces` + remoção da geração de portas em `gerarPaineis`.
-- Em `main`, a geração de portas evoluiu via `doorsLayer` (com fallback); o cherry-pick isolado **não** foi aplicado nesta fase — ver relatório Fase 10.
+- **Análise:** Fase 10 — commit exclusivo `3ac490c8` (Fev/2026): dedupe em `cutlistToPieces` + remoção da geração de portas em `gerarPaineis`.
+- **Decisão do dono do produto:** branch **obsoleta**; aplicá-la partiria o fallback actual de portas (`doorsLayer` + fallback em `main`).
+- **Acção:** branch remota apagada (Fase 10b); **não** aplicar o commit.
 
 #### 15.5.3 Branches sem commits exclusivos face a `main`
 
@@ -3087,4 +3088,4 @@ Falhas pré-existentes **aceites**; não corrigidas nesta fase (incluindo `src/v
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.53).
+Fim do documento de planeamento (v1.54).
