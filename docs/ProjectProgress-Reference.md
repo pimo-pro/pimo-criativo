@@ -1,127 +1,127 @@
-# صفحة تقدم المشروع (Project Progress)
+# Página de Progresso do Projeto (Project Progress)
 
-## نظرة عامة
+## Visão geral
 
-تم إنشاء صفحة جديدة **ProjectProgress** تقدم شرحاً شاملاً عن بناء ومراحل تطور مشروع PIMO Studio.
+Foi criada uma nova página **ProjectProgress** que apresenta uma explicação completa sobre a construção e as etapas de evolução do projeto PIMO Studio.
 
-## الميزات الرئيسية
+## Principais recursos
 
-### 1. **شرح كامل عن بناء المشروع** 📚
-تقسم الصفحة المشروع إلى **9 أقسام أساسية**:
-- الأساس الأساسي (Core Foundation)
-- محرك العرض ثلاثي الأبعاد (3D Viewer)
-- نظام التخطيط الديناميكي (Layout System)
-- واجهة المستخدم (UI Components)
-- حسابات القطع والتكاليف
-- نظام الكتالوج والنماذج
-- التصدير والاستيراد
-- نظام الإدارة والنشر
-- التوثيق والمراجع
+### 1. **Explicação completa sobre a construção do projeto** 📚
+A página divide o projeto em **9 seções essenciais**:
+- Fundação principal (Core Foundation)
+- Visualizador 3D (3D Viewer)
+- Sistema de layout dinâmico (Layout System)
+- Interface do usuário (UI Components)
+- Cálculos de corte e custos
+- Sistema de catálogo e modelos
+- Exportação e importação
+- Sistema de administração e publicação
+- Documentação e referências
 
-### 2. **علامات الحالة المرئية** 🏷️
-كل ميزة يتم تصنيفها بحسب حالتها:
+### 2. **Indicadores visuais de status** 🏷️
+Cada recurso é classificado de acordo com seu status:
 
-- **✓ تم الإنجاز** (أخضر - #22c55e)
-  - الميزات المنتهية والعاملة بشكل كامل
+- **✓ Concluído** (verde - #22c55e)
+  - Recursos finalizados e funcionando plenamente
   
-- **⚙ قيد الإنجاز** (أزرق - #3b82f6)
-  - الميزات التي يتم العمل عليها حالياً
+- **⚙ Em andamento** (azul - #3b82f6)
+  - Recursos que estão sendo trabalhados atualmente
   
-- **→ مخطط** (برتقالي - #f59e0b)
-  - الميزات المخطط تطويرها في المستقبل
+- **→ Planejado** (laranja - #f59e0b)
+  - Recursos planejados para desenvolvimento futuro
 
-### 3. **إحصائيات التقدم** 📊
-عرض فوري لـ:
-- عدد الميزات المنجزة
-- عدد الميزات قيد الإنجاز
-- عدد الميزات المخطط لها
-- نسبة الإكمال الإجمالية (%)
-- شريط تقدم بصري
+### 3. **Estatísticas de progresso** 📊
+Exibição imediata de:
+- Número de recursos concluídos
+- Número de recursos em andamento
+- Número de recursos planejados
+- Percentual de conclusão geral (%)
+- Barra de progresso visual
 
-### 4. **سجل التحديثات التلقائية** 🔄
-تعرض الصفحة آخر 15 تحديث:
-- التاريخ والوقت الدقيق
-- وصف التغيير التلقائي
-- مرتبة من الأحدث إلى الأقدم
+### 4. **Registro de atualizações automáticas** 🔄
+A página exibe as últimas 15 atualizações:
+- Data e hora exatas
+- Descrição automática da alteração
+- Ordenadas da mais recente para a mais antiga
 
-## المتطلبات التقنية
+## Requisitos técnicos
 
-### الملفات المضافة:
+### Arquivos adicionados:
 ```
-src/pages/ProjectProgress.tsx           # المكون الرئيسي
-src/pages/ProjectProgressStyles.ts      # أنماط CSS-in-JS
-```
-
-### الملفات المعدلة:
-```
-src/App.tsx                             # إضافة routing وstate
-src/components/layout/header/Header.tsx # إضافة زر الصفحة الجديدة
+src/pages/ProjectProgress.tsx           # componente principal
+src/pages/ProjectProgressStyles.ts      # estilos CSS-in-JS
 ```
 
-## الربط بالموقع
+### Arquivos modificados:
+```
+src/App.tsx                             # adição de routing e state
+src/components/layout/header/Header.tsx # adição do botão da nova página
+```
 
-### كيفية الوصول إلى الصفحة:
-1. **الزر في الـ Header**: "تقدم المشروع" في أعلى الصفحة
-2. **رابط مباشر**: `/project-progress`
-3. **التنقل البرمجي**: الضغط على الزر يستدعي `navigateToProjectProgress()`
+## Integração com o site
 
-### الربط التلقائي مع الـ Changelog:
-الصفحة متصلة تلقائياً بـ `useProject()` context:
-- تقرأ `project.changelog` مباشرة
-- تعرض آخر 15 تحديث
-- تحديث ديناميكي عند أي تغيير في المشروع
+### Como acessar a página:
+1. **Botão no Header**: "Progresso do projeto" no topo da página
+2. **Link direto**: `/project-progress`
+3. **Navegação programática**: clicar no botão chama `navigateToProjectProgress()`
 
-## المميزات الإضافية
+### Integração automática com o Changelog:
+A página é conectada automaticamente ao contexto `useProject()`:
+- Lê `project.changelog` diretamente
+- Exibe as últimas 15 atualizações
+- Atualização dinâmica a qualquer alteração no projeto
 
-### التصميم:
-- **Theme**: Dark theme متوافق مع PIMO Studio
-- **Responsive**: تصميم متجاوب يعمل على جميع الشاشات
-- **Gradients**: تدرجات لونية احترافية
-- **Animations**: انتقالات سلسة
+## Recursos adicionais
 
-### الأداء:
-- لا تؤثر على الأداء الأساسية للموقع
-- عزل كامل عن باقي الوحدات
-- لا تتطلب تغييرات في الـ backend
+### Design:
+- **Theme**: Tema escuro compatível com PIMO Studio
+- **Responsive**: Design responsivo que funciona em todas as telas
+- **Gradients**: Gradientes de cor profissionais
+- **Animations**: Transições suaves
 
-### الأمان:
-- معلومات للعرض فقط (قراءة)
-- لا تعدل أي بيانات المشروع الأساسية
-- لا تؤثر على الـ localStorage أو التخزين
+### Desempenho:
+- Não afeta o desempenho essencial do site
+- Isolamento completo das demais unidades
+- Não requer alterações no backend
 
-## مثال الاستخدام
+### Segurança:
+- Informações apenas para exibição (leitura)
+- Não altera nenhum dado essencial do projeto
+- Não interfere no localStorage ou no armazenamento
+
+## Exemplo de uso
 
 ```typescript
-// في App.tsx
+// Em App.tsx
 const navigateToProjectProgress = () => {
   window.history.pushState({}, "", "/project-progress");
   setShowProjectProgress(true);
 };
 
-// في Header.tsx
+// Em Header.tsx
 <button onClick={onToggleProjectProgress}>
-  {projectProgressOpen ? "العودة إلى التطبيق" : "تقدم المشروع"}
+  {projectProgressOpen ? "Voltar ao aplicativo" : "Progresso do projeto"}
 </button>
 ```
 
-## البيانات المعروضة
+## Dados exibidos
 
-### الأقسام التسعة والميزات:
-- **Core Foundation**: 4 ميزات (جميعها منجزة ✓)
-- **3D Viewer**: 7 ميزات (3 منجزة، 2 قيد الإنجاز، 2 مخطط)
-- **Layout System**: 4 ميزات (2 منجزة، 1 قيد الإنجاز، 1 مخطط)
-- **UI Components**: 5 ميزات (4 منجزة، 1 قيد الإنجاز)
-- **Calculations**: 5 ميزات (جميعها منجزة ✓)
-- **Catalog**: 5 ميزات (2 منجزة، 1 قيد الإنجاز، 2 مخطط)
-- **Export/Import**: 5 ميزات (2 منجزة، 1 قيد الإنجاز، 2 مخطط)
-- **Admin/Deploy**: 5 ميزات (3 منجزة، 1 قيد الإنجاز)
-- **Documentation**: 4 ميزات (2 منجزة، 1 قيد الإنجاز، 1 مخطط)
+### As nove seções e os recursos:
+- **Core Foundation**: 4 recursos (todos concluídos ✓)
+- **3D Viewer**: 7 recursos (3 concluídos, 2 em andamento, 2 planejados)
+- **Layout System**: 4 recursos (2 concluídos, 1 em andamento, 1 planejado)
+- **UI Components**: 5 recursos (4 concluídos, 1 em andamento)
+- **Calculations**: 5 recursos (todos concluídos ✓)
+- **Catalog**: 5 recursos (2 concluídos, 1 em andamento, 2 planejados)
+- **Export/Import**: 5 recursos (2 concluídos, 1 em andamento, 2 planejados)
+- **Admin/Deploy**: 5 recursos (3 concluídos, 1 em andamento)
+- **Documentation**: 4 recursos (2 concluídos, 1 em andamento, 1 planejado)
 
-**الإجمالي**: 44 ميزة
-- منجزة: 25 (56.8%)
-- قيد الإنجاز: 8 (18.2%)
-- مخطط: 11 (25%)
+**Total**: 44 recursos
+- Concluídos: 25 (56.8%)
+- Em andamento: 8 (18.2%)
+- Planejados: 11 (25%)
 
-## الخلاصة
+## Conclusão
 
-تقدم صفحة ProjectProgress نظرة شاملة عن حالة المشروع بطريقة احترافية وسهلة الفهم، مع الحفاظ الكامل على استقلالية وأمان النظام الأساسي.
+A página ProjectProgress oferece uma visão abrangente do estado do projeto de forma profissional e fácil de entender, mantendo total independência e segurança do sistema principal.

@@ -59,7 +59,7 @@
   white-space: nowrap;
 }
 
-/* الوجوه الستة */
+/* As seis faces */
 .front  { transform: translateZ(60px); }
 .back   { transform: rotateY(180deg) translateZ(60px); }
 .right  { transform: rotateY(90deg) translateZ(60px); }
@@ -111,7 +111,7 @@
   right: 6%;
 }
 
-/* الحركة */
+/* Movimento */
 @keyframes rotateCube {
   0%   { transform: rotateX(0deg) rotateY(0deg); }
   100% { transform: rotateX(360deg) rotateY(360deg); }
