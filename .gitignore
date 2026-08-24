@@ -47,3 +47,6 @@ public_html/api/projects/githubSyncConfig.php
 # Sobras locais de testes e backups (L-28)
 tmp/
 test-output/
+
+# Outputs locais do smoke TCN (gen-test-tcn) — regeneráveis, não versionar
+scripts/armario_*.tcn

@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.49 |
-| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** / **Fase 7b CNC** concluídas; **checkpoint pós-limpeza-CNC** publicado (`v6.0824.1042`). |
-| **Modo actual** | Pós-deploy limpeza CNC. Hub v1.49. Rollback pré-limpeza: `v6.0824.0931` / `d8d64026`. Checkpoint actual: `v6.0824.1042` / `d9a475e3`. |
+| **Versão do plano** | 1.50 |
+| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** / **Fase 7b CNC** concluídas; **checkpoint pós-limpeza-CNC** `v6.0824.1042`; **Fase 7d** limpeza de artefactos arrastados pelo publish. |
+| **Modo actual** | Pós-deploy limpeza CNC. Hub v1.50. Checkpoint produção: `v6.0824.1042` / `d9a475e3`. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
@@ -2911,6 +2911,14 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **HEAD** | `d9a475e3` (tag `v6.0824.1042`) |
 | **Nota** | Rollback pré-limpeza continua `v6.0824.0931` / `d8d64026` |
 
+### 13.51 Changelog v1.49 → v1.50 (24-08-2026) — Fase 7d artefactos publish
+
+| Tipo | Mudança |
+|------|---------|
+| **Limpeza** | Removidos do Git os smoke `.tcn` arrastados por `publish.js`; `.gitignore` `scripts/armario_*.tcn` |
+| **Dívida §15.3** | Registado risco de `publish.js` / `git add .` |
+| **Intocado** | `docs/REPORTE-SISTEMAS-NOMES-IDS-V2.md` (conteúdo sem alteração) |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2983,6 +2991,7 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 | **ManageRolesPage / ManagePermissionsPage** | CRUD em memória com listas `INITIAL_*`; sem API | Mock/placeholder de admin RBAC; reescrever exige backend e papéis reais — dívida de produto |
 | **PIMO-DRILL** | Shell em `src/app/industrial/pimo-drill` (2D/3D R3F); zero testes locais; nota interna de incompleto | Protótipo industrial incompleto; validação 3D e fluxo de furos exigem trabalho dedicado, não “limpeza” |
 | **Benchmarks cutlayout** | Testes `src/validation/cutlayout*Benchmark.test.ts` escrevem `generatedAt`/`executionMs` em JSON versionados em `scripts/cnc-examples-output/` a cada corrida, sujando o working tree | Não corrigir agora, só registado — decisão futura (gitignore / não escrever por omissão) |
+| **`publish.js` / `git add .`** | `scripts/publish.js` faz `git add .` (excluindo só `backend/`) e pode arrastar ficheiros não relacionados (ex.: smoke `.tcn`, docs untracked) no commit de publicação | Não corrigir agora — decisão futura: staging seletivo / allowlist; registado após Fase 7d |
 
 ---
 
@@ -2994,4 +3003,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.49).
+Fim do documento de planeamento (v1.50).
