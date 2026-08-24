@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.41 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Fase 3 Zero-Legacy parcial** (L-12, L-13, L-22, `admin-icons-etapa2.diff`) executada 24-08-2026. |
-| **Modo actual** | Pós-execução L- (incl. Fase 3), Z-01.2, Z-02.1–2.5, Z-03.1–3.10. Hub alinhado em v1.41. |
+| **Versão do plano** | 1.42 |
+| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2.1** a **Z-01.2.9** executados; **Z-02.0** a **Z-02.5** executados; **Z-03.1**–**Z-03.10** concluídos; **Fase 3** (L-12, L-13, L-22, `admin-icons-etapa2.diff`) e **Fase 3b** (L-01 stubs `services/*.js`) executadas 24-08-2026. |
+| **Modo actual** | Pós-execução L- (Fases 3 e 3b), Z-01.2, Z-02.1–2.5, Z-03.1–3.10. Hub alinhado em v1.42. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Z-03.11 (duplicações/nomenclaturas) e Z-03.12 (Zero-Legacy). Pendentes com investigação: L-01/L-02, L-18/L-20, ponte `window.viewerCore`. Dívida fora de âmbito: §15.3. |
+| **Próximo passo** | Z-03.11 (duplicações/nomenclaturas) e Z-03.12 (Zero-Legacy) — só após aprovação de sub-passos. Pendentes: L-02, L-18/L-20. Ponte `window.viewerCore` e dívida §15.3 fora de âmbito até decisão. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -49,8 +49,9 @@ A regra L- («remover ficheiros sem uso») está **activa**. As fases 1.3–1.12
 
 **Companion necessário:** `src/core/layout/utils.ts` removido com L-05 porque importava `./types.ts` e não tinha consumidores — caso contrário o `tsc` quebrava.
 
-**Não executado:** L-01, L-02, L-18, L-20, zonas P-/Z- restantes, `dist/`, `docs/RELATORIO_*`, `ferragens_3d/RELATORIO_*`.  
-**Executado na Fase 3 (24-08-2026):** L-12, L-13, L-22, resíduo `admin-icons-etapa2.diff`.
+**Não executado:** L-02, L-18, L-20, zonas P-/Z- restantes, `dist/`, `docs/RELATORIO_*`, `ferragens_3d/RELATORIO_*`.  
+**Executado na Fase 3 (24-08-2026):** L-12, L-13, L-22, resíduo `admin-icons-etapa2.diff`.  
+**Executado na Fase 3b (24-08-2026):** L-01 (stubs vazios `services/*.js` + pasta raiz).
 
 ### Ficheiros removidos por fase
 
@@ -142,7 +143,7 @@ Fabricação (core, sem servidor)
 | `data/projects/` | 3 samples JSON locais | **Dev / não produção** (F-11) |
 | `ferragens_3d/` | GLTF + medidas | **Runtime industrial UI** |
 | `backend/` | 1 JSON órfão | **Fantasma** (F-09) |
-| `services/` (raiz) | Vazia | **Fantasma** (L-01) |
+| `services/` (raiz) | Stubs vazios removidos | **Removida** (L-01, Fase 3b, 24-08-2026) |
 | `tmp/`, `test-output/` | Sobras internas (L-28) | **Removidas**; no `.gitignore` |
 | `dist/` | Artefacto de build | **Fora de L-28** (gerado pelo build) |
 | `dev/` | Gitignored | Fora de publicação |
@@ -206,7 +207,7 @@ Critério: zero consumidores externos, stub no-op, placeholder de teste, ou arte
 
 | ID | Item | Caminho | Evidência | Impacto runtime | Risco remoção |
 |----|------|---------|-----------|-----------------|---------------|
-| L-01 | Pasta `services/` vazia | `services/` | Zero ficheiros | Nenhum | Nulo |
+| L-01 | Pasta `services/` + stubs vazios | `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` | Ficheiros 0 bytes; zero consumidores | Nenhum | **Nulo** — **Executado / Concluído** (Fase 3b; 24-08-2026; pasta raiz removida) |
 | L-02 | Fixture backend | `backend/backend/data/projects/project-pimo-mn5tsivc-zcrvwgfl.json` | Sem servidor; sem imports | Nenhum | Nulo |
 | L-03 | Hook projectos JS | `src/hooks/useProjects.js` | Zero imports `from ".../useProjects"` | Nenhum | **Nulo** — **Executado** (Fase 1.3; executado 18-08-2026) |
 | L-04 | Cliente API JS legado | `src/services/apiClient.js` | Só usado por L-03; zero referências no código actual | Nenhum | **Nulo** — **Executado** (Fase 1.3; executado 18-08-2026) |
@@ -411,7 +412,7 @@ Padrões **sem hits** neste clone: `backup_*`, `notes_*`, `analysis_*`, `draft_*
 | D-17 | Migrations SQL | `create_*.sql` vs `001_*.sql` | Ordem CI ambígua | Renumerar | Schema |
 | D-18 | Materiais localStorage vs API | `core/materials/service.ts` vs `/api/materials` | SSOT split | Unificar | Preços |
 | D-19 | Alias `buildBoxLegacy` | `BoxBuilder.ts:540` | Alias de `buildBoxGroup`; usado em 6+ sítios | Renomear gradualmente | Nomenclatura only |
-| D-20 | `src/services/` vs raiz `services/` | Dois namespaces «services» | Raiz vazia; `src/services/` vivo | Remover L-01; documentar | Confusão |
+| D-20 | `src/services/` vs raiz `services/` | Dois namespaces «services» | Raiz **removida** (L-01 Fase 3b); `src/services/` vivo | Documentar só `src/services/` | Resolvido em grande parte |
 
 ---
 
@@ -2221,7 +2222,7 @@ Ordem proposta: L-01/L-02 → L-03/L-04 → L-05…L-08 → L-09…L-11 → L-12
 | Passo | IDs | Acção (texto only) | Estado da decisão |
 |-------|-----|--------------------|-------------------|
 | 1.1 | — | *(L-25 reatribuído à Fase 1.7)* | Ver **1.7** |
-| 1.2 | L-01, L-02 | Remover pasta `services/` vazia e fixture `backend/` | Proposta |
+| 1.2 | L-01, L-02 | Remover pasta `services/` vazia e fixture `backend/` | L-01 **Executado** Fase 3b (24-08-2026); L-02 continua proposta |
 | **1.3** | **L-03**, **L-04** | Remover `src/hooks/useProjects.js` e `src/services/apiClient.js` | **Ready for Removal** — decisão: remoção definitiva; execução: pendente. Remoção segura — sistema antigo — zero referências — aprovado pelo dono do produto (Khaled). **Executado 18-08-2026.** Gatilho futuro: «aplica Fase 1.3 — L-03 + L-04» |
 | **1.4** | **L-05**, **L-06**, **L-07**, **L-08** | Remover skeleton `core/layout/` (`service.ts`, `hooks.ts`, `types.ts`, `smartArrange.ts`, `viewerLayoutAdapter.ts`, `pieceMaterialExtension.ts`). **Manter** `layoutWarnings.ts`. | **Ready for Removal** — decisão: remoção definitiva; execução: pendente. Remoção segura — sistema antigo de Layout — zero referências — aprovado pelo dono do produto (Khaled). **Executado 18-08-2026.** Gatilho futuro: «aplica Fase 1.4 — L-05 – L-08» |
 | **1.5** | **L-09**, **L-10**, **L-11** | Remover stubs 3D do Modelo B: `drawerGroup3D.ts`, `drawerTransforms.ts`, `drawerPlacement3D.ts`. **Não** tocar em ViewerCore / `viewer-engine` / BoxBuilder. | **Ready for Removal** — decisão: remoção definitiva; execução: pendente. Remoção segura — stubs 3D experimentais — zero referências — aprovado pelo dono do produto (Khaled). **Executado 18-08-2026.** Gatilho futuro: «aplica Fase 1.5 — L-09 – L-11» |
@@ -2483,7 +2484,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Companion** | `src/core/layout/utils.ts` removido com L-05 (dependia de `types.ts`; zero consumidores) |
 | **`.gitignore`** | Adicionados `tmp/` e `test-output/` |
 | **Intocado** | ViewerCore, `viewer-engine` (excepto L-29), BoxBuilder, TCN/DRILL/PI, PHP, Supabase, `layoutWarnings.ts` |
-| **Pendente** | L-01, L-02, L-18, L-20 (L-12/L-13/L-22 concluídos na Fase 3, 24-08-2026) |
+| **Pendente** | L-02, L-18, L-20 (L-01/L-12/L-13/L-22 concluídos nas Fases 3/3b, 24-08-2026) |
 
 ### 13.15 Changelog v1.13 → v1.14
 
@@ -2758,6 +2759,15 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Verificação** | `tsc -b` exit 0; `npm run build` exit 0; suite de testes sem regressão face à baseline |
 | **Intocado** | `src/validation/**`, `src/industrial/**`, PHP Hostinger, Supabase, pipeline CNC/DRILL/PI |
 
+### 13.43 Changelog v1.41 → v1.42 (24-08-2026) — Fase 3b (L-01)
+
+| Tipo | Mudança |
+|------|---------|
+| **L-01** | Removidos stubs vazios `services/ai.service.js`, `mail.service.js`, `whatsapp.service.js` e a pasta raiz `services/` — **Concluído** |
+| **D-20** | Namespace raiz `services/` desapareceu; `src/services/` permanece vivo |
+| **Verificação** | `tsc -b` exit 0; `npm run build` exit 0; suite de testes sem regressão face à baseline |
+| **Intocado** | L-02, L-18, L-20, ponte `window.viewerCore`, Z-02, Z-04, mocks admin, PIMO-DRILL |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2767,7 +2777,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 2. ~~**Z-03.10** — Organização interna do `ViewerCore`~~ — **Concluído** 19-08-2026 (tags `z-03-10-viewercore-organization` / `z-03-10-viewercore-organization-final`; último passo `b49a2dd3`). Fatiamento **adicional** adiado (fora de âmbito).
 3. **Z-03.11** — Revisão final de duplicações e nomenclaturas (garantir zero “paralelos” restantes)
 4. **Z-03.12** — Validação de Zero‑Legacy (critério de “OK” + build/prod/testes e inspeção de imports)
-5. **Lotes L- pendentes** — L-01/L-02, L-18/L-20 (após decisão de produto). ~~1.13 L-12/L-13~~, ~~L-22~~ e ~~`admin-icons-etapa2.diff`~~ — **Concluídos** na Fase 3 (24-08-2026).
+5. **Lotes L- pendentes** — L-02, L-18/L-20 (após decisão de produto). ~~L-01~~ (Fase 3b), ~~1.13 L-12/L-13~~, ~~L-22~~ e ~~`admin-icons-etapa2.diff`~~ — **Concluídos** (24-08-2026).
 
 ### 15.2 Estado Zero‑Legacy — critérios de “OK”
 - **Zero código morto:** nenhum stub no-op / export sem consumidores.
@@ -2799,4 +2809,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.41).
+Fim do documento de planeamento (v1.42).
