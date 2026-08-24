@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Versão do plano** | 1.47 |
-| **Estado** | Fases **1.3–1.12 (L-03 → L-30) executadas**; **Z-01.2** / **Z-02** / **Z-03.1–11.3** concluídos; **checkpoint pré-Fase 7** (`v6.0824.0931`); **Fase 7 inventário registado** — aplicação A→B→C em curso/aprovada. |
-| **Modo actual** | Fase 7b (limpeza modos CNC/TCN) autorizada. Hub v1.47. Rollback: tag `v6.0824.0931` / `d8d64026`. |
+| **Versão do plano** | 1.48 |
+| **Estado** | Fases **1.3–1.12** / **Z-01–Z-03.11.3** concluídas; **checkpoint pré-Fase 7** `v6.0824.0931`; **Fase 7b concluída** (limpeza modos CNC/TCN — só `nesting_mo` + `v2_new`). |
+| **Modo actual** | Pós-Fase 7b. Hub v1.48. Rollback pré-limpeza: tag `v6.0824.0931` / `d8d64026`. |
 | **Data da leitura inicial** | 18 de Agosto de 2026 |
 | **Última actualização do plano** | 24 de Agosto de 2026 |
 | **Método** | Leitura real do código como fonte primária; relatórios externos só para reconciliação |
 | **Âmbito** | Repositório completo, incluindo ficheiros industriais protegidos (só leitura) |
-| **Próximo passo** | Concluir Fase 7b (A extrair kerf → B remover modos → C verificar). Depois Z-03.12 ou decisão de produto. Pendentes: L-18/L-20. |
+| **Próximo passo** | Z-03.12 (checklist Zero-Legacy) ou decisão de produto. Pendentes: L-18/L-20. Dívida §15.3 fora de âmbito. |
 
 Este documento é a **fonte de verdade única** das decisões de limpeza. Qualquer execução futura deve referenciar IDs (`L-`, `D-`, `F-`, `R-`, `P-`, `Z-`) e actualizar o estado aqui.
 
@@ -2896,6 +2896,13 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Ordem** | A (extrair kerf) → B (remover UI/schema/geradores) → C (verificar) |
 | **Escopo** | Documentação apenas neste commit; código industrial na Fase 7b |
 
+### 13.49 Changelog v1.47 → v1.48 (24-08-2026) — Fase 7b concluída
+
+| Tipo | Mudança |
+|------|---------|
+| **Estado** | §15.4 / limpeza CNC marcada **Concluída** com evidência de commits e goldens |
+| **Código** | Já aplicado em `main` (commits A→B); este changelog só documenta o fecho |
+
 ---
 
 ## 15. Fases futuras recomendadas e Estado Zero‑Legacy
@@ -2906,32 +2913,36 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 
 ### 15.4 Fase 7 — Inventário modos CNC/TCN (System Settings → Fabricação/TCN)
 
+**Estado:** ~~em curso~~ → **Fase 7b concluída** (24-08-2026).
+
 **Decisão do dono do produto (24-08-2026):**
 - **Manter:** `nesting_mo` (NESTING MO — modo principal) e `v2_new` (clientes/empresas).
-- **Remover:** `v1_corner`, `v2_ramp`, `v3_ramp_noflip`, `v3_new`, `v4_corner_noflip`, `v5_ramp_noanchor`, `v6_ramp`.
+- **Removido:** `v1_corner`, `v2_ramp`, `v3_ramp_noflip`, `v3_new`, `v4_corner_noflip`, `v5_ramp_noanchor`, `v6_ramp`.
 - **localStorage:** valores antigos em `pimo_system_settings_v1` → fallback silencioso para `nesting_mo`.
-- **Script:** `export-tcn-variants.ts` passa a exportar só `nesting_mo` + `v2_new`.
+- **Script:** `export-tcn-variants.ts` exporta só `nesting_mo` + `v2_new`.
 
 | UI | ID `tcnMetodo` | Implementação | Destino |
 |----|----------------|---------------|---------|
-| NESTING MO | `nesting_mo` | `tcnGeneratorNestingMo.ts` | **Manter** |
-| v2_new | `v2_new` | `tcnGeneratorV2New.ts` | **Manter** |
-| v3_new | `v3_new` | `tcnGeneratorV3New.ts` | Remover |
-| v1 | `v1_corner` | Ramos em `tcnGenerator.ts` | Remover |
-| v2 | `v2_ramp` | Ramos em `tcnGenerator.ts` | Remover |
-| v3 | `v3_ramp_noflip` | Ramos em `tcnGenerator.ts` | Remover |
-| v4 | `v4_corner_noflip` | Ramos em `tcnGenerator.ts` | Remover |
-| v5 | `v5_ramp_noanchor` | Ramos em `tcnGenerator.ts` | Remover |
-| v6 | `v6_ramp` | Ramos em `tcnGenerator.ts` | Remover |
+| NESTING MO | `nesting_mo` | `tcnGeneratorNestingMo.ts` | **Activo** |
+| v2_new | `v2_new` | `tcnGeneratorV2New.ts` | **Activo** |
+| v3_new | `v3_new` | ~~`tcnGeneratorV3New.ts`~~ | **Removido** |
+| v1…v6 | `v1_corner`…`v6_ramp` | ~~ramos em `tcnGenerator.ts`~~ | **Removido** (ficheiro apagado) |
 
-**Achado crítico:** `getLayoutKerfMmForCncNesting` vive em `tcnGenerator.ts` e é consumido por `cncPipeline`, `computeChapasReal`, financeiro de serragem e `export-tcn-variants` — partilhado com o nesting de produção (incl. NESTING MO / v2_new). **Obrigatório extrair** para módulo partilhado (ex. `tcnLayoutKerf.ts`) **antes** de remover os geradores v1–v6.
+**Kerf partilhado:** extraído para `tcnLayoutKerf.ts` (`getLayoutKerfMmForCncNesting`) — commit `01c509a4`.
 
-**Ordem de aplicação (Fase 7b):**
-1. **A** — Extrair kerf; verificar goldens SHA `GOLDEN19_MO` / `GOLDEN19_V2` idênticos.
-2. **B** — Remover UI/schema/`v3_new`/ramos v1–v6; actualizar guards, sufixos, script, testes `src/core/**` (sem tocar `src/validation/**`).
-3. **C** — `tsc` / build / suite; push.
+**Evidência Fase 7b (ordem A→B→C):**
+| Passo | Commit | Notas |
+|-------|--------|-------|
+| 0 inventário | `d9e68ece` | Hub v1.47 §15.4 |
+| A kerf | `01c509a4` | `tcnLayoutKerf.ts`; goldens intactos |
+| B UI | `cda901f3` | Só NESTING MO + v2_new |
+| B schema/export | `35e286a6` | Fallback → `nesting_mo` |
+| B geradores | `eca9ff0f` | Apagados `tcnGenerator.ts` + `tcnGeneratorV3New.ts` |
+| B testes | `f73b3b6c` | Sem asserts v3_new |
+| B script | `fa942ee2` | `export-tcn-variants` só MO+v2 |
+| C push | `fa942ee2` HEAD | Suite = baseline; build OK |
 
-**Goldens de referência (não alterar):**
+**Goldens (idênticos antes/depois da Fase 7):**
 - `GOLDEN19_MO` = `e0785c8fb67d98d8ba3d9bba49a18ed031ed6973e36877a00f218e8e9461921a`
 - `GOLDEN19_V2` = `d5d6da9bce17d4d5037b575841c77ebb86694fe9d10485ef50898f5141564731`
 
@@ -2973,4 +2984,4 @@ Os itens abaixo **ficam intocados** nesta limpeza. Não entram em lotes L-/Z- de
 4. Actualizar §13.1 com data e IDs concluídos.
 5. Manter `src/validation/` verde.
 
-Fim do documento de planeamento (v1.47).
+Fim do documento de planeamento (v1.48).
