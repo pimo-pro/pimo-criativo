@@ -194,14 +194,15 @@ describe("Furação estrutural de gaveta (TechnicalDrillHole) — golden XML_COM
       rules: defaultRulesConfig,
     });
 
+    // partName = item.nome (SSOT pós-3.6a): tipo `gaveta_*`, não token abreviado `gav_*`.
     const lateralXml = xmlFiles.find(
-      (f) => f.partName.includes("gav_lat") && f.machineTarget === "drill"
+      (f) => f.partName.includes("gaveta_lat") && f.machineTarget === "drill"
     );
     const costaXml = xmlFiles.find(
-      (f) => f.partName.includes("gav_cost") && f.machineTarget === "drill"
+      (f) => f.partName.includes("gaveta_traseira") && f.machineTarget === "drill"
     );
     const frenteExtXml = xmlFiles.find(
-      (f) => f.partName.includes("gav_frent_ext") && f.machineTarget === "drill"
+      (f) => f.partName.includes("gaveta_frente_ext") && f.machineTarget === "drill"
     );
     expect(lateralXml?.xml).toContain("<TypeNo>3</TypeNo>");
     expect(lateralXml?.xml).toContain("<BeginX>");
