@@ -9,7 +9,7 @@
  * - Lista lateral com todas as peças
  * - Formulário para adicionar peças manualmente
  * - Auto-layout (shelf-packing)
- * - Exportar: PDF técnico + TCN + etiquetas
+ * - Exportar: PDF técnico + TCN + etiquetas oficiais (UEE)
  *
  * NÃO toca no motor industrial.
  */
@@ -23,7 +23,7 @@ import { useNestingV3 } from "./useNestingV3";
 import { calcSheetUtilization, rotateHoles } from "./nestingV3Engine";
 import { downloadNestingV3Tcn, getV3ExportStats } from "./nestingV3Export";
 import { downloadNestingV3Pdf } from "./nestingV3Pdf";
-import { downloadNestingV3Labels } from "./nestingV3Labels";
+import { downloadNestingV3OfficialLabels } from "./nestingV3OfficialLabels";
 import {
   beginIndustrialFileGeneration,
   endIndustrialFileGeneration,
@@ -652,6 +652,19 @@ export default function NestingV3Page({
 
   // ── Generate all ─────────────────────────────────────────────────────────
 
+  const handleDownloadOfficialLabels = useCallback(async () => {
+    beginIndustrialFileGeneration();
+    try {
+      await downloadNestingV3OfficialLabels({
+        state,
+        project,
+        projectName: resolvedProjectName,
+      });
+    } finally {
+      endIndustrialFileGeneration();
+    }
+  }, [state, project, resolvedProjectName]);
+
   const handleGenerateAll = useCallback(async () => {
     setGenerating(true);
     beginIndustrialFileGeneration();
@@ -661,12 +674,16 @@ export default function NestingV3Page({
       await new Promise((r) => setTimeout(r, 100));
       downloadNestingV3Tcn(state, resolvedProjectName);
       await new Promise((r) => setTimeout(r, 100));
-      downloadNestingV3Labels(state, resolvedProjectName);
+      await downloadNestingV3OfficialLabels({
+        state,
+        project,
+        projectName: resolvedProjectName,
+      });
     } finally {
       endIndustrialFileGeneration();
       setGenerating(false);
     }
-  }, [state, resolvedProjectName]);
+  }, [state, project, resolvedProjectName]);
 
   const handleDownloadPdf = useCallback(async () => {
     beginIndustrialFileGeneration();
@@ -776,12 +793,8 @@ export default function NestingV3Page({
           style={toolBtn(C.muted)} title="Exportar Layout PRO (PDF industrial)">PDF</button>
         <button type="button" onClick={handleDownloadTcn}
           style={toolBtn(C.muted)} title="Exportar TCN">TCN</button>
-        <button type="button" onClick={() => {
-          beginIndustrialFileGeneration();
-          try { downloadNestingV3Labels(state, resolvedProjectName); }
-          finally { endIndustrialFileGeneration(); }
-        }}
-          style={toolBtn(C.muted)} title="Exportar etiquetas">Etiquetas</button>
+        <button type="button" onClick={() => { void handleDownloadOfficialLabels(); }}
+          style={toolBtn(C.muted)} title="Exportar etiquetas oficiais (UEE / LabelSystemV5)">Etiquetas</button>
 
         {/* Generate all */}
         <button type="button" onClick={handleGenerateAll} disabled={generating || stats.placedPieces === 0}
