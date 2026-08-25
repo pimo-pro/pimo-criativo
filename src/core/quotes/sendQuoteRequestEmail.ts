@@ -1,6 +1,8 @@
 import { formatCurrency } from "../../utils/formatting";
+import { buildApiUrl } from "../../config/api";
 
-const QUOTE_EMAIL_URL = "https://pimo-mail-service.onrender.com/send-quote-email";
+/** Proxy PHP no mesmo host — secret fica só no servidor (PIMO_INTERNAL_API_SECRET). */
+const QUOTE_EMAIL_PROXY_PATH = "/api/quotes/index.php";
 // Cobre o "cold start" do plano free do Render (~50s observados) + margem.
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -21,6 +23,7 @@ export type QuoteRequestEmailResults = Record<string, { success: boolean; error?
 export type QuoteRequestEmailResult = {
   success: boolean;
   results?: QuoteRequestEmailResults;
+  error?: string;
 };
 
 export function buildPricingSummary(pricing: {
@@ -36,15 +39,13 @@ export function buildPricingSummary(pricing: {
 }
 
 /**
- * Envia o pedido de orçamento para o pimo-mail-service.
+ * Envia o pedido de orçamento via proxy server-side (sem secret no bundle).
  * Lança erro apenas se o pedido não chegar a completar (rede/timeout); uma
  * resposta HTTP válida com success:false é devolvida normalmente, não lançada,
  * para o chamador poder distinguir "projeto guardado, email falhou" de
  * "pedido nem chegou a sair".
  */
 export async function sendQuoteRequestEmail(payload: QuoteRequestPayload): Promise<QuoteRequestEmailResult> {
-  const secret = import.meta.env.VITE_INTERNAL_API_SECRET as string | undefined;
-
   const formData = new FormData();
   formData.append("customerName", payload.customerName);
   formData.append("customerEmail", payload.customerEmail);
@@ -62,9 +63,8 @@ export async function sendQuoteRequestEmail(payload: QuoteRequestPayload): Promi
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(QUOTE_EMAIL_URL, {
+    const response = await fetch(buildApiUrl(QUOTE_EMAIL_PROXY_PATH), {
       method: "POST",
-      headers: secret ? { "x-internal-secret": secret } : undefined,
       body: formData,
       signal: controller.signal,
     });

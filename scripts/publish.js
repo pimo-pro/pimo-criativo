@@ -99,6 +99,7 @@ function ensureProductionEnv() {
     VITE_API_URL: process.env.VITE_API_URL,
     VITE_TEXTURES_URL: process.env.VITE_TEXTURES_URL,
   };
+  // Phase 0: não escrever VITE_INTERNAL_API_SECRET — secret só no PHP (PIMO_INTERNAL_API_SECRET).
 
   let merged = base.endsWith("\n") || base === "" ? base : `${base}\n`;
   for (const [key, value] of Object.entries(updates)) {
