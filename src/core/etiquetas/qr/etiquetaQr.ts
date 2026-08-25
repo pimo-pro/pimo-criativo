@@ -56,7 +56,13 @@ export function resolveEtiquetaDisplayCodeV5(
     (item as { sourceProjectName?: string }).sourceProjectName ?? ctx.projectName ?? "PROJETO"
   );
   const boxNome = ctx.boxes.find((b) => b.id === item.boxId)?.nome;
-  const nomeIndustrial = resolveNomeIndustrialForEtiqueta(item, effectiveProjectName, boxNome);
+  const tokenMap = ctx.rules.labelSystemV5?.naming?.pieceTypeTokens ?? null;
+  const nomeIndustrial = resolveNomeIndustrialForEtiqueta(
+    item,
+    effectiveProjectName,
+    boxNome,
+    tokenMap
+  );
   return buildEtiquetaCodeV5({
     projectName: effectiveProjectName,
     pieceSeq,

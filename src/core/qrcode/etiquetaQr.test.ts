@@ -57,10 +57,12 @@ describe("resolveUnifiedEtiquetaQrCode", () => {
     expect(qr).toBe("ANTONIO_NOVO_5_CC4_REMATE_L_B_01-6");
   });
 
-  it("código de display curto industrial + NUM_CAIXA + seq", () => {
+  it("código de display = buildIndustrialId do nome legado (sem NUM_CAIXA/-SEQ)", () => {
     const piecesPerSheet = new Map([["box-1::Remate L B", 4]]);
     const display = resolveEtiquetaDisplayCodeV5(item, ctx, piecesPerSheet, 0);
-    expect(display).toBe("ANCRLB004-6");
+    // Label legado preservado → ID a partir de antonio_novo_5_cc4_remate_l_b_01
+    expect(display).toBe("an5crlb01");
+    expect(display).not.toMatch(/-/);
     expect(display).not.toBe(resolveUnifiedEtiquetaQrCode(item, ctx, piecesPerSheet, 0));
   });
 

@@ -1,18 +1,21 @@
 /**
- * Código display v5: [LETRAS][NUM_CAIXA_3]-[SEQ] — ex.: NCFS003-6
- * (AAA é acrescentado na faixa inferior por pdfEtiquetas.)
- * QR canónico: buildEtiquetaQrPayloadV5 (inalterado).
+ * Código display v5 = `buildIndustrialId(nomeCompleto)` — ex.: kcnc1ld.
+ * Sem NUM_CAIXA nem sufixo -SEQ (o nº da etiqueta fica só no badge visual do PDF).
+ * AAA é acrescentado na faixa inferior por pdfEtiquetas.
  */
 
+import { buildIndustrialId } from "../../naming/industrialNaming";
 import { buildV5BottomStripIndustrialName } from "../industrialDisplayName";
 
 export interface EtiquetaCodeV5Input {
   projectName: string;
+  /** @deprecated Não entra no código; mantido por compatibilidade de call sites. */
   pieceSeq: number;
+  /** @deprecated Não entra no código; mantido por compatibilidade de call sites. */
   totalPiecesInSheet: number;
-  /** Nome de exibição da caixa — ex.: «Caixa 1» → prefixo C1. */
+  /** Nome de exibição da caixa. */
   boxName?: string;
-  /** Nome/tipo industrial da peça — ex.: C1_top, metadata.industrialLabel. */
+  /** Tipo/token/nome industrial ou label legado. */
   nomeIndustrial?: string;
 }
 
@@ -99,24 +102,14 @@ export function buildIndustrialShortCode(
 }
 
 export function buildEtiquetaCodeV5(input: EtiquetaCodeV5Input): string {
-  const seq = Math.max(1, Math.floor(Number(input.pieceSeq) || 1));
-
-  const nomeIndustrial = String(input.nomeIndustrial ?? "").trim();
+  const nomeIndustrial = String(input.nomeIndustrial ?? "").trim() || "peca";
   const boxName = String(input.boxName ?? "").trim();
-  if (nomeIndustrial && boxName) {
-    const industrialFullName = buildV5BottomStripIndustrialName(
-      input.projectName,
-      boxName,
-      nomeIndustrial
-    );
-    const prefix = buildIndustrialShortCodeFromFullName(industrialFullName);
-    const numCaixaStr = formatNumCaixa3Digits(input.totalPiecesInSheet);
-    return `${prefix}${numCaixaStr}-${seq}`;
-  }
-
-  const sigla = extractProjectSigla(input.projectName);
-  const numCaixa = formatNumCaixa(input.totalPiecesInSheet);
-  return `${sigla}${numCaixa}-${seq}`;
+  const industrialFullName = buildV5BottomStripIndustrialName(
+    input.projectName,
+    boxName,
+    nomeIndustrial
+  );
+  return buildIndustrialId(industrialFullName);
 }
 
 export interface EtiquetaQrPayloadV5Input {

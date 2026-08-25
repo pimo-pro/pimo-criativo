@@ -181,16 +181,33 @@ function migrateLabelSystemV5(input: LabelSystemV5 | null): LabelSystemV5 {
   }
 
   if (input.schemaVersion === LABEL_SYSTEM_V5_SCHEMA_VERSION) {
-    return { ...buildDefaultLabelSystemV5(), ...input };
+    const defaults = buildDefaultLabelSystemV5();
+    return {
+      ...defaults,
+      ...input,
+      naming: {
+        pieceTypeTokens: {
+          ...defaults.naming.pieceTypeTokens,
+          ...(input.naming?.pieceTypeTokens ?? {}),
+        },
+      },
+    };
   }
 
-  // v1 → v2: corrigir dimensões legadas 98×60 → 100×50 mm
+  // v1 → v2: corrigir dimensões legadas 98×60 → 100×50 mm + naming defaults
   if (input.schemaVersion === 1) {
+    const defaults = buildDefaultLabelSystemV5();
     const migrated: LabelSystemV5 = {
-      ...buildDefaultLabelSystemV5(),
+      ...defaults,
       ...input,
       schemaVersion: LABEL_SYSTEM_V5_SCHEMA_VERSION,
       dimensions: { ...input.dimensions },
+      naming: {
+        pieceTypeTokens: {
+          ...defaults.naming.pieceTypeTokens,
+          ...(input.naming?.pieceTypeTokens ?? {}),
+        },
+      },
     };
     if (migrated.dimensions.widthMm === 98) migrated.dimensions.widthMm = 100;
     if (migrated.dimensions.heightMm === 60) migrated.dimensions.heightMm = 50;

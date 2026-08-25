@@ -8,6 +8,8 @@
 
 import type { LabelDesignerConfig, LabelDesignerTemplate } from "../labelDesigner/labelDesignerTypes";
 import type { PaletteGroup, ProductionStep } from "../labelConfig/labelConfig";
+import type { IndustrialNamingRules } from "../naming/industrialNaming";
+import { buildDefaultIndustrialNamingRules } from "../naming/industrialNaming";
 
 // ─── Versão do schema ─────────────────────────────────────────────────────────
 
@@ -122,6 +124,12 @@ export interface LabelSystemV5 {
   /** Se true, inclui peças manuais (fora de CNC) na listagem. */
   manualPieces: boolean;
 
+  /**
+   * Regras de naming industrial (tipo→token, etc.).
+   * Editável no perfil de regras; defaults em `buildDefaultIndustrialNamingRules`.
+   */
+  naming: IndustrialNamingRules;
+
   /** Layout do designer visual (opcional; migrado de localStorage). */
   designerLayout?: LabelDesignerConfig;
 
@@ -167,6 +175,7 @@ export function buildDefaultLabelSystemV5(): LabelSystemV5 {
     qrLogo: "",
     observations: [],
     manualPieces: false,
+    naming: buildDefaultIndustrialNamingRules(),
   };
 }
 

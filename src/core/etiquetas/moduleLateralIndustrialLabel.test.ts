@@ -6,6 +6,7 @@ import {
   resolveIndustrialPieceRef,
 } from "../cutlayout/cutLayoutProPieceNaming";
 import { resolveNomeIndustrialForEtiqueta } from "../etiquetas/industrialDisplayName";
+import { buildIndustrialId, buildFullIndustrialName } from "../naming/industrialNaming";
 import { getPieceLabel } from "../manufacturing/boxManufacturing";
 import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
 import { defaultRulesConfig } from "../rules/rulesConfig";
@@ -14,7 +15,7 @@ import {
   minimalBoxWithDrawers,
 } from "../../validation/drawerCertificationTestHelpers";
 
-describe("Etiquetas industriais — inversão L/R dos lados do módulo", () => {
+describe("Etiquetas industriais — naming unificado (sem inversão L/R)", () => {
   const projectName = "ProjTest";
   const boxNome = "C1 Armario 1";
 
@@ -31,21 +32,37 @@ describe("Etiquetas industriais — inversão L/R dos lados do módulo", () => {
     ).toMatch(/_lat_dir$/i);
   });
 
-  it("etiqueta industrial: lateral_esquerda ? DIR, lateral_direita ? ESQ", () => {
+  it("etiqueta: lateral_esquerda → lat_esq; lateral_direita → lat_dir (sem troca)", () => {
     expect(
       resolveNomeIndustrialForEtiqueta({ tipo: "lateral_esquerda" }, projectName, boxNome)
-    ).toMatch(/_lat_dir$/i);
+    ).toBe(buildFullIndustrialName(projectName, boxNome, "lateral_esquerda"));
     expect(
       resolveNomeIndustrialForEtiqueta({ tipo: "lateral_direita" }, projectName, boxNome)
-    ).toMatch(/_lat_esq$/i);
+    ).toBe(buildFullIndustrialName(projectName, boxNome, "lateral_direita"));
 
+    const esq = resolveNomeIndustrialForEtiqueta(
+      { tipo: "lateral_esquerda" },
+      projectName,
+      boxNome
+    );
+    const dir = resolveNomeIndustrialForEtiqueta(
+      { tipo: "lateral_direita" },
+      projectName,
+      boxNome
+    );
+    expect(esq).toContain("lat_esq");
+    expect(dir).toContain("lat_dir");
+    expect(esq).not.toContain("lat_dir");
+    expect(dir).not.toContain("lat_esq");
+  });
+
+  it("REF / buildIndustrialPieceName (ainda legado noutros artefactos) mantém inversão até Passo 3", () => {
     expect(buildIndustrialPieceName({ tipo: "lateral_esquerda" }, boxNome, projectName)).toMatch(
       /_lat_dir$/i
     );
     expect(buildIndustrialPieceName({ tipo: "lateral_direita" }, boxNome, projectName)).toMatch(
       /_lat_esq$/i
     );
-
     expect(resolveIndustrialPieceRef({ tipo: "lateral_esquerda" }, boxNome, projectName)).toMatch(
       /LAT_DIR$/
     );
@@ -55,7 +72,7 @@ describe("Etiquetas industriais — inversão L/R dos lados do módulo", () => {
   });
 
   it.each([1, 3] as const)(
-    "módulo com %i gaveta(s): cutlist/Viewer correctos; etiqueta invertida",
+    "módulo com %i gaveta(s): cutlist correcto; etiqueta sem inversão",
     (drawerCount) => {
       const { layers } = buildDrawerScenario({
         boxWidth: 600,
@@ -71,25 +88,32 @@ describe("Etiquetas industriais — inversão L/R dos lados do módulo", () => {
       expect(latEsq).toBeDefined();
       expect(latDir).toBeDefined();
 
-      // Cutlist / Viewer: nomes humanos correctos (SSOT).
       expect(latEsq!.nome).toBe("Lateral esquerda");
       expect(latDir!.nome).toBe("Lateral direita");
       expect(getPieceLabel(latEsq!.tipo)).toBe("Lateral esquerda");
       expect(getPieceLabel(latDir!.tipo)).toBe("Lateral direita");
 
-      // Furações intactas no item SSOT (pelo menos presença de lista).
       expect(Array.isArray(latEsq!.drillHoles)).toBe(true);
       expect(Array.isArray(latDir!.drillHoles)).toBe(true);
 
-      // Etiqueta / REF industrial: invertidos.
-      expect(
-        resolveNomeIndustrialForEtiqueta(latEsq!, projectName, box.nome)
-      ).toMatch(/_lat_dir$/i);
-      expect(
-        resolveNomeIndustrialForEtiqueta(latDir!, projectName, box.nome)
-      ).toMatch(/_lat_esq$/i);
-      expect(resolveIndustrialPieceRef(latEsq!, box.nome, projectName)).toMatch(/LAT_DIR$/);
-      expect(resolveIndustrialPieceRef(latDir!, box.nome, projectName)).toMatch(/LAT_ESQ$/);
+      expect(resolveNomeIndustrialForEtiqueta(latEsq!, projectName, box.nome)).toContain(
+        "lat_esq"
+      );
+      expect(resolveNomeIndustrialForEtiqueta(latDir!, projectName, box.nome)).toContain(
+        "lat_dir"
+      );
+      expect(buildIndustrialId(resolveNomeIndustrialForEtiqueta(latEsq!, projectName, box.nome))).toBeTruthy();
     }
   );
+
+  it("metadata.industrialLabel legado não é recalculado", () => {
+    const legacy = "Armario_Test_DIV_01";
+    expect(
+      resolveNomeIndustrialForEtiqueta(
+        { tipo: "DIV", metadata: { industrialLabel: legacy } },
+        projectName,
+        boxNome
+      )
+    ).toBe(legacy);
+  });
 });

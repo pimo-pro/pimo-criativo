@@ -1,60 +1,60 @@
 import {
-  buildBoxPrefixForCutLayoutPro,
-  buildIndustrialPieceName,
-} from "../cutlayout/cutLayoutProPieceNaming";
+  buildFullIndustrialName,
+  mergePieceTypeTokens,
+  sanitizeIndustrialToken,
+  type IndustrialPieceTokenMap,
+} from "../naming/industrialNaming";
 
-/** Token para display — espaços→`_`, remove chars inválidos, colapsa `_`. */
+/** @deprecated Preferir `sanitizeIndustrialToken` — reexport de compatibilidade. */
 export function sanitizeIndustrialSegment(value: string): string {
-  return String(value ?? "")
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9_]/g, "")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
+  return sanitizeIndustrialToken(value);
+}
+
+function isKnownPieceTipoOrToken(
+  raw: string,
+  tokenMap?: IndustrialPieceTokenMap | null
+): boolean {
+  const map = mergePieceTypeTokens(tokenMap);
+  if (map[raw] || map[raw.toLowerCase()]) return true;
+  const san = sanitizeIndustrialToken(raw);
+  return Object.values(map).includes(san);
 }
 
 /**
- * Nome industrial completo: `{projeto}_{caixa}_{peca}` ou `{projeto}_{label}`.
- * Usado na faixa inferior v5 e no prefixo do displayCode v5.
+ * Nome industrial completo na faixa inferior: `{projeto}_{caixa}_{token}`.
+ * Peças novas → `buildFullIndustrialName`. Labels legados (`metadata.industrialLabel`) não são retokenizados.
  */
 export function buildV5BottomStripIndustrialName(
   projectName: string,
   boxName: string,
-  nomeIndustrial: string
+  nomeIndustrial: string,
+  tokenMap?: IndustrialPieceTokenMap | null
 ): string {
-  const projeto = sanitizeIndustrialSegment(projectName) || "PROJETO";
-  const industrial = sanitizeIndustrialSegment(nomeIndustrial) || "peca";
-
-  const projectPrefix = `${projeto.toUpperCase()}_`;
-  if (industrial.toUpperCase().startsWith(projectPrefix)) {
-    return industrial;
+  const projeto = sanitizeIndustrialToken(projectName) || "projeto";
+  const raw = String(nomeIndustrial ?? "").trim();
+  if (!raw) {
+    return buildFullIndustrialName(projectName, boxName, "peca", undefined, tokenMap);
   }
 
-  const caixa = sanitizeIndustrialSegment(boxName);
-  const boxPrefix = sanitizeIndustrialSegment(
-    buildBoxPrefixForCutLayoutPro(boxName, projectName)
-  );
+  const industrialSan = sanitizeIndustrialToken(raw) || "peca";
+  const projectPrefix = `${projeto}_`;
 
-  let peca = industrial;
-  const hadBoxPrefixStrip =
-    boxPrefix.length > 0 &&
-    peca.toUpperCase().startsWith(`${boxPrefix.toUpperCase()}_`);
-  if (hadBoxPrefixStrip) {
-    peca = peca.slice(boxPrefix.length + 1);
+  // Já é nome completo (sistema novo ou legado com prefixo de projecto).
+  if (industrialSan.startsWith(projectPrefix)) {
+    return industrialSan;
   }
 
-  if (hadBoxPrefixStrip && caixa && peca) {
-    return `${projeto}_${caixa}_${peca}`;
+  // Tipo SSOT / token conhecido (ex.: lateral_direita, cima) → nome completo novo.
+  if (isKnownPieceTipoOrToken(raw, tokenMap)) {
+    return buildFullIndustrialName(projectName, boxName, raw, undefined, tokenMap);
   }
 
-  if (industrial.includes("_") && !hadBoxPrefixStrip) {
-    return `${projeto}_${industrial}`;
+  // Label legado com `_` (ex.: BOX_DIV_01, C1_top) — só prefixar projecto, sem retokenizar.
+  if (raw.includes("_") || industrialSan.includes("_")) {
+    return `${projeto}_${industrialSan}`;
   }
 
-  if (caixa && peca) {
-    return `${projeto}_${caixa}_${peca}`;
-  }
-  return `${projeto}_${peca || caixa || "peca"}`;
+  return buildFullIndustrialName(projectName, boxName, raw, undefined, tokenMap);
 }
 
 type NomeIndustrialItemLike = {
@@ -64,18 +64,20 @@ type NomeIndustrialItemLike = {
 };
 
 /**
- * Nome industrial da peça para etiqueta de fabrico —
- * metadata.industrialLabel ou Layout de Corte PRO com inversão L/R dos lados do módulo.
- * (Viewer/cutlist/SSOT não passam por aqui.)
+ * Nome industrial da peça para etiqueta de fabrico.
+ * - `metadata.industrialLabel` existente → preservado (não recalcula peças antigas).
+ * - Peças novas → `buildFullIndustrialName` sem inversão L/R.
  */
 export function resolveNomeIndustrialForEtiqueta(
   item: NomeIndustrialItemLike,
   projectName: string,
-  boxNome?: string
+  boxNome?: string,
+  tokenMap?: IndustrialPieceTokenMap | null
 ): string {
   const fromMeta = item.metadata?.industrialLabel;
   if (typeof fromMeta === "string" && fromMeta.trim()) {
     return fromMeta.trim();
   }
-  return buildIndustrialPieceName(item, boxNome, projectName);
+  const key = String(item.tipo ?? item.nome ?? "peca").trim() || "peca";
+  return buildFullIndustrialName(projectName, boxNome ?? "", key, undefined, tokenMap);
 }
