@@ -12,15 +12,34 @@ error_log(sprintf(
     $_SERVER["REQUEST_URI"] ?? "?"
 ));
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+// Phase 1 — authz (JWT + ownership). Paths: monorepo api/authz ou dist/api/_impl/authz.
+(function (): void {
+    $candidates = [
+        __DIR__ . "/../_impl/authz/resourceAccess.php",
+        __DIR__ . "/../../../api/authz/resourceAccess.php",
+    ];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+    http_response_code(503);
+    header("Content-Type: application/json; charset=utf-8");
+    echo json_encode(["status" => "error", "message" => "Authz library unavailable"], JSON_UNESCAPED_UNICODE);
+    exit;
+})();
+
+pimo_authz_cors();
 header("Content-Type: application/json; charset=utf-8");
 
 if (($_SERVER["REQUEST_METHOD"] ?? "") === "OPTIONS") {
     http_response_code(200);
     exit;
 }
+
+/** Utilizador autenticado para todos os handlers desta API. */
+$pimoAuthUser = pimo_authz_require_jwt_user();
 
 $dataDir = __DIR__ . "/data";
 if (!is_dir($dataDir)) {
@@ -353,11 +372,15 @@ if ($method === "GET" && $action === "load") {
     }
     $path = find_project_file($dataDir, $lookup);
     if ($path === null) {
+        // 404 genérico — não revelar existência vs. falta de permissão (anti-enumeration)
         respond_json(["status" => "error", "message" => "Não encontrado"], 404);
     }
     $data = read_project_file($path);
     if ($data === null) {
         respond_json(["status" => "error", "message" => "Ficheiro inválido"], 500);
+    }
+    if (!pimo_authz_can_view_project($pimoAuthUser, $data)) {
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
     }
     respond_json(["status" => "ok", "project" => $data]);
 }
@@ -375,6 +398,9 @@ if ($method === "PUT" && $action === "update") {
     $data = read_project_file($path);
     if ($data === null) {
         respond_json(["status" => "error", "message" => "Ficheiro inválido"], 500);
+    }
+    if (!pimo_authz_can_mutate_project($pimoAuthUser, $data)) {
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
     }
     $input = json_decode(file_get_contents("php://input") ?: "{}", true);
     if (!is_array($input)) {
@@ -407,24 +433,27 @@ if ($method === "DELETE" && $action === "delete") {
         respond_json(["status" => "error", "message" => "id inválido"], 400);
     }
     $path = find_project_file($dataDir, $lookup);
-    $deletedProject = null;
-    if ($path !== null) {
-        $data = read_project_file($path);
-        $deletedProject = is_array($data) ? $data : null;
-        $internalId = is_array($data) && isset($data["id"]) ? trim((string)$data["id"]) : "";
-        delete_file_if_exists($path);
-        if ($internalId !== "") {
-            remove_stale_project_files($dataDir, $internalId, "");
-        }
+    if ($path === null) {
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
     }
-    if (is_array($deletedProject) && function_exists("pimo_github_sync_project")) {
+    $data = read_project_file($path);
+    if (!is_array($data) || !pimo_authz_can_mutate_project($pimoAuthUser, $data)) {
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
+    }
+    $deletedProject = $data;
+    $internalId = isset($data["id"]) ? trim((string)$data["id"]) : "";
+    delete_file_if_exists($path);
+    if ($internalId !== "") {
+        remove_stale_project_files($dataDir, $internalId, "");
+    }
+    if (function_exists("pimo_github_sync_project")) {
         pimo_github_sync_project($deletedProject, "delete");
     }
     respond_json(["status" => "ok"]);
 }
 
 // --- POST: criar ou atualizar projeto (corpo = PimoProjectData JSON) ---
-if ($method === "POST") {
+if ($method === "POST" && $action === "") {
     $input = json_decode(file_get_contents("php://input") ?: "null", true);
     if (!is_array($input)) {
         respond_json(["status" => "error", "message" => "JSON inválido"], 400);
@@ -441,6 +470,7 @@ if ($method === "POST") {
 
     $existingPath = null;
     $internalId = null;
+    $existingData = null;
 
     if ($sid !== null && is_internal_project_id($sid)) {
         $existingPath = find_project_file($dataDir, $sid);
@@ -449,6 +479,7 @@ if ($method === "POST") {
         $existingPath = find_project_file($dataDir, $sid);
         if ($existingPath !== null) {
             $old = read_project_file($existingPath);
+            $existingData = is_array($old) ? $old : null;
             $internalId = is_array($old) && isset($old["id"]) ? trim((string)$old["id"]) : $sid;
         }
     }
@@ -457,6 +488,7 @@ if ($method === "POST") {
         $existingPath = find_project_file($dataDir, $name);
         if ($existingPath !== null) {
             $old = read_project_file($existingPath);
+            $existingData = is_array($old) ? $old : null;
             if (is_array($old) && isset($old["id"])) {
                 $candidate = trim((string)$old["id"]);
                 $internalId = $candidate !== "" ? $candidate : generate_id();
@@ -474,6 +506,7 @@ if ($method === "POST") {
 
     if ($existingPath !== null && is_file($existingPath)) {
         $old = read_project_file($existingPath);
+        $existingData = is_array($old) ? $old : null;
         $createdAt = is_array($old) && isset($old["createdAt"]) && is_string($old["createdAt"])
             ? $old["createdAt"]
             : $now;
@@ -490,12 +523,18 @@ if ($method === "POST") {
         $createdAt = isset($input["createdAt"]) && is_string($input["createdAt"])
             ? $input["createdAt"]
             : $now;
+        $existingData = null;
+    }
+
+    if (!pimo_authz_can_mutate_project($pimoAuthUser, $existingData)) {
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
     }
 
     $input = apply_project_name($input, $name);
     $input["id"] = $internalId;
     $input["createdAt"] = $createdAt;
     $input["updatedAt"] = $now;
+    $input = pimo_authz_bind_project_owner($pimoAuthUser, $input, $existingData);
 
     $targetPath = name_based_path($dataDir, $name);
     if (!write_project_file($targetPath, $input)) {
@@ -575,6 +614,15 @@ if (($method === "GET" || $method === "HEAD") && $action === "thumb") {
     if ($lookupName === null) {
         respond_json(["status" => "error", "message" => "name inválido ou em falta"], 400);
     }
+    $thumbProjectPath = find_project_file($dataDir, $lookupName);
+    $thumbProject = $thumbProjectPath !== null ? read_project_file($thumbProjectPath) : null;
+    if (!is_array($thumbProject) || !pimo_authz_can_view_project($pimoAuthUser, $thumbProject)) {
+        if ($method === "HEAD") {
+            http_response_code(404);
+            exit;
+        }
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
+    }
     $url = thumbnail_file_url($thumbsDir, $lookupName);
     if ($method === "HEAD") {
         http_response_code($url !== null ? 200 : 404);
@@ -609,11 +657,12 @@ if ($method === "POST" && $action === "thumb") {
         )
     );
     if ($uploadName === null) {
-        respond_json([
-            "status" => "error",
-            "message" => "name inválido ou em falta",
-            "hint" => "Envie name em query (?name=) e/ou no body (FormData/JSON).",
-        ], 400);
+        respond_json(["status" => "error", "message" => "name inválido ou em falta"], 400);
+    }
+    $thumbMutatePath = find_project_file($dataDir, $uploadName);
+    $thumbMutateProject = $thumbMutatePath !== null ? read_project_file($thumbMutatePath) : null;
+    if (!is_array($thumbMutateProject) || !pimo_authz_can_mutate_project($pimoAuthUser, $thumbMutateProject)) {
+        respond_json(["status" => "error", "message" => "Não encontrado"], 404);
     }
 
     // Caminho A: multipart/form-data com campo "file"
@@ -714,8 +763,16 @@ if ($method === "POST" && $action === "thumb") {
 
 // --- GET ?action=projetos — apenas ficheiros {nome}.json (hub PROJETOS) ---
 if ($method === "GET" && $action === "projetos") {
-    $scope = isset($_GET["scope"]) ? (string)$_GET["scope"] : "all";
-    $ownerId = isset($_GET["ownerId"]) ? (string)$_GET["ownerId"] : "";
+    $scope = isset($_GET["scope"]) ? (string)$_GET["scope"] : "mine";
+    if ($scope === "all") {
+        if (!pimo_authz_can_view_all_projects($pimoAuthUser)) {
+            respond_json(["status" => "error", "message" => "Sem permissão"], 403);
+        }
+        $ownerId = "";
+    } else {
+        $scope = "mine";
+        $ownerId = (string) $pimoAuthUser["id"];
+    }
     $entries = list_project_entries($dataDir);
     $projects = build_projects_list($entries, $scope, $ownerId, $thumbsDir, true);
 
@@ -727,11 +784,19 @@ if ($method === "GET" && $action === "projetos") {
     ]);
 }
 
-// --- GET: listagem ?scope=mine|all&ownerId=... ---
+// --- GET: listagem ?scope=mine|all (ownerId do JWT; query ownerId ignorado) ---
 if ($method === "GET" && $action === "") {
     try {
         $scope = isset($_GET["scope"]) ? (string)$_GET["scope"] : "mine";
-        $ownerId = isset($_GET["ownerId"]) ? (string)$_GET["ownerId"] : "";
+        if ($scope === "all") {
+            if (!pimo_authz_can_view_all_projects($pimoAuthUser)) {
+                respond_json(["status" => "error", "message" => "Sem permissão"], 403);
+            }
+            $ownerId = "";
+        } else {
+            $scope = "mine";
+            $ownerId = (string) $pimoAuthUser["id"];
+        }
         $entries = list_project_entries($dataDir);
         $projects = build_projects_list($entries, $scope, $ownerId, $thumbsDir, false);
 
@@ -743,13 +808,10 @@ if ($method === "GET" && $action === "") {
         ]);
     } catch (Throwable $e) {
         error_log("[PIMO-API] listagem falhou: " . $e->getMessage());
-        // Nunca 500 vazio: resposta JSON válida (projectos corrompidos já são ignorados em list_project_entries).
         respond_json([
             "status" => "ok",
-            "scope" => isset($_GET["scope"]) ? (string)$_GET["scope"] : "mine",
-            "ownerId" => isset($_GET["ownerId"]) && (string)$_GET["ownerId"] !== ""
-                ? (string)$_GET["ownerId"]
-                : null,
+            "scope" => "mine",
+            "ownerId" => (string) $pimoAuthUser["id"],
             "projects" => [],
             "warning" => "Listagem parcial indisponível",
         ], 200);

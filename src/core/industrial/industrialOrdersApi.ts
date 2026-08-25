@@ -1,4 +1,5 @@
 import type { EnviarParaFabricaPayload } from "./IndustrialPieceEditsService";
+import { authHeaders, canUseRemoteProjectsApi } from "../projects/remoteApiAuth";
 
 export type IndustrialOrderSubmitResult = {
   ok: boolean;
@@ -15,14 +16,21 @@ export type IndustrialOrderPayload = EnviarParaFabricaPayload & {
 
 /**
  * Envia ordem industrial para PIMO TRAK via POST /api/industrial/orders.
+ * Phase 1: requer JWT (não local-dev-token).
  */
 export async function submitIndustrialOrder(
   payload: IndustrialOrderPayload
 ): Promise<IndustrialOrderSubmitResult> {
+  if (!canUseRemoteProjectsApi()) {
+    return {
+      ok: false,
+      error: "Sessão remota necessária para enviar à fábrica",
+    };
+  }
   try {
     const res = await fetch("/api/industrial/orders", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     });
     const data = (await res.json()) as {

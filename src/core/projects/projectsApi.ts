@@ -6,6 +6,7 @@ import type {
   SavedProjectRecord,
 } from "./types";
 import { buildApiUrl } from "../../config/api";
+import { authHeaders, canUseRemoteProjectsApi } from "./remoteApiAuth";
 
 /** Caminho da API no mesmo host da app (evita mistura de subdomínios e facilita staging). */
 const PROJECTS_API_PATH = "/api/projects/index.php";
@@ -74,11 +75,13 @@ export async function remoteSaveProject(
   request: SaveProjectRequest,
   deps: ProjectsApiDeps
 ): Promise<SavedProjectMeta | null> {
-  // Em DEV também pode salvar remoto (Render), então não bloquear aqui.
+  if (!canUseRemoteProjectsApi()) {
+    return null;
+  }
   const projectData = deps.buildPimoProjectDataFromRequest(request);
   const response = await fetch(buildProjectsUrl(), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(projectData),
   });
   const payload = (await toJson(response)) as {
@@ -139,7 +142,10 @@ function mapRemoteProjectRows(rows: unknown[], deps: ProjectsApiDeps): SavedProj
 async function fetchProjectListRows(
   url: string
 ): Promise<{ ok: boolean; rows: unknown[]; status: number }> {
-  const response = await fetch(url);
+  if (!canUseRemoteProjectsApi()) {
+    return { ok: false, rows: [], status: 401 };
+  }
+  const response = await fetch(url, { headers: authHeaders() });
   const payload = (await toJson(response)) as { projects?: unknown[] } | null;
   const rows = Array.isArray(payload?.projects) ? payload.projects : [];
   return { ok: response.ok, rows, status: response.status };
@@ -180,9 +186,10 @@ export async function remoteListProjetosPageProjects(
   ownerId: string | undefined,
   deps: ProjectsApiDeps
 ): Promise<SavedProjectMeta[]> {
+  if (!canUseRemoteProjectsApi()) return [];
   const params = new URLSearchParams({ action: "projetos", scope });
   if (ownerId) params.set("ownerId", ownerId);
-  const response = await fetch(buildProjectsUrl(params));
+  const response = await fetch(buildProjectsUrl(params), { headers: authHeaders() });
   if (!response.ok) return [];
   const payload = (await toJson(response)) as { projects?: unknown[] } | null;
   const rows = Array.isArray(payload?.projects) ? payload.projects : [];
@@ -193,9 +200,9 @@ export async function remoteLoadProjectRecord(
   id: string,
   deps: ProjectsApiDeps
 ): Promise<SavedProjectRecord | null> {
-  // Em DEV também pode carregar remoto (Render), então não bloquear aqui.
+  if (!canUseRemoteProjectsApi()) return null;
   const params = new URLSearchParams({ action: "load", id });
-  const response = await fetch(buildProjectsUrl(params));
+  const response = await fetch(buildProjectsUrl(params), { headers: authHeaders() });
   if (!response.ok) return null;
   const payload = (await toJson(response)) as { project?: unknown } | null;
   const row = deps.asObject(payload?.project);
@@ -213,20 +220,23 @@ export async function remoteRenameProject(
   id: string,
   body: RenameProjectRequest
 ): Promise<boolean> {
-  // Em DEV também pode renomear remoto (Render), então não bloquear aqui.
+  if (!canUseRemoteProjectsApi()) return false;
   const params = new URLSearchParams({ action: "update", id });
   const response = await fetch(buildProjectsUrl(params), {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   return response.ok;
 }
 
 export async function remoteDeleteProject(id: string): Promise<boolean> {
-  // Em DEV também pode apagar remoto (Render), então não bloquear aqui.
+  if (!canUseRemoteProjectsApi()) return false;
   const params = new URLSearchParams({ action: "delete", id });
-  const response = await fetch(buildProjectsUrl(params), { method: "DELETE" });
+  const response = await fetch(buildProjectsUrl(params), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   if (response.status === 404) {
     console.log("[SYNC] Ignorando 404 ao deletar projeto inexistente");
     return true;

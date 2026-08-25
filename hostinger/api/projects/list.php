@@ -2,28 +2,29 @@
 /**
  * PIMO — endpoint dedicado de listagem de projetos (versão Hostinger).
  *
- * GET /api/projects/list.php
- * GET /api/projects/list.php?scope=all
- * GET /api/projects/list.php?scope=mine&ownerId=guest-xxxx
- *
- * Parâmetros:
- *   scope   = "mine" (padrão) | "all"
- *   ownerId = string (obrigatório quando scope=mine)
- *
- * scope=all  → devolve TODOS os projetos do sistema, incluindo:
- *               - ownerId com prefixo "guest-"  (visitantes)
- *               - ownerId com prefixo "anon-"   (sistema legacy)
- *               - utilizadores registados
- * scope=mine → filtra pelo ownerId exato enviado pelo cliente.
- *
- * Resposta:
- *   { "status": "ok", "scope": "...", "ownerId": "...", "total": N, "projects": [ ... ] }
+ * GET /api/projects/list.php?scope=mine|all
+ * Phase 1: JWT obrigatório; scope=mine usa JWT.sub; scope=all requer project.view.all.
  */
 declare(strict_types=1);
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+(function (): void {
+    $candidates = [
+        __DIR__ . "/../_impl/authz/resourceAccess.php",
+        __DIR__ . "/../../../api/authz/resourceAccess.php",
+    ];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+    http_response_code(503);
+    header("Content-Type: application/json; charset=utf-8");
+    echo json_encode(["status" => "error", "message" => "Authz library unavailable"], JSON_UNESCAPED_UNICODE);
+    exit;
+})();
+
+pimo_authz_cors();
 header("Content-Type: application/json; charset=utf-8");
 
 if (($_SERVER["REQUEST_METHOD"] ?? "") === "OPTIONS") {
@@ -37,22 +38,34 @@ if (($_SERVER["REQUEST_METHOD"] ?? "GET") !== "GET") {
     exit;
 }
 
+$authUser = pimo_authz_require_jwt_user();
+
 $dataDir = __DIR__ . "/data";
 
 if (!is_dir($dataDir)) {
     echo json_encode([
         "status"   => "ok",
-        "scope"    => "all",
-        "ownerId"  => null,
+        "scope"    => "mine",
+        "ownerId"  => $authUser["id"],
         "total"    => 0,
         "projects" => [],
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$scope   = isset($_GET["scope"])   ? trim((string)$_GET["scope"])   : "mine";
-$ownerId = isset($_GET["ownerId"]) ? trim((string)$_GET["ownerId"]) : "";
-$now     = gmdate("c");
+$scope = isset($_GET["scope"]) ? trim((string)$_GET["scope"]) : "mine";
+if ($scope === "all") {
+    if (!pimo_authz_can_view_all_projects($authUser)) {
+        http_response_code(403);
+        echo json_encode(["status" => "error", "message" => "Sem permissão"], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $ownerId = "";
+} else {
+    $scope = "mine";
+    $ownerId = (string) $authUser["id"];
+}
+$now = gmdate("c");
 
 /**
  * Extrai thumbnailDataUrl do projeto (top-level ou dentro de centerDisplay).
@@ -105,8 +118,6 @@ foreach ($byId as $entry) {
         continue;
     }
 
-    // scope=mine → filtrar por ownerId exato.
-    // scope=all  → sem filtro (inclui guest-, anon-, registados).
     if ($scope === "mine" && $ownerId !== "") {
         if (($data["ownerId"] ?? "") !== $ownerId) {
             continue;
@@ -128,12 +139,10 @@ foreach ($byId as $entry) {
     ];
 }
 
-// Ordenar por updatedAt descendente (mais recente primeiro).
 usort($projects, static function (array $a, array $b): int {
     return strcmp($b["updatedAt"] ?? "", $a["updatedAt"] ?? "");
 });
 
-// Atribuir sequence após ordenação.
 foreach ($projects as $i => &$p) {
     $p["sequence"] = $i + 1;
 }

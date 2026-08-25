@@ -4,10 +4,27 @@ declare(strict_types=1);
 /**
  * POST /api/industrial/orders — recebe ordem industrial do Painel Mestre (PIMO TRAK).
  * Persistência em JSON: data/industrial_orders/{orderId}.json
+ * Phase 1: JWT + permissão send_to_production / admin; ownerId do JWT.
  */
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+(function (): void {
+    $candidates = [
+        __DIR__ . '/../../_impl/authz/resourceAccess.php',
+        __DIR__ . '/../../authz/resourceAccess.php',
+    ];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+    http_response_code(503);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => false, 'error' => 'Authz library unavailable'], JSON_UNESCAPED_UNICODE);
+    exit;
+})();
+
+pimo_authz_cors();
 header('Content-Type: application/json; charset=utf-8');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
@@ -21,6 +38,8 @@ function pimo_orders_json(array $data, int $code = 200): void
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
+
+$authUser = pimo_authz_require_jwt_user();
 
 $dataDir = __DIR__ . '/data';
 if (!is_dir($dataDir)) {
@@ -43,11 +62,19 @@ if ($method === 'GET') {
         if (!is_array($decoded)) {
             continue;
         }
+        $orderOwner = isset($decoded['ownerId']) ? (string) $decoded['ownerId'] : '';
+        $canSee = pimo_authz_is_platform_admin($authUser)
+            || pimo_authz_can_view_all_projects($authUser)
+            || ($orderOwner !== '' && $orderOwner === (string) $authUser['id']);
+        if (!$canSee) {
+            continue;
+        }
         $orders[] = [
             'orderId' => $decoded['orderId'] ?? basename($file, '.json'),
             'projeto' => $decoded['projeto'] ?? null,
             'createdAt' => $decoded['createdAt'] ?? null,
             'pecasCount' => isset($decoded['pecas']) && is_array($decoded['pecas']) ? count($decoded['pecas']) : 0,
+            'ownerId' => $orderOwner !== '' ? $orderOwner : null,
         ];
     }
     usort($orders, static function ($a, $b) {
@@ -58,6 +85,10 @@ if ($method === 'GET') {
 
 if ($method !== 'POST') {
     pimo_orders_json(['ok' => false, 'error' => 'Método não suportado'], 405);
+}
+
+if (!pimo_authz_can_send_to_production($authUser)) {
+    pimo_orders_json(['ok' => false, 'error' => 'Sem permissão'], 403);
 }
 
 $rawBody = file_get_contents('php://input');
@@ -91,8 +122,9 @@ $record = [
     'medidas' => $payload['medidas'] ?? null,
     'observacoes' => $payload['observacoes'] ?? [],
     'operacoes' => $payload['operacoes'] ?? [],
-    'ownerId' => $payload['ownerId'] ?? null,
-    'ownerName' => $payload['ownerName'] ?? null,
+    // Ownership do JWT — ignorar spoof do cliente
+    'ownerId' => (string) $authUser['id'],
+    'ownerName' => (string) $authUser['username'],
 ];
 
 $filePath = $dataDir . '/' . $orderId . '.json';
