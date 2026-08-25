@@ -78,7 +78,7 @@ export default function PainelConsumoMateriais({ embedded }: { embedded?: boolea
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, marginBottom: 16 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
-              {["Caixa", "Peça", "Material", "Qtd", "Área m²", "Peso kg"].map((h) => (
+              {["Peça", "N QR", "Material", "Qtd", "Área m²", "Peso kg"].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: 6, color: "var(--text-muted)" }}>
                   {h}
                 </th>
@@ -88,8 +88,8 @@ export default function PainelConsumoMateriais({ embedded }: { embedded?: boolea
           <tbody>
             {summary.porPeca.map((r) => (
               <tr key={r.pecaId} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <td style={{ padding: 6 }}>{r.caixa}</td>
                 <td style={{ padding: 6 }}>{r.peca}</td>
+                <td style={{ padding: 6, fontFamily: "monospace" }}>{r.nQr}</td>
                 <td style={{ padding: 6 }}>{r.material}</td>
                 <td style={{ padding: 6 }}>{r.quantidade}</td>
                 <td style={{ padding: 6 }}>{(r.areaMm2 / 1_000_000).toFixed(4)}</td>

@@ -460,7 +460,7 @@ export function buildCanonicalIndustrialOnlineAnalysisSections(
         title: "Consumo por peça",
         columns: [
           col("peca", "Peça", true),
-          col("caixa", "Caixa", true),
+          col("nQr", "N QR", false),
           col("material", "Material", true),
           col("area", "Área m²", false),
           col("pesoKg", "Peso kg", false),
@@ -468,10 +468,10 @@ export function buildCanonicalIndustrialOnlineAnalysisSections(
         ],
         rows: consumo.porPeca.map((r) =>
           rowFromCells(
-            r.pecaId || makeCanonicalRowId(docId, "consumoPeca", [r.peca, r.caixa, r.material]),
+            r.pecaId || makeCanonicalRowId(docId, "consumoPeca", [r.peca, r.nQr, r.material]),
             {
               peca: r.peca,
-              caixa: r.caixa,
+              nQr: r.nQr,
               material: r.material,
               area: (r.areaMm2 / 1_000_000).toFixed(3),
               pesoKg: r.pesoKg.toFixed(2),

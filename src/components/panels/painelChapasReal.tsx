@@ -88,7 +88,7 @@ export default function PainelChapasReal({ embedded }: { embedded?: boolean } = 
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <thead>
                 <tr>
-                  {["Peça", "Caixa", "Largura", "Altura"].map((h) => (
+                  {["Peça", "N QR", "Largura", "Altura"].map((h) => (
                     <th key={h} style={{ textAlign: "left", padding: 4, color: "var(--text-muted)" }}>
                       {h}
                     </th>
@@ -99,7 +99,7 @@ export default function PainelChapasReal({ embedded }: { embedded?: boolean } = 
                 {sheet.pieces.map((p, i) => (
                   <tr key={`${sheet.sheetIndex}-${i}`}>
                     <td style={{ padding: 4 }}>{p.nome}</td>
-                    <td style={{ padding: 4 }}>{p.boxId}</td>
+                    <td style={{ padding: 4, fontFamily: "monospace" }}>{p.nQr}</td>
                     <td style={{ padding: 4 }}>{p.largura} mm</td>
                     <td style={{ padding: 4 }}>{p.altura} mm</td>
                   </tr>

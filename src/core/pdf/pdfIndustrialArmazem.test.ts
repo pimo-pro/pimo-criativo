@@ -28,7 +28,7 @@ describe("buildIndustrialArmazemPdf", () => {
           sheetAreaMm2: 2_000_000,
           wasteMm2: 1_000_000,
           wastePct: 50,
-          pieces: [{ nome: "LAT", boxId: "C1", largura: 600, altura: 700 }],
+          pieces: [{ nome: "LAT", boxId: "C1", nQr: "x", largura: 600, altura: 700 }],
         },
         {
           sheetIndex: 2,
@@ -52,6 +52,7 @@ describe("buildIndustrialArmazemPdf", () => {
           pecaId: "1",
           peca: "LAT",
           caixa: "C1",
+          nQr: "x",
           material: "MDF Branco",
           areaMm2: 100000,
           pesoKg: 1,

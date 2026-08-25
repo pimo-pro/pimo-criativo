@@ -2,11 +2,19 @@ import type { CutListItemComPreco } from "../types";
 import type { MaterialIndustrial } from "../manufacturing/materials";
 import { CHAPA_PADRAO_LARGURA, CHAPA_PADRAO_ALTURA, DENSIDADE_PADRAO } from "../manufacturing/materials";
 import { computeChapasReal } from "./computeChapasReal";
+import {
+  resolveFullIndustrialNameForDocument,
+  resolveIndustrialIdForDocument,
+} from "../etiquetas/industrialDisplayName";
 
 export type ConsumoPorPecaRow = {
   pecaId: string;
+  /** Nome industrial completo (`buildFullIndustrialName`). */
   peca: string;
+  /** @deprecated Redundante face ao nome completo — mantido para consumidores legados. */
   caixa: string;
+  /** ID industrial curto (= etiqueta / No ETQ). */
+  nQr: string;
   material: string;
   areaMm2: number;
   pesoKg: number;
@@ -51,10 +59,12 @@ export function computeConsumoMateriais(
 
   const porPeca: ConsumoPorPecaRow[] = items.map((item) => {
     const area = item.dimensoes.largura * item.dimensoes.altura * (item.quantidade ?? 1);
+    const caixa = boxNome[item.boxId ?? ""] ?? item.boxId ?? "—";
     return {
       pecaId: item.id,
-      peca: item.tipo,
-      caixa: boxNome[item.boxId ?? ""] ?? item.boxId ?? "—",
+      peca: resolveFullIndustrialNameForDocument(item, projectName, caixa),
+      caixa,
+      nQr: resolveIndustrialIdForDocument(item, projectName, caixa),
       material: item.material ?? "—",
       areaMm2: area,
       pesoKg: pieceWeightKg(item, materials),

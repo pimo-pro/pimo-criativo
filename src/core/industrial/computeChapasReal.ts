@@ -26,6 +26,20 @@ import {
   MDB_LAMINADO_SHEET_LF_MM,
   usesOfficialMdbLaminadoSheet,
 } from "../materials/materials.api";
+import {
+  resolveFullIndustrialNameForDocument,
+  resolveIndustrialIdForDocument,
+} from "../etiquetas/industrialDisplayName";
+import { resolvePieceToken } from "../naming/industrialNaming";
+
+/** Peça dentro de uma chapa — nome completo + N QR (= etiqueta). */
+export type ChapasRealPieceRow = {
+  nome: string;
+  boxId: string;
+  nQr: string;
+  largura: number;
+  altura: number;
+};
 
 export type ChapasRealSheetRow = {
   sheetIndex: number;
@@ -38,7 +52,7 @@ export type ChapasRealSheetRow = {
   sheetAreaMm2: number;
   wasteMm2: number;
   wastePct: number;
-  pieces: Array<{ nome: string; boxId: string; largura: number; altura: number }>;
+  pieces: ChapasRealPieceRow[];
 };
 
 /** real = sheets[] do nesting fast; estimado = fallback por área; vazio = sem peças. */
@@ -65,6 +79,80 @@ function emptySummary(
     sheets: [],
     layout: null,
     ...partial,
+  };
+}
+
+function boxNomeFromList(
+  boxes: Array<{ id: string; nome?: string }>,
+  boxId: string
+): string {
+  return boxes.find((b) => b.id === boxId)?.nome?.trim() || boxId || "—";
+}
+
+function findCutlistItemForPlacement(
+  groupItems: CutListItemComPreco[],
+  boxId: string,
+  partName: string
+): CutListItemComPreco | undefined {
+  const inBox = groupItems.filter((i) => String(i.boxId ?? "") === boxId);
+  const pool = inBox.length > 0 ? inBox : groupItems;
+  const exact = pool.find(
+    (i) => String(i.nome ?? "") === partName || String(i.tipo ?? "") === partName
+  );
+  if (exact) return exact;
+
+  const partLower = partName.toLowerCase();
+  const byToken = pool.find((i) => {
+    const token = resolvePieceToken(String(i.tipo ?? i.nome ?? "peca")).toLowerCase();
+    return (
+      partLower === token ||
+      partLower.endsWith(`_${token}`) ||
+      partLower.endsWith(token)
+    );
+  });
+  if (byToken) return byToken;
+
+  return pool.length === 1 ? pool[0] : undefined;
+}
+
+/** Resolve nome completo + N QR a partir do placement e do cutlist do grupo. */
+export function resolveChapasRealPieceRow(
+  placement: { partName?: string; boxId?: string; largura_mm: number; altura_mm: number },
+  groupItems: CutListItemComPreco[],
+  projectName: string,
+  boxes: Array<{ id: string; nome?: string }>
+): ChapasRealPieceRow {
+  const boxId = String(placement.boxId ?? "");
+  const partName = String(placement.partName ?? "").trim();
+  const boxNome = boxNomeFromList(boxes, boxId);
+  const item = findCutlistItemForPlacement(groupItems, boxId, partName);
+
+  let like: { nome?: string; tipo?: string; metadata?: Record<string, unknown> };
+  if (item) {
+    like = item;
+  } else if (!partName) {
+    like = { nome: "peca", tipo: "peca" };
+  } else {
+    // Nesting V3 / sem cutlist: partName pode ser "C1_lat_esq" — extrair token final conhecido.
+    const parts = partName.split("_").filter(Boolean);
+    let key = partName;
+    for (let n = Math.min(3, parts.length); n >= 1; n--) {
+      const candidate = parts.slice(-n).join("_");
+      const token = resolvePieceToken(candidate);
+      if (token === candidate.toLowerCase() || token !== candidate.replace(/\s+/g, "_").toLowerCase()) {
+        key = candidate;
+        break;
+      }
+    }
+    like = { nome: key, tipo: key };
+  }
+
+  return {
+    nome: resolveFullIndustrialNameForDocument(like, projectName, boxNome),
+    nQr: resolveIndustrialIdForDocument(like, projectName, boxNome),
+    boxId,
+    largura: placement.largura_mm,
+    altura: placement.altura_mm,
   };
 }
 
@@ -185,12 +273,9 @@ export function computeChapasReal(
         sheetAreaMm2: sheetArea,
         wasteMm2: waste,
         wastePct: sheetArea > 0 ? (waste / sheetArea) * 100 : 0,
-        pieces: sheetResult.placements.map((p) => ({
-          nome: p.partName ?? "\u2014",
-          boxId: p.boxId ?? "",
-          largura: p.largura_mm,
-          altura: p.altura_mm,
-        })),
+        pieces: sheetResult.placements.map((p) =>
+          resolveChapasRealPieceRow(p, groupItems as CutListItemComPreco[], projectName, boxes)
+        ),
       });
 
       mergedLayoutSheets.push({

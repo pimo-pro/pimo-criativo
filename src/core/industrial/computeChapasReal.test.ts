@@ -196,4 +196,27 @@ describe("computeChapasReal - parity with TCN grouping", () => {
       expect(result.diagnostics[0]).toMatch(/fallback estimado|chapasReais€=0/);
     }
   });
+
+  it("peças nas chapas trazem nome completo + N QR (= buildIndustrialId)", () => {
+    const items: CutListItemComPreco[] = [
+      makeItem({
+        nome: "Lateral esquerda",
+        tipo: "lateral_esquerda",
+        material: "MDF Branco 19",
+        materialId: "mdf_branco-19",
+        espessura: 19,
+        largura: 500,
+        altura: 700,
+      }),
+    ];
+    const result = computeChapasReal(items, "Khaled Cozinha Nova", [
+      { id: "box-1", nome: "C 1" },
+    ]);
+    if (result.sheets.length === 0) return;
+    const piece = result.sheets[0]!.pieces[0];
+    expect(piece).toBeTruthy();
+    expect(piece!.nome).toBe("khaled_cozinha_nova_c_1_lat_esq");
+    expect(piece!.nQr).toBe("kcnc1le");
+    expect(piece!.nQr).not.toMatch(/-/);
+  });
 });

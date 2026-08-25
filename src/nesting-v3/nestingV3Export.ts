@@ -8,6 +8,7 @@
 import type { NestingV3State } from "./nestingV3Types";
 import type { CutLayoutResult } from "../core/cutlayout/cutLayoutTypes";
 import type { ChapasRealSummary } from "../core/industrial/computeChapasReal";
+import { resolveChapasRealPieceRow } from "../core/industrial/computeChapasReal";
 import type { ConsumoMateriaisSummary } from "../core/industrial/computeConsumoMateriais";
 import { exportCncFiles } from "../core/cnc/cncExport";
 import type { CncExportResult } from "../core/cnc/cncTypes";
@@ -27,7 +28,11 @@ export function prepareNestingV3IndustrialLayout(state: NestingV3State): CutLayo
 }
 
 /** Converte layout industrial V3 → resumos usados pelo PDF armazém. */
-export function chapasAndConsumoFromCutLayout(layout: CutLayoutResult): {
+export function chapasAndConsumoFromCutLayout(
+  layout: CutLayoutResult,
+  projectName = "Projeto",
+  boxes: Array<{ id: string; nome?: string }> = []
+): {
   chapas: ChapasRealSummary;
   consumo: ConsumoMateriaisSummary;
 } {
@@ -37,6 +42,9 @@ export function chapasAndConsumoFromCutLayout(layout: CutLayoutResult): {
     const sheetArea = sheetW * sheetH;
     const usedArea = sheetResult.placements.reduce((s, p) => s + p.largura_mm * p.altura_mm, 0);
     const waste = Math.max(0, sheetArea - usedArea);
+    const pieces = sheetResult.placements.map((p) =>
+      resolveChapasRealPieceRow(p, [], projectName, boxes)
+    );
     return {
       sheetIndex: idx + 1,
       espessuraMm: sheetResult.sheet.espessura_mm ?? 18,
@@ -48,12 +56,7 @@ export function chapasAndConsumoFromCutLayout(layout: CutLayoutResult): {
       sheetAreaMm2: sheetArea,
       wasteMm2: waste,
       wastePct: sheetArea > 0 ? (waste / sheetArea) * 100 : 0,
-      pieces: sheetResult.placements.map((p) => ({
-        nome: p.partName ?? "—",
-        boxId: p.boxId ?? "",
-        largura: p.largura_mm,
-        altura: p.altura_mm,
-      })),
+      pieces,
     };
   });
 
@@ -85,6 +88,7 @@ export function chapasAndConsumoFromCutLayout(layout: CutLayoutResult): {
         pecaId: `${s.sheetIndex}-${i}`,
         peca: p.nome,
         caixa: p.boxId || "—",
+        nQr: p.nQr,
         material: s.material,
         areaMm2: p.largura * p.altura,
         pesoKg: 0,
