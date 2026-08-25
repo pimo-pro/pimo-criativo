@@ -6,31 +6,16 @@
  * Uso: node scripts/regenerateIndustrialWorkOrderNqr.mjs
  */
 
-import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadMigrateEnv } from "./migrateEnv.mjs";
+import { assertMigrateTargetOrExit } from "./migrateTargetGuard.mjs";
 
 const rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return {};
-  const out = {};
-  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const idx = trimmed.indexOf("=");
-    if (idx <= 0) continue;
-    out[trimmed.slice(0, idx)] = trimmed.slice(idx + 1).trim();
-  }
-  return out;
-}
-
-const envFromFiles = {
-  ...loadEnvFile(path.join(rootDir, ".env")),
-  ...loadEnvFile(path.join(rootDir, ".env.production")),
-  ...process.env,
-};
+const envFromFiles = loadMigrateEnv(rootDir);
+assertMigrateTargetOrExit(envFromFiles);
 
 const supabaseUrl = String(envFromFiles.VITE_SUPABASE_URL ?? "").trim();
 const supabaseKey = String(envFromFiles.VITE_SUPABASE_ANON_KEY ?? "").trim();
@@ -40,7 +25,7 @@ if (!supabaseUrl || !supabaseKey) {
     "ERRO: VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórios para regenerar metadata N-QR.",
   );
   console.error(
-    "Configure .env.production ou exporte as variáveis antes de executar este script.",
+    "Configure .env.staging / .env.production conforme PIMO_MIGRATE_TARGET (nunca misturar).",
   );
   process.exit(1);
 }
