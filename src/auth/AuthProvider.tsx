@@ -7,6 +7,7 @@ import {
   readLocalAuthSession,
   tryLocalAuth,
 } from "../local-auth";
+import { hasPermissionWithLocalDevAccess } from "../core/environment/localDevAccess";
 import { AuthContext, type AuthUser } from "./AuthContext";
 
 const STORAGE_TOKEN = "pimo_auth_token";
@@ -29,12 +30,14 @@ export function AuthProvider({ children }: Props) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [localDevSessionActive, setLocalDevSessionActive] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const clearSession = useCallback(() => {
     setToken(null);
     setUser(null);
     setPermissions([]);
+    setLocalDevSessionActive(false);
     setApiToken(null);
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
@@ -43,6 +46,11 @@ export function AuthProvider({ children }: Props) {
   }, []);
 
   useEffect(() => {
+    // Sessões locais só em DEV; limpar restos em builds não-locais.
+    if (!import.meta.env.DEV) {
+      clearLocalAuthSession();
+    }
+
     const localSession = readLocalAuthSession();
     if (localSession) {
       setToken(localSession.token);
@@ -51,7 +59,8 @@ export function AuthProvider({ children }: Props) {
         username: localSession.user.name,
         role: localSession.user.role,
       });
-      setPermissions([]);
+      setPermissions(localSession.permissions);
+      setLocalDevSessionActive(true);
       setApiToken(null);
       setLoading(false);
       return;
@@ -72,6 +81,7 @@ export function AuthProvider({ children }: Props) {
       setToken(storedToken);
       setUser(parsedUser);
       setPermissions(Array.isArray(parsedPermissions) ? parsedPermissions : []);
+      setLocalDevSessionActive(false);
       setApiToken(storedToken);
     } catch {
       clearSession();
@@ -80,53 +90,53 @@ export function AuthProvider({ children }: Props) {
     }
   }, [clearSession]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      if (tryLocalAuth(email, password)) {
-        const localSession = readLocalAuthSession();
-        if (!localSession) {
-          throw new Error("Sessão local inválida");
-        }
-        setToken(localSession.token);
-        setUser({
-          id: localSession.user.id,
-          username: localSession.user.name,
-          role: localSession.user.role,
-        });
-        setPermissions([]);
-        setApiToken(null);
-        return;
+  const login = useCallback(async (email: string, password: string) => {
+    // LOCAL DEV AUTH (K/K) — separado do JWT real; requer backend local.
+    if (await tryLocalAuth(email, password)) {
+      const localSession = readLocalAuthSession();
+      if (!localSession) {
+        throw new Error("Sessão local inválida");
       }
-
-      const loginResult = await loginApi(email, password);
-      setApiToken(loginResult.token);
-      const me = await getMe();
-      if (!me?.user?.id) throw new Error("Resposta inválida do servidor");
-
-      setToken(loginResult.token);
+      setToken(localSession.token);
       setUser({
+        id: localSession.user.id,
+        username: localSession.user.name,
+        role: localSession.user.role,
+      });
+      setPermissions(localSession.permissions);
+      setLocalDevSessionActive(true);
+      setApiToken(null);
+      return;
+    }
+
+    const loginResult = await loginApi(email, password);
+    setApiToken(loginResult.token);
+    const me = await getMe();
+    if (!me?.user?.id) throw new Error("Resposta inválida do servidor");
+
+    setToken(loginResult.token);
+    setUser({
+      id: me.user.id,
+      username: me.user.username,
+      role: me.user.role,
+    });
+    setPermissions(Array.isArray(me.user.permissions) ? me.user.permissions : []);
+    setLocalDevSessionActive(false);
+
+    localStorage.setItem(STORAGE_TOKEN, loginResult.token);
+    localStorage.setItem(
+      STORAGE_USER,
+      JSON.stringify({
         id: me.user.id,
         username: me.user.username,
         role: me.user.role,
-      });
-      setPermissions(Array.isArray(me.user.permissions) ? me.user.permissions : []);
-
-      localStorage.setItem(STORAGE_TOKEN, loginResult.token);
-      localStorage.setItem(
-        STORAGE_USER,
-        JSON.stringify({
-          id: me.user.id,
-          username: me.user.username,
-          role: me.user.role,
-        })
-      );
-      localStorage.setItem(
-        STORAGE_PERMISSIONS,
-        JSON.stringify(Array.isArray(me.user.permissions) ? me.user.permissions : [])
-      );
-    },
-    []
-  );
+      })
+    );
+    localStorage.setItem(
+      STORAGE_PERMISSIONS,
+      JSON.stringify(Array.isArray(me.user.permissions) ? me.user.permissions : [])
+    );
+  }, []);
 
   const logout = useCallback(() => {
     clearSession();
@@ -136,12 +146,16 @@ export function AuthProvider({ children }: Props) {
     return Boolean(token);
   }, [token]);
 
-  /** RBAC: lista espelha `pimo_auth_permissions` e o array normalizado de `/me` (após fix do contrato). */
+  /** RBAC + Full Local Development Access (só local-dev + sessão local). */
   const hasPermission = useCallback(
     (permission: string) => {
-      return permissions.includes("admin.full_access") || permissions.includes(permission);
+      return hasPermissionWithLocalDevAccess(
+        permission,
+        (p) => permissions.includes("admin.full_access") || permissions.includes(p),
+        { localDevSessionActive }
+      );
     },
-    [permissions]
+    [permissions, localDevSessionActive]
   );
 
   const value = useMemo(

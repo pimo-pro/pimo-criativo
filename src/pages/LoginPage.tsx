@@ -8,17 +8,18 @@ import FormGroup from "../components/ui/FormGroup";
 import Input from "../components/ui/Input";
 import PageContainer from "../components/ui/PageContainer";
 import Section from "../components/ui/Section";
-import { isLocalAuthSession } from "../local-auth";
+import { isFrontendLocalDevAuthAllowed, isLocalAuthSession } from "../local-auth";
 import "../components/ui/ui.css";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
-  const [email, setEmail] = useState("admin@pimo.local");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const showLocalDevHint = isFrontendLocalDevAuthAllowed();
 
   if (isAuthenticated()) {
     return <Navigate to="/dashboard" replace />;
@@ -63,6 +64,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="username"
                   />
                 </FormGroup>
                 <FormGroup>
@@ -143,6 +145,11 @@ export default function LoginPage() {
                     </div>
                   </label>
                 </FormGroup>
+                {showLocalDevHint ? (
+                  <p className="ui-text-muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
+                    Desenvolvimento local: autenticação K/K disponível (apenas neste ambiente).
+                  </p>
+                ) : null}
                 <div className="ui-form-group ui-auth-divider">
                   {error ? <p className="ui-text-danger">{error}</p> : null}
                   <Button type="submit" variant="primary" disabled={submitting}>

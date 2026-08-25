@@ -124,6 +124,7 @@ function LegacyApp() {
     startX: 0,
     startWidth: 260,
   });
+  const { user, hasPermission, loading: authLoading } = useAuth();
 
   const clampLeftWidth = (value: number) => Math.min(420, Math.max(220, value));
 
@@ -262,7 +263,22 @@ function LegacyApp() {
               {showSystemDocs ? (
                 <Documentacao />
               ) : showAdmin ? (
-                <AdminPanel />
+                authLoading ? (
+                  <div style={{ padding: 20, color: "var(--text-muted)" }}>A carregar sessão…</div>
+                ) : !user ? (
+                  <Navigate to="/login" replace state={{ from: "/admin" }} />
+                ) : !canAccessAdminPanel(hasPermission) ? (
+                  <div style={{ padding: 24, maxWidth: 480 }}>
+                    <p style={{ color: "var(--danger, #b91c1c)", marginTop: 0 }}>
+                      Não tem permissão para aceder ao painel de administração.
+                    </p>
+                    <Link to="/dashboard" style={{ fontWeight: 600 }}>
+                      Voltar ao Dashboard
+                    </Link>
+                  </div>
+                ) : (
+                  <AdminPanel />
+                )
               ) : showDevTest && DevPimoTest ? (
                 <DevPimoTest />
               ) : showAjuda ? (
@@ -583,8 +599,22 @@ export default function App() {
             <Route path="/industrial/operations/orlar" element={<IndustrialOrlarPage />} />
             <Route path="/industrial/operations/montagem" element={<IndustrialMontagemPage />} />
             <Route path="/industrial/operations/embalagem" element={<IndustrialEmbalagemPage />} />
-            <Route path="/admin/settings/industrial" element={<IndustrialAdminSettingsPage />} />
-            <Route path="/admin/system-settings/industrial/realtime-alerts" element={<RealtimeAlertsAdminPage />} />
+            <Route
+              path="/admin/settings/industrial"
+              element={
+                <PermissionRoute check={canAccessAdminPanel}>
+                  <IndustrialAdminSettingsPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="/admin/system-settings/industrial/realtime-alerts"
+              element={
+                <PermissionRoute check={canAccessAdminPanel}>
+                  <RealtimeAlertsAdminPage />
+                </PermissionRoute>
+              }
+            />
             <Route
               path={INDUSTRIAL_ADMIN_MODELS_PATH}
               element={

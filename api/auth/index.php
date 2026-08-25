@@ -15,13 +15,77 @@ define('PIMO_AUTH_LIB_LOADED', true);
 const PIMO_USERS_FILE = __DIR__ . '/../data/users.json';
 const PIMO_JWT_TTL = 86400;
 
-function pimo_jwt_secret(): string
+/**
+ * Ambiente da aplicação (fail-closed).
+ * Ausente / desconhecido → production (nunca assume local).
+ * Valores: local | development | staging | production | preview
+ */
+function pimo_app_env(): string
+{
+    $raw = getenv('PIMO_APP_ENV');
+    if (!is_string($raw) || trim($raw) === '') {
+        return 'production';
+    }
+    $env = strtolower(trim($raw));
+    $allowed = ['local', 'development', 'staging', 'production', 'preview'];
+    if (!in_array($env, $allowed, true)) {
+        return 'production';
+    }
+    return $env;
+}
+
+/** Local / development explícitos apenas — staging/preview/production = false. */
+function pimo_is_local_dev_environment(): bool
+{
+    $env = pimo_app_env();
+    return $env === 'local' || $env === 'development';
+}
+
+/**
+ * JWT signing secret.
+ * - production/staging/preview: PIMO_JWT_SECRET obrigatório (≥32), senão null (fail-closed).
+ * - local/development: PIMO_JWT_SECRET, senão PIMO_JWT_SECRET_LOCAL, senão material LOCAL-ONLY
+ *   (nunca o antigo fallback de produção).
+ *
+ * @return non-empty-string|null
+ */
+function pimo_jwt_secret(): ?string
 {
     $env = getenv('PIMO_JWT_SECRET');
-    if (is_string($env) && $env !== '') {
+    if (is_string($env) && strlen($env) >= 32) {
         return $env;
     }
-    return 'pimo-hostinger-mudar-este-segredo-min-32-chars!!';
+
+    if (pimo_is_local_dev_environment()) {
+        $local = getenv('PIMO_JWT_SECRET_LOCAL');
+        if (is_string($local) && strlen($local) >= 32) {
+            return $local;
+        }
+        // Material explícito só para PIMO_APP_ENV=local|development — não reutilizar em prod.
+        return 'pimo-LOCAL-DEV-ONLY-jwt-not-for-prod-32+';
+    }
+
+    return null;
+}
+
+/** Emite 503 e termina se o secret JWT não estiver disponível (non-local). */
+function pimo_require_jwt_secret(): string
+{
+    $secret = pimo_jwt_secret();
+    if ($secret === null || $secret === '') {
+        pimo_json_response([
+            'status' => 'error',
+            'message' => 'Auth misconfigured (PIMO_JWT_SECRET obrigatório neste ambiente)',
+        ], 503);
+        exit;
+    }
+    return $secret;
+}
+
+/** Token de sessão local de desenvolvimento — nunca é JWT válido em APIs reais. */
+function pimo_is_local_dev_bearer(?string $token): bool
+{
+    return is_string($token) && $token === 'local-dev-token';
 }
 
 function pimo_cors(): void
@@ -73,8 +137,14 @@ function pimo_jwt_encode(array $payload, string $secret, int $ttlSec = PIMO_JWT_
 }
 
 /** @return array<string,mixed>|null */
-function pimo_jwt_decode(string $jwt, string $secret): ?array
+function pimo_jwt_decode(string $jwt, ?string $secret): ?array
 {
+    if ($secret === null || $secret === '') {
+        return null;
+    }
+    if (pimo_is_local_dev_bearer($jwt)) {
+        return null;
+    }
     $parts = explode('.', $jwt);
     if (count($parts) !== 3) {
         return null;
@@ -122,8 +192,22 @@ function pimo_save_users(array $users): void
     );
 }
 
+/**
+ * Seed admin conhecido — APENAS local/development.
+ * Staging/production/preview: nunca cria admin@pimo.local / admin123.
+ */
 function pimo_ensure_default_admin(): void
 {
+    if (!pimo_is_local_dev_environment()) {
+        return;
+    }
+    $allow = getenv('PIMO_ALLOW_DEFAULT_ADMIN');
+    // Em local/development: activo por omissão (workflow local).
+    // Desligar com PIMO_ALLOW_DEFAULT_ADMIN=0.
+    if (is_string($allow) && ($allow === '0' || strtolower($allow) === 'false')) {
+        return;
+    }
+
     $users = pimo_load_users();
     foreach ($users as $u) {
         if (($u['email'] ?? '') === 'admin@pimo.local') {
@@ -327,20 +411,67 @@ function pimo_auth_handle_login(): void
         pimo_json_response(['status' => 'error', 'message' => 'email e password obrigatórios'], 400);
         return;
     }
+    // K/K nunca passa pelo login JWT real — só /auth/dev-local em ambiente local.
+    if ($email === 'K' && $password === 'K') {
+        pimo_json_response([
+            'status' => 'error',
+            'message' => 'Credenciais inválidas',
+        ], 401);
+        return;
+    }
     $users = pimo_load_users();
     $user = pimo_find_user_by_email($users, $email);
     if ($user === null || empty($user['passwordHash']) || !password_verify($password, (string) $user['passwordHash'])) {
         pimo_json_response(['status' => 'error', 'message' => 'Credenciais inválidas'], 401);
         return;
     }
+    $secret = pimo_require_jwt_secret();
     $id = (string) $user['id'];
     $username = (string) ($user['username'] ?? $user['email']);
     $role = (string) ($user['role'] ?? 'visitor');
-    $token = pimo_jwt_encode(['sub' => $id, 'email' => $user['email']], pimo_jwt_secret());
+    $token = pimo_jwt_encode(['sub' => $id, 'email' => $user['email']], $secret);
     pimo_json_response([
         'status' => 'ok',
         'token' => $token,
         'user' => ['id' => $id, 'username' => $username, 'role' => $role],
+    ]);
+}
+
+/**
+ * Login de desenvolvimento local (K/K).
+ * Fail-closed: só com PIMO_APP_ENV=local|development.
+ * Não emite JWT de produção — devolve token local não aceite pelas APIs JWT.
+ */
+function pimo_auth_handle_dev_local(): void
+{
+    if (!pimo_is_local_dev_environment()) {
+        pimo_json_response([
+            'status' => 'error',
+            'message' => 'Local development auth disabled neste ambiente',
+        ], 403);
+        return;
+    }
+    $raw = file_get_contents('php://input') ?: '';
+    $body = json_decode($raw, true);
+    if (!is_array($body)) {
+        pimo_json_response(['status' => 'error', 'message' => 'JSON inválido'], 400);
+        return;
+    }
+    $email = trim((string) ($body['email'] ?? ''));
+    $password = (string) ($body['password'] ?? '');
+    if ($email !== 'K' || $password !== 'K') {
+        pimo_json_response(['status' => 'error', 'message' => 'Credenciais locais inválidas'], 401);
+        return;
+    }
+    pimo_json_response([
+        'status' => 'ok',
+        'localDev' => true,
+        'token' => 'local-dev-token',
+        'user' => [
+            'id' => 'local-user',
+            'username' => 'Khaled Local',
+            'role' => 'industrial',
+        ],
     ]);
 }
 
@@ -351,7 +482,19 @@ function pimo_auth_handle_me(): void
         pimo_json_response(['status' => 'error', 'message' => 'Não autenticado'], 401);
         return;
     }
-    $payload = pimo_jwt_decode($token, pimo_jwt_secret());
+    if (pimo_is_local_dev_bearer($token)) {
+        pimo_json_response(['status' => 'error', 'message' => 'Token local de desenvolvimento não válido para APIs'], 401);
+        return;
+    }
+    $secret = pimo_jwt_secret();
+    if ($secret === null) {
+        pimo_json_response([
+            'status' => 'error',
+            'message' => 'Auth misconfigured (PIMO_JWT_SECRET obrigatório neste ambiente)',
+        ], 503);
+        return;
+    }
+    $payload = pimo_jwt_decode($token, $secret);
     if ($payload === null || empty($payload['sub'])) {
         pimo_json_response(['status' => 'error', 'message' => 'Token inválido'], 401);
         return;
@@ -390,10 +533,19 @@ function pimo_auth_router(): void
     $path = pimo_request_path();
     $endsRegister = str_ends_with($path, '/auth/register');
     $endsLogin = str_ends_with($path, '/auth/login');
+    $endsDevLocal = str_ends_with($path, '/auth/dev-local');
     $isMe = $path === '/me' || str_ends_with($path, '/me');
-    $postToAuthScript = $method === 'POST' && str_contains($path, 'api/auth');
+    $postToAuthScript = $method === 'POST'
+        && str_contains($path, 'api/auth')
+        && !$endsRegister
+        && !$endsDevLocal
+        && !$endsLogin;
 
     try {
+        if ($method === 'POST' && $endsDevLocal) {
+            pimo_auth_handle_dev_local();
+            return;
+        }
         if ($method === 'POST' && $endsRegister) {
             pimo_auth_handle_register();
             return;
