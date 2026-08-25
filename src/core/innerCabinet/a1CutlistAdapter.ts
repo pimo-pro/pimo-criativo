@@ -72,7 +72,7 @@ function buildA1DrawerPieces(
   box: BoxModule,
   layout: A1Layout,
   materialId: string,
-  boxName: string
+  _boxName: string
 ): CutListItem[] {
   const gap = DRAWER_FRONT_LATERAL_GAP_MM;
   const sideT = DRAWER_SIDE_THICKNESS_MM;
