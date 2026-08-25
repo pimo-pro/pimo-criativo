@@ -23,7 +23,7 @@ type FerragemDefault = NonNullable<ComponentType["ferragens_default"]>[number];
 const FERRAGEM_DIAMETRO: Record<string, number> = {
   parafuso_4x50: 3,
   parafuso_puxador: 5,
-  cavilha_8mm: 8,
+  cavilha_10x40: 10,
   dobradica_35mm: 35,
   suporte_prateleira: 5,
   corredica_esq: 5,

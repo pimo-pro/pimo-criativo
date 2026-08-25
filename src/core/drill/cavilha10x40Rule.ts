@@ -7,7 +7,8 @@
  */
 
 export const CAVILHA_10x40_FERRAGEM_ID = "cavilha_10x40";
-export const CAVILHA_10x40_FERRAGEM_NOME = "CAVILHA_10x40";
+/** Nome comercial em documentos (PDF/XLSX). ID técnico permanece `cavilha_10x40`. */
+export const CAVILHA_10x40_FERRAGEM_NOME = "Cavilha 10mm";
 export const CAVILHA_10x40_COR = "bege";
 export const CAVILHA_10x40_DIAMETER_MM = 10;
 export const CAVILHA_10x40_LENGTH_MM = 40;

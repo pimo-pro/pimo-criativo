@@ -69,10 +69,9 @@ export const COMPONENT_TYPES_DEFAULT: ComponentType[] = [
     recebe_furos: true,
     ferragens_default: [
       { ferragem_id: "parafuso_4x50", quantidade_fixa: 4, aplicar_em: [] },
-      { ferragem_id: "cavilha_8mm", quantidade_fixa: 4, aplicar_em: [] },
     ],
     regras_de_furo: [
-      { tipo: "cavilha", diametro: 8, aplicar_em: ["direita", "esquerda"] },
+      { tipo: "cavilha", diametro: 10, aplicar_em: ["direita", "esquerda"] },
       { tipo: "parafuso", diametro: 3, aplicar_em: ["direita", "esquerda"] },
     ],
   },
@@ -81,10 +80,9 @@ export const COMPONENT_TYPES_DEFAULT: ComponentType[] = [
     recebe_furos: true,
     ferragens_default: [
       { ferragem_id: "parafuso_4x50", quantidade_fixa: 4, aplicar_em: [] },
-      { ferragem_id: "cavilha_8mm", quantidade_fixa: 4, aplicar_em: [] },
     ],
     regras_de_furo: [
-      { tipo: "cavilha", diametro: 8, aplicar_em: ["direita", "esquerda"] },
+      { tipo: "cavilha", diametro: 10, aplicar_em: ["direita", "esquerda"] },
       { tipo: "parafuso", diametro: 3, aplicar_em: ["direita", "esquerda"] },
     ],
   },
@@ -93,10 +91,9 @@ export const COMPONENT_TYPES_DEFAULT: ComponentType[] = [
     recebe_furos: true,
     ferragens_default: [
       { ferragem_id: "parafuso_4x50", quantidade_fixa: 4, aplicar_em: [] },
-      { ferragem_id: "cavilha_8mm", quantidade_fixa: 4, aplicar_em: [] },
     ],
     regras_de_furo: [
-      { tipo: "cavilha", diametro: 8, aplicar_em: ["topo", "fundo"] },
+      { tipo: "cavilha", diametro: 10, aplicar_em: ["topo", "fundo"] },
       { tipo: "parafuso", diametro: 3, aplicar_em: ["topo", "fundo"] },
     ],
   },
@@ -105,10 +102,9 @@ export const COMPONENT_TYPES_DEFAULT: ComponentType[] = [
     recebe_furos: true,
     ferragens_default: [
       { ferragem_id: "parafuso_4x50", quantidade_fixa: 4, aplicar_em: [] },
-      { ferragem_id: "cavilha_8mm", quantidade_fixa: 4, aplicar_em: [] },
     ],
     regras_de_furo: [
-      { tipo: "cavilha", diametro: 8, aplicar_em: ["topo", "fundo"] },
+      { tipo: "cavilha", diametro: 10, aplicar_em: ["topo", "fundo"] },
       { tipo: "parafuso", diametro: 3, aplicar_em: ["topo", "fundo"] },
     ],
   },

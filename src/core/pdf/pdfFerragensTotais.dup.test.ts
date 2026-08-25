@@ -54,7 +54,11 @@ describe("ferragens_totais sem duplicacao", () => {
     const expectedSuportes = shelves * (rules.prateleiras?.suportesPorPrateleira ?? 4);
 
     expect(by["Suporte de Prateleira"], JSON.stringify({ rawBy, by })).toBe(expectedSuportes);
+    // Única fonte: furos CAVILHA_10x40 → nome comercial "Cavilha 10mm" (sem legado 8mm).
     expect(by["Cavilha 10mm"], JSON.stringify({ rawBy, by })).toBe(8);
+    expect(by["Cavilha 8mm"]).toBeUndefined();
+    expect(rawBy["Cavilha 8mm"]).toBeUndefined();
+    expect(rawBy["CAVILHA_10x40"] ?? rawBy["Cavilha 10mm"]).toBe(8);
     expect(by["P\u00e9"], JSON.stringify({ rawBy, by })).toBe(4);
 
     const parafuso = norm.find((r) => /parafuso\s*4/i.test(r.material));

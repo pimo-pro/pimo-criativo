@@ -124,7 +124,7 @@ const TIPO_TO_COMPONENT_ID: Record<string, string> = {
   gaveta_traseira: "gaveta_traseira",
 };
 
-const JOINT_FERRAGEM_IDS = new Set(["cavilha_8mm", "cavilha_10mm", "parafuso_4x50"]);
+const JOINT_FERRAGEM_IDS = new Set(["parafuso_4x50"]);
 const JOINT_COUNT_PIECE_TIPOS = new Set(["cima", "fundo"]);
 
 function round2(n: number): number {

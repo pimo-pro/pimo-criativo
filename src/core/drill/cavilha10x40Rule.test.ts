@@ -9,6 +9,7 @@ import {
 } from "../cornerCabinet/cornerFixedFrontDowels";
 import {
   CAVILHA_10x40_FERRAGEM_ID,
+  CAVILHA_10x40_FERRAGEM_NOME,
   CAVILHA_EDGE_DEPTH_MM,
   CAVILHA_FACE_DEPTH_MM,
   countCavilha10x40FromEdgeHoles,
@@ -30,10 +31,11 @@ describe("CAVILHA_10x40 — regra global", () => {
     expect(getHoleTypeById("cavilha_10x13").profundidadeMm).toBe(13);
   });
 
-  it("ferragem CAVILHA_10x40 no catálogo (bege, —10–40)", () => {
+  it("ferragem cavilha_10x40 no catálogo (nome comercial Cavilha 10mm, bege, Ø10×40)", () => {
     const f = FERRAGENS_DEFAULT.find((x) => x.id === CAVILHA_10x40_FERRAGEM_ID);
     expect(f).toBeDefined();
-    expect(f!.nome).toBe("CAVILHA_10x40");
+    expect(f!.nome).toBe("Cavilha 10mm");
+    expect(f!.nome).toBe(CAVILHA_10x40_FERRAGEM_NOME);
     expect(f!.cor).toBe("bege");
     expect(f!.espessuraMm).toBe(10);
     expect(f!.comprimentoMm).toBe(40);

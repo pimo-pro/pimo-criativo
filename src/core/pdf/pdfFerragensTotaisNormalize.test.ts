@@ -68,7 +68,7 @@ describe("pdfFerragensTotaisNormalize", () => {
       ferragens: [
         { material: "Corredica Lateral Esquerda", ref: "corredica_esq", medida: "", quantidade: 2 },
         { material: "Corredica Lateral Direita", ref: "corredica_dir", medida: "", quantidade: 2 },
-        { material: "Cavilha 8mm", ref: "cavilha_8mm", medida: "8mm", quantidade: 40 },
+        { material: "Cavilha 10mm", ref: "cavilha_10x40", medida: "10mm", quantidade: 40 },
         { material: "Dobradica 35mm", ref: "dobradica_35mm", medida: "35mm", quantidade: 99 },
         { material: "Parafuso para Puxador", ref: "parafuso_puxador", medida: "M4", quantidade: 8 },
         { material: "Prego para Costa", ref: "prego_costa", medida: "2mm", quantidade: 12 },

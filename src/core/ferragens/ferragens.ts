@@ -64,20 +64,12 @@ export const FERRAGENS_DEFAULT: Ferragem[] = [
     precoUnitario: 0.7,
   },
   {
-    id: "cavilha_8mm",
-    nome: "Cavilha 8mm",
-    categoria: "cavilha",
-    medidas: "Ø8mm",
-    descricao: "Cavilha para montagem de painéis",
-    precoUnitario: 0.05,
-  },
-  {
     id: "cavilha_10x40",
-    nome: "CAVILHA_10x40",
+    nome: "Cavilha 10mm",
     categoria: "cavilha",
     medidas: "Ø10mm × 40mm",
     descricao:
-      "Cavilha industrial 10×40 — par obrigatório Ø10×30 (espessura) + Ø10×13 (face)",
+      "Cavilha industrial 10×40 — par obrigatório Ø10×30 (espessura) + Ø10×13 (face). Nome comercial: Cavilha 10mm.",
     cor: "bege",
     espessuraMm: 10,
     comprimentoMm: 40,

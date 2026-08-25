@@ -32,7 +32,7 @@ const TIPO_TO_COMPONENT_ID: Record<string, string> = {
   gaveta_traseira: "gaveta_traseira",
 };
 
-const JOINT_FERRAGEM_IDS = new Set(["cavilha_8mm", "cavilha_10mm", "parafuso_4x50"]);
+const JOINT_FERRAGEM_IDS = new Set(["parafuso_4x50"]);
 const JOINT_COUNT_PIECE_TIPOS = new Set(["cima", "fundo"]);
 
 /** Preços unitários Via A (boxManufacturing.gerarFerragens) mapeados a ids do catálogo B. */
@@ -46,8 +46,8 @@ const FALLBACK_PRECO_A_STATIC: Record<string, number> = {
   parafuso_4x35: 0.14,
   parafuso_5x50: 0.24,
   puxa_8mm: 0.7,
-  cavilha_10mm: 0.12,
-  cavilha_8mm: 0.12,
+  cavilha_10x40: 0.08,
+  cavilha_10mm: 0.08,
   prego_costa: 0.02,
   parafuso_puxador: 0.12,
 };

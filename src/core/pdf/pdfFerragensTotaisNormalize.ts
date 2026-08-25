@@ -119,10 +119,10 @@ function classifyFerragem(nome: string, ref: string): Bucket {
   const r = normalizeKey(ref);
   if (n.includes("parafuso") && n.includes("puxador")) return "parafuso_puxador";
   if (r === "parafuso_puxador") return "parafuso_puxador";
-  if (r === PARAFUSO_4X35_ID || (n.includes("parafuso") && n.includes("4") && n.includes("35"))) {
+  if (r === PARAFUSO_4X35_ID || n.includes("4x35") || /parafuso\s*4\s*x\s*35/.test(n)) {
     return "parafuso_4x35";
   }
-  if (r === PARAFUSO_5X50_ID || (n.includes("parafuso") && n.includes("5") && n.includes("50"))) {
+  if (r === PARAFUSO_5X50_ID || n.includes("5x50") || /parafuso\s*5\s*x\s*50/.test(n)) {
     return "parafuso_5x50";
   }
   if (r === PUXA_8MM_ID || n.includes("puxa")) return "puxa_8mm";

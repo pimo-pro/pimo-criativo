@@ -29,7 +29,7 @@ vi.mock("../industrial/industrialBottomSectionData", async (importOriginal) => {
         },
       ],
       ferragens: [
-        { material: "Cavilha 8mm", ref: "cavilha_8mm", medida: "\u00d88mm", quantidade: 16 },
+        { material: "Cavilha 10mm", ref: "cavilha_10x40", medida: "\u00d810mm", quantidade: 16 },
         { material: "Corredica Lateral Esquerda", ref: "corredica_esq", medida: "", quantidade: 2 },
         { material: "Corredica Lateral Direita", ref: "corredica_dir", medida: "", quantidade: 2 },
         { material: "Dobradica 35mm", ref: "dobradica_35mm", medida: "35mm", quantidade: 2 },

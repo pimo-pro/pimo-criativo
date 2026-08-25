@@ -41,8 +41,9 @@ const TIPO_TO_COMPONENT_ID: Record<string, string> = {
 /**
  * Ferragens de junta estrutura: contadas uma vez (cima/fundo).
  * Laterais repetem as mesmas juntas fisicas — nao somar de novo.
+ * Cavilhas de junta vêm só dos furos (CAVILHA_10x40 / nome comercial Cavilha 10mm).
  */
-const JOINT_FERRAGEM_IDS = new Set(["cavilha_8mm", "cavilha_10mm", "parafuso_4x50"]);
+const JOINT_FERRAGEM_IDS = new Set(["parafuso_4x50"]);
 const JOINT_COUNT_PIECE_TIPOS = new Set(["cima", "fundo"]);
 
 /**
