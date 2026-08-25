@@ -54,23 +54,24 @@ describe("drillExport — FRENTE_INT alinhado com XML industrial", () => {
     expect(xml).toContain("<PanelThickness>16.00</PanelThickness>");
   });
 
-  it("4 cavilhas horizontais TypeNo=2 (DRILL; sem Ø5 / corrediças)", () => {
+  it("4 cavilhas laterais padrão costa (DRILL; sem rasgo / face / Ø5)", () => {
     const xml = buildFrenteIntXml();
     expect((xml.match(/<CAD>/g) ?? []).length).toBe(4);
     expect(xml).not.toContain("<TypeNo>3</TypeNo>");
     expect(xml).not.toContain("<Diameter>5.00</Diameter>");
     expect((xml.match(/<Diameter>10.00<\/Diameter>/g) ?? []).length).toBe(4);
-    expect(xml).toContain("<Depth>13.00</Depth>");
+    expect(xml).toContain("<Depth>30.00</Depth>");
+    expect(xml).not.toContain("<Depth>13.00</Depth>");
   });
 
-  it("furos horizontais X=0 e X=L com Y=15 e W-35; Depth face=13 (golden)", () => {
+  it("furos laterais X=0 e X=L com Y=15 e H−15; Depth aresta=30 (padrão costa)", () => {
     const xml = buildFrenteIntXml();
     expect(xml).toContain("<X1>0.00</X1>");
     expect(xml).toContain("<X1>500.00</X1>");
     expect(xml).toContain("<Y1>15.00</Y1>");
-    expect(xml).toContain("<Y1>165.00</Y1>"); // 200 − 35
+    expect(xml).toContain("<Y1>185.00</Y1>"); // 200 − 15
     expect(xml).toContain("<Z1>8.00</Z1>");
-    expect(xml).toContain("<Depth>13.00</Depth>");
+    expect(xml).toContain("<Depth>30.00</Depth>");
     expect(xml).toContain("<Diameter>10.00</Diameter>");
   });
 

@@ -871,7 +871,9 @@ export function computeDrawerCostaStructuralHoles(params: {
 }
 
 /**
- * Frente interna — Y sync laterais (15 / H-35); Depth 13.
+ * Frente interna (madeira estrutural) — mesmo padrão de cavilhas laterais da costa:
+ * Y = 15 / H−15, Depth 30 (aresta). Sem furos de face, sem rasgo.
+ * Caixa metálica usa `computeDrawerMetalBoxFrontHoles` (caminho separado).
  */
 export function computeDrawerFrenteIntStructuralHoles(params: {
   largura: number;
@@ -882,17 +884,22 @@ export function computeDrawerFrenteIntStructuralHoles(params: {
   sideHeightMm?: number;
   sideBaseElevationMm?: number;
 }): TechnicalDrillHole[] {
-  const { largura, altura, espessura, isLowestDrawer } = params;
+  void params.isLowestDrawer;
+  void params.bottomThicknessMm;
+  void params.sideHeightMm;
+  void params.sideBaseElevationMm;
+  void params.espessura;
+  const { largura, altura } = params;
   const holes: TechnicalDrillHole[] = [];
-  const faceDepth = clampDrawerFaceDowelDepthMm(espessura);
   const dia = DRAWER_DOWEL_DIAMETER_MM;
+  const edgeDepth = DRAWER_DOWEL_EDGE_DEPTH_MM;
 
-  for (const y of getDrawerFrontDowelYPositionsMm(altura, isLowestDrawer)) {
+  for (const y of getDrawerCostaDowelYPositionsMm(altura)) {
     holes.push({
       x: 0,
       y,
       diametro: dia,
-      profundidade: faceDepth,
+      profundidade: edgeDepth,
       tipo: "cavilha",
       face: "esquerda",
     });
@@ -900,20 +907,11 @@ export function computeDrawerFrenteIntStructuralHoles(params: {
       x: largura,
       y,
       diametro: dia,
-      profundidade: faceDepth,
+      profundidade: edgeDepth,
       tipo: "cavilha",
       face: "direita",
     });
   }
-
-  const groove = buildDrawerFrenteBottomGroove({
-    largura,
-    altura,
-    bottomThicknessMm: params.bottomThicknessMm,
-    sideHeightMm: params.sideHeightMm ?? altura,
-    sideBaseElevationMm: params.sideBaseElevationMm ?? 0,
-  });
-  if (groove) holes.push(groove);
 
   return holes;
 }

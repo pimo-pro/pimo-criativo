@@ -105,11 +105,12 @@ describe("Furação estrutural de gaveta (TechnicalDrillHole) — golden XML_COM
     expect([...new Set(cavilhas.map((h) => h.y))].sort((a, b) => a - b)).toEqual([15, 97.5]); // 112.5−15
   });
 
-  it("frente interna — 4 cavilhas face prof.13 (Y=15 / H-35)", () => {
+  it("frente interna — 4 cavilhas padrão costa (Y=15 / H−15, Depth 30; sem rasgo)", () => {
     const holes = computeDrawerFrenteIntStructuralHoles(FRENTE);
     expect(holes).toHaveLength(4);
-    expect(holes.every((h) => h.tipo === "cavilha" && h.profundidade === 13)).toBe(true);
-    expect([...new Set(holes.map((h) => h.y))].sort((a, b) => a - b)).toEqual([15, 143]); // 178−35
+    expect(holes.every((h) => h.tipo === "cavilha" && h.profundidade === 30)).toBe(true);
+    expect(holes.every((h) => h.holeSubtype !== "groove")).toBe(true);
+    expect([...new Set(holes.map((h) => h.y))].sort((a, b) => a - b)).toEqual([15, 163]); // 178−15
   });
 
   it("pipeline — calcDrawerStructural via calculateTechnicalDrillingsForPiece", () => {
@@ -153,9 +154,9 @@ describe("Furação estrutural de gaveta (TechnicalDrillHole) — golden XML_COM
       defaultRulesConfig
     );
     expect(frente.filter((h) => h.tipo === "cavilha")).toHaveLength(4);
-    const frenteGroove = frente.find((h) => h.holeSubtype === "groove");
-    expect(frenteGroove?.profundidade).toBe(11);
-    expect(frenteGroove?.grooveWidth).toBe(11);
+    expect(frente.every((h) => h.profundidade === 30)).toBe(true);
+    expect(frente.filter((h) => h.holeSubtype === "groove")).toHaveLength(0);
+    expect([...new Set(frente.map((h) => h.y))].sort((a, b) => a - b)).toEqual([15, 163]);
   });
 
   it("adapter — grooves propagados para PanelDrillHole", () => {

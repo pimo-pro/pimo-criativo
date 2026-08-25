@@ -140,31 +140,35 @@ describe.each([
     void center;
   });
 
-  it("frente ? lateral aresta: mesmos Y; frente prof. 13", () => {
-    const lat = computeDrawerLateralStructuralHoles({ ...LAT, side: "esq" });
-    const frente = computeDrawerFrenteIntStructuralHoles(FRENTE);
-    const latEdgeY = lat
-      .filter((h) => h.tipo === "cavilha" && !h.topDrillable)
-      .map((h) => h.y)
-      .sort((a, b) => a - b);
-    const frenteY = [
-      ...new Set(frente.map((h) => h.y)),
-    ].sort((a, b) => a - b);
-    expect(frenteY).toEqual(latEdgeY);
-    expect(frente.every((h) => h.profundidade === 13 && h.tipo === "cavilha")).toBe(true);
+  it("frente_int ≡ costa nas cavilhas laterais (Y=15/H−15, Depth 30)", () => {
+    const costa = computeDrawerCostaStructuralHoles(COSTA);
+    const frente = computeDrawerFrenteIntStructuralHoles({
+      largura: COSTA.largura,
+      altura: COSTA.altura,
+      espessura: COSTA.espessura,
+    });
+    const costaCav = costa.filter((h) => h.tipo === "cavilha");
+    expect(frente).toHaveLength(4);
+    expect(frente.every((h) => h.tipo === "cavilha" && h.profundidade === 30)).toBe(true);
+    expect([...new Set(frente.map((h) => h.y))].sort((a, b) => a - b)).toEqual(
+      [...new Set(costaCav.map((h) => h.y))].sort((a, b) => a - b)
+    );
   });
 });
 
-describe("stack — frente int propaga isLowestDrawer na tabela de Y", () => {
-  it("com isLowestDrawer: Y inferior = 54", () => {
+describe("frente_int — sem especialização GAV_1 / sem rasgo", () => {
+  it("isLowestDrawer não altera Y (padrão costa simétrico)", () => {
     const holes = computeDrawerFrenteIntStructuralHoles({
       largura: 600,
       altura: 178,
       espessura: 16,
       isLowestDrawer: true,
+      bottomThicknessMm: 10,
     });
+    expect(holes).toHaveLength(4);
     const ys = [...new Set(holes.map((h) => h.y))].sort((a, b) => a - b);
-    expect(ys).toEqual([54, 143]);
+    expect(ys).toEqual([15, 163]); // 178−15; não 54
+    expect(holes.every((h) => h.holeSubtype !== "groove")).toBe(true);
   });
 });
 
