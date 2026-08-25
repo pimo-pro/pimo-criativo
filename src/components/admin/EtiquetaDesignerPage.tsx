@@ -29,21 +29,25 @@ import {
 } from "../../core/labelDesigner/labelDesignerStorage";
 import { builtinTemplates, loadCustomTemplates } from "../../core/labelDesigner/labelDesignerTemplates";
 import { exportLabelToPdf, exportLabelGridPrint, exportLabelToPng300 } from "../../core/labelDesigner/labelDesignerExport";
-import { generateQrCodeSvg, generateEtiquetaCode } from "../../core/qrcode/qrcodeService";
+import { generateQrCodeSvg } from "../../core/qrcode/qrcodeService";
+import { buildFullIndustrialName, buildIndustrialId } from "../../core/naming/industrialNaming";
 import { AdminPageHeader, AdminStickyActionBar } from "./AdminUi";
 import { useToast } from "../../context/ToastContext";
 
 const MAX_HISTORY = 50;
 
 /** Dados de preview para renderizar a etiqueta */
+const designerPreviewEtiquetaCode = buildIndustrialId(
+  buildFullIndustrialName("Meu Projeto", "Estante Principal", "prateleira")
+);
 const PREVIEW_DATA = {
   projeto: "Meu Projeto",
   caixa: "Estante Principal",
   peca: "Prateleira",
   madeira: "MDF Branco 18mm",
   medidas: "600×400×18 mm",
-  numero_peca: generateEtiquetaCode("Meu Projeto", "Estante Principal", "Prateleira", 5),
-  etiquetaCode: generateEtiquetaCode("Meu Projeto", "Estante Principal", "Prateleira", 5),
+  numero_peca: designerPreviewEtiquetaCode,
+  etiquetaCode: designerPreviewEtiquetaCode,
 };
 
 function getElementLabel(type: LabelElementType): string {

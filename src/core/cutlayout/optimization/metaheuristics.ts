@@ -201,7 +201,6 @@ export function applyLnsRepack(
       holes: origHoles,
       originalDrillHoles: origHoles,
       pieceNumber: p.pieceNumber,
-      shortCode: p.shortCode,
       metadata: p.metadata,
     };
   });

@@ -819,7 +819,7 @@ export function cutlistToPieces(
         ? buildTampoPieceGeometryFromMetadata({ lengthMm: largura, widthMm: altura }, itemMeta)
         : null;
     const pieces: CutPiece[] = [];
-    const itemWithMeta = item as typeof item & { pieceNumber?: number; shortCode?: string };
+    const itemWithMeta = item as typeof item & { pieceNumber?: number };
     const qty = Math.max(1, Number(item.quantidade) || 1);
     for (let i = 0; i < qty; i++) {
       pieces.push({
@@ -843,7 +843,6 @@ export function cutlistToPieces(
         uvScaleOverride: item.uvScaleOverride,
         uvRotationOverride: item.uvRotationOverride,
         pieceNumber: itemWithMeta.pieceNumber,
-        shortCode: itemWithMeta.shortCode,
         metadata: {
           ...(itemMeta ?? {}),
           ...rotationMeta,

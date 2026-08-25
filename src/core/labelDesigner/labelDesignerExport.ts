@@ -1,9 +1,12 @@
 import jsPDF from "jspdf";
 import qrcode from "qrcode-generator";
 import type { LabelDesignerConfig, LabelElement, LabelTextElement, LabelQrElement, LabelLogoElement } from "./labelDesignerTypes";
-import { generateQrCodeSvg, generateEtiquetaCode } from "../qrcode/qrcodeService";
+import { generateQrCodeSvg } from "../qrcode/qrcodeService";
+import { buildFullIndustrialName, buildIndustrialId } from "../naming/industrialNaming";
 
-const etiquetaCode = generateEtiquetaCode("Meu Projeto", "Estante Principal", "Prateleira", 5);
+const etiquetaCode = buildIndustrialId(
+  buildFullIndustrialName("Meu Projeto", "Estante Principal", "prateleira")
+);
 const PREVIEW_DATA = {
   projeto: "Meu Projeto",
   caixa: "Estante Principal",

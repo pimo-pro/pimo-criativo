@@ -74,7 +74,6 @@ describe("layout PDF — cavilhas SSOT (golden)", () => {
       sheetIndex: 0,
       boxId: "box-1",
       pieceNumber: 1,
-      shortCode: "1",
       partName: "LAT_ESQ",
       drillHoles: piecesEsq[0]!.drillHoles,
     };
@@ -156,7 +155,6 @@ describe("layout PDF — cavilhas SSOT (golden)", () => {
       sheetIndex: 0,
       boxId: `box-${i}`,
       pieceNumber: i + 1,
-      shortCode: String(i + 1),
       partName: i === 0 ? "gav_lat_esq" : "gav_lat_dir",
       drillHoles: p.drillHoles,
     }));

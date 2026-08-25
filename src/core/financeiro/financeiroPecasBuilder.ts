@@ -274,7 +274,7 @@ function resolveEtq(
     piecesPerSheet,
     index0
   );
-  return formatEtqForPdf(nqr) || String(item.pieceNumber ?? item.shortCode ?? EM_DASH);
+  return formatEtqForPdf(nqr) || String(item.pieceNumber ?? EM_DASH);
 }
 
 /**

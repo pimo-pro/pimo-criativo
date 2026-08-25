@@ -148,7 +148,7 @@ function buildPecas(projectId: string): ReportPeca[] {
     return {
       id: makeReportId("pc"),
       sourceId: item.id || `piece-${i}`,
-      ref: String(item.shortCode ?? item.id ?? i + 1),
+      ref: String(item.pieceNumber ?? item.id ?? i + 1),
       peca: String(item.nome ?? item.tipo ?? "Peca"),
       material: String(item.material ?? ""),
       matRef: String(item.materialId ?? ""),

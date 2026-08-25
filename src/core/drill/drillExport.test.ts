@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultRulesConfig } from "../rules/rulesConfig";
 import type { BoxModule, CutListItemComPreco } from "../types";
-import { attachQrCodesToCutlist } from "../qrcode/qrcodeService";
+import { attachLabelNumbersToCutlist } from "../qrcode/qrcodeService";
 import { resolveIndustrialListNqr, buildIndustrialListPiecesPerSheet } from "../pdf/industrialListQr";
 import {
   buildDrillFilesForProject,
@@ -56,22 +56,21 @@ describe("drillExport — nomes XML alinhados ao sistema de etiquetas", () => {
     rules: defaultRulesConfig,
   };
 
-  it("com etiqueta — usa QR v5 (N.º QR), não shortCode legacy compacto", () => {
+  it("com etiqueta — filename = N.º QR das listas (payload até Passo 3.3)", () => {
     const raw = [lateralItem()];
-    const items = attachQrCodesToCutlist(raw, project);
+    const items = attachLabelNumbersToCutlist(raw, project);
     const item = items[0]!;
     const piecesPerSheet = new Map<string, number>();
 
     expect(pieceHasEtiquetaQr(item)).toBe(true);
-    expect(item.shortCode).toBeTruthy();
+    expect(item.pieceNumber).toBeGreaterThan(0);
+    expect(item.qrSvg).toBeTruthy();
 
     const filename = panelFileNameFromPiece(item, project, piecesPerSheet, 0);
     const nQr = resolveIndustrialListNqr(item, project, piecesPerSheet, 0);
 
     expect(filename).toBe(nQr);
-    expect(filename).not.toBe(item.shortCode);
-    expect(filename).toMatch(/^[A-Z0-9_]+-\d+$/);
-    expect(filename).toContain("_");
+    expect(filename).toMatch(/-/);
   });
 
   it("com metadata.qrCode — usa exactamente esse valor", () => {
@@ -84,15 +83,15 @@ describe("drillExport — nomes XML alinhados ao sistema de etiquetas", () => {
   });
 
   it("sem etiqueta — nome completo PROJETO_CAIXA_PECA (lateral SSOT esq → REF industrial DIR)", () => {
-    const item = lateralItem({ pieceNumber: undefined, shortCode: undefined });
+    const item = lateralItem({ pieceNumber: undefined });
     expect(pieceHasEtiquetaQr(item)).toBe(false);
-    // Etiqueta/XML industrial: lados do módulo invertidos face ao tipo SSOT.
+    // REF industrial (ainda com inversão até Passo 3.2+): lados do módulo invertidos.
     expect(buildDrillXmlFallbackFileName(item, project)).toBe("ANTONIO_NOVO_5_CC1_C1_LAT_DIR");
     expect(panelFileNameFromPiece(item, project, new Map(), 0)).toBe("ANTONIO_NOVO_5_CC1_C1_LAT_DIR");
   });
 
-  it("buildDrillFilesForProject — DRILL + PRINCIPAL alinhados ao QR v5", () => {
-    const items = attachQrCodesToCutlist([lateralItem()], project);
+  it("buildDrillFilesForProject — DRILL + PRINCIPAL alinhados ao QR das listas", () => {
+    const items = attachLabelNumbersToCutlist([lateralItem()], project);
     const piecesPerSheet = buildIndustrialListPiecesPerSheet(items);
     const files = buildDrillFilesForProject(items, project);
     const nqr = resolveIndustrialListNqr(items[0]!, project, piecesPerSheet, 0);

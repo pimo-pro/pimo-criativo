@@ -3,7 +3,6 @@ import type { RulesConfig } from "../../rules/rulesConfig";
 import { resolveIndustrialPieceRef } from "../../cutlayout/cutLayoutProPieceNaming";
 import { resolveNomeIndustrialForEtiqueta } from "../industrialDisplayName";
 import { resolveAuthoritativeLabelNumber } from "../../qrcode/panelLabelNumber";
-import { buildLocalQrPayload } from "../../qrcode/qrcodeService";
 import {
   buildEtiquetaCodeV5,
   buildEtiquetaQrPayloadV5,
@@ -15,7 +14,6 @@ import {
 export type EtiquetaPieceLike = CutListItemComPreco & {
   boxId?: string;
   nome?: string;
-  shortCode?: string;
 };
 
 export type EtiquetaQrContext = {
@@ -25,8 +23,7 @@ export type EtiquetaQrContext = {
 };
 
 /**
- * QR canónico do UEE — nome industrial completo + número da etiqueta.
- * Ex.: ANTONIO_NOVO_5_CC4_REMATE_L_B_01-6
+ * Payload QR das listas (ainda legado até Passo 3.3) — nome industrial + seq.
  */
 export function resolveUnifiedEtiquetaQrCode(
   item: EtiquetaPieceLike,
@@ -41,7 +38,7 @@ export function resolveUnifiedEtiquetaQrCode(
 }
 
 /**
- * Código display v5 na faixa inferior — nome industrial completo + sufixo AN04-6.
+ * Código display / N QR da etiqueta = `buildIndustrialId`.
  */
 export function resolveEtiquetaDisplayCodeV5(
   item: EtiquetaPieceLike,
@@ -72,26 +69,9 @@ export function resolveEtiquetaDisplayCodeV5(
   });
 }
 
-/**
- * Compatibilidade S1 — short code para cutlist, técnico, drill (inalterado).
- */
-export function resolveLegacyShortQrCode(
-  item: EtiquetaPieceLike,
-  ctx: EtiquetaQrContext
-): string {
-  const authoritative = resolveAuthoritativeLabelNumber(item);
-  if (authoritative != null) {
-    return buildLocalQrPayload(item, ctx, authoritative);
-  }
-  const rawSc = String(item.shortCode ?? "").trim();
-  if (rawSc && rawSc !== "ERR") return rawSc;
-  return buildLocalQrPayload(item, ctx, 1);
-}
-
 export { buildEtiquetaCodeV5, buildEtiquetaQrPayloadV5, buildPiecesPerSheetMap, labelItemSheetKey, type LabelSheetPlacement };
 
 export {
-  generateEtiquetaCode,
-  buildLocalQrPayload,
-  attachQrCodesToCutlist,
+  attachLabelNumbersToCutlist,
+  resolvePieceIndustrialId,
 } from "../../qrcode/qrcodeService";

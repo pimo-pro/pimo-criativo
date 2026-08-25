@@ -193,9 +193,7 @@ export interface CutListItem {
   drillHoles?: PanelDrillHole[];
   /** Metadados por painel (ex.: labelNumber, QRNumber) — fonte preferencial para N/QR em PDFs e exportações. */
   metadata?: Record<string, unknown>;
-  /** Código curto legível para fábrica. */
-  shortCode?: string;
-  /** QR em SVG contendo o shortCode/carga técnica. */
+  /** QR em SVG com o ID industrial da etiqueta (`buildIndustrialId`). */
   qrSvg?: string;
   /** Índice sequencial da peça no ciclo 1..99. */
   pieceNumber?: number;

@@ -64,9 +64,9 @@ export interface LabelSystemPalette {
 
 /**
  * Política de geração de QR:
- * - "v5"    → código completo v5 (padrão)
- * - "short" → código curto (shortCode derivado)
- * - "dual"  → ambos (QR v5 + shortCode impresso)
+ * - "v5"    → ID industrial (`buildIndustrialId`) — padrão
+ * - "short" → mesmo ID industrial (legado ShortCode removido)
+ * - "dual"  → mesmo ID (sem segundo algoritmo)
  */
 export type QrPolicy = "v5" | "short" | "dual";
 

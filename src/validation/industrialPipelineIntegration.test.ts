@@ -48,12 +48,12 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     expect(all.some((i) => i.tipo === "remate")).toBe(true);
     expect(all.some((i) => i.tipo === "rodape")).toBe(true);
 
-    const shortCodes = all.map((i) => i.shortCode).filter(Boolean);
-    expect(shortCodes.length).toBe(all.length);
-    expect(new Set(shortCodes).size).toBe(all.length);
+    const pieceNumbers = all.map((i) => i.pieceNumber).filter((n) => n != null && n > 0);
+    expect(pieceNumbers.length).toBe(all.length);
+    expect(new Set(pieceNumbers).size).toBe(all.length);
     for (const item of all) {
       expect(item.pieceNumber).toBeGreaterThan(0);
-      expect(item.shortCode).not.toBe("ERR");
+      expect(item.qrSvg).toBeTruthy();
     }
   });
 

@@ -1,7 +1,7 @@
 import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { cutlistComPrecoFromBox } from "../manufacturing/cutlistFromBoxes";
-import { attachQrCodesToCutlist } from "../qrcode/qrcodeService";
+import { attachLabelNumbersToCutlist } from "../qrcode/qrcodeService";
 import { buildRemateCutlistItems } from "../remate/remateCutlist";
 import { buildRodapeCutlistItems } from "../rodape/rodapeCutlist";
 import type { RematePiece } from "../remate/rematePieceTypes";
@@ -53,7 +53,7 @@ export function buildCutlistItemsForIndustrialExport(
   }));
 
   return applyIndustrialPieceEdits(
-    attachQrCodesToCutlist(merged, {
+    attachLabelNumbersToCutlist(merged, {
       projectName,
       boxes,
       rules,

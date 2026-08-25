@@ -168,7 +168,6 @@ function prefixCutlistItem(item: CutListItemComPreco, prefix: string): CutListIt
   if (typeof o.id === "string") o.id = `${prefix}${o.id}`;
   if (typeof o.boxId === "string" && o.boxId) o.boxId = `${prefix}${o.boxId}`;
   if (typeof o.nome === "string") o.nome = `${prefix}${o.nome}`;
-  if (typeof o.shortCode === "string" && o.shortCode) o.shortCode = `${prefix}${o.shortCode}`;
   if (typeof o.modelInstanceId === "string" && o.modelInstanceId) o.modelInstanceId = `${prefix}${o.modelInstanceId}`;
   if (typeof o.partName === "string" && o.partName) o.partName = `${prefix}${o.partName}`;
   return o as unknown as CutListItemComPreco;

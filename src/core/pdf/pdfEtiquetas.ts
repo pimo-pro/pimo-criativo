@@ -4,13 +4,10 @@ import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import type { SettingsSchema } from "../settings/settingsService";
 import { buildGlobalQrCutlistMerged } from "../manufacturing/cutlistFromBoxes";
-import { buildLocalQrPayload, generateQrCanvasWithLogo } from "../qrcode/qrcodeService";
+import { generateQrCanvasWithLogo } from "../qrcode/qrcodeService";
 import { resolveAuthoritativeLabelNumber } from "../qrcode/panelLabelNumber";
 import { buildPiecesPerSheetMap, labelItemSheetKey } from "../etiquetas/qr/etiquetaCodeV5";
-import {
-  resolveLegacyShortQrCode,
-  resolveEtiquetaDisplayCodeV5,
-} from "../etiquetas/qr/etiquetaQr";
+import { resolveEtiquetaDisplayCodeV5 } from "../etiquetas/qr/etiquetaQr";
 import type { LabelConfig } from "../labelConfig/labelConfig";
 import {
   resolveLabelSystemConfig,
@@ -97,20 +94,12 @@ function nomeIndustrialParaEtiqueta(item: LabelItem, project: ProjectForEtiqueta
   return resolveNomeIndustrialForEtiqueta(item, projectName, item.boxNome);
 }
 
-/** Código S1 — apenas referência legada (`labelPdfLegacyRenderRefs`); produção usa `etiquetaQr`. */
+/** Código da etiqueta — ID industrial (`buildIndustrialId`); legado S1/S3 usa o mesmo SSOT. */
 function resolveEtiquetaCodeParaEtiqueta(
   item: LabelItem,
   ctx: { projectName: string; boxes: BoxModule[]; rules: RulesConfig }
 ): string {
-  const authoritative = resolveAuthoritativeLabelNumber(item);
-  if (authoritative != null) {
-    return buildLocalQrPayload(item, ctx, authoritative);
-  }
-  const rawSc = String(item.shortCode ?? "").trim();
-  if (rawSc && rawSc !== "ERR") {
-    return rawSc;
-  }
-  return buildLocalQrPayload(item, ctx, 1);
+  return resolveEtiquetaDisplayCodeV5(item, ctx, new Map(), 0);
 }
 
 function getCutlistWithMetadata(project: ProjectForEtiquetasPdf): LabelItem[] {
@@ -873,17 +862,17 @@ async function renderEtiquetaPageV5(
     throw new Error("Etiqueta sem número único atribuído antes da impressão.");
   }
   const codeV5Display = resolveEtiquetaDisplayCodeV5(item, qrCtx, piecesPerSheet, etiquetaNumber - 1);
-  const codeShort = resolveLegacyShortQrCode(item, qrCtx);
 
   let secondaryQrCode: string | null = null;
   let bottomStripCode = codeV5Display;
 
   switch (qrPolicy) {
     case "short":
-      bottomStripCode = codeShort;
+      // Short legado removido — mesmo ID industrial da política v5.
+      bottomStripCode = codeV5Display;
       break;
     case "dual":
-      secondaryQrCode = codeShort;
+      // Dual sem segundo algoritmo: um único código industrial.
       bottomStripCode = codeV5Display;
       break;
     case "v5":

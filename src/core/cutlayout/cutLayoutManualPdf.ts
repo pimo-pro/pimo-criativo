@@ -488,7 +488,7 @@ function drawManualPieceDetail(
 ): void {
   const name = formatPieceName(pl, options);
   const num = String(
-    resolveAuthoritativeLabelNumber(pl) ?? pl.shortCode ?? pl.pieceNumber ?? "-"
+    resolveAuthoritativeLabelNumber(pl) ?? pl.pieceNumber ?? "-"
   );
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
@@ -615,7 +615,7 @@ function drawManualSheetDiagram(
     }
 
     const num = String(
-      resolveAuthoritativeLabelNumber(pl) ?? pl.shortCode ?? pl.pieceNumber ?? "-"
+      resolveAuthoritativeLabelNumber(pl) ?? pl.pieceNumber ?? "-"
     );
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...BRAND_RED);

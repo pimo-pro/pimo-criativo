@@ -100,7 +100,6 @@ type IndustrialMeta = {
   drillHoles?: Array<{ x: number; y: number; diameter: number; depth: number; holeType?: string; topDrillable?: boolean }>;
   metadata?: Record<string, unknown>;
   pieceNumber?: number;
-  shortCode?: string;
   espessura_mm?: number;
 };
 
@@ -154,12 +153,10 @@ function pieceKey(value: {
   largura_mm?: number;
   altura_mm?: number;
   pieceNumber?: number;
-  shortCode?: string;
 }): string {
   const pieceNumber = Number(value.pieceNumber ?? 0) || 0;
-  const shortCode = String(value.shortCode ?? "");
-  if (pieceNumber > 0 || shortCode) {
-    return `id:${pieceNumber}:${shortCode}`;
+  if (pieceNumber > 0) {
+    return `id:${pieceNumber}`;
   }
   return `geom:${value.boxId ?? ""}:${value.partName ?? ""}:${Math.round(Number(value.largura_mm ?? 0))}:${Math.round(Number(value.altura_mm ?? 0))}`;
 }
@@ -234,13 +231,11 @@ export function buildCncFromCutlistItems(
           largura_mm: p.largura_mm,
           altura_mm: p.altura_mm,
           pieceNumber: p.pieceNumber,
-          shortCode: p.shortCode,
         }),
         {
           drillHoles: p.drillHoles ?? p.holes,
           metadata: p.metadata,
           pieceNumber: p.pieceNumber,
-          shortCode: p.shortCode,
           espessura_mm: p.espessura_mm,
         }
       );
@@ -257,7 +252,6 @@ export function buildCncFromCutlistItems(
             largura_mm: pl.largura_mm,
             altura_mm: pl.altura_mm,
             pieceNumber: pl.pieceNumber,
-            shortCode: pl.shortCode,
           })
         );
         if (!meta) return pl;
@@ -268,7 +262,6 @@ export function buildCncFromCutlistItems(
           drillHoles: pl.drillHoles ?? meta.drillHoles,
           metadata: pl.metadata ?? meta.metadata,
           pieceNumber: pl.pieceNumber ?? meta.pieceNumber,
-          shortCode: pl.shortCode ?? meta.shortCode,
         };
       }),
     }));

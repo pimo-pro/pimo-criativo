@@ -423,7 +423,7 @@ function drawSheetDiagram(
   for (let i = 0; i < layoutRects.length; i++) {
     const { pl, px, py, pw, ph } = layoutRects[i];
     const auth = resolveAuthoritativeLabelNumber(pl);
-    const numStr = String(auth ?? pl.shortCode ?? pl.pieceNumber ?? "—");
+    const numStr = String(auth ?? pl.pieceNumber ?? "—");
     let fs = Math.min(ph * 0.66, pw * 0.55, 42);
     fs = Math.max(5, fs);
     doc.setFont("helvetica", "bold");
@@ -490,7 +490,7 @@ function drawPieceTablePaginated(
   const bodyRows = placements.map((pl) => [
     formatCutLayoutProPieceDisplayName(pl, options),
     `${Math.round(pl.largura_mm)}\u00d7${Math.round(pl.altura_mm)} mm`,
-    String(resolveAuthoritativeLabelNumber(pl) ?? pl.shortCode ?? pl.pieceNumber ?? "—"),
+    String(resolveAuthoritativeLabelNumber(pl) ?? pl.pieceNumber ?? "—"),
     "1",
     "",
   ]);
@@ -629,7 +629,7 @@ function drawPieceTablePaginated(
           }
         }
         const authThumb = resolveAuthoritativeLabelNumber(pl);
-        const numStr = String(authThumb ?? pl.shortCode ?? pl.pieceNumber ?? "—");
+        const numStr = String(authThumb ?? pl.pieceNumber ?? "—");
         let nfs = Math.min(rh * 0.52, rw * 0.42, 16);
         nfs = Math.max(5, nfs);
         doc.setFontSize(nfs);

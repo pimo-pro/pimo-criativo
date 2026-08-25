@@ -75,7 +75,6 @@ export type IndustrialFerragemPdfRow = {
   qtd: number;
   material: string;
   codigoIndustrial: string;
-  shortCode: string;
   observacoes: string;
 };
 
@@ -136,7 +135,6 @@ function pushPieceFerragens(
   const ct = ctById[componentId];
   const peca = resolveIndustrialPieceRef(item, boxNome, projectName);
   const codigoIndustrial = peca;
-  const shortCode = String(item.shortCode ?? "").trim() || "—";
   const material = String(item.material ?? item.materialId ?? "—").trim() || "—";
   const observacoes = formatObservacoesForPdf(
     resolveObservacoesForCutListItem(item, { pieceObservacoes })
@@ -167,7 +165,6 @@ function pushPieceFerragens(
       qtd: qtdBase * qtyMult,
       material,
       codigoIndustrial,
-      shortCode,
       observacoes,
     });
   }
@@ -221,7 +218,6 @@ export function buildIndustrialFerragensForProject(
         qtd: cavilha40 * Math.max(1, item.quantidade ?? 1),
         material: String(item.material ?? item.materialId ?? "—").trim() || "—",
         codigoIndustrial: peca,
-        shortCode: String(item.shortCode ?? "").trim() || "—",
         observacoes: formatObservacoesForPdf(
           resolveObservacoesForCutListItem(item, { pieceObservacoes: project.pieceObservacoes })
         ),
@@ -242,7 +238,6 @@ export function buildIndustrialFerragensForProject(
         qtd: f.quantidade,
         material: "—",
         codigoIndustrial: "—",
-        shortCode: "—",
         observacoes: "",
       });
     }

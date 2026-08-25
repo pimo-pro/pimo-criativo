@@ -32,7 +32,6 @@ function cutlistItemMatchesId(item: CutListItem, pieceId: string): boolean {
     item.id,
     `${item.boxId}:${item.nome}`,
     `${item.boxId}:${item.id}`,
-    (item as CutListItem & { shortCode?: string }).shortCode,
     (item as CutListItem & { panelId?: string }).panelId,
   ].filter(Boolean);
   return candidates.some((value) => String(value) === pieceId);
@@ -122,7 +121,6 @@ function cutlistInputMatchesId(item: CutlistPieceInput, pieceId: string): boolea
     `${item.boxId}:${item.nome}`,
     `${item.boxId}:${item.name}`,
     `${item.boxId}:${item.id}`,
-    item.shortCode,
   ].filter(Boolean);
   return candidates.some((value) => String(value) === pieceId);
 }

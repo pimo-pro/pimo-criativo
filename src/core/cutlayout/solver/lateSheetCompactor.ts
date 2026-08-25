@@ -70,7 +70,6 @@ export function placementToPiece(p: CutPlacement): CutPiece {
     holes: p.originalDrillHoles ?? p.holes,
     originalDrillHoles: p.originalDrillHoles ?? p.drillHoles,
     pieceNumber: p.pieceNumber,
-    shortCode: p.shortCode,
     metadata: p.metadata,
     // Bloqueia rotação no compactor: sem grainDirection no placement,
     // sinalizamos conservadoramente 'length' para não arriscar rotação incorreta.
@@ -117,7 +116,6 @@ function makePlacement(
     holes: placedHoles,
     originalDrillHoles: srcHoles,
     pieceNumber: piece.pieceNumber,
-    shortCode: piece.shortCode,
     metadata: piece.metadata,
     outerPolygonMm: piece.outerPolygonMm,
     innerContours: piece.innerContours,

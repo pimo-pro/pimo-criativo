@@ -22,7 +22,6 @@ export interface CutlistPieceInput {
     profundidade?: number;
   };
   espessura?: number;
-  shortCode?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -66,7 +65,7 @@ export function mapCutlistToIndustrialPieces(
       materialId: item.materialId,
       quantity: item.quantidade ?? 1,
       operations: inferOperationsFromCutlistItem(item),
-      barcode: item.shortCode,
+      barcode: item.id,
       dimensions: {
         widthMm: item.dimensoes?.largura ?? 0,
         heightMm: item.dimensoes?.altura ?? 0,

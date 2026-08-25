@@ -54,7 +54,6 @@ function buildCutPlacement(
     holes: piece.holes,
     originalDrillHoles: piece.originalDrillHoles ?? piece.drillHoles ?? piece.holes,
     pieceNumber: piece.pieceNumber,
-    shortCode: piece.shortCode,
     metadata: piece.metadata,
     outerPolygonMm: piece.outerPolygonMm,
     innerContours: piece.innerContours,

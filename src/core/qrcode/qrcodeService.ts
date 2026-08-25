@@ -1,6 +1,8 @@
 import qrcode from "qrcode-generator";
 import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
+import { resolveNomeIndustrialForEtiqueta } from "../etiquetas/industrialDisplayName";
+import { buildEtiquetaCodeV5 } from "../etiquetas/qr/etiquetaCodeV5";
 import { resolveAuthoritativeLabelNumber } from "./panelLabelNumber";
 
 type ProjectQrContext = {
@@ -31,93 +33,27 @@ export function getPieceLabel(pieceNumber: number, rules?: RulesConfig): string 
   return `P-${getPieceSuffix(pieceNumber, pieceDigits)}`;
 }
 
-const ETIQUETA_CODE_MAX_LENGTH = 14;
-
-/**
- * Gera o código curto da etiqueta com 4 partes fixas (máx. 14 caracteres, sempre lowercase):
- * 1) Projeto: 3 a 5 letras iniciais
- * 2) Caixa: 2 letras
- * 3) Peça: 3 letras iniciais (ignorando espaços)
- * 4) Número: 2 dígitos (01-09) ou 3 dígitos (010-999)
- *
- * Se ultrapassar 14 caracteres, reduz na ordem:
- * - primeiro a peça (3→2→1)
- * - depois o projeto (5→4→3)
- */
-export function generateEtiquetaCode(
-  projectName: string,
-  boxName: string,
-  pieceName: string,
-  pieceNumber: number
-): string {
-  const toLow = (s: string) => String(s || "").toLowerCase();
-  const projRaw = toLow(projectName || "projeto").replace(/\s/g, "");
-  const boxRaw = toLow(boxName || "xx");
-  const pieceRaw = toLow(pieceName || "pec").replace(/\s/g, "");
-
-  let projLen = Math.min(5, Math.max(3, projRaw.length));
-  let proj = projRaw.slice(0, projLen).padEnd(projLen, projRaw[0] || "x");
-  const box = boxRaw.slice(0, 2).padEnd(2, "x");
-  let pieceLen = 3;
-  let piece = pieceRaw.slice(0, pieceLen).padEnd(pieceLen, pieceRaw[0] || "x");
-
-  const n = Math.max(1, Math.floor(pieceNumber));
-  const num = n < 10 ? String(n).padStart(2, "0") : String(n).padStart(3, "0");
-
-  let code = `${proj}${box}${piece}${num}`;
-
-  while (code.length > ETIQUETA_CODE_MAX_LENGTH && pieceLen > 0) {
-    pieceLen -= 1;
-    piece = pieceRaw.slice(0, pieceLen).padEnd(pieceLen, pieceRaw[0] || "x");
-    code = `${proj}${box}${piece}${num}`;
-  }
-  while (code.length > ETIQUETA_CODE_MAX_LENGTH && projLen > 3) {
-    projLen -= 1;
-    proj = projRaw.slice(0, projLen).padEnd(projLen, projRaw[0] || "x");
-    code = `${proj}${box}${piece}${num}`;
-  }
-
-  return code.slice(0, ETIQUETA_CODE_MAX_LENGTH);
-}
-
-export function buildLocalQrPayload(
+/** ID industrial (N QR) da peça — mesma regra da etiqueta. */
+export function resolvePieceIndustrialId(
   piece: CutListItemComPreco,
-  project: ProjectQrContext,
-  pieceNumber: number
+  project: ProjectQrContext
 ): string {
-  const boxNome = project.boxes.find((b) => b.id === piece.boxId)?.nome ?? piece.boxId ?? "xx";
-  return generateEtiquetaCode(
+  const boxNome =
+    project.boxes.find((b) => b.id === piece.boxId)?.nome ?? piece.boxId ?? "";
+  const tokenMap = project.rules.labelSystemV5?.naming?.pieceTypeTokens ?? null;
+  const nomeIndustrial = resolveNomeIndustrialForEtiqueta(
+    piece,
     project.projectName ?? "PROJETO",
     boxNome,
-    piece.nome ?? "peca",
-    pieceNumber
+    tokenMap
   );
-}
-
-export function generateShortCodeForPiece(
-  piece: CutListItemComPreco,
-  project: ProjectQrContext,
-  pieceIndex0: number
-): { shortCode: string; pieceNumber: number } {
-  if (!project || !piece || !piece.tipo) {
-    return { shortCode: "ERR", pieceNumber: 0 };
-  }
-  
-  try {
-    const restartAt99 = project.rules?.qrcode?.reiniciarContagemEm99 ?? true;
-    const number = cyclicPieceNumber(pieceIndex0, restartAt99);
-    const boxNome = project.boxes.find((b) => b.id === piece.boxId)?.nome ?? piece.boxId ?? "xx";
-    const shortCode = generateEtiquetaCode(
-      project.projectName ?? "PROJETO",
-      boxNome,
-      piece.nome ?? "peca",
-      number
-    );
-    return { shortCode, pieceNumber: number };
-  } catch (err) {
-    console.warn("[qrcodeService] Error generating short code:", err);
-    return { shortCode: "ERR", pieceNumber: 0 };
-  }
+  return buildEtiquetaCodeV5({
+    projectName: project.projectName ?? "PROJETO",
+    pieceSeq: resolveAuthoritativeLabelNumber(piece) ?? 1,
+    totalPiecesInSheet: 0,
+    boxName: boxNome,
+    nomeIndustrial,
+  });
 }
 
 type QrErrorLevel = "L" | "M" | "Q" | "H";
@@ -201,71 +137,44 @@ export async function generateQrCanvasWithLogo(
   return canvas;
 }
 
-export function attachQrCodesToCutlist(
+/**
+ * Atribui `pieceNumber` + `qrSvg` (payload = ID industrial da etiqueta).
+ * Substitui o antigo `attachQrCodesToCutlist` (sem shortCode legado).
+ */
+export function attachLabelNumbersToCutlist(
   items: CutListItemComPreco[],
   project: ProjectQrContext
 ): CutListItemComPreco[] {
   if (!items || !Array.isArray(items)) return [];
-  if (!project || !project.rules || !project.rules.qrcode) {
-    console.warn("[qrcodeService] Invalid project context, returning items without QR codes");
+  if (!project || !project.rules) {
+    console.warn("[qrcodeService] Invalid project context, returning items without label numbers");
     return items;
   }
-  
+
+  const restartAt99 = project.rules?.qrcode?.reiniciarContagemEm99 ?? true;
+
   return items.map((item, idx) => {
     if (!item || !item.tipo) {
       console.warn("[qrcodeService] Skipping invalid item:", item);
       return item;
     }
-    
+
     try {
       const authoritative = resolveAuthoritativeLabelNumber(item);
-      if (authoritative != null) {
-        const boxNome = project.boxes.find((b) => b.id === item.boxId)?.nome ?? item.boxId ?? "xx";
-        const shortCode =
-          item.shortCode && String(item.shortCode).trim() !== "" && item.shortCode !== "ERR"
-            ? String(item.shortCode)
-            : generateEtiquetaCode(
-                project.projectName ?? "PROJETO",
-                boxNome,
-                item.nome ?? "peca",
-                authoritative
-              );
-        const qrPayload = buildLocalQrPayload(item, project, authoritative);
-        return {
-          ...item,
-          pieceNumber: authoritative,
-          shortCode,
-          qrSvg: shortCode !== "ERR" ? generateQrCodeSvg(qrPayload) : "",
-        };
-      }
-      const rawSc = String(item.shortCode ?? "").trim();
-      if (rawSc && rawSc !== "ERR") {
-        const pn =
-          Number(item.pieceNumber ?? 0) > 0 && Number.isFinite(Number(item.pieceNumber))
-            ? Math.floor(Number(item.pieceNumber))
-            : null;
-        const qrPayload =
-          pn != null ? buildLocalQrPayload(item, project, pn) : rawSc;
-        return {
-          ...item,
-          shortCode: rawSc,
-          pieceNumber: pn ?? item.pieceNumber,
-          qrSvg: generateQrCodeSvg(qrPayload),
-        };
-      }
-      const generated = generateShortCodeForPiece(item, project, idx);
-      const qrPayload = buildLocalQrPayload(item, project, generated.pieceNumber);
+      const pieceNumber =
+        authoritative != null ? authoritative : cyclicPieceNumber(idx, restartAt99);
+      const withNumber = { ...item, pieceNumber };
+      const industrialId = resolvePieceIndustrialId(withNumber, project);
+      const { shortCode: _removed, ...rest } = withNumber as CutListItemComPreco & {
+        shortCode?: string;
+      };
       return {
-        ...item,
-        shortCode: generated.shortCode,
-        pieceNumber: generated.pieceNumber,
-        qrSvg:
-          generated.shortCode !== "ERR"
-            ? generateQrCodeSvg(qrPayload)
-            : "",
+        ...rest,
+        pieceNumber,
+        qrSvg: industrialId ? generateQrCodeSvg(industrialId) : "",
       };
     } catch (err) {
-      console.warn(`[qrcodeService] Error attaching QR code to item ${idx}:`, err);
+      console.warn(`[qrcodeService] Error attaching label number to item ${idx}:`, err);
       return item;
     }
   });

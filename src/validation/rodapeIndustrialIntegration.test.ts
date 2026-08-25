@@ -77,9 +77,8 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
     expect(rodapeItems.length).toBe(1);
     expect(rodapeItems[0]?.nome).toMatch(/_RODA_PE_\d{2}$/);
     expect(rodapeItems[0]?.grainDirection).toBeUndefined();
-    expect(rodapeItems[0]?.shortCode).toBeTruthy();
-    expect(rodapeItems[0]?.shortCode).not.toBe("ERR");
     expect(rodapeItems[0]?.pieceNumber).toBeGreaterThan(0);
+    expect(rodapeItems[0]?.qrSvg).toBeTruthy();
   });
 
   it("nesting — rotação sempre permitida para rodapé (veio livre)", () => {

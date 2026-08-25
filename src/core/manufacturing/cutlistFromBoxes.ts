@@ -10,7 +10,7 @@ import type { RulesConfig } from "../rules/rulesConfig";
 import { getMaterialForBox, getMaterialDisplayInfo, getIndustrialMaterialKeyForBox, resolveIndustrialMaterialKey } from "../materials/materialsService";
 import { resolveMaterial, getDefaultOfficialMaterial, resolveCostaMaterialForBox, resolveCostaThicknessMm, resolveSeparadorMaterialForBox, resolveFrenteFixaMaterialForBox } from "../materials/materials.api";
 import { getVisualMaterialForBox, getFallbackMaterial } from "../materials/materialLibraryV2";
-import { attachQrCodesToCutlist } from "../qrcode/qrcodeService";
+import { attachLabelNumbersToCutlist } from "../qrcode/qrcodeService";
 import {
   hasExplicitMetadataLabelNumber,
   readLabelNumberFromMetadata,
@@ -882,9 +882,6 @@ export function cutlistComPrecoFromBox(
       const n = readLabelNumberFromMetadata(prev.metadata);
       if (n != null) {
         item.pieceNumber = n;
-        if (prev.shortCode && prev.shortCode !== "ERR") {
-          item.shortCode = prev.shortCode;
-        }
       }
     }
   }
@@ -923,7 +920,7 @@ export function cutlistComPrecoFromBoxes(
   }
 
   const raw = boxes.flatMap((box) => cutlistComPrecoFromBox(box, rules, projectMaterialId));
-  const comQr = attachQrCodesToCutlist(raw, {
+  const comQr = attachLabelNumbersToCutlist(raw, {
     projectName,
     boxes,
     rules,
@@ -934,7 +931,7 @@ export function cutlistComPrecoFromBoxes(
 }
 
 /**
- * Cutlist paramétrica + peças CAD extraídas, com um único attachQr global
+ * Cutlist paramétrica + peças CAD extraídas, com um único attach de números/QR global
  * (alinhado ao PDF unificado / exportação industrial).
  */
 export function buildGlobalQrCutlistMerged(
@@ -951,7 +948,7 @@ export function buildGlobalQrCutlistMerged(
     return Object.values(byModel).flat() as CutListItemComPreco[];
   });
   const merged = [...rawParam, ...extracted];
-  return attachQrCodesToCutlist(merged, {
+  return attachLabelNumbersToCutlist(merged, {
     projectName,
     boxes,
     rules,

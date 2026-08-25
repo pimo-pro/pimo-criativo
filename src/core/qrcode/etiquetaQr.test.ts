@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultRulesConfig } from "../rules/rulesConfig";
 import type { BoxModule, CutListItemComPreco } from "../types";
-import { attachQrCodesToCutlist } from "./qrcodeService";
+import { attachLabelNumbersToCutlist, resolvePieceIndustrialId } from "./qrcodeService";
 import {
   resolveEtiquetaDisplayCodeV5,
   resolveUnifiedEtiquetaQrCode,
@@ -52,34 +52,37 @@ describe("resolveUnifiedEtiquetaQrCode", () => {
     pieceNumber: 6,
   };
 
-  it("QR inclui nome industrial completo + número da etiqueta", () => {
+  it("QR listas inclui nome industrial completo + número (ainda legado até 3.3)", () => {
     const qr = resolveUnifiedEtiquetaQrCode(item, ctx, new Map(), 0);
     expect(qr).toBe("ANTONIO_NOVO_5_CC4_REMATE_L_B_01-6");
   });
 
-  it("código de display = buildIndustrialId do nome legado (sem NUM_CAIXA/-SEQ)", () => {
+  it("código de display = buildIndustrialId do nome legado", () => {
     const piecesPerSheet = new Map([["box-1::Remate L B", 4]]);
     const display = resolveEtiquetaDisplayCodeV5(item, ctx, piecesPerSheet, 0);
-    // Label legado preservado → ID a partir de antonio_novo_5_cc4_remate_l_b_01
     expect(display).toBe("an5crlb01");
     expect(display).not.toMatch(/-/);
     expect(display).not.toBe(resolveUnifiedEtiquetaQrCode(item, ctx, piecesPerSheet, 0));
   });
 
-  it("peça com attachQrCodes — QR ≠ shortCode", () => {
-    const [withQr] = attachQrCodesToCutlist(
+  it("attachLabelNumbers — pieceNumber + qrSvg; sem shortCode", () => {
+    const [withQr] = attachLabelNumbersToCutlist(
       [
         {
           ...item,
           metadata: undefined,
           nome: "Lateral esquerda",
           tipo: "lateral_esquerda",
+          pieceNumber: undefined,
         },
       ],
       ctx
     );
-    const qr = resolveUnifiedEtiquetaQrCode(withQr!, ctx, new Map(), 0);
-    expect(qr).toContain("-");
-    expect(qr).not.toBe(withQr!.shortCode);
+    expect(withQr!.pieceNumber).toBeGreaterThan(0);
+    expect(withQr!.qrSvg).toBeTruthy();
+    expect((withQr as { shortCode?: string }).shortCode).toBeUndefined();
+    const id = resolvePieceIndustrialId(withQr!, ctx);
+    expect(id).toBeTruthy();
+    expect(id).not.toMatch(/-/);
   });
 });

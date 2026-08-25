@@ -527,7 +527,6 @@ export function buildCanonicalIndustrialOnlineAnalysisSections(
         col("qtd", "Qtd", true),
         col("material", "Material", true),
         col("codigo", "Código", false),
-        col("short", "Short", false),
         col("observacoes", "Obs.", true),
       ],
       rows: industrial.rows.map((r, index) =>
@@ -540,7 +539,6 @@ export function buildCanonicalIndustrialOnlineAnalysisSections(
             qtd: String(r.qtd),
             material: r.material,
             codigo: r.codigoIndustrial,
-            short: r.shortCode,
             observacoes: r.observacoes || "—",
           }
         )

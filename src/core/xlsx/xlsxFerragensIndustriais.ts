@@ -12,7 +12,6 @@ const HEADERS = [
   "Qtd",
   "Material",
   "Código Industrial",
-  "ShortCode",
   "Observações",
 ] as const;
 
@@ -69,10 +68,9 @@ export async function buildFerragensIndustriaisXlsxBuffer(
           row.qtd,
           row.material,
           row.codigoIndustrial,
-          row.shortCode,
           row.observacoes,
         ])
-      : [["—", "—", "Sem ferragens", 0, "—", "—", "—", "—"]];
+      : [["—", "—", "Sem ferragens", 0, "—", "—", "—"]];
 
   for (const values of bodyRows) {
     const row = sheet.addRow(values);

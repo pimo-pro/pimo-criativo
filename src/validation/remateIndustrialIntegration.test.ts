@@ -72,7 +72,7 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     expect(resolveObservacoesForCutListItem(int!, {})).toEqual(["ME manual"]);
   });
 
-  it("buildCutlistItemsForIndustrialExport inclui remates com shortCode e pieceNumber", () => {
+  it("buildCutlistItemsForIndustrialExport inclui remates com pieceNumber e qrSvg", () => {
     const box = makeDivSepTestBox({ id: "box-remate-ind", nome: "Armario_Test" });
     const wsBox = makeWorkspaceBox();
     const remates = createRematePieces(
@@ -97,9 +97,8 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     expect(remateItems.length).toBeGreaterThan(0);
     for (const item of remateItems) {
       expect(item.nome).toMatch(/_REMATE_/);
-      expect(item.shortCode).toBeTruthy();
-      expect(item.shortCode).not.toBe("ERR");
       expect(item.pieceNumber).toBeGreaterThan(0);
+      expect(item.qrSvg).toBeTruthy();
       expect(item.grainDirection).toBe("XX");
     }
   });

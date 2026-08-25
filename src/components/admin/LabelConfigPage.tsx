@@ -30,9 +30,9 @@ import { useSettings } from "../../context/SettingsContext";
 
 const PALETTE_CODES: PaletteGroup["code"][] = ["D", "O", "OD", "C", "L", "E"];
 const QR_POLICY_OPTIONS: { value: QrPolicy; label: string; description: string }[] = [
-  { value: "v5", label: "v5 (completo)", description: "Código v5 sigla+seq — padrão para produção" },
-  { value: "short", label: "Short (legado)", description: "Código curto projecto/caixa/peça — compatível com S1" },
-  { value: "dual", label: "Dual", description: "Imprime ambos: código v5 + short na etiqueta" },
+  { value: "v5", label: "v5 (ID industrial)", description: "Código industrial da etiqueta (buildIndustrialId)" },
+  { value: "short", label: "Short (= v5)", description: "Mesmo ID industrial — ShortCode legado removido" },
+  { value: "dual", label: "Dual (= v5)", description: "Mesmo ID industrial (sem segundo algoritmo)" },
 ];
 type LabelTab = "Geral" | "Produção" | "Layout" | "Preview";
 

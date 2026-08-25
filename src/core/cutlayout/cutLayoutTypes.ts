@@ -66,8 +66,6 @@ export type CutPiece = {
   uvRotationOverride?: number;
   /** Número sequencial da peça (1-99). */
   pieceNumber?: number;
-  /** Código curto legível para fábrica (ex.: PRJBXPO1). */
-  shortCode?: string;
   /** Metadados industriais adicionais (offsets, flags, regras aplicadas etc.). */
   metadata?: Record<string, unknown>;
   /** Polígono exterior (mm), origem no canto inferior-esquerdo do AABB. Só TAMPO. */
@@ -123,8 +121,6 @@ export type CutPlacement = {
   }>;
   /** Número sequencial da peça (1-99). */
   pieceNumber?: number;
-  /** Código curto legível para fábrica. */
-  shortCode?: string;
   /** Metadados industriais adicionais (offsets, flags, regras aplicadas etc.). */
   metadata?: Record<string, unknown>;
   /** Polígono exterior (mm), origem no canto inferior-esquerdo do AABB. Só TAMPO. */
