@@ -18,11 +18,12 @@ on:
           - production
           - local
       mode:
-        description: "connection-only = SELECT 1 (default seguro); migrate = apply SQL"
+        description: "connection-only | inventory-readonly (SELECT only) | migrate"
         required: true
         type: choice
         options:
           - connection-only
+          - inventory-readonly
           - migrate
         default: connection-only
       dry_run:
@@ -73,6 +74,12 @@ jobs:
             echo "Expected ref: PIMO_SUPABASE_PROJECT_REF_LOCAL (secret)"
           fi
 
+      - name: Fail-closed — inventory-readonly só em staging
+        if: ${{ github.event.inputs.mode == 'inventory-readonly' && github.event.inputs.target != 'staging' }}
+        run: |
+          echo "ERRO: inventory-readonly apenas permitido com target=staging."
+          exit 1
+
       - name: Fail-closed — production sem exclusões silenciosas
         if: ${{ github.event.inputs.target == 'production' && github.event.inputs.exclude_migrations != '' }}
         run: |
@@ -112,6 +119,36 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_REGION: eu-central-1
         run: node scripts/connectionProbePg.mjs
+
+  inventory-readonly:
+    needs: guard-inputs
+    if: ${{ github.event.inputs.mode == 'inventory-readonly' && github.event.inputs.target == 'staging' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Staging inventory (SELECT only)
+        env:
+          PIMO_MIGRATE_TARGET: staging
+          PIMO_SUPABASE_PROJECT_REF_STAGING: rszpnvmscehqapflaklv
+          PIMO_SUPABASE_PROJECT_REF_PRODUCTION: ritmrjwrmcsofyugviil
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DB_PASSWORD: ""
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_REGION: eu-central-1
+        run: node scripts/inventoryStagingReadOnly.mjs
 
   migrate:
     needs: guard-inputs
