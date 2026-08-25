@@ -1,7 +1,7 @@
 {
   "phase": "after",
   "baselineCommit": "aecf802",
-  "generatedAt": "2026-08-22T13:49:44.659Z",
+  "generatedAt": "2026-08-25T10:48:29.904Z",
   "inputFixture": "src/validation/industrialPipelineTestHelpers.ts → buildMono19BenchmarkScenario()",
   "scenario": {
     "scenarioId": "MONO19_SPM_COZINHA",
@@ -44,7 +44,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_DIV_01",
+        "nome": "Divisório",
         "tipo": "divisorio",
         "largura_mm": 536,
         "altura_mm": 441,
@@ -52,7 +52,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_DIV_02",
+        "nome": "Divisório",
         "tipo": "divisorio",
         "largura_mm": 536,
         "altura_mm": 441,
@@ -60,7 +60,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_SEP_01",
+        "nome": "Separador",
         "tipo": "separador",
         "largura_mm": 760,
         "altura_mm": 536,
@@ -68,7 +68,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_SEP_02",
+        "nome": "Separador",
         "tipo": "separador",
         "largura_mm": 760,
         "altura_mm": 536,
@@ -76,7 +76,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_SEP_03",
+        "nome": "Separador",
         "tipo": "separador",
         "largura_mm": 760,
         "altura_mm": 536,
@@ -84,7 +84,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_SEP_04",
+        "nome": "Separador",
         "tipo": "separador",
         "largura_mm": 760,
         "altura_mm": 536,
@@ -92,7 +92,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_frent_ext_01",
+        "nome": "gaveta_frente_ext",
         "tipo": "gaveta_frente_ext",
         "largura_mm": 796,
         "altura_mm": 714,
@@ -100,7 +100,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_fun_01",
+        "nome": "gaveta_fundo",
         "tipo": "gaveta_fundo",
         "largura_mm": 728,
         "altura_mm": 500,
@@ -108,7 +108,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_frent_ext_02",
+        "nome": "gaveta_frente_ext",
         "tipo": "gaveta_frente_ext",
         "largura_mm": 796,
         "altura_mm": 357,
@@ -116,7 +116,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_fun_02",
+        "nome": "gaveta_fundo",
         "tipo": "gaveta_fundo",
         "largura_mm": 728,
         "altura_mm": 500,
@@ -124,7 +124,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_frent_ext_03",
+        "nome": "gaveta_frente_ext",
         "tipo": "gaveta_frente_ext",
         "largura_mm": 796,
         "altura_mm": 357,
@@ -132,7 +132,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_fun_03",
+        "nome": "gaveta_fundo",
         "tipo": "gaveta_fundo",
         "largura_mm": 728,
         "altura_mm": 500,
@@ -140,7 +140,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_frent_ext_04",
+        "nome": "gaveta_frente_ext",
         "tipo": "gaveta_frente_ext",
         "largura_mm": 796,
         "altura_mm": 357,
@@ -148,7 +148,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_gav_fun_04",
+        "nome": "gaveta_fundo",
         "tipo": "gaveta_fundo",
         "largura_mm": 728,
         "altura_mm": 500,
@@ -156,7 +156,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_REMATE_ESQ_01",
+        "nome": "Remate ESQ",
         "tipo": "remate",
         "largura_mm": 1840,
         "altura_mm": 650,
@@ -164,7 +164,7 @@
         "materialId": "mdf_branco"
       },
       {
-        "nome": "Cozinha_Mono19_RODA_PE_01",
+        "nome": "Rodapé",
         "tipo": "rodape",
         "largura_mm": 2850,
         "altura_mm": 100,
@@ -173,7 +173,7 @@
       }
     ],
     "mode": "SPM",
-    "executionMs": 233.7,
+    "executionMs": 267.5,
     "totalSheets": 3,
     "avgWastePercent": 43.18,
     "totalMicroGapsLt5mm": 0,
@@ -235,14 +235,10 @@
     "labelsContract": {
       "industrialLayoutValid": true,
       "pieceKindsSample": {
-        "Cozinha_Mono19_DIV_01": "DIV",
-        "Cozinha_Mono19_DIV_02": "DIV",
-        "Cozinha_Mono19_SEP_01": "SEP",
-        "Cozinha_Mono19_SEP_02": "SEP",
-        "Cozinha_Mono19_SEP_03": "SEP",
-        "Cozinha_Mono19_SEP_04": "SEP",
-        "Cozinha_Mono19_gav_frent_ext_01": "FRENTE_GAVETA",
-        "Cozinha_Mono19_gav_fun_01": "GENERIC"
+        "Divisório": "DIV",
+        "Separador": "SEP",
+        "gaveta_frente_ext": "FRENTE_GAVETA",
+        "gaveta_fundo": "GENERIC"
       }
     }
   }
