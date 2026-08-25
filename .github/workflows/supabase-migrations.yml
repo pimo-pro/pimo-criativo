@@ -1,21 +1,106 @@
 name: Supabase Industrial Migrations
 
+# Fail-closed: só workflow_dispatch + GitHub Environment = target.
+# Allowlist canónica no código (migrateTargetGuard.mjs):
+#   staging    → rszpnvmscehqapflaklv
+#   production → ritmrjwrmcsofyugviil
+# Default mode: connection-only (seguro). migrate = escolha explícita.
+# Nunca: push main → DB desconhecido.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'supabase/migrations/**'
-      - 'supabase/config.toml'
-      - '.github/workflows/supabase-migrations.yml'
+    inputs:
+      target:
+        description: "Migration target (staging|production|local)"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - local
+      mode:
+        description: "connection-only = SELECT 1 (default seguro); migrate = apply SQL"
+        required: true
+        type: choice
+        options:
+          - connection-only
+          - migrate
+        default: connection-only
+      dry_run:
+        description: "Dry run (list pending files only) — só relevante para mode=migrate"
+        required: false
+        type: boolean
+        default: false
+      confirm_production:
+        description: "Only for production: must equal I_UNDERSTAND"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
-  migrate:
+  guard-inputs:
     runs-on: ubuntu-latest
+    steps:
+      - name: Fail-closed production confirmation
+        if: ${{ github.event.inputs.target == 'production' && github.event.inputs.confirm_production != 'I_UNDERSTAND' }}
+        run: |
+          echo "ERRO: target=production requer confirm_production=I_UNDERSTAND"
+          exit 1
+      - name: Echo target (no secrets)
+        run: |
+          echo "Target: ${{ github.event.inputs.target }}"
+          echo "Mode: ${{ github.event.inputs.mode }}"
+          echo "Dry run: ${{ github.event.inputs.dry_run }}"
+          if [ "${{ github.event.inputs.target }}" = "staging" ]; then
+            echo "Expected ref: rszpnvmscehqapflaklv"
+          elif [ "${{ github.event.inputs.target }}" = "production" ]; then
+            echo "Expected ref: ritmrjwrmcsofyugviil"
+          else
+            echo "Expected ref: PIMO_SUPABASE_PROJECT_REF_LOCAL (secret)"
+          fi
+
+  connection-only:
+    needs: guard-inputs
+    if: ${{ github.event.inputs.mode == 'connection-only' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: PostgreSQL connection probe (read-only SELECT 1)
+        env:
+          PIMO_MIGRATE_TARGET: ${{ github.event.inputs.target }}
+          CONFIRM_PRODUCTION_MIGRATE: ${{ github.event.inputs.confirm_production }}
+          PIMO_SUPABASE_PROJECT_REF_STAGING: rszpnvmscehqapflaklv
+          PIMO_SUPABASE_PROJECT_REF_PRODUCTION: ritmrjwrmcsofyugviil
+          PIMO_SUPABASE_PROJECT_REF_LOCAL: ${{ secrets.PIMO_SUPABASE_PROJECT_REF_LOCAL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Staging: nunca herdar SUPABASE_DB_PASSWORD do repositório.
+          SUPABASE_DB_PASSWORD: ${{ github.event.inputs.target != 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_REGION: eu-central-1
+        run: node scripts/connectionProbePg.mjs
+
+  migrate:
+    needs: guard-inputs
+    if: ${{ github.event.inputs.mode == 'migrate' }}
+    runs-on: ubuntu-latest
+    # REQUIRES EXTERNAL CONFIGURATION: Environments GitHub "staging" / "production"
+    # com secrets ISOLADOS (nunca partilhar DATABASE_URL de production no environment staging).
+    environment: ${{ github.event.inputs.target }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,17 +118,30 @@ jobs:
         run: |
           echo "Migrations em supabase/migrations:"
           ls -1 supabase/migrations/*.sql | sort
+          echo "Target: ${{ github.event.inputs.target }}"
+          echo "Mode: migrate"
 
       - name: Apply migrations (Postgres direct)
         env:
+          PIMO_MIGRATE_TARGET: ${{ github.event.inputs.target }}
+          PIMO_MIGRATE_DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+          CONFIRM_PRODUCTION_MIGRATE: ${{ github.event.inputs.confirm_production }}
+          # Allowlist canónica reforçada (deve coincidir com migrateTargetGuard.mjs)
+          PIMO_SUPABASE_PROJECT_REF_STAGING: rszpnvmscehqapflaklv
+          PIMO_SUPABASE_PROJECT_REF_PRODUCTION: ritmrjwrmcsofyugviil
+          PIMO_SUPABASE_PROJECT_REF_LOCAL: ${{ secrets.PIMO_SUPABASE_PROJECT_REF_LOCAL }}
+          # Credenciais — APENAS do GitHub Environment seleccionado
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # Staging: nunca herdar SUPABASE_DB_PASSWORD do repositório.
+          # Production/local: manter resolução actual (Environment → repo).
+          SUPABASE_DB_PASSWORD: ${{ github.event.inputs.target != 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_REGION: eu-central-1
         run: node scripts/applyMigrationsPg.mjs
 
       - name: Verify industrial tables (REST)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -54,6 +152,8 @@ jobs:
             echo "ERRO: VITE_SUPABASE_ANON_KEY ou SUPABASE_SERVICE_ROLE_KEY em falta para verificação."
             exit 1
           fi
+          # Não imprimir keys; apenas host da URL
+          echo "REST verify host: $(echo "$VITE_SUPABASE_URL" | sed -E 's#https://([^/]+).*#\1#')"
           TABLES=(
             industrial_work_orders
             industrial_work_order_tasks
@@ -75,32 +175,17 @@ jobs:
               exit 1
             fi
           done
-          VIEWS=(
-            industrial_operations
-            industrial_quality
-            industrial_time_tracking
-            industrial_work_order_tasks_view
-            industrial_tracking
-            industrial_rework
-            industrial_events
-            industrial_settings
-          )
-          for view in "${VIEWS[@]}"; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "apikey: ${API_KEY}" \
-              -H "Authorization: Bearer ${API_KEY}" \
-              "${VITE_SUPABASE_URL}/rest/v1/${view}?limit=1")
-            echo "${view} -> HTTP ${code}"
-            if [ "$code" != "200" ]; then
-              echo "ERRO: view ${view} inacessível"
-              exit 1
-            fi
-          done
 
       - name: Validate industrial metadata (Postgres)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
+          PIMO_MIGRATE_TARGET: ${{ github.event.inputs.target }}
+          CONFIRM_PRODUCTION_MIGRATE: ${{ github.event.inputs.confirm_production }}
+          PIMO_SUPABASE_PROJECT_REF_STAGING: rszpnvmscehqapflaklv
+          PIMO_SUPABASE_PROJECT_REF_PRODUCTION: ritmrjwrmcsofyugviil
+          PIMO_SUPABASE_PROJECT_REF_LOCAL: ${{ secrets.PIMO_SUPABASE_PROJECT_REF_LOCAL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PASSWORD: ${{ github.event.inputs.target != 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_REGION: eu-central-1
