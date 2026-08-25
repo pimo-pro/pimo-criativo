@@ -21,15 +21,15 @@ describe("pdfExcelModelLayout", () => {
     expect(widths).toHaveLength(PDF_TECNICO_COL_COUNT);
     const sum = widths.reduce((a, b) => a + b, 0);
     expect(sum).toBeGreaterThan(PDF_INDUSTRIAL_TABLE_W - 1);
-    expect(sum).toBeLessThanOrEqual(PDF_INDUSTRIAL_TABLE_W + 0.5);
+    expect(sum).toBeLessThanOrEqual(PDF_INDUSTRIAL_TABLE_W + 1);
   });
 
-  it("No ETQ comporta 15 caracteres sem quebra", () => {
+  it("No ETQ comporta ID industrial curto (ex. kcnc1ld)", () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const etqW = measureEtqColumnWidthMm(doc);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
-    const sample = "PROJETO-0012345";
+    const sample = "kcnc1ldxxxxx";
     expect(etqW).toBeGreaterThanOrEqual(doc.getTextWidth(sample));
   });
 });

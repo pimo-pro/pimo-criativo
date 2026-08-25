@@ -1,6 +1,5 @@
 import { COMPONENT_TYPES_DEFAULT, type ComponentType } from "../components/componentTypes";
 import { FERRAGENS_DEFAULT, type Ferragem } from "../ferragens/ferragens";
-import { resolveIndustrialPieceRef } from "../cutlayout/cutLayoutProPieceNaming";
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import { gerarModeloIndustrial } from "../manufacturing/boxManufacturing";
 import type { BoxModule, CutListItemComPreco } from "../types";
@@ -10,7 +9,11 @@ import {
   formatObservacoesForPdf,
   resolveObservacoesForCutListItem,
 } from "../observacoes/ObservacoesService";
-import { sanitizeIndustrialSegment } from "../etiquetas/industrialDisplayName";
+import {
+  resolveFullIndustrialNameForDocument,
+  resolveIndustrialIdForDocument,
+  sanitizeIndustrialSegment,
+} from "../etiquetas/industrialDisplayName";
 import { safeGetItem } from "../../utils/storage";
 import {
   CAVILHA_10x40_FERRAGEM_ID,
@@ -133,8 +136,8 @@ function pushPieceFerragens(
 ): void {
   const componentId = TIPO_TO_COMPONENT_ID[item.tipo] ?? item.tipo;
   const ct = ctById[componentId];
-  const peca = resolveIndustrialPieceRef(item, boxNome, projectName);
-  const codigoIndustrial = peca;
+  const peca = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
+  const codigoIndustrial = resolveIndustrialIdForDocument(item, projectName, boxNome);
   const material = String(item.material ?? item.materialId ?? "—").trim() || "—";
   const observacoes = formatObservacoesForPdf(
     resolveObservacoesForCutListItem(item, { pieceObservacoes })
@@ -210,14 +213,14 @@ export function buildIndustrialFerragensForProject(
     // CAVILHA_10x40 — 1 por cada furo 10×30 (par obrigatório com 10×13 na peça oposta)
     const cavilha40 = countCavilha10x40FromEdgeHoles(item.drillHoles ?? []);
     if (cavilha40 > 0) {
-      const peca = resolveIndustrialPieceRef(item, boxNome, projectName);
+      const peca = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
       rows.push({
         caixa: boxNome,
         peca,
         ferragem: ferragemLabel(CAVILHA_10x40_FERRAGEM_ID, ferragemById),
         qtd: cavilha40 * Math.max(1, item.quantidade ?? 1),
         material: String(item.material ?? item.materialId ?? "—").trim() || "—",
-        codigoIndustrial: peca,
+        codigoIndustrial: resolveIndustrialIdForDocument(item, projectName, boxNome),
         observacoes: formatObservacoesForPdf(
           resolveObservacoesForCutListItem(item, { pieceObservacoes: project.pieceObservacoes })
         ),

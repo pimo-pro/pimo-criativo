@@ -2,7 +2,7 @@ import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import {
   buildPiecesPerSheetMap,
-  resolveUnifiedEtiquetaQrCode,
+  resolveEtiquetaDisplayCodeV5,
   type EtiquetaQrContext,
 } from "../etiquetas/qr/etiquetaQr";
 
@@ -12,7 +12,7 @@ export type IndustrialListQrContext = {
   rules: RulesConfig;
 };
 
-/** N.º QR unificado — mesmo código v5 das etiquetas industriais. */
+/** N.º QR unificado — mesmo `buildIndustrialId` da etiqueta. */
 export function resolveIndustrialListNqr(
   item: CutListItemComPreco,
   ctx: IndustrialListQrContext,
@@ -24,7 +24,7 @@ export function resolveIndustrialListNqr(
     boxes: ctx.boxes,
     rules: ctx.rules,
   };
-  return resolveUnifiedEtiquetaQrCode(item, qrCtx, piecesPerSheet, index0);
+  return resolveEtiquetaDisplayCodeV5(item, qrCtx, piecesPerSheet, index0);
 }
 
 export function buildIndustrialListPiecesPerSheet(

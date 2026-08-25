@@ -11,7 +11,6 @@ import {
   PDF_INDUSTRIAL_FOOTER_Y,
   PDF_INDUSTRIAL_ROW_MIN_H,
   PDF_INDUSTRIAL_HEAD_ROW_MIN_H,
-  PDF_INDUSTRIAL_ETQ_MAX_CHARS,
 } from "./pdfExcelModelLayout";
 import {
   drawLogoIndustrialInBox,
@@ -275,9 +274,7 @@ export function formatIndustrialDesignDate(): string {
   });
 }
 
-/** Trunca ETQ só se exceder 15 chars (modelo: sem quebra de linha). */
+/** Pass-through — ID industrial é curto; sem truncamento. */
 export function formatEtqForPdf(value: string): string {
-  const s = String(value ?? "");
-  if (s.length <= PDF_INDUSTRIAL_ETQ_MAX_CHARS) return s;
-  return s.slice(0, PDF_INDUSTRIAL_ETQ_MAX_CHARS);
+  return String(value ?? "");
 }

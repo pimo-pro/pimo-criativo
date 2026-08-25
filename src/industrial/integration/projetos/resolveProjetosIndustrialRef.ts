@@ -5,8 +5,7 @@ import {
   buildProjetosFocusCatalog,
   resolveProjetosFocusFromSegments,
 } from "@/app/PROJETOS/projetosFocusSlug";
-import { resolveIndustrialPieceRef } from "@/core/cutlayout/cutLayoutProPieceNaming";
-import { buildEtiquetaCodeV5, buildEtiquetaQrPayloadV5 } from "@/core/etiquetas/qr/etiquetaCodeV5";
+import { buildEtiquetaCodeV5 } from "@/core/etiquetas/qr/etiquetaCodeV5";
 import { resolveNomeIndustrialForEtiqueta } from "@/core/etiquetas/industrialDisplayName";
 import { resolveAuthoritativeLabelNumber } from "@/core/qrcode/panelLabelNumber";
 import { buildCutlistItemsForIndustrialExport } from "@/core/fabrication/buildCutlistItemsForIndustrialExport";
@@ -80,8 +79,7 @@ export function resolveProjetosIndustrialRef(
         pieceSeq,
         totalPiecesInSheet: piecesInBox,
       });
-      const industrialRef = resolveIndustrialPieceRef(item, boxNome, projectName);
-      qrPayload = buildEtiquetaQrPayloadV5({ industrialPieceRef: industrialRef, pieceSeq });
+      qrPayload = etiquetaCode;
     }
   }
 

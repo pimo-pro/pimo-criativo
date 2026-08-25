@@ -112,26 +112,6 @@ export function buildEtiquetaCodeV5(input: EtiquetaCodeV5Input): string {
   return buildIndustrialId(industrialFullName);
 }
 
-export interface EtiquetaQrPayloadV5Input {
-  /** Nome industrial completo da peça (ex.: ANTONIO_NOVO_5_CC4_REMATE_L_B_01). */
-  industrialPieceRef: string;
-  pieceSeq: number;
-}
-
-/**
- * Payload QR v5 — nome industrial completo + número da etiqueta.
- * Ex.: ANTONIO_NOVO_5_CC4_REMATE_L_B_01-6
- */
-export function buildEtiquetaQrPayloadV5(input: EtiquetaQrPayloadV5Input): string {
-  const base = String(input.industrialPieceRef ?? "")
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-  const seq = Math.max(1, Math.floor(Number(input.pieceSeq) || 1));
-  return `${base || "PECA"}-${seq}`;
-}
-
 export type LabelSheetPlacement = {
   partName: string;
   boxId: string;

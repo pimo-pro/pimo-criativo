@@ -4,7 +4,7 @@
  */
 
 import type { ProjectState } from "@/context/projectTypes";
-import { resolveIndustrialPieceRef } from "@/core/cutlayout/cutLayoutProPieceNaming";
+import { resolveFullIndustrialNameForDocument } from "@/core/etiquetas/industrialDisplayName";
 import { buildCutlistItemsForIndustrialExport } from "@/core/fabrication/buildCutlistItemsForIndustrialExport";
 import { COMPONENT_TYPES_DEFAULT, type ComponentType } from "@/core/components/componentTypes";
 import { FERRAGENS_DEFAULT, type Ferragem } from "@/core/ferragens/ferragens";
@@ -140,7 +140,7 @@ function buildCutlistLikeSections(
         const obs = formatObservacoesForPdf(
           resolveObservacoesForCutListItem(item, { pieceObservacoes: project.pieceObservacoes })
         );
-        const ref = resolveIndustrialPieceRef(item, caixa, projectName);
+        const ref = resolveFullIndustrialNameForDocument(item, projectName, caixa);
         // Sempre namespace cutlist — cutlist e técnico partilham o mesmo rowId SSOT.
         const rowId =
           item.id?.trim() ||

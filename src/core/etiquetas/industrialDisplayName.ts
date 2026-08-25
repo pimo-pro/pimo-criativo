@@ -1,5 +1,6 @@
 import {
   buildFullIndustrialName,
+  buildIndustrialId,
   mergePieceTypeTokens,
   sanitizeIndustrialToken,
   type IndustrialPieceTokenMap,
@@ -39,17 +40,14 @@ export function buildV5BottomStripIndustrialName(
   const industrialSan = sanitizeIndustrialToken(raw) || "peca";
   const projectPrefix = `${projeto}_`;
 
-  // Já é nome completo (sistema novo ou legado com prefixo de projecto).
   if (industrialSan.startsWith(projectPrefix)) {
     return industrialSan;
   }
 
-  // Tipo SSOT / token conhecido (ex.: lateral_direita, cima) → nome completo novo.
   if (isKnownPieceTipoOrToken(raw, tokenMap)) {
     return buildFullIndustrialName(projectName, boxName, raw, undefined, tokenMap);
   }
 
-  // Label legado com `_` (ex.: BOX_DIV_01, C1_top) — só prefixar projecto, sem retokenizar.
   if (raw.includes("_") || industrialSan.includes("_")) {
     return `${projeto}_${industrialSan}`;
   }
@@ -80,4 +78,30 @@ export function resolveNomeIndustrialForEtiqueta(
   }
   const key = String(item.tipo ?? item.nome ?? "peca").trim() || "peca";
   return buildFullIndustrialName(projectName, boxNome ?? "", key, undefined, tokenMap);
+}
+
+/**
+ * Nome completo documental (PDF técnico, cutlist, ferragens, etc.) —
+ * mesma regra da faixa da etiqueta; preserva `metadata.industrialLabel`.
+ */
+export function resolveFullIndustrialNameForDocument(
+  item: NomeIndustrialItemLike,
+  projectName: string,
+  boxNome?: string,
+  tokenMap?: IndustrialPieceTokenMap | null
+): string {
+  const resolved = resolveNomeIndustrialForEtiqueta(item, projectName, boxNome, tokenMap);
+  return buildV5BottomStripIndustrialName(projectName, boxNome ?? "", resolved, tokenMap);
+}
+
+/** N QR / ID industrial documental — idêntico ao impresso na etiqueta. */
+export function resolveIndustrialIdForDocument(
+  item: NomeIndustrialItemLike,
+  projectName: string,
+  boxNome?: string,
+  tokenMap?: IndustrialPieceTokenMap | null
+): string {
+  return buildIndustrialId(
+    resolveFullIndustrialNameForDocument(item, projectName, boxNome, tokenMap)
+  );
 }

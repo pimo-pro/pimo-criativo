@@ -1,7 +1,7 @@
 /**
  * Dimensões extraídas do modelo oficial test.xlsx (folha «LC - Paineis»).
  * Proporções de coluna Excel A–T escaladas para A4 landscape com margens 4 mm.
- * NEST → CNC (requisito PIMO); No ETQ ≥ 15 caracteres sem quebra.
+ * NEST → CNC (requisito PIMO); No ETQ = ID industrial curto (sem truncar).
  */
 
 import type jsPDF from "jspdf";
@@ -20,10 +20,12 @@ const EXCEL_COL_UNITS_TECNICO = [
 ] as const;
 
 const ETQ_COL_INDEX = 19;
-const ETQ_MIN_CHARS = 15;
-const ETQ_SAMPLE = "PROJETO-0012345";
+/** Largura mínima da coluna ETQ (ID industrial curto, ex. kcnc1ld). */
+const ETQ_MIN_CHARS = 12;
+const ETQ_SAMPLE = "kcnc1ldxxxxx";
 
-export const PDF_INDUSTRIAL_ETQ_MAX_CHARS = ETQ_MIN_CHARS;
+/** @deprecated Truncamento removido — mantido para imports legados. */
+export const PDF_INDUSTRIAL_ETQ_MAX_CHARS = Number.POSITIVE_INFINITY;
 
 export const PDF_INDUSTRIAL_QTD_COL_WIDTH = 13.1;
 export const PDF_INDUSTRIAL_ESP_COL_WIDTH = 14.1;
@@ -33,7 +35,7 @@ export const PDF_INDUSTRIAL_ROW_MIN_H = 4.6;
 /** Cabeçalho de tabela — Excel row 20/21 ≈ 19.5 pt. */
 export const PDF_INDUSTRIAL_HEAD_ROW_MIN_H = 6.9;
 
-/** Calcula largura mínima mm para 15 caracteres sem quebra (@ fontSize helvetica). */
+/** Calcula largura mínima mm para a coluna ETQ (@ fontSize helvetica). */
 export function measureEtqColumnWidthMm(doc: jsPDF, fontSize = 6.5): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(fontSize);
@@ -66,11 +68,11 @@ export function buildTecnicoColumnWidthsMm(doc: jsPDF): number[] {
   return scaleExcelColumnsToTable(EXCEL_COL_UNITS_TECNICO, PDF_INDUSTRIAL_TABLE_W, ETQ_COL_INDEX, etqMin);
 }
 
-/** Larguras cutlist (10 cols) — ETQ última. */
+/** Larguras cutlist (9 cols, sem coluna Caixa) — ETQ última. */
 export function buildCutlistColumnWidthsMm(doc: jsPDF): number[] {
   const etqMin = measureEtqColumnWidthMm(doc);
-  const units = [28, 40, 13.7109375, 26, 16, 10, 10, 12, 38, 20.7109375];
-  return scaleExcelColumnsToTable(units, PDF_INDUSTRIAL_TABLE_W, 9, etqMin);
+  const units = [52, 13.7109375, 26, 16, 10, 10, 12, 38, 20.7109375];
+  return scaleExcelColumnsToTable(units, PDF_INDUSTRIAL_TABLE_W, 8, etqMin);
 }
 
 /** Cabeçalhos técnico — ordem Excel A–T (NEST→CNC). */

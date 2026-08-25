@@ -1,6 +1,6 @@
 /**
  * PDF Lista de Corte — layout industrial partilhado (A4 landscape, linhas compactas).
- * Colunas: Caixa, Peça, Qtd, L×A×P, Borda, Limpeza, Montagem, Verificação, OBSERVAÇÕES, No ETQ.
+ * Colunas: Peça (nome completo), Qtd, L×A×P, Borda, Limpeza, Montagem, Verificação, OBSERVAÇÕES, No ETQ.
  */
 
 import jsPDF from "jspdf";
@@ -9,7 +9,7 @@ import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import type { IndustrialPieceEditsStore } from "../industrial/industrialPieceEditsTypes";
-import { resolveIndustrialPieceRef } from "../cutlayout/cutLayoutProPieceNaming";
+import { resolveFullIndustrialNameForDocument } from "../etiquetas/industrialDisplayName";
 import {
   buildIndustrialListPiecesPerSheet,
   resolveIndustrialListNqr,
@@ -111,7 +111,6 @@ export function renderCutlistTable(
   startY: number
 ): number {
   const head = [
-    "Caixa",
     "Peça",
     "Qtd",
     "L×A×P (mm)",
@@ -141,7 +140,7 @@ export function renderCutlistTable(
         bordaFita = raw;
       }
     }
-    const refPeca = resolveIndustrialPieceRef(p, p.boxNome, project.projectName);
+    const refPeca = resolveFullIndustrialNameForDocument(p, project.projectName, p.boxNome);
     const nQr = resolveIndustrialListNqr(p, qrCtx, piecesPerSheet, index0);
     const obsText = formatObservacoesForPdf(
       resolveObservacoesForCutListItem(p, {
@@ -149,7 +148,6 @@ export function renderCutlistTable(
       })
     );
     return [
-      p.boxNome ?? "—",
       refPeca,
       String(p.quantidade),
       `${p.dimensoes.largura}×${p.dimensoes.altura}×${p.dimensoes.profundidade}`,
@@ -163,17 +161,17 @@ export function renderCutlistTable(
   });
 
   if (body.length === 0) {
-    body.push(["Nenhuma peça", "—", "—", "—", "—", "—", "—", "—", "—", "—"]);
+    body.push(["Nenhuma peça", "—", "—", "—", "—", "—", "—", "—", "—"]);
   }
 
   const colWidths = buildCutlistColumnWidthsMm(doc);
-  const etqColIndex = 9;
+  const etqColIndex = 8;
   const columnStyles = buildColumnStylesFromWidths(colWidths, {
-    2: { halign: "center" },
-    3: { halign: "right" },
+    1: { halign: "center" },
+    2: { halign: "right" },
+    4: { halign: "center" },
     5: { halign: "center" },
     6: { halign: "center" },
-    7: { halign: "center" },
     [etqColIndex]: { halign: "center" },
   });
 

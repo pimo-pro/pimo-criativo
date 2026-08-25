@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { resolveIndustrialPieceRef } from '@/core/cutlayout/cutLayoutProPieceNaming';
-import { buildEtiquetaQrPayloadV5 } from '@/core/etiquetas/qr/etiquetaCodeV5';
-import { resolveAuthoritativeLabelNumber } from '@/core/qrcode/panelLabelNumber';
+import { resolveIndustrialIdForDocument } from '@/core/etiquetas/industrialDisplayName';
+import { buildIndustrialId } from '@/core/naming/industrialNaming';
 import { useAuth } from '@/auth/useAuth';
 import {
   loadPieceOperations,
@@ -141,11 +140,10 @@ function buildQrPayload(
   const item = context.cutlistItem;
   const projectName = context.projectName ?? 'PROJETO';
   const boxName = context.boxName;
-  const pieceSeq = item ? resolveAuthoritativeLabelNumber(item) ?? 1 : 1;
-  const industrialRef = item
-    ? resolveIndustrialPieceRef(item, boxName, projectName)
-    : (context.piece.name || pieceId);
-  return buildEtiquetaQrPayloadV5({ industrialPieceRef: industrialRef, pieceSeq });
+  if (item) {
+    return resolveIndustrialIdForDocument(item, projectName, boxName);
+  }
+  return buildIndustrialId(String(context.piece.name || pieceId));
 }
 
 function transformsFromPersisted(rows: Awaited<ReturnType<typeof loadPieceTransforms>>): PieceTransformMap {

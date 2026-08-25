@@ -10,7 +10,7 @@
 import type { BoxModule, CutListItem, WorkspaceBox } from "../types";
 import type { RematePiece } from "../remate/rematePieceTypes";
 import type { ProjectRodape } from "../rodape/rodapeTypes";
-import { resolveIndustrialPieceRef } from "../cutlayout/cutLayoutProPieceNaming";
+import { resolveFullIndustrialNameForDocument } from "../etiquetas/industrialDisplayName";
 import { resolveRematePieceNomeForRemate } from "../remate/labels";
 import type {
   IndustrialPieceCategory,
@@ -240,7 +240,7 @@ export function enumerateIndustrialPiecesForBox(input: EnumerateBoxPiecesInput):
 
   for (const item of box.cutList ?? []) {
     const pieceId = panelIdFromCutListItem(item);
-    const industrialRef = resolveIndustrialPieceRef(item, boxNome, projectName);
+    const industrialRef = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
     pushEntry({
       pieceId,
       nome: item.nome,

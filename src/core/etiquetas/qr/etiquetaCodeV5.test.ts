@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   buildEtiquetaCodeV5,
-  buildEtiquetaQrPayloadV5,
   buildPiecesPerSheetMap,
   extractProjectSigla,
   formatNumCaixa,
@@ -72,15 +71,6 @@ describe("etiquetaCodeV5 — ID industrial (buildIndustrialId)", () => {
   it("helpers legados extractProjectSigla / formatNumCaixa ainda existem", () => {
     expect(extractProjectSigla("COZINHA AZUL PREMIUM")).toBe("CAP");
     expect(formatNumCaixa(12)).toBe("12");
-  });
-
-  it("payload QR v5 legado (listas) — inalterado neste passo", () => {
-    expect(
-      buildEtiquetaQrPayloadV5({
-        industrialPieceRef: "ANTONIO_NOVO_5_CC4_REMATE_L_B_01",
-        pieceSeq: 6,
-      })
-    ).toBe("ANTONIO_NOVO_5_CC4_REMATE_L_B_01-6");
   });
 });
 

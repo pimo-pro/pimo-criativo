@@ -1,7 +1,7 @@
 import type { CutListItemComPreco, PanelDrillHole } from "../types";
 import type { BoxModule } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
-import { resolveIndustrialPieceRef } from "../cutlayout/cutLayoutProPieceNaming";
+import { resolveFullIndustrialNameForDocument } from "../etiquetas/industrialDisplayName";
 import {
   buildIndustrialListPiecesPerSheet,
 } from "../pdf/industrialListQr";
@@ -103,7 +103,7 @@ export function resolvePieceQrCode(
   );
 }
 
-/** Nome completo quando a peça não tem QR: PROJETO_CAIXA_PECA */
+/** Nome completo quando a peça não tem QR: mesmo `buildFullIndustrialName` da etiqueta. */
 export function buildDrillXmlFallbackFileName(
   item: CutListItemComPreco,
   project: Pick<ProjectContext, "projectName" | "boxes">
@@ -113,13 +113,13 @@ export function buildDrillXmlFallbackFileName(
     project.boxes.find((b) => b.id === item.boxId)?.nome?.trim() ||
     String(item.boxId ?? "BOX").trim() ||
     "BOX";
-  const pieceName = resolveIndustrialPieceRef(item, boxNome, projectName);
-  return [projectName, boxNome, pieceName].map(sanitizeFilenamePart).join("_");
+  const fullName = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
+  return sanitizeFilename(fullName);
 }
 
 /**
  * Nome base do ficheiro XML industrial (.xml).
- * Com etiqueta: valor do QR (v5 / metadata.qrCode). Sem etiqueta: PROJETO_CAIXA_PECA.
+ * Com etiqueta: `buildIndustrialId` (igual à etiqueta / No ETQ). Sem etiqueta: nome completo.
  */
 export function panelFileNameFromPiece(
   item: CutListItemComPreco,

@@ -10,7 +10,7 @@ import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import type { IndustrialPieceEditsStore } from "../industrial/industrialPieceEditsTypes";
-import { resolveIndustrialPieceRef } from "../cutlayout/cutLayoutProPieceNaming";
+import { resolveFullIndustrialNameForDocument } from "../etiquetas/industrialDisplayName";
 import {
   buildIndustrialListPiecesPerSheet,
   resolveIndustrialListNqr,
@@ -221,7 +221,7 @@ function construirLinhas(
     const box = item.boxId ? boxById.get(item.boxId) : undefined;
     const boxIndex = item.boxId ? (boxIndexById.get(item.boxId) ?? 0) : 0;
     const boxNome = box?.nome ?? item.boxId ?? "";
-    const refPeca = resolveIndustrialPieceRef(item, boxNome, projectName);
+    const refPeca = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
     const materialNome = item.material ?? box?.material ?? "mdf_branco";
     const matInfo = materials.find((m) => m.nome === materialNome || m.id === materialNome) ?? getMaterial(materialNome);
     const matRef = matInfo.id ?? materialNome;

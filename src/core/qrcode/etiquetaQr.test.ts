@@ -52,17 +52,17 @@ describe("resolveUnifiedEtiquetaQrCode", () => {
     pieceNumber: 6,
   };
 
-  it("QR listas inclui nome industrial completo + número (ainda legado até 3.3)", () => {
+  it("QR listas = buildIndustrialId (igual à etiqueta / No ETQ)", () => {
     const qr = resolveUnifiedEtiquetaQrCode(item, ctx, new Map(), 0);
-    expect(qr).toBe("ANTONIO_NOVO_5_CC4_REMATE_L_B_01-6");
+    expect(qr).toBe("an5crlb01");
+    expect(qr).not.toMatch(/-/);
   });
 
-  it("código de display = buildIndustrialId do nome legado", () => {
+  it("código de display = resolveUnifiedEtiquetaQrCode", () => {
     const piecesPerSheet = new Map([["box-1::Remate L B", 4]]);
     const display = resolveEtiquetaDisplayCodeV5(item, ctx, piecesPerSheet, 0);
     expect(display).toBe("an5crlb01");
-    expect(display).not.toMatch(/-/);
-    expect(display).not.toBe(resolveUnifiedEtiquetaQrCode(item, ctx, piecesPerSheet, 0));
+    expect(display).toBe(resolveUnifiedEtiquetaQrCode(item, ctx, piecesPerSheet, 0));
   });
 
   it("attachLabelNumbers — pieceNumber + qrSvg; sem shortCode", () => {
