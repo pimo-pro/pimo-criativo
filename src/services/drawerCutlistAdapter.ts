@@ -13,7 +13,6 @@ import type { CutListItem } from "../core/types";
 import {
   resolveDrawerExternalFrontHeightMm,
   resolveDrawerInternalFrontHeightMm,
-  resolveDrawerPieceIndustrialLabel,
 } from "../core/drawers/drawerLayerCustomization";
 import { resolveDrawerStackRole } from "../core/drawers/drawerStackPosition";
 import { resolveIndustrialGrainCode } from "../core/materials/grainDirection";
@@ -32,10 +31,6 @@ import {
   resolveMaterial,
 } from "../core/materials/materials.api";
 import { resolveIndustrialMaterialKey } from "../core/materials/service";
-import {
-  A1_DRAWER_TIPO_TO_TOKEN,
-  buildA1DrawerIndustrialLabel,
-} from "../core/innerCabinet/a1Naming";
 
 /** Convenção industrial unificada (FASE 2): uma corrediça por lado. */
 export const DRAWER_SLIDES_PER_DRAWER = 2;
@@ -142,7 +137,7 @@ function resolveDrawerInternalFrontWidthMm(item: DrawerLayerItem): number {
 function withDrawerIndustrialMeta(
   piece: CutListItem,
   item: DrawerLayerItem,
-  boxName: string,
+  _boxName: string,
   drawerIndex1Based: number
 ): CutListItem {
   const tipo = piece.tipo as DrawerPieceTipo;
@@ -150,11 +145,13 @@ function withDrawerIndustrialMeta(
     | { innerCabinetId?: string; a1Drawer?: boolean }
     | undefined;
   const isA1Drawer = a1Meta?.innerCabinetId === "a_1" || a1Meta?.a1Drawer === true;
-  const a1Token = isA1Drawer ? A1_DRAWER_TIPO_TO_TOKEN[tipo] : undefined;
-  const industrialLabel =
-    a1Token != null
-      ? buildA1DrawerIndustrialLabel(boxName, drawerIndex1Based, a1Token)
-      : resolveDrawerPieceIndustrialLabel(item, boxName, tipo, drawerIndex1Based);
+  const customLabel =
+    tipo === "gaveta_frente_int"
+      ? item.metadata?.frontIntPieceName?.trim()
+      : tipo === "gaveta_frente_ext" || tipo === "gaveta_frente"
+        ? (item.metadata?.frontExtPieceName ?? item.metadata?.frontPieceName)?.trim()
+        : undefined;
+  const displayNome = customLabel || tipo;
   const rotationMeta = buildCutlistRotationMetadata({
     allowPieceRotation: item.allowPieceRotation,
     lockWoodGrain: item.lockWoodGrain,
@@ -162,10 +159,9 @@ function withDrawerIndustrialMeta(
   });
   return {
     ...piece,
-    nome: industrialLabel,
+    nome: displayNome,
     metadata: {
       ...(piece.metadata ?? {}),
-      industrialLabel,
       drawerIndex: drawerIndex1Based,
       drawerGroupName: item.metadata?.drawerGroupName,
       frontPieceName: item.metadata?.frontPieceName,

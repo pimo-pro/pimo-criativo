@@ -11,7 +11,6 @@ import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMe
 import { buildCxGavDrillHoles } from "./cxGavDrilling";
 import {
   boxUsesCxGav,
-  buildCxGavIndustrialLabel,
   computeCxGavLayout,
   CX_GAV_PIECE_TIPOS,
   type CxGavPieceTipo,
@@ -67,7 +66,7 @@ export function extractCxGavCutlistFromBox(
 
   const materialId = resolveIndustrialMaterialKey(bodyMaterialIdOrLegacyLabel);
   const materialLabel = getMaterialDisplayInfo(materialId).label;
-  const name = boxName ?? box.nome ?? box.id;
+  void boxName;
   const rotationMeta = buildCutlistRotationMetadata({
     allowPieceRotation: box.allowPieceRotation,
     lockWoodGrain: box.lockWoodGrain,
@@ -76,11 +75,10 @@ export function extractCxGavCutlistFromBox(
 
   return CX_GAV_PIECE_TIPOS.map((tipo) => {
     const dims = pieceDims(tipo, layout);
-    const industrialLabel = buildCxGavIndustrialLabel(name, tipo);
     const panelId = `${box.id}-${tipo}`;
     return {
       id: panelId,
-      nome: industrialLabel,
+      nome: tipo,
       quantidade: 1,
       dimensoes: {
         largura: dims.largura,
@@ -97,7 +95,6 @@ export function extractCxGavCutlistFromBox(
       drillHoles: buildCxGavDrillHoles(tipo, layout),
       metadata: {
         panelId,
-        industrialLabel,
         cxGav: true,
         cxGavCimaRear: tipo === "cx_gav_cima",
         ...rotationMeta,

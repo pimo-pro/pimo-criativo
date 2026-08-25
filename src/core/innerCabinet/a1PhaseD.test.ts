@@ -142,17 +142,17 @@ describe("inner_cabinet_a1 Fase D", () => {
 
     const comp = pieces.find((p) => p.tipo === A1_COMP_TIPO)!;
     expect(comp.dimensoes.largura).toBe(HINGE_COMPENSATION_MM);
-    expect(comp.metadata?.industrialLabel).toBe("A1BOX_a_1_cx_comp_40");
+    expect(comp.metadata?.industrialLabel).toBeUndefined();
 
     const lat = pieces.find((p) => p.tipo === "a1_cx_lat_dir")!;
-    expect(lat.metadata?.industrialLabel).toBe("A1BOX_a_1_cx_lat_dir");
+    expect(lat.metadata?.industrialLabel).toBeUndefined();
     expect(resolveXmlMachineTarget(lat.tipo)).toBe("drill");
     expect(resolveXmlMachineTarget(A1_COMP_TIPO)).toBe("drill");
 
     const fren = pieces.find(
       (p) => p.tipo === "gaveta_frente_ext" && p.metadata?.drawerIndex === 1
     )!;
-    expect(fren.metadata?.industrialLabel).toBe("A1BOX_a_1_cx_gav_1_fren");
+    expect(fren.metadata?.industrialLabel).toBeUndefined();
     expect(resolveXmlMachineTarget(fren.tipo)).toBe("drill");
     expect(resolveXmlMachineTarget(fren.tipo)).not.toBe("cnc");
 

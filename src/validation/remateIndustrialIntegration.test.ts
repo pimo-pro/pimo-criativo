@@ -21,7 +21,7 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     clearAllCutlistCache();
   });
 
-  it("gera etiquetas BOXNAME_REMATE_* na cutlist", () => {
+  it("gera remates na cutlist sem industrialLabel antigo (naming na etiqueta)", () => {
     const wsBox = makeWorkspaceBox();
     const remates = createRematePieces(
       { productType: "COMPLETO", mountSlot: "DIR", parentBoxId: wsBox.id, followBox: true },
@@ -37,8 +37,8 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     expect(cutlist.length).toBeGreaterThan(0);
 
     const dir = cutlist.find((i) => i.metadata?.remateKind === "DIR");
-    expect(dir?.nome).toMatch(/^Armario_Test_REMATE_DIR_\d{2}$/);
-    expect(dir?.metadata?.industrialLabel).toBe(dir?.nome);
+    expect(dir?.metadata?.industrialLabel).toBeUndefined();
+    expect(dir?.metadata?.remateKind).toBe("DIR");
     expect(dir?.tipo).toBe("remate");
     expect(dir?.metadata?.followBox).toBe(true);
     expect(dir?.metadata?.placementMode).toBe("SNAPPED");
@@ -62,8 +62,10 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
 
     const ext = cutlist.find((i) => i.metadata?.remateKind === "L_ext");
     const int = cutlist.find((i) => i.metadata?.remateKind === "L_int");
-    expect(ext?.nome).toBe("MOD1_REMATE_L_ext_01");
-    expect(int?.nome).toBe("MOD1_REMATE_L_int_01");
+    expect(ext?.nome).toBe("Remate L_ext");
+    expect(int?.nome).toBe("Remate L_int");
+    expect(ext?.metadata?.industrialLabel).toBeUndefined();
+    expect(int?.metadata?.industrialLabel).toBeUndefined();
     expect(ext?.grainDirection).toBe("XX");
     expect(int?.grainDirection).toBe("YY");
     expect(ext?.dimensoes).toEqual({ largura: 600, altura: 100, profundidade: 19 });
@@ -96,14 +98,15 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     const remateItems = all.filter((i) => i.tipo === "remate");
     expect(remateItems.length).toBeGreaterThan(0);
     for (const item of remateItems) {
-      expect(item.nome).toMatch(/_REMATE_/);
+      expect(item.metadata?.industrialLabel).toBeUndefined();
+      expect(item.metadata?.remateKind).toBeTruthy();
       expect(item.pieceNumber).toBeGreaterThan(0);
       expect(item.qrSvg).toBeTruthy();
       expect(item.grainDirection).toBe("XX");
     }
   });
 
-  it("Layout PRO preserva metadata.industrialLabel no partName", () => {
+  it("Layout PRO usa nome PRO quando não há industrialLabel legado", () => {
     const wsBox = makeWorkspaceBox();
     const remates = createRematePieces(
       { productType: "COMPLETO", mountSlot: "ESQ", parentBoxId: wsBox.id, followBox: true },
@@ -120,12 +123,12 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
       boxes: [{ id: wsBox.id, nome: wsBox.nome }],
     });
     expect(pieces.length).toBeGreaterThan(0);
-    expect(pieces[0]?.partName).toMatch(/^Armario_Test_REMATE_ESQ_\d{2}$/);
+    expect(pieces[0]?.partName).toMatch(/_rem$/i);
     expect(pieces[0]?.industrialGrainCode).toBe("YY");
     expect(pieces[0]?.materialId).toBeTruthy();
   });
 
-  it("nomePersonalizado substitui nome na cutlist mas preserva industrialLabel", () => {
+  it("nomePersonalizado substitui nome na cutlist; sem industrialLabel antigo", () => {
     const wsBox = makeWorkspaceBox();
     const remates = createRematePieces(
       { productType: "COMPLETO", mountSlot: "DIR", parentBoxId: wsBox.id, followBox: true },
@@ -144,7 +147,8 @@ describe("Remate — integração industrial (cutlist + QR + layout PRO)", () =>
     ]);
     const dir = cutlist.find((i) => i.metadata?.remateKind === "DIR");
     expect(dir?.nome).toBe("REMATE_DIR_CUSTOM");
-    expect(dir?.metadata?.industrialLabel).toMatch(/^Armario_Test_REMATE_DIR_\d{2}$/);
+    expect(dir?.metadata?.industrialLabel).toBeUndefined();
+    expect(dir?.metadata?.remateKind).toBe("DIR");
   });
 
   it("cutlistToPieces preserva ordem comprimento×largura dos remates (sem swap)", () => {

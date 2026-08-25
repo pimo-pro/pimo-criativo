@@ -74,7 +74,7 @@ describe("cx_gav Fase A", () => {
     );
   });
 
-  it("cutlist emite 4 tipos com industrialLabel; routing DRILL; orla correcta", () => {
+  it("cutlist emite 4 tipos sem industrialLabel antigo; routing DRILL; orla correcta", () => {
     const box = baseBox({ baseCabinetId: CX_GAV_PRODUCT_MODE_ID });
     const pieces = extractCxGavCutlistFromBox(box, "mdf_branco", "CX1");
     expect(pieces.map((p) => p.tipo).sort()).toEqual([
@@ -85,7 +85,8 @@ describe("cx_gav Fase A", () => {
     ]);
     const cima = pieces.find((p) => p.tipo === "cx_gav_cima")!;
     expect(cima.dimensoes.altura).toBe(100);
-    expect(cima.metadata?.industrialLabel).toBe("CX1_cx_gav_cima");
+    expect(cima.metadata?.industrialLabel).toBeUndefined();
+    expect(cima.nome).toBe("cx_gav_cima");
     for (const p of pieces) {
       expect(resolveXmlMachineTarget(p.tipo)).toBe("drill");
       expect(resolveXmlMachineTarget(p.tipo)).not.toBe("cnc");

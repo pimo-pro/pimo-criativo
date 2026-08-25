@@ -67,7 +67,7 @@ describe("industrialAdminIntegration Fase E", () => {
       ]);
     }
     expect(getPieceLabel("cx_gav_cima")).toBe("CX GAV cima");
-    expect(cx.some((i) => i.metadata?.industrialLabel)).toBe(true);
+    expect(cx.every((i) => i.metadata?.industrialLabel == null)).toBe(true);
   });
 
   it("gaveta_porta_sep: cutlist embutida + nome industrial; clássico intacto", () => {

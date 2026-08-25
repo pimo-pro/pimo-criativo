@@ -4,20 +4,8 @@ import { getFallbackMaterial } from "../materials/materialLibraryV2";
 import { calcularPrecoCutList } from "../pricing/pricing";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
 import type { ProjectRodape } from "./rodapeTypes";
-import {
-  buildRodapeIndustrialLabelsForRodapes,
-  resolveRodapePieceDisplayName,
-} from "./labels";
+import { resolveRodapePieceDisplayName } from "./labels";
 
-function buildBoxNameLookup(boxes: readonly BoxModule[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const box of boxes) {
-    if (box?.id) out[box.id] = typeof box.nome === "string" ? box.nome : box.id;
-  }
-  return out;
-}
-
-/** Inclui só rodapés visíveis com dimensões reais (> 0). Não inventar 1×1 mm. */
 function isRodapeIncludedInCutlist(rodape: ProjectRodape): boolean {
   if (rodape.visible === false) return false;
   const L = Number(rodape.dimensions?.widthMm ?? rodape.autoLengthMm) || 0;
@@ -40,16 +28,19 @@ export function buildRodapeCutlistItems(
   boxes: readonly BoxModule[]
 ): CutListItemComPreco[] {
   const included = rodapes.filter(isRodapeIncludedInCutlist);
-  const boxNameById = buildBoxNameLookup(boxes);
-  const industrialLabels = buildRodapeIndustrialLabelsForRodapes(included, boxNameById);
+  void boxes;
+
+  const counters = new Map<string, number>();
 
   const items: CutListItem[] = included.map((rodape) => {
     const material = getMaterialByIdOrLabel(rodape.materialId);
     const materialLabel = material?.label ?? rodape.materialId;
     const boxId = rodape.parentBoxId ?? "";
     const dims = toCutDimensions(rodape);
-    const industrialLabel = industrialLabels.get(rodape.id) ?? rodape.name;
-    const nome = resolveRodapePieceDisplayName(rodape, industrialLabel);
+    const counterKey = boxId || rodape.id;
+    const occurrence = (counters.get(counterKey) ?? 0) + 1;
+    counters.set(counterKey, occurrence);
+    const nome = resolveRodapePieceDisplayName(rodape, "Rodapé");
     const materialId = material?.id ?? rodape.materialId;
     const rotationMeta = buildCutlistRotationMetadata({
       allowPieceRotation: rodape.allowPieceRotation,
@@ -76,7 +67,7 @@ export function buildRodapeCutlistItems(
         rodapeKind: rodape.kind,
         partIndex: rodape.partIndex,
         parentGroupId: rodape.parentGroupId,
-        industrialLabel,
+        rodapeOccurrenceIndex: occurrence,
         rodapeIndustrialLabel: "RODA_PE",
         ...rotationMeta,
       },

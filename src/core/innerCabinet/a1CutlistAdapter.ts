@@ -19,13 +19,7 @@ import {
   computeA1Layout,
   type A1Layout,
 } from "./a1Geometry";
-import {
-  A1_DRAWER_TIPO_TO_TOKEN,
-  buildA1CarcassIndustrialLabel,
-  buildA1DrawerIndustrialLabel,
-  type A1CarcassToken,
-  type A1DrawerPieceToken,
-} from "./a1Naming";
+import type { A1CarcassToken } from "./a1Naming";
 import { buildHingeCompensation40CutlistItem } from "./hingeCompensation40";
 
 export const A1_CARCASS_TIPOS = [
@@ -98,24 +92,21 @@ function buildA1DrawerPieces(
 
     const specs: Array<{
       tipo: string;
-      token: A1DrawerPieceToken;
       w: number;
       h: number;
       t: number;
     }> = [
       {
         tipo: "gaveta_frente_ext",
-        token: "fren",
         w: frontW,
         h: frontH,
         t: layout.espessuraMm,
       },
-      { tipo: "gaveta_lat_dir", token: "lat_dir", w: bodyD, h: sideH, t: sideT },
-      { tipo: "gaveta_lat_esq", token: "lat_esq", w: bodyD, h: sideH, t: sideT },
-      { tipo: "gaveta_fundo", token: "fun", w: bodyW, h: bodyD, t: bottomT },
+      { tipo: "gaveta_lat_dir", w: bodyD, h: sideH, t: sideT },
+      { tipo: "gaveta_lat_esq", w: bodyD, h: sideH, t: sideT },
+      { tipo: "gaveta_fundo", w: bodyW, h: bodyD, t: bottomT },
       {
         tipo: "gaveta_traseira",
-        token: "costa",
         w: bodyW,
         h: costaH,
         t: DRAWER_BACK_THICKNESS_MM,
@@ -123,11 +114,9 @@ function buildA1DrawerPieces(
     ];
 
     for (const s of specs) {
-      const token = A1_DRAWER_TIPO_TO_TOKEN[s.tipo] ?? s.token;
-      const industrialLabel = buildA1DrawerIndustrialLabel(boxName, idx, token);
       pieces.push({
         id: `${box.id}-a1-gav-${idx}-${s.tipo}`,
-        nome: industrialLabel,
+        nome: s.tipo,
         quantidade: 1,
         dimensoes: { largura: s.w, altura: s.h, profundidade: s.t },
         espessura: s.t,
@@ -138,7 +127,6 @@ function buildA1DrawerPieces(
         boxId: box.id,
         grainDirection: resolveIndustrialGrainCode({ tipo: s.tipo }),
         metadata: {
-          industrialLabel,
           innerCabinetId: "a_1",
           drawerIndex: idx,
           a1Drawer: true,
@@ -176,10 +164,9 @@ export function extractA1CutlistFromBox(
 
   const carcass: CutListItem[] = A1_CARCASS_TIPOS.map((tipo) => {
     const dims = carcassDims(tipo, layout);
-    const industrialLabel = buildA1CarcassIndustrialLabel(name, carcassToken(tipo));
     return {
       id: `${box.id}-${tipo}`,
-      nome: industrialLabel,
+      nome: carcassToken(tipo),
       quantidade: 1,
       dimensoes: {
         largura: dims.largura,
@@ -195,7 +182,6 @@ export function extractA1CutlistFromBox(
       grainDirection: resolveIndustrialGrainCode({ tipo }),
       metadata: {
         panelId: `${box.id}-${tipo}`,
-        industrialLabel,
         innerCabinetId: "a_1",
         ...rotationMeta,
       },

@@ -93,12 +93,12 @@ describe("cutlist — dimensões manuais da porta", () => {
     expect(lowered.topGapMm).toBeGreaterThan(centered.topGapMm);
   });
 
-  it("nome e industrialLabel — posição lateral (port_esq / Porta Esquerda)", () => {
+  it("nome e doorPositionKind — posição lateral (port_esq / Porta Esquerda)", () => {
     const door = baseDoor({ hingeSide: "left" });
     const list = cutlistComPrecoFromBox(baseBox([door]), defaultRulesConfig);
     const porta = list.find((item) => item.tipo === "porta_simples");
     expect(porta?.nome).toBe("port_esq");
-    expect(porta?.metadata?.industrialLabel).toBe("port_esq");
+    expect(porta?.metadata?.industrialLabel).toBeUndefined();
     expect(porta?.metadata?.doorDisplayLabel).toBe("Porta Esquerda");
     expect(porta?.metadata?.doorPositionKind).toBe("esq");
   });

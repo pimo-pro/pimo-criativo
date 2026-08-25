@@ -8,7 +8,6 @@ import type { RematePiece } from "./rematePieceTypes";
 import { inferProductTypeFromLegacy } from "./remateProductRules";
 import { resolveRemateSheetCutDimensions } from "./remateSheetDimensions";
 import {
-  buildRemateIndustrialLabelsForRemates,
   resolveRemateIndustrialSuffix,
   resolveRematePieceDisplayName,
 } from "./labels";
@@ -28,14 +27,6 @@ function toCutDimensions(remate: RematePiece): CutListItem["dimensoes"] {
   };
 }
 
-function buildBoxNameLookup(boxes: readonly BoxModule[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const box of boxes) {
-    if (box?.id) out[box.id] = typeof box.nome === "string" ? box.nome : box.id;
-  }
-  return out;
-}
-
 function isRemateIncludedInCutlist(remate: RematePiece): boolean {
   if (remate.visible === false) return false;
   // Usar width/height brutos — resolveRemateSheetCutDimensions faz Math.max(1,…) e mascararia 0
@@ -49,8 +40,9 @@ export function buildRemateCutlistItems(
   boxes: readonly BoxModule[]
 ): CutListItemComPreco[] {
   const included = remates.filter(isRemateIncludedInCutlist);
-  const boxNameById = buildBoxNameLookup(boxes);
-  const industrialLabels = buildRemateIndustrialLabelsForRemates(included, boxNameById);
+  void boxes;
+
+  const counters = new Map<string, number>();
 
   const items: CutListItem[] = included.map((remate) => {
     const material = getMaterialByIdOrLabel(remate.materialPresetId);
@@ -58,8 +50,11 @@ export function buildRemateCutlistItems(
     const boxId = remate.parentBoxId ?? "";
     const productType = remate.productType ?? inferProductTypeFromLegacy(remate);
     const suffix = resolveRemateIndustrialSuffix(remate);
-    const industrialLabel = industrialLabels.get(remate.id) ?? remate.name;
-    const nome = resolveRematePieceDisplayName(remate, industrialLabel);
+    const counterKey = `${boxId}\0${suffix}`;
+    const occurrence = (counters.get(counterKey) ?? 0) + 1;
+    counters.set(counterKey, occurrence);
+    const displayFallback = `Remate ${suffix}`;
+    const nome = resolveRematePieceDisplayName(remate, displayFallback);
     const materialId = material?.id ?? remate.materialPresetId;
     const rotationMeta = buildCutlistRotationMetadata({
       allowPieceRotation: remate.allowPieceRotation,
@@ -97,9 +92,9 @@ export function buildRemateCutlistItems(
         parentGroupId: remate.parentGroupId,
         remateType: remate.tipo,
         rematePosition: remate.tipo,
-        industrialLabel,
         remateIndustrialLabel: suffix,
         remateKind: suffix,
+        remateOccurrenceIndex: occurrence,
         followBox: remate.followBox,
         placementMode: remate.placementMode ?? (remate.followBox ? "SNAPPED" : "FREE"),
         faceOffsets: remate.faceOffsets,

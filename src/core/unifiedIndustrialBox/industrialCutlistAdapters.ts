@@ -21,16 +21,6 @@ import {
 } from "../innerCabinet/a1Geometry";
 import type { IndustrialCutlistAdapter, IndustrialCutlistAdapterContext } from "./types";
 
-function sanitizeBoxLabel(name?: string): string {
-  return (
-    String(name || "BOX")
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_\-]/g, "")
-      .slice(0, 32) || "BOX"
-  );
-}
-
 export const INDUSTRIAL_CUTLIST_ADAPTERS: readonly IndustrialCutlistAdapter[] = [
   {
     id: "adapter.cx_gav.cutlist",
@@ -62,7 +52,6 @@ export const INDUSTRIAL_CUTLIST_ADAPTERS: readonly IndustrialCutlistAdapter[] = 
     matches: (box) => boxUsesGavetaPortaSep(box),
     apply: (ctx) => {
       const layout = computeGavetaPortaSepLayout(ctx.syncedBox);
-      const boxLabel = sanitizeBoxLabel(ctx.boxName);
       for (const item of ctx.items) {
         if (item.tipo === "gaveta_frente_ext" || item.tipo === "gaveta_frente") {
           item.dimensoes = {
@@ -88,10 +77,10 @@ export const INDUSTRIAL_CUTLIST_ADAPTERS: readonly IndustrialCutlistAdapter[] = 
             ...(item.metadata ?? {}),
             industrialGapMm: GAVETA_PORTA_SEP_DOOR_GAP_MM,
             portaParcial: true,
-            industrialLabel:
-              (typeof item.metadata?.industrialLabel === "string" &&
-                item.metadata.industrialLabel) ||
-              `${boxLabel}_port_cima`,
+            doorPositionKind:
+              (typeof item.metadata?.doorPositionKind === "string" &&
+                item.metadata.doorPositionKind) ||
+              "cima",
           };
         }
       }

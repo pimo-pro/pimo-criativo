@@ -61,6 +61,60 @@ type NomeIndustrialItemLike = {
   metadata?: Record<string, unknown>;
 };
 
+const DOOR_POSITION_TO_TOKEN: Record<string, string> = {
+  dir: "port_dir",
+  esq: "port_esq",
+  cima: "port_cima",
+  baixa: "port_baix",
+};
+
+/**
+ * Chave de peça para `buildFullIndustrialName` quando não há `metadata.industrialLabel` legado.
+ * Usa metadados dos adaptadores (DIV/SEP, portas, remates) + `tipo` SSOT.
+ */
+export function resolvePieceKeyForUnifiedNaming(
+  item: NomeIndustrialItemLike
+): { key: string; seq?: number } {
+  const meta = (item.metadata ?? {}) as Record<string, unknown>;
+  let key = String(item.tipo ?? item.nome ?? "peca").trim() || "peca";
+  let seq: number | undefined;
+
+  const divSep = meta.divSepKind;
+  if (divSep === "DIV" || divSep === "SEP") {
+    key = String(divSep);
+    const idx = Number(meta.divSepIndex);
+    if (Number.isFinite(idx) && idx > 0) seq = Math.floor(idx);
+  }
+
+  const doorKind = meta.doorPositionKind;
+  if (typeof doorKind === "string" && DOOR_POSITION_TO_TOKEN[doorKind]) {
+    key = DOOR_POSITION_TO_TOKEN[doorKind]!;
+  }
+
+  const remateSuffix = meta.remateKind ?? meta.remateIndustrialLabel;
+  if (
+    (key === "remate" || meta.remateId != null || meta.remateType != null) &&
+    typeof remateSuffix === "string" &&
+    remateSuffix.trim()
+  ) {
+    key = `remate_${sanitizeIndustrialToken(remateSuffix)}`;
+    const occ = Number(meta.remateOccurrenceIndex);
+    if (Number.isFinite(occ) && occ > 0) seq = Math.floor(occ);
+  }
+
+  if (key === "rodape") {
+    const occ = Number(meta.rodapeOccurrenceIndex ?? meta.partIndex);
+    if (Number.isFinite(occ) && occ > 0) seq = Math.floor(occ);
+  }
+
+  const drawerIndex = Number(meta.drawerIndex);
+  if (Number.isFinite(drawerIndex) && drawerIndex > 0 && String(key).startsWith("gaveta_")) {
+    seq = Math.floor(drawerIndex);
+  }
+
+  return { key, seq };
+}
+
 /**
  * Nome industrial da peça para etiqueta de fabrico.
  * - `metadata.industrialLabel` existente → preservado (não recalcula peças antigas).
@@ -76,8 +130,8 @@ export function resolveNomeIndustrialForEtiqueta(
   if (typeof fromMeta === "string" && fromMeta.trim()) {
     return fromMeta.trim();
   }
-  const key = String(item.tipo ?? item.nome ?? "peca").trim() || "peca";
-  return buildFullIndustrialName(projectName, boxNome ?? "", key, undefined, tokenMap);
+  const { key, seq } = resolvePieceKeyForUnifiedNaming(item);
+  return buildFullIndustrialName(projectName, boxNome ?? "", key, seq, tokenMap);
 }
 
 /**

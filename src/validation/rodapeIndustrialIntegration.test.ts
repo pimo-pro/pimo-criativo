@@ -24,7 +24,7 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
     clearAllCutlistCache();
   });
 
-  it("gera label BOXNAME_RODA_PE_01 na cutlist", () => {
+  it("gera rodapé na cutlist sem industrialLabel antigo", () => {
     const wsBox = makeWorkspaceBox();
     const [rodape] = createRodapesForBox({
       box: wsBox,
@@ -44,8 +44,8 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
     );
 
     expect(cutlist).toHaveLength(1);
-    expect(cutlist[0]?.nome).toBe("Armario_Test_RODA_PE_01");
-    expect(cutlist[0]?.metadata?.industrialLabel).toBe("Armario_Test_RODA_PE_01");
+    expect(cutlist[0]?.nome).toBe("Rodapé");
+    expect(cutlist[0]?.metadata?.industrialLabel).toBeUndefined();
     expect(cutlist[0]?.tipo).toBe("rodape");
     expect(cutlist[0]?.grainDirection).toBeUndefined();
   });
@@ -75,7 +75,8 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
 
     const rodapeItems = all.filter((i) => i.tipo === "rodape");
     expect(rodapeItems.length).toBe(1);
-    expect(rodapeItems[0]?.nome).toMatch(/_RODA_PE_\d{2}$/);
+    expect(rodapeItems[0]?.nome).toBe("Rodapé");
+    expect(rodapeItems[0]?.metadata?.industrialLabel).toBeUndefined();
     expect(rodapeItems[0]?.grainDirection).toBeUndefined();
     expect(rodapeItems[0]?.pieceNumber).toBeGreaterThan(0);
     expect(rodapeItems[0]?.qrSvg).toBeTruthy();
@@ -126,7 +127,7 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
     ).toBe(true);
   });
 
-  it("Layout PRO preserva label industrial no partName", () => {
+  it("Layout PRO usa nome PRO quando não há industrialLabel legado", () => {
     const rodape: ProjectRodape = {
       id: "rod-layout",
       parentBoxId: "box-rodape-ind",
@@ -148,11 +149,11 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
       boxes: [{ id: "box-rodape-ind", nome: "Armario_Test" }],
     });
 
-    expect(pieces[0]?.partName).toBe("Armario_Test_RODA_PE_01");
+    expect(pieces[0]?.partName).toMatch(/_rod_pe$/i);
     expect(pieces[0]?.materialId).toBeTruthy();
   });
 
-  it("nomePersonalizado substitui nome na cutlist mas preserva industrialLabel", () => {
+  it("nomePersonalizado substitui nome na cutlist; sem industrialLabel antigo", () => {
     const wsBox = makeWorkspaceBox();
     const rodape = createRodapesForBox({
       box: wsBox,
@@ -171,6 +172,6 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
       [makeDivSepTestBox({ id: wsBox.id, nome: wsBox.nome })]
     );
     expect(cutlist[0]?.nome).toBe("RODA_PE_ESQ");
-    expect(cutlist[0]?.metadata?.industrialLabel).toBe("Armario_Test_RODA_PE_01");
+    expect(cutlist[0]?.metadata?.industrialLabel).toBeUndefined();
   });
 });

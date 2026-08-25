@@ -8,7 +8,6 @@ import { resolveIndustrialMaterialKey } from "../materials/service";
 import { getMaterialDisplayInfo } from "../materials/materialsService";
 import { resolveIndustrialGrainCode } from "../materials/grainDirection";
 import { buildCutlistRotationMetadata } from "../manufacturing/cutlistRotationMetadata";
-import { buildA1CarcassIndustrialLabel } from "./a1Naming";
 
 export const HINGE_COMPENSATION_MM = 40;
 export const A1_COMP_TIPO = "a1_cx_comp_40";
@@ -31,14 +30,11 @@ export function buildHingeCompensation40CutlistItem(params: {
   boxName?: string;
 }): CutListItem {
   const materialId = resolveIndustrialMaterialKey(params.bodyMaterialId);
-  const industrialLabel = buildA1CarcassIndustrialLabel(
-    params.boxName ?? params.box.nome ?? params.box.id,
-    "cx_comp_40"
-  );
+  void params.boxName;
   const side = resolveHingeCompensationSide(params.box);
   return {
     id: `${params.box.id}-${A1_COMP_TIPO}`,
-    nome: industrialLabel,
+    nome: "cx_comp_40",
     quantidade: 1,
     dimensoes: {
       largura: HINGE_COMPENSATION_MM,
@@ -54,7 +50,6 @@ export function buildHingeCompensation40CutlistItem(params: {
     grainDirection: resolveIndustrialGrainCode({ tipo: A1_COMP_TIPO }),
     metadata: {
       panelId: `${params.box.id}-${A1_COMP_TIPO}`,
-      industrialLabel,
       innerCabinetId: "a_1",
       hingeCompensationMm: HINGE_COMPENSATION_MM,
       hingeSide: side,

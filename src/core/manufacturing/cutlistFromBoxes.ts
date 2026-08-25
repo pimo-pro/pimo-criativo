@@ -42,7 +42,6 @@ import {
 } from "../drawers";
 import { buildDivSepDrilling, mergeDrillHoles } from "../divSep/drilling";
 import { boxUsesDivShelfMode, buildDivShelfDrilling } from "../divSep/shelfDrilling";
-import { buildDivSepIndustrialLabel } from "../divSep/labels";
 import { isIndustrialDoorPanelTipo } from "../doors/industrialDoorPanels";
 import { resolveCustomIndustrialCutlistForBox } from "../industrialDesigner/customIndustrialModel";
 import { resolveDoorIndustrialLabel, resolveDoorLabel, resolveDoorPositionKind } from "../doors/doorLabels";
@@ -520,13 +519,13 @@ export function cutlistComPrecoFromBox(
       drillHoles = [...others, ...resolved.holes];
     }
 
-    let industrialLabel: string | undefined;
     let displayNome = getPieceLabel(p.tipo);
     let doorMetadata: Record<string, unknown> = {};
+    let divSepMeta: Record<string, unknown> = {};
     if (isDoor) {
       const doorLayer = doorsLayer[doorIndex];
-      industrialLabel = resolveDoorIndustrialLabel(doorLayer, doorIndex, doorsLayer);
-      displayNome = industrialLabel;
+      // Código curto só para display na cutlist; etiqueta usa doorPositionKind → buildFullIndustrialName.
+      displayNome = resolveDoorIndustrialLabel(doorLayer, doorIndex, doorsLayer);
       doorMetadata = {
         doorId: doorLayer?.id,
         doorPositionKind: resolveDoorPositionKind(doorLayer, doorIndex, doorsLayer),
@@ -536,12 +535,10 @@ export function cutlistComPrecoFromBox(
       };
     } else if (isDivisor) {
       divIndex += 1;
-      industrialLabel = buildDivSepIndustrialLabel(box.nome, "DIV", divIndex);
-      displayNome = industrialLabel;
+      divSepMeta = { divSepKind: "DIV" as const, divSepIndex: divIndex };
     } else if (isSeparador) {
       sepIndex += 1;
-      industrialLabel = buildDivSepIndustrialLabel(box.nome, "SEP", sepIndex);
-      displayNome = industrialLabel;
+      divSepMeta = { divSepKind: "SEP" as const, divSepIndex: sepIndex };
     }
 
     const doorLayer = isDoor ? doorsLayer[doorIndex] : undefined;
@@ -568,9 +565,7 @@ export function cutlistComPrecoFromBox(
       nome: displayNome,
       metadata: {
         panelId: p.id,
-        ...(industrialLabel ? { industrialLabel } : {}),
-        ...(isDivisor ? { divSepKind: "DIV" as const } : {}),
-        ...(isSeparador ? { divSepKind: "SEP" as const } : {}),
+        ...divSepMeta,
         ...doorMetadata,
         ...rotationMeta,
       },
@@ -818,12 +813,6 @@ export function cutlistComPrecoFromBox(
   // Fase B — folgas 2 mm na frente da gaveta e porta parcial (sem duplicar peças).
   if (boxUsesGavetaPortaSep(syncedBox)) {
     const layout = computeGavetaPortaSepLayout(syncedBox);
-    const boxLabel =
-      String(box.nome || "BOX")
-        .trim()
-        .replace(/\s+/g, "_")
-        .replace(/[^a-zA-Z0-9_\-]/g, "")
-        .slice(0, 32) || "BOX";
     for (const item of items) {
       if (item.tipo === "gaveta_frente_ext" || item.tipo === "gaveta_frente") {
         item.dimensoes = {
@@ -849,9 +838,10 @@ export function cutlistComPrecoFromBox(
           ...(item.metadata ?? {}),
           industrialGapMm: GAVETA_PORTA_SEP_DOOR_GAP_MM,
           portaParcial: true,
-          industrialLabel:
-            (typeof item.metadata?.industrialLabel === "string" && item.metadata.industrialLabel) ||
-            `${boxLabel}_port_cima`,
+          doorPositionKind:
+            (typeof item.metadata?.doorPositionKind === "string" &&
+              item.metadata.doorPositionKind) ||
+            "cima",
         };
       }
     }

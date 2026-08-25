@@ -22,7 +22,7 @@ describe("DIV/SEP — integração industrial (cutlist + furação)", () => {
     clearAllCutlistCache();
   });
 
-  it("gera peças com etiquetas industriais BOXNAME_DIV_01 e BOXNAME_SEP_01", () => {
+  it("gera peças DIV/SEP sem industrialLabel antigo; naming unificado na etiqueta", () => {
     const box = makeDivSepTestBox({
       id: "box-divsep-labels",
       nome: "Armario_Test",
@@ -38,10 +38,10 @@ describe("DIV/SEP — integração industrial (cutlist + furação)", () => {
     const div = cutlist.find((i) => i.tipo === "divisorio");
     const sep = cutlist.find((i) => i.tipo === "separador");
 
-    expect(div?.nome).toBe("Armario_Test_DIV_01");
-    expect(sep?.nome).toBe("Armario_Test_SEP_01");
-    expect(div?.metadata?.industrialLabel).toBe("Armario_Test_DIV_01");
-    expect(sep?.metadata?.industrialLabel).toBe("Armario_Test_SEP_01");
+    expect(div?.metadata?.industrialLabel).toBeUndefined();
+    expect(sep?.metadata?.industrialLabel).toBeUndefined();
+    expect(div?.metadata?.divSepKind).toBe("DIV");
+    expect(sep?.metadata?.divSepKind).toBe("SEP");
   });
 
   it("preserva altura exacta do DIV (1990.5) sem Math.round; furos LAT = positionMm", () => {

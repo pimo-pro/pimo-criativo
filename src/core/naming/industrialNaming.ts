@@ -64,6 +64,14 @@ export const DEFAULT_PIECE_TYPE_TOKENS: IndustrialPieceTokenMap = {
   SEP: "sep",
   div: "div",
   sep: "sep",
+  /** Aliases do `tipo` SSOT na cutlist (adaptadores DIV/SEP / A1). */
+  divisorio: "div",
+  separador: "sep",
+  a1_cx_lat_dir: "cx_lat_dir",
+  a1_cx_lat_esq: "cx_lat_esq",
+  a1_cx_cima: "cx_cima",
+  a1_cx_fundo: "cx_fundo",
+  a1_cx_comp_40: "cx_comp_40",
 
   cx_lat_dir: "cx_lat_dir",
   cx_lat_esq: "cx_lat_esq",
