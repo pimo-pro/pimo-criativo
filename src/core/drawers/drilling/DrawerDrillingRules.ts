@@ -68,7 +68,6 @@ import {
   DRAWER_SLIDE_OFFSET_FROM_BOTTOM_MM,
   drawerThicknessCenterMm,
   getDrawerCostaDowelYPositionsMm,
-  getDrawerFrontDowelYPositionsMm,
   getDrawerLateralEdgeDowelYPositionsMm,
   getDrawerLateralFaceDowelYPositionsMm,
 } from "./drawerDowelInterlock";
