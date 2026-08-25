@@ -139,7 +139,8 @@ describe("posição vertical — ordem do utilizador preservada", () => {
         layer.bodyHeight!,
         5
       );
-      const expectedElev = role === "lowest" ? 16.5 : 48;
+      // Caminho clássico exterior (generateDrawerGroup default): elev GAV_1 = 16,5 + T.
+      const expectedElev = role === "lowest" ? 35.5 : 48;
       expect(layer.metadata?.sideBaseElevationMm).toBe(expectedElev);
     });
   });

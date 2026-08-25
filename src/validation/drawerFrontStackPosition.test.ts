@@ -13,7 +13,6 @@ import {
 } from "../core/drawers";
 import {
   DRAWER_SIDE_BASE_ELEVATION_MM,
-  DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM,
   DRAWER_VERTICAL_GAP_MM,
 } from "../core/drawers/drawerGeometryConstants";
 import { resolveDrawerWoodBodyHeightMm } from "../core/drawers/drawerViewerLayout";
@@ -149,8 +148,8 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
     expect(groove0!.y - upperCav0).toBeCloseTo(22, 5);
     expect(groove1!.y - upperCav1).toBeCloseTo(22, 5);
     const lowerCav0 = Math.min(...cav0.map((h) => h.y));
-    // Inferior (GAV_1): elev = 16,5; cavilha inferior em elev+54 → Y_peça 70,5.
-    expect(lowerCav0).toBeCloseTo(DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM + 54, 5);
+    // Inferior (GAV_1 clássico exterior T=19): elev = 35,5; cavilha inferior elev+54 → Y_peça 89,5.
+    expect(lowerCav0).toBeCloseTo(35.5 + 54, 5);
 
     const drill = buildDrillStationXmlFilesForProject(cutlist, {
       projectName: "STACK2",
@@ -158,7 +157,11 @@ describe("gav_frente — stack vertical por posição no módulo", () => {
       rules: defaultRulesConfig,
     });
     expect(
-      drill.filter((f) => f.partName.includes("gav_frent") && f.machineTarget === "drill").length
+      drill.filter(
+        (f) =>
+          f.machineTarget === "drill" &&
+          (f.partName.includes("gaveta_frente") || /gav_frent/i.test(f.filenameBase))
+      ).length
     ).toBeGreaterThanOrEqual(2);
   });
 

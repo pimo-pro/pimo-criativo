@@ -67,7 +67,8 @@ describe("GAV_1 Viewer — force SSOT bodyBottom 18,5 (v3)", () => {
     const layers = drawerGroupToLayerItems(group);
     const L0 = layers[0]!;
     const elev = L0.metadata?.sideBaseElevationMm as number;
-    expect(elev).toBe(16.5);
+    // Clássico exterior (T=19): 16,5 + 19 = 35,5; bodyBottom módulo continua 18,5.
+    expect(elev).toBe(35.5);
     expect(isDrawerViewerBodyVerticalFlipActiveForElevationMm(elev)).toBe(false);
 
     const [spec] = buildDrawerSpecs([L0]);
@@ -97,7 +98,7 @@ describe("GAV_1 Viewer — force SSOT bodyBottom 18,5 (v3)", () => {
     const layerYmm = drawerLayer.position.y * 1000;
     const bodyBottomViewer = layerYmm + leftMin - floorTop;
 
-    expect(elevVsFront).toBeCloseTo(DRAWER_LOWEST_BODY_ELEVATION_FROM_FRONT_MM, 1);
+    expect(elevVsFront).toBeCloseTo(35.5, 1);
     expect(bodyBottomViewer).toBeCloseTo(DRAWER_LOWEST_BODY_ABOVE_MODULE_BASE_MM, 1);
     expect(bodyBottomViewer).toBeCloseTo(18.5, 1);
     // FAIL explícito se Viewer mostrar ~0

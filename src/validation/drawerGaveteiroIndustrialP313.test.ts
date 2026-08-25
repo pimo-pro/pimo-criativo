@@ -82,7 +82,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
       relativePatterns[2]!.cav.map((c) => c.yRel)
     );
     expect(relativePatterns[1]!.grooveRel).toBe(relativePatterns[2]!.grooveRel);
-    expect(relativePatterns[0]!.elev).toBe(16.5);
+    expect(relativePatterns[0]!.elev).toBe(35.5);
     expect(relativePatterns[1]!.elev).toBe(48);
     // Upper yRel = sideH−35 → GAV1 < GAV2 (delta lowest maior).
     const yUpper0 = Math.max(...relativePatterns[0]!.cav.map((c) => c.yRel));
@@ -98,7 +98,10 @@ describe("P3.13 — gaveteiro industrial completo", () => {
       rules: defaultRulesConfig,
     });
     const xml01 = drill.find(
-      (f) => f.partName.includes("gav_frent") && f.partName.includes("_01") && f.machineTarget === "drill"
+      (f) =>
+        f.machineTarget === "drill" &&
+        f.partName.includes("gaveta_frente") &&
+        (/_1(_DRILL)?$/i.test(f.filenameBase) || /_01(_DRILL)?$/i.test(f.filenameBase))
     );
     expect(xml01?.xml).toBeDefined();
     expect(xml01!.xml).toMatch(/pimo:stackRole=lowest;orient=BL;face=tras/);
@@ -143,8 +146,9 @@ describe("P3.13 — gaveteiro industrial completo", () => {
       });
       const role = resolveDrawerStackRole(i, layers.length);
       expect(geo.role).toBe(role);
-      if (role === "lowest") expect(geo.flushToModuleBase).toBe(true);
-      if (role === "highest") expect(geo.flushToModuleTop).toBe(true);
+      // Clássico exterior: frentes não fazem flush industrial interior (B0=2 / underside tampo).
+      if (role === "lowest") expect(geo.flushToModuleBase).toBe(false);
+      if (role === "highest") expect(geo.flushToModuleTop).toBe(false);
       if (role === "middle") {
         expect(geo.flushToModuleBase).toBe(false);
         expect(geo.flushToModuleTop).toBe(false);
@@ -162,7 +166,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
     }
   });
 
-  it("4) Corpos — 2ª≡3ª (delta upper); 1ª mais baixa (delta lowest); elev 16,5/48/48", () => {
+  it("4) Corpos — 2ª≡3ª (delta upper); 1ª mais baixa (delta lowest); elev 35,5/48/48", () => {
     const { cutlist } = buildEqualStack();
     const byTipo = (tipo: string) =>
       cutlist
@@ -196,7 +200,7 @@ describe("P3.13 — gaveteiro industrial completo", () => {
         )
       );
     });
-    expect(elevs[0]).toBeCloseTo(16.5, 5);
+    expect(elevs[0]).toBeCloseTo(35.5, 5);
     expect(elevs[1]).toBeCloseTo(48, 5);
     expect(elevs[2]).toBeCloseTo(48, 5);
   });
