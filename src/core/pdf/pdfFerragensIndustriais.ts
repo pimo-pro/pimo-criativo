@@ -12,8 +12,9 @@ const FONT_SIZE = 11;
 const LINE_HEIGHT_FACTOR = 1.2;
 const GRID_COLOR: [number, number, number] = [0, 0, 0];
 
+/** Sem coluna Caixa (embutida no nome completo da peça); N QR = buildIndustrialId. */
 const FERRAGENS_TABLE_HEAD = [
-  ["Caixa", "Peça", "Ferragem", "Qtd", "Material", "Código Industrial", "Observações"],
+  ["Peça", "Ferragem", "Qtd", "Material", "N QR", "Observações"],
 ];
 
 function formatGeneratedDate(iso: string): string {
@@ -28,15 +29,14 @@ function formatGeneratedDate(iso: string): string {
 
 function ferragensTableBody(data: ProjectIndustrialFerragens): string[][] {
   if (data.rows.length === 0) {
-    return [["—", "—", "Sem ferragens", "0", "—", "—", "—"]];
+    return [["—", "Sem ferragens", "0", "—", "—", "—"]];
   }
   return data.rows.map((r) => [
-    r.caixa,
     r.peca,
     r.ferragem,
     String(r.qtd),
     r.material,
-    r.codigoIndustrial,
+    r.nQr,
     r.observacoes,
   ]);
 }

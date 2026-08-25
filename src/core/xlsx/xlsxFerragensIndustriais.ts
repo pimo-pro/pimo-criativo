@@ -5,13 +5,13 @@ import {
   registerIndustrialRequiredArtifact,
 } from "../industrial/industrialOutputGuard";
 
+/** Sem coluna Caixa (embutida no nome completo); N QR = buildIndustrialId. */
 const HEADERS = [
-  "Caixa",
   "Peça",
   "Ferragem",
   "Qtd",
   "Material",
-  "Código Industrial",
+  "N QR",
   "Observações",
 ] as const;
 
@@ -62,15 +62,14 @@ export async function buildFerragensIndustriaisXlsxBuffer(
   const bodyRows =
     data.rows.length > 0
       ? data.rows.map((row) => [
-          row.caixa,
           row.peca,
           row.ferragem,
           row.qtd,
           row.material,
-          row.codigoIndustrial,
+          row.nQr,
           row.observacoes,
         ])
-      : [["—", "—", "Sem ferragens", 0, "—", "—", "—"]];
+      : [["—", "Sem ferragens", 0, "—", "—", "—"]];
 
   for (const values of bodyRows) {
     const row = sheet.addRow(values);

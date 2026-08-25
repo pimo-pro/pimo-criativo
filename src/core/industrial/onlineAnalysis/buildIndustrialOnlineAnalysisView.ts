@@ -521,24 +521,22 @@ export function buildCanonicalIndustrialOnlineAnalysisSections(
       id: "ferragens",
       title: "Ferragens industriais",
       columns: [
-        col("caixa", "Caixa", true),
         col("peca", "Peça", true),
         col("ferragem", "Ferragem", true),
         col("qtd", "Qtd", true),
         col("material", "Material", true),
-        col("codigo", "Código", false),
+        col("nQr", "N QR", false),
         col("observacoes", "Obs.", true),
       ],
       rows: industrial.rows.map((r, index) =>
         rowFromCells(
-          makeCanonicalRowId(docId, "ferragens", [r.caixa, r.peca, r.ferragem, r.codigoIndustrial, index]),
+          makeCanonicalRowId(docId, "ferragens", [r.peca, r.ferragem, r.nQr, index]),
           {
-            caixa: r.caixa,
             peca: r.peca,
             ferragem: r.ferragem,
             qtd: String(r.qtd),
             material: r.material,
-            codigo: r.codigoIndustrial,
+            nQr: r.nQr,
             observacoes: r.observacoes || "—",
           }
         )

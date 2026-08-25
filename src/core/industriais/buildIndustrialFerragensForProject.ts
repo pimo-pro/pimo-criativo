@@ -72,12 +72,14 @@ function dedupeBoxesById(boxes: BoxModule[]): BoxModule[] {
 }
 
 export type IndustrialFerragemPdfRow = {
+  /** Nome da caixa — preenchido sobretudo em linhas box-level; nas de peça o nome completo já inclui a caixa. */
   caixa: string;
   peca: string;
   ferragem: string;
   qtd: number;
   material: string;
-  codigoIndustrial: string;
+  /** ID industrial curto (`buildIndustrialId`) — igual à etiqueta / No ETQ. */
+  nQr: string;
   observacoes: string;
 };
 
@@ -137,7 +139,7 @@ function pushPieceFerragens(
   const componentId = TIPO_TO_COMPONENT_ID[item.tipo] ?? item.tipo;
   const ct = ctById[componentId];
   const peca = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
-  const codigoIndustrial = resolveIndustrialIdForDocument(item, projectName, boxNome);
+  const nQr = resolveIndustrialIdForDocument(item, projectName, boxNome);
   const material = String(item.material ?? item.materialId ?? "—").trim() || "—";
   const observacoes = formatObservacoesForPdf(
     resolveObservacoesForCutListItem(item, { pieceObservacoes })
@@ -162,12 +164,12 @@ function pushPieceFerragens(
         ? def.quantidade_por_lado * Math.max(1, def.aplicar_em?.length ?? 1)
         : 1);
     rows.push({
-      caixa: boxNome,
+      caixa: "",
       peca,
       ferragem: ferragemLabel(def.ferragem_id, ferragemById),
       qtd: qtdBase * qtyMult,
       material,
-      codigoIndustrial,
+      nQr,
       observacoes,
     });
   }
@@ -215,12 +217,12 @@ export function buildIndustrialFerragensForProject(
     if (cavilha40 > 0) {
       const peca = resolveFullIndustrialNameForDocument(item, projectName, boxNome);
       rows.push({
-        caixa: boxNome,
+        caixa: "",
         peca,
         ferragem: ferragemLabel(CAVILHA_10x40_FERRAGEM_ID, ferragemById),
         qtd: cavilha40 * Math.max(1, item.quantidade ?? 1),
         material: String(item.material ?? item.materialId ?? "—").trim() || "—",
-        codigoIndustrial: resolveIndustrialIdForDocument(item, projectName, boxNome),
+        nQr: resolveIndustrialIdForDocument(item, projectName, boxNome),
         observacoes: formatObservacoesForPdf(
           resolveObservacoesForCutListItem(item, { pieceObservacoes: project.pieceObservacoes })
         ),
@@ -228,7 +230,7 @@ export function buildIndustrialFerragensForProject(
     }
   }
 
-  // Complemento box-level (pes, calcos, div/sep). Nao repetir tipos ja cobertos por peca.
+  // Complemento box-level (pes, calcos, div/sep). Sem peça industrial — caixa vai na coluna Peça.
   for (const box of boxes) {
     const boxNome = box.nome?.trim() || box.id;
     const modelo = gerarModeloIndustrial(box, project.rules);
@@ -236,11 +238,11 @@ export function buildIndustrialFerragensForProject(
       if (MODELO_TIPOS_COBERTOS_POR_PECA.has(f.tipo)) continue;
       rows.push({
         caixa: boxNome,
-        peca: "—",
+        peca: boxNome,
         ferragem: f.tipo,
         qtd: f.quantidade,
         material: "—",
-        codigoIndustrial: "—",
+        nQr: "—",
         observacoes: "",
       });
     }

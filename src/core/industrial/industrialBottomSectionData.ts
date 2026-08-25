@@ -367,7 +367,7 @@ export function buildFerragensTotaisPdfData(
   // Ignorar dobradiças industriais (fixas); usar canecos reais do cutlist/CNC.
   const detalhe = industrial.rows
     .filter((r) => !isDobradicaFerragemLabel(r.ferragem))
-    .map((r) => [r.caixa, r.ferragem, String(r.qtd), r.material, r.codigoIndustrial]);
+    .map((r) => [r.caixa || r.peca, r.ferragem, String(r.qtd), r.material, r.nQr]);
 
   const byTipo = new Map<string, number>();
   for (const row of industrial.rows) {
