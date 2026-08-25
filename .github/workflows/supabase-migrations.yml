@@ -30,6 +30,16 @@ on:
         required: false
         type: boolean
         default: false
+      exclude_migrations:
+        description: "CSV de filenames a excluir (ex. Phase A). Production: deve ficar vazio."
+        required: false
+        type: string
+        default: ""
+      skip_015:
+        description: "Staging only: excluir 015 (default true = Phase A safe). Production ignora."
+        required: false
+        type: boolean
+        default: true
       confirm_production:
         description: "Only for production: must equal I_UNDERSTAND"
         required: false
@@ -53,6 +63,8 @@ jobs:
           echo "Target: ${{ github.event.inputs.target }}"
           echo "Mode: ${{ github.event.inputs.mode }}"
           echo "Dry run: ${{ github.event.inputs.dry_run }}"
+          echo "skip_015: ${{ github.event.inputs.skip_015 }}"
+          echo "exclude_migrations: ${{ github.event.inputs.exclude_migrations }}"
           if [ "${{ github.event.inputs.target }}" = "staging" ]; then
             echo "Expected ref: rszpnvmscehqapflaklv"
           elif [ "${{ github.event.inputs.target }}" = "production" ]; then
@@ -60,6 +72,13 @@ jobs:
           else
             echo "Expected ref: PIMO_SUPABASE_PROJECT_REF_LOCAL (secret)"
           fi
+
+      - name: Fail-closed — production sem exclusões silenciosas
+        if: ${{ github.event.inputs.target == 'production' && github.event.inputs.exclude_migrations != '' }}
+        run: |
+          echo "ERRO: exclude_migrations não é permitido em production (fail-closed)."
+          echo "Production deve aplicar o conjunto completo quando o cutover estiver pronto."
+          exit 1
 
   connection-only:
     needs: guard-inputs
@@ -114,17 +133,57 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve PIMO_MIGRATE_EXCLUDE (fail-closed)
+        id: migrate_exclude
+        run: |
+          TARGET="${{ github.event.inputs.target }}"
+          EXCLUDE="${{ github.event.inputs.exclude_migrations }}"
+          SKIP015="${{ github.event.inputs.skip_015 }}"
+          FILE_015="015_revoke_industrial_anon_write.sql"
+
+          if [ "$TARGET" = "production" ]; then
+            if [ -n "$(printf '%s' "$EXCLUDE" | tr -d '[:space:]')" ]; then
+              echo "ERRO: exclude_migrations não permitido em production."
+              exit 1
+            fi
+            if [ "$SKIP015" = "true" ]; then
+              echo "skip_015 ignorado em production (conjunto completo)."
+            fi
+            echo "exclude=" >> "$GITHUB_OUTPUT"
+            echo "Resolved exclude: (vazio — production)"
+            exit 0
+          fi
+
+          RESULT="$EXCLUDE"
+          if [ "$TARGET" = "staging" ] && [ "$SKIP015" = "true" ]; then
+            case ",${RESULT}," in
+              *",${FILE_015},"*) ;;
+              *)
+                if [ -n "$(printf '%s' "$RESULT" | tr -d '[:space:]')" ]; then
+                  RESULT="${RESULT},${FILE_015}"
+                else
+                  RESULT="${FILE_015}"
+                fi
+                ;;
+            esac
+          fi
+
+          echo "exclude=${RESULT}" >> "$GITHUB_OUTPUT"
+          echo "Resolved exclude: ${RESULT:-"(vazio)"}"
+
       - name: List migrations
         run: |
           echo "Migrations em supabase/migrations:"
           ls -1 supabase/migrations/*.sql | sort
           echo "Target: ${{ github.event.inputs.target }}"
           echo "Mode: migrate"
+          echo "PIMO_MIGRATE_EXCLUDE: ${{ steps.migrate_exclude.outputs.exclude }}"
 
       - name: Apply migrations (Postgres direct)
         env:
           PIMO_MIGRATE_TARGET: ${{ github.event.inputs.target }}
           PIMO_MIGRATE_DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+          PIMO_MIGRATE_EXCLUDE: ${{ steps.migrate_exclude.outputs.exclude }}
           CONFIRM_PRODUCTION_MIGRATE: ${{ github.event.inputs.confirm_production }}
           # Allowlist canónica reforçada (deve coincidir com migrateTargetGuard.mjs)
           PIMO_SUPABASE_PROJECT_REF_STAGING: rszpnvmscehqapflaklv

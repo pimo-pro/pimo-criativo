@@ -18,8 +18,14 @@ import {
   connectPg,
   parsePgConfig,
 } from "./migratePgConnection.mjs";
+import { selectMigrations } from "./migrateExclude.mjs";
 
 export { connectionCandidates, parsePgConfig, connectPg };
+export {
+  parseMigrateExclude,
+  partitionMigrations,
+  selectMigrations,
+} from "./migrateExclude.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -35,17 +41,39 @@ function isDirectRun() {
   }
 }
 
+function listSortedMigrationFiles() {
+  return fs
+    .readdirSync(migrationsDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+}
+
+/** Log inequívoco: EXCLUDED / lista efectiva (sem APPLY/SKIP de DB). */
+function logMigrationSelection(included, excluded) {
+  for (const file of excluded) {
+    console.log(`EXCLUDED ${file}`);
+  }
+  console.log(
+    `Lista efectiva: ${included.length} migration(s) (excluídas: ${excluded.length})`,
+  );
+  for (const file of included) {
+    console.log(`  EFFECTIVE ${file}`);
+  }
+}
+
 async function main() {
   const env = loadMigrateEnv(root);
   assertMigrateTargetOrExit(env);
 
+  const sorted = listSortedMigrationFiles();
+  const { included, excluded } = selectMigrations(sorted, env);
+
   if (String(env.PIMO_MIGRATE_DRY_RUN ?? "").trim() === "1") {
-    const pending = fs
-      .readdirSync(migrationsDir)
-      .filter((f) => f.endsWith(".sql"))
-      .sort();
-    console.log("DRY RUN — ficheiros candidatos (não aplicados):");
-    for (const f of pending) console.log(`  - ${f}`);
+    console.log(
+      "DRY RUN — nenhuma migration será aplicada; sem writes em _pimo_schema_migrations.",
+    );
+    logMigrationSelection(included, excluded);
+    console.log("DRY RUN — fim (sem ligação à base de dados).");
     return;
   }
 
@@ -61,12 +89,8 @@ async function main() {
     `Candidatos de ligação: ${candidates.length} (redacted: ${redactConnectionString(candidates[0])})`,
   );
 
-  const files = fs
-    .readdirSync(migrationsDir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-
-  console.log(`Aplicar ${files.length} migrations...`);
+  logMigrationSelection(included, excluded);
+  console.log(`Aplicar ${included.length} migrations...`);
 
   const client = await connectPg(candidates);
 
@@ -78,7 +102,8 @@ async function main() {
     );
   `);
 
-    for (const file of files) {
+    // Apenas `included`: excluídas ficam pending (não APPLY, não INSERT no tracking).
+    for (const file of included) {
       const { rows } = await client.query(
         "SELECT 1 FROM public._pimo_schema_migrations WHERE filename = $1",
         [file],

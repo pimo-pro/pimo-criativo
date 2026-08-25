@@ -37,6 +37,7 @@ describe("migration runner guard wiring (estático)", () => {
   it("F: applyMigrationsPg — guard antes de connectionCandidates/connectPg/query", () => {
     const src = readScript("scripts/applyMigrationsPg.mjs");
     expect(src).toContain('from "./migrateTargetGuard.mjs"');
+    expect(src).toContain('from "./migrateExclude.mjs"');
     assertGuardBefore(src, "applyMigrationsPg", [
       /connectionCandidates\s*\(/,
       /connectPg\s*\(/,
