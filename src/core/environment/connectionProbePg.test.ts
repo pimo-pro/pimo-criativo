@@ -12,7 +12,7 @@ describe("connectionProbePg — staging password guard", () => {
   it("FAIL se staging com SUPABASE_DB_PASSWORD preenchido", () => {
     const r = assertStagingDbPasswordEmpty({
       PIMO_MIGRATE_TARGET: "staging",
-      SUPABASE_DB_PASSWORD: "should-not-be-here",
+      SUPABASE_DB_PASSWORD: "__FIXTURE_NONEMPTY__",
     });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("STAGING_PASSWORD_FORBIDDEN");
@@ -31,7 +31,7 @@ describe("connectionProbePg — staging password guard", () => {
     expect(
       assertStagingDbPasswordEmpty({
         PIMO_MIGRATE_TARGET: "production",
-        SUPABASE_DB_PASSWORD: "prod-password",
+        SUPABASE_DB_PASSWORD: "__FIXTURE_PRODUCTION__",
       }).ok,
     ).toBe(true);
   });
