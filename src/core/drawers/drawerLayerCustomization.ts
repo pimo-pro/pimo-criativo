@@ -1,16 +1,10 @@
 import type { DrawerLayerItem } from "../../models/BoxLayers";
 import type { DrawerPieceTipo } from "../../services/drawerCutlistAdapter";
-import { buildDrawerIndustrialLabel } from "./drawerIndustrialLabels";
+import { sanitizeIndustrialToken } from "../naming/industrialNaming";
 
-/** Sanitiza texto para labels industriais / ficheiros (alinhado com drawerIndustrialLabels). */
+/** Sanitiza texto para labels industriais / ficheiros (SSOT). */
 export function sanitizeDrawerIndustrialName(value: string): string {
-  return (
-    String(value || "")
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_\-]/g, "")
-      .slice(0, 64) || ""
-  );
+  return sanitizeIndustrialToken(value);
 }
 
 /** Altura do corpo / vão da gaveta (laterais, costa, fundo, frente interna). */
@@ -43,7 +37,7 @@ export function resolveDrawerFrontHeightMm(item: DrawerLayerItem): number {
   return resolveDrawerExternalFrontHeightMm(item);
 }
 
-/** Prefixo industrial do grupo da gaveta (substitui box.nome quando definido). */
+/** Prefixo do grupo da gaveta (substitui box.nome quando definido). */
 export function resolveDrawerGroupPrefix(item: DrawerLayerItem, boxName: string): string {
   const custom = sanitizeDrawerIndustrialName(item.metadata?.drawerGroupName ?? "");
   if (custom) return custom;
@@ -58,32 +52,24 @@ export function resolveDrawerDisplayName(item: DrawerLayerItem, index0Based: num
 
 export function resolveDrawerFrontIntPieceLabel(
   item: DrawerLayerItem,
-  boxName: string,
-  drawerIndex1Based: number
+  _boxName: string,
+  _drawerIndex1Based: number
 ): string {
   const custom = sanitizeDrawerIndustrialName(item.metadata?.frontIntPieceName ?? "");
   if (custom) return custom;
-  return buildDrawerIndustrialLabel(
-    resolveDrawerGroupPrefix(item, boxName),
-    "gaveta_frente_int",
-    drawerIndex1Based
-  );
+  return "gaveta_frente_int";
 }
 
 export function resolveDrawerFrontExtPieceLabel(
   item: DrawerLayerItem,
-  boxName: string,
-  drawerIndex1Based: number
+  _boxName: string,
+  _drawerIndex1Based: number
 ): string {
   const custom = sanitizeDrawerIndustrialName(
     item.metadata?.frontExtPieceName ?? item.metadata?.frontPieceName ?? ""
   );
   if (custom) return custom;
-  return buildDrawerIndustrialLabel(
-    resolveDrawerGroupPrefix(item, boxName),
-    "gaveta_frente_ext",
-    drawerIndex1Based
-  );
+  return "gaveta_frente_ext";
 }
 
 /** @deprecated Usar resolveDrawerFrontExtPieceLabel */
@@ -95,6 +81,7 @@ export function resolveDrawerFrontPieceLabel(
   return resolveDrawerFrontExtPieceLabel(item, boxName, drawerIndex1Based);
 }
 
+/** Display/cutlist: personalizado ou tipo SSOT (sem formato BOX_token_nn). */
 export function resolveDrawerPieceIndustrialLabel(
   item: DrawerLayerItem,
   boxName: string,
@@ -107,9 +94,5 @@ export function resolveDrawerPieceIndustrialLabel(
   if (pieceTipo === "gaveta_frente_ext" || pieceTipo === "gaveta_frente") {
     return resolveDrawerFrontExtPieceLabel(item, boxName, drawerIndex1Based);
   }
-  return buildDrawerIndustrialLabel(
-    resolveDrawerGroupPrefix(item, boxName),
-    pieceTipo,
-    drawerIndex1Based
-  );
+  return pieceTipo;
 }

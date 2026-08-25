@@ -83,7 +83,7 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     expect(porta?.grainDirection).toBe("YY");
   });
 
-  it("Layout PRO — remates e rodapés preservam labels industriais no partName", () => {
+  it("Layout PRO — remates e rodapés usam tokens unificados no partName", () => {
     const { snap } = buildFullIndustrialScenario();
     const all = buildCutlistItemsForIndustrialExport(snap);
     const pieces = cutlistToPieces(all, {
@@ -98,11 +98,11 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     expect(rodapePieces.length).toBeGreaterThan(0);
 
     for (const p of rematePieces) {
-      expect(p.partName).toMatch(new RegExp(`^${FULL_INDUSTRIAL_BOX_NOME}_REMATE_`));
+      expect(p.partName.toLowerCase()).toMatch(/_rem$/);
       expect(p.materialId).toBeTruthy();
     }
     for (const p of rodapePieces) {
-      expect(p.partName).toMatch(new RegExp(`^${FULL_INDUSTRIAL_BOX_NOME}_RODA_PE_`));
+      expect(p.partName.toLowerCase()).toMatch(/_roda_pe$/);
       expect(p.industrialGrainCode).toBeUndefined();
       expect(isRotatablePiece(p)).toBe(true);
       expect(
@@ -124,12 +124,13 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     }
 
     const divItem = all.find((i) => i.tipo === "divisorio");
-    const divPiece = pieces.find((p) => p.partName === divItem?.nome);
-    expect(divItem?.nome).toBe(`${FULL_INDUSTRIAL_BOX_NOME}_DIV_01`);
-    expect(divPiece?.partName).toBe(`${FULL_INDUSTRIAL_BOX_NOME}_DIV_01`);
+    expect(divItem?.metadata?.industrialLabel).toBeUndefined();
+    expect(divItem?.metadata?.divSepKind).toBe("DIV");
+    const divPiece = pieces.find((p) => p.pieceTipo === "divisorio" || p.partName.toLowerCase().endsWith("_div"));
+    expect(divPiece?.partName.toLowerCase()).toMatch(/_div$/);
   });
 
-  it("nesting — remate e rodapé entram no layout como CutPiece com labels industriais", () => {
+  it("nesting — remate e rodapé entram no layout como CutPiece com tokens unificados", () => {
     const { snap } = buildFullIndustrialScenario();
     const all = buildCutlistItemsForIndustrialExport(snap);
     const pieces = cutlistToPieces(all, {
@@ -138,17 +139,17 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     });
     expect(pieces.length).toBeGreaterThan(0);
 
-    const partNames = pieces.map((p) => p.partName);
-    expect(partNames.some((n) => n.includes("_REMATE_"))).toBe(true);
-    expect(partNames.some((n) => n.includes("_RODA_PE_"))).toBe(true);
+    const partNames = pieces.map((p) => p.partName.toLowerCase());
+    expect(partNames.some((n) => n.endsWith("_rem") || n.includes("_remate_"))).toBe(true);
+    expect(partNames.some((n) => n.endsWith("_roda_pe"))).toBe(true);
 
     const sheet = getSheetDefinitionFromSettings();
     const layout = runCutLayout(pieces, sheet, getDefaultCncLayoutOptions());
     expect(layout.sheets.length).toBeGreaterThan(0);
 
-    const placedNames = new Set(layout.sheets.flatMap((s) => s.placements.map((p) => p.partName)));
+    const placedNames = new Set(layout.sheets.flatMap((s) => s.placements.map((p) => p.partName.toLowerCase())));
     expect(placedNames.size).toBeGreaterThan(0);
-    expect([...placedNames].some((n) => n.includes("_REMATE_"))).toBe(true);
+    expect([...placedNames].some((n) => n.endsWith("_rem") || n.includes("_remate_"))).toBe(true);
   });
 
   it("nesting — rodapé isolado é elegível para chapa (veio livre, rotação permitida)", () => {
@@ -173,7 +174,7 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     });
     expect(pieces).toHaveLength(1);
     const p = pieces[0]!;
-    expect(p.partName).toContain("_RODA_PE_");
+    expect(p.partName.toLowerCase()).toMatch(/_roda_pe$/);
     expect(isRotatablePiece(p)).toBe(true);
 
     const sheet = getSheetDefinitionFromSettings();
@@ -183,7 +184,7 @@ describe("Pipeline industrial A→D — integração final (Fase E)", () => {
     const layout = runCutLayout(pieces, sheet, getDefaultCncLayoutOptions());
     expect(layout.sheets.length).toBeGreaterThan(0);
     const placed = layout.sheets.flatMap((s) => s.placements);
-    expect(placed.some((pl) => pl.partName.includes("_RODA_PE_"))).toBe(true);
+    expect(placed.some((pl) => pl.partName.toLowerCase().includes("roda_pe"))).toBe(true);
   });
 
   it("cutlistToPieces — roda furos com a normalização de peças altas", () => {

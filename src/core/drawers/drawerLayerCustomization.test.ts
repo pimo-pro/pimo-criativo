@@ -49,23 +49,23 @@ describe("drawerLayerCustomization", () => {
     expect(resolveDrawerFrontHeightMm(item)).toBe(220);
   });
 
-  it("resolveDrawerGroupPrefix — nome customizado", () => {
+  it("resolveDrawerGroupPrefix — nome customizado (sanitizeIndustrialToken)", () => {
     const item = baseDrawer();
     item.metadata = { drawerGroupName: "Gaveta Superior" };
-    expect(resolveDrawerGroupPrefix(item, "Modulo_A")).toBe("Gaveta_Superior");
+    expect(resolveDrawerGroupPrefix(item, "Modulo_A")).toBe("gaveta_superior");
   });
 
   it("resolveDrawerFrontPieceLabel — nome customizado da frente", () => {
     const item = baseDrawer();
     item.metadata = { frontPieceName: "FRENTE_ESPECIAL_01" };
-    expect(resolveDrawerFrontPieceLabel(item, "Modulo_A", 1)).toBe("FRENTE_ESPECIAL_01");
+    expect(resolveDrawerFrontPieceLabel(item, "Modulo_A", 1)).toBe("frente_especial_01");
   });
 
-  it("resolveDrawerPieceIndustrialLabel — prefixo customizado nas laterais", () => {
+  it("resolveDrawerPieceIndustrialLabel — laterais usam tipo SSOT", () => {
     const item = baseDrawer();
     item.metadata = { drawerGroupName: "GAV_SUP" };
     expect(resolveDrawerPieceIndustrialLabel(item, "Modulo_A", "gaveta_lat_esq", 1)).toBe(
-      "GAV_SUP_gav_lat_esq_01"
+      "gaveta_lat_esq"
     );
   });
 });
@@ -88,7 +88,7 @@ describe("cutlist + XML com personalização", () => {
 
     expect(front?.nome).toBe("FRENTE_PERSO");
     expect(front?.dimensoes.altura).toBe(220);
-    expect(lat?.nome).toBe("GAV_SUP_gav_lat_esq_01");
+    expect(lat?.nome).toBe("gaveta_lat_esq");
 
     const drilling = buildPanelDrillingResult(
       {

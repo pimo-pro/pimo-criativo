@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildRemateIndustrialLabel,
-  buildRemateIndustrialLabelsForRemates,
   resolveRemateIndustrialSuffix,
   resolveRematePieceDisplayName,
   resolveRematePieceNomeForRemate,
@@ -21,11 +19,6 @@ function remate(partial: Partial<RematePiece> & Pick<RematePiece, "id" | "tipo">
 }
 
 describe("remate industrial labels", () => {
-  it("buildRemateIndustrialLabel — formato BOXNAME_REMATE_SUFFIX_NN", () => {
-    expect(buildRemateIndustrialLabel("Armario Test", "DIR", 1)).toBe("Armario_Test_REMATE_DIR_01");
-    expect(buildRemateIndustrialLabel("MOD1", "L_ext", 2)).toBe("MOD1_REMATE_L_ext_02");
-  });
-
   it("resolveRemateIndustrialSuffix — L, laterais e AVISTA", () => {
     expect(resolveRemateIndustrialSuffix(remate({ id: "1", tipo: "L", productType: "L", partIndex: 1 }))).toBe(
       "L_ext"
@@ -37,19 +30,7 @@ describe("remate industrial labels", () => {
     expect(resolveRemateIndustrialSuffix(remate({ id: "4", tipo: "FRENTE", productType: "AVISTA" }))).toBe("FRENTE");
   });
 
-  it("buildRemateIndustrialLabelsForRemates — indexação por caixa e suffix", () => {
-    const remates = [
-      remate({ id: "r1", tipo: "DIR", productType: "COMPLETO", parentBoxId: "b1" }),
-      remate({ id: "r2", tipo: "DIR", productType: "COMPLETO", parentBoxId: "b1" }),
-      remate({ id: "r3", tipo: "ESQ", productType: "COMPLETO", parentBoxId: "b1" }),
-    ];
-    const labels = buildRemateIndustrialLabelsForRemates(remates, { b1: "MOD1" });
-    expect(labels.get("r1")).toBe("MOD1_REMATE_DIR_01");
-    expect(labels.get("r2")).toBe("MOD1_REMATE_DIR_02");
-    expect(labels.get("r3")).toBe("MOD1_REMATE_ESQ_01");
-  });
-
-  it("resolveRematePieceDisplayName — personalizado ou automático", () => {
+  it("resolveRematePieceDisplayName — personalizado ou automático curto", () => {
     const piece = remate({
       id: "r1",
       tipo: "DIR",
@@ -57,10 +38,10 @@ describe("remate industrial labels", () => {
       parentBoxId: "b1",
       nomePersonalizado: "REMATE_CUSTOM",
     });
-    expect(resolveRematePieceDisplayName(piece, "MOD1_REMATE_DIR_01")).toBe("REMATE_CUSTOM");
+    expect(resolveRematePieceDisplayName(piece, "Remate DIR")).toBe("REMATE_CUSTOM");
     expect(resolveRematePieceNomeForRemate(piece, { b1: "MOD1" })).toBe("REMATE_CUSTOM");
 
     const auto = remate({ id: "r2", tipo: "DIR", productType: "COMPLETO", parentBoxId: "b1" });
-    expect(resolveRematePieceNomeForRemate(auto, { b1: "MOD1" })).toBe("MOD1_REMATE_DIR_01");
+    expect(resolveRematePieceNomeForRemate(auto, { b1: "MOD1" })).toBe("Remate DIR");
   });
 });

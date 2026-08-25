@@ -3,7 +3,7 @@ import { buildDrillFilesForProject } from "../core/drill/drillExport";
 import { cutlistComPrecoFromBox } from "../core/manufacturing/cutlistFromBoxes";
 import { defaultRulesConfig } from "../core/rules/rulesConfig";
 import { DRAWER_BODY_DELTA_LOWEST_MM } from "../core/drawers/drawerGeometryConstants";
-import { DRAWER_PIECE_INDUSTRIAL_TOKEN } from "../core/drawers/drawerIndustrialLabels";
+import { resolvePieceToken } from "../core/naming/industrialNaming";
 import {
   drawerLayerItemToCutList,
   isDrawerPieceTipo,
@@ -59,8 +59,9 @@ describe("Composição industrial — gaveta de madeira (5 peças)", () => {
     ).toBeCloseTo(DRAWER_BODY_DELTA_LOWEST_MM, 5);
 
     for (const piece of cutlist) {
-      const token = DRAWER_PIECE_INDUSTRIAL_TOKEN[piece.tipo as keyof typeof DRAWER_PIECE_INDUSTRIAL_TOKEN];
-      expect(piece.nome).toMatch(new RegExp(`_${token}_01$`));
+      expect(piece.metadata?.industrialLabel).toBeUndefined();
+      expect(piece.nome).toBe(piece.tipo);
+      expect(resolvePieceToken(piece.tipo)).toBeTruthy();
     }
 
     expect(cutlist).toMatchSnapshot();
@@ -85,9 +86,11 @@ describe("Composição industrial — gaveta de madeira (5 peças)", () => {
       boxes: [box],
       rules: defaultRulesConfig,
     });
-    const drawerXml = xmlFiles.filter((f) => f.partName.includes("gav_"));
+    const drawerXml = xmlFiles.filter(
+      (f) => f.partName.includes("gaveta_") || /gav_/.test(f.partName)
+    );
     expect(drawerXml.length).toBeGreaterThanOrEqual(2);
-    expect(drawerXml.every((f) => !f.partName.includes("gav_frent_int"))).toBe(true);
-    expect(drawerXml.some((f) => f.partName.includes("gav_lat"))).toBe(true);
+    expect(drawerXml.every((f) => !f.partName.includes("gav_frent_int") && !f.partName.includes("gaveta_frente_int"))).toBe(true);
+    expect(drawerXml.some((f) => f.partName.includes("gav_lat") || f.partName.includes("gaveta_lat"))).toBe(true);
   });
 });

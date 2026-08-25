@@ -103,16 +103,3 @@ export function computeCxGavLayout(box: BoxModule): CxGavLayout {
     cimaProfundidadeMm,
   };
 }
-
-export function buildCxGavIndustrialLabel(
-  boxName: string,
-  pieceTipo: CxGavPieceTipo
-): string {
-  const safeName =
-    String(boxName || "BOX")
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_\-]/g, "")
-      .slice(0, 32) || "BOX";
-  return `${safeName}_${pieceTipo}`;
-}

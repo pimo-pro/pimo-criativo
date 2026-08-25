@@ -149,7 +149,7 @@ describe("Rodapé — integração industrial (cutlist + QR + nesting livre)", (
       boxes: [{ id: "box-rodape-ind", nome: "Armario_Test" }],
     });
 
-    expect(pieces[0]?.partName).toMatch(/_rod_pe$/i);
+    expect(pieces[0]?.partName).toMatch(/_roda_pe$/i);
     expect(pieces[0]?.materialId).toBeTruthy();
   });
 

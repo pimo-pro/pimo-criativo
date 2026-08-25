@@ -1,47 +1,10 @@
 /**
  * Nomes para Layout de Corte PRO: <prefixoCaixa>_<prefixoPeca>.
+ * Prefixo de peça = SSOT `resolvePieceToken` (sem tabelas paralelas).
  * Não altera medidas — apenas o campo `nome` na lista passada a cutlistToPieces.
  */
 
-const TIPO_TO_PREFIX: Record<string, string> = {
-  lateral_direita: "lat_dir",
-  lateral_esquerda: "lat_esq",
-  gaveta_frente: "gav_frent",
-  gaveta_frente_int: "gav_frent_int",
-  gaveta_frente_ext: "gav_frent_ext",
-  gaveta_fundo: "gav_fun",
-  gaveta_lat_esq: "gav_lat_esq",
-  gaveta_lat_dir: "gav_lat_dir",
-  gaveta_traseira: "gav_cost",
-  cima: "top",
-  fundo: "fun",
-  COSTA: "cos",
-  prateleira: "pra",
-  porta_simples: "por_sim",
-  porta_dupla: "por_dup",
-  porta_correr: "por_cor",
-  remate: "rem",
-  rodape: "rod_pe",
-};
-
-const NOME_PT_TO_PREFIX: Record<string, string> = {
-  "lateral esquerda": "lat_esq",
-  "lateral direita": "lat_dir",
-  "gaveta frente": "gav_frent",
-  "gaveta frente interna": "gav_frent_int",
-  "gaveta frente externa": "gav_frent_ext",
-  "gaveta fundo": "gav_fun",
-  "gaveta lateral esquerda": "gav_lat_esq",
-  "gaveta lateral direita": "gav_lat_dir",
-  "gaveta traseira": "gav_cost",
-  "gaveta costas": "gav_cost",
-  cima: "top",
-  topo: "top",
-  fundo: "fun",
-  base: "bas",
-  costa: "cos",
-  prateleira: "pra",
-};
+import { resolvePieceToken } from "../naming/industrialNaming";
 
 function sanitizeToken(s: string): string {
   return s.replace(/[^A-Za-z0-9]+/g, "").replace(/^[-_]+|[-_]+$/g, "") || "X";
@@ -92,21 +55,10 @@ export function buildBoxPrefixForCutLayoutPro(boxNome: string | undefined, proje
 
 export function piecePrefixForCutLayoutPro(item: { nome?: string; tipo?: string }): string {
   const tipo = String(item.tipo ?? "").trim();
-  if (tipo && TIPO_TO_PREFIX[tipo]) return TIPO_TO_PREFIX[tipo];
-
-  const nomeKey = String(item.nome ?? "")
-    .trim()
-    .toLowerCase();
-  if (nomeKey && NOME_PT_TO_PREFIX[nomeKey]) return NOME_PT_TO_PREFIX[nomeKey];
-
-  const raw = (tipo || nomeKey || "pec").toLowerCase();
-  const slug = raw
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 24) || "pec";
-  return slug;
+  if (tipo) return resolvePieceToken(tipo);
+  const nome = String(item.nome ?? "").trim();
+  if (nome) return resolvePieceToken(nome);
+  return "peca";
 }
 
 export function buildCutLayoutProPartName(
@@ -117,74 +69,6 @@ export function buildCutLayoutProPartName(
   const boxPrefix = buildBoxPrefixForCutLayoutPro(boxNome, projectName);
   const piecePrefix = piecePrefixForCutLayoutPro(item);
   return `${boxPrefix}_${piecePrefix}`;
-}
-
-/**
- * Inversão só para etiquetas / REF industriais dos lados do módulo.
- * SSOT, Viewer e cutlist mantêm `lateral_esquerda` / `lateral_direita` correctos;
- * no output de fabrico (PDF etiqueta, TCN/XML REF) o nome é espelhado:
- *   lateral_direita → lat_esq (ESQ)
- *   lateral_esquerda → lat_dir (DIR)
- */
-export function invertModuleLateralTipoForIndustrialLabel(
-  tipo?: string | null
-): string | undefined {
-  const t = String(tipo ?? "").trim();
-  if (t === "lateral_esquerda") return "lateral_direita";
-  if (t === "lateral_direita") return "lateral_esquerda";
-  return t || undefined;
-}
-
-/** Aplica a inversão de lado do módulo para naming industrial (não altera o item SSOT). */
-export function applyIndustrialLabelSideInversion<T extends { tipo?: string; nome?: string }>(
-  item: T
-): T {
-  const invertedTipo = invertModuleLateralTipoForIndustrialLabel(item.tipo);
-  if (invertedTipo && invertedTipo !== String(item.tipo ?? "").trim()) {
-    return { ...item, tipo: invertedTipo, nome: undefined };
-  }
-  const nomeKey = String(item.nome ?? "")
-    .trim()
-    .toLowerCase();
-  if (nomeKey === "lateral esquerda") {
-    return { ...item, tipo: "lateral_direita", nome: undefined };
-  }
-  if (nomeKey === "lateral direita") {
-    return { ...item, tipo: "lateral_esquerda", nome: undefined };
-  }
-  return item;
-}
-
-/**
- * Nome industrial da peça para etiqueta / fabrico (com inversão L/R dos lados do módulo).
- * Não usar para cutlist UI nem Viewer — aí o SSOT permanece sem inversão.
- */
-export function buildIndustrialPieceName(
-  item: { nome?: string; tipo?: string },
-  boxNome: string | undefined,
-  projectName: string
-): string {
-  return buildCutLayoutProPartName(
-    applyIndustrialLabelSideInversion(item),
-    boxNome,
-    projectName
-  );
-}
-
-/**
- * REF PEÇA / nome industrial — mesma regra das etiquetas (metadata.industrialLabel ou PRO name).
- * Laterais do módulo: ESQ/DIR invertidos face ao `tipo` SSOT (ver `buildIndustrialPieceName`).
- */
-export function resolveIndustrialPieceRef(
-  item: { nome?: string; tipo?: string; metadata?: Record<string, unknown> },
-  boxNome: string | undefined,
-  projectName: string
-): string {
-  const fromMeta = item.metadata?.industrialLabel;
-  if (typeof fromMeta === "string" && fromMeta.trim()) {
-    return fromMeta.trim().toUpperCase();
-  }
-  return buildIndustrialPieceName(item, boxNome, projectName).toUpperCase();
 }
 
 export type BoxNomeLookup = ReadonlyMap<string, string> | Record<string, string>;

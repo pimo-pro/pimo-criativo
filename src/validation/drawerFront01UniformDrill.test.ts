@@ -30,9 +30,11 @@ describe("GAV_FRENTE_EXT_01/02/03 — furação DRILL", () => {
       );
 
     expect(fronts).toHaveLength(3);
-    expect(fronts[0]!.nome).toMatch(/_gav_frent_ext_01$/);
-    expect(fronts[1]!.nome).toMatch(/_gav_frent_ext_02$/);
-    expect(fronts[2]!.nome).toMatch(/_gav_frent_ext_03$/);
+    expect(fronts[0]!.nome).toBe("gaveta_frente_ext");
+    expect(fronts[1]!.nome).toBe("gaveta_frente_ext");
+    expect(fronts[2]!.nome).toBe("gaveta_frente_ext");
+    expect(fronts.every((f) => f.metadata?.industrialLabel == null)).toBe(true);
+    expect(fronts.map((f) => f.metadata?.drawerIndex)).toEqual([1, 2, 3]);
 
     const distances: number[] = [];
     for (const front of fronts) {
@@ -55,7 +57,9 @@ describe("GAV_FRENTE_EXT_01/02/03 — furação DRILL", () => {
       rules: defaultRulesConfig,
     });
     const frontXmls = drill.filter(
-      (f) => f.partName.includes("gav_frent") && f.machineTarget === "drill"
+      (f) =>
+        f.machineTarget === "drill" &&
+        (f.partName.includes("gav_frent") || f.partName.includes("gaveta_frente"))
     );
     expect(frontXmls.length).toBeGreaterThanOrEqual(3);
     expect(frontXmls.every((f) => f.zipPath.includes("drill/"))).toBe(true);

@@ -269,7 +269,11 @@ describe("gaveta industrial — frente DRILL / costa percentual / fundo entradas
       boxes: [box],
       rules: defaultRulesConfig,
     });
-    const frontXml = drill.find((f) => f.partName.includes("gav_frent"));
+    const frontXml = drill.find(
+      (f) =>
+        f.partName.includes("gav_frent") ||
+        f.partName.includes("gaveta_frente")
+    );
     expect(frontXml).toBeDefined();
     expect(frontXml!.machineTarget).toBe("drill");
     expect(frontXml!.zipPath).toContain("drill/XML/");

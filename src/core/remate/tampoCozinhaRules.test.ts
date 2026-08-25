@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRematePieces } from "./rematePieceFactory";
 import { buildRemateCutlistItems } from "./remateCutlist";
-import { resolveRemateIndustrialSuffix, buildRemateIndustrialLabel } from "./labels";
+import { resolveRemateIndustrialSuffix } from "./labels";
 import {
   applyTampoIndustrialDefaults,
   computeTampoDimensions,
@@ -141,8 +141,5 @@ describe("TAMPO_COZINHA — Fase 1", () => {
       parentBoxId: "box-tampo",
     });
     expect(resolveRemateIndustrialSuffix(piece)).toBe("TAMPO");
-    expect(buildRemateIndustrialLabel("Armario_Tampo", "TAMPO", 1)).toBe(
-      "Armario_Tampo_REMATE_TAMPO_01"
-    );
   });
 });

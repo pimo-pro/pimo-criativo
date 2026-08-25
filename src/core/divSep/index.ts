@@ -87,7 +87,6 @@ export {
   getParafusoDistanceFromCavilhaMm,
 } from "./cavilhaRules";
 export { buildDivSepDrilling, mergeDrillHoles } from "./drilling";
-export { buildDivSepIndustrialLabel } from "./labels";
 export { getDivSepMeshSpecs } from "./visualSpecs";
 export {
   parseDivSepMeshName,

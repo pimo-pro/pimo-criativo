@@ -56,24 +56,25 @@ describe("Certificação CNC — peças de gaveta", () => {
 
     const frontExt = drawerPieces.find((p) => p.tipo === "gaveta_frente_ext");
     expect(frontExt?.espessura).toBe(19);
-    expect(frontExt?.nome).toMatch(/_gav_frent_ext_01$/);
+    expect(frontExt?.nome).toBe("gaveta_frente_ext");
+    expect(frontExt?.metadata?.industrialLabel).toBeUndefined();
     expect(frontExt?.grainDirection).toBe("YY");
     expect(frontExt?.dimensoes.largura).toBe(596);
     expect(frontExt?.dimensoes.altura).toBeGreaterThan(0);
 
     const lat = drawerPieces.find((p) => p.tipo === "gaveta_lat_esq");
     expect(lat?.espessura).toBe(16);
-    expect(lat?.nome).toMatch(/_gav_lat_esq_01$/);
+    expect(lat?.nome).toBe("gaveta_lat_esq");
     expect(lat?.grainDirection).toBe("XX");
     expect(lat?.dimensoes.altura).toBeLessThan(frontExt!.dimensoes.altura);
 
     const fundo = drawerPieces.find((p) => p.tipo === "gaveta_fundo");
     expect(fundo?.espessura).toBe(10);
-    expect(fundo?.nome).toMatch(/_gav_fun_01$/);
+    expect(fundo?.nome).toBe("gaveta_fundo");
 
     const costas = drawerPieces.find((p) => p.tipo === "gaveta_traseira");
     expect(costas?.espessura).toBe(16);
-    expect(costas?.nome).toMatch(/_gav_cost_01$/);
+    expect(costas?.nome).toBe("gaveta_traseira");
   });
 
   it("furos corrediça — diâmetro, profundidade, offsets e face B", () => {
@@ -149,7 +150,7 @@ describe("Certificação CNC — peças de gaveta", () => {
 
     expect(pieces.length).toBeGreaterThan(0);
     pieces.forEach((p) => {
-      expect(p.partName).toMatch(/_gav_(frent_ext|lat_esq|lat_dir|fun|cost)_\d{2}$/);
+      expect(p.partName).toMatch(/_gav_(frent_ext|lat_esq|lat_dir|fun|cost)$/);
       expect(p.largura_mm).toBeGreaterThan(0);
       expect(p.altura_mm).toBeGreaterThan(0);
     });
@@ -207,7 +208,9 @@ describe("Certificação CNC — peças de gaveta", () => {
       boxes: [box],
       rules: defaultRulesConfig,
     });
-    const drawerXml = xmlFiles.filter((f) => f.partName.includes("gav_"));
+    const drawerXml = xmlFiles.filter(
+      (f) => f.partName.includes("gaveta_") || /gav_/.test(f.partName)
+    );
     expect(drawerXml.length).toBeGreaterThanOrEqual(2);
     drawerXml.forEach((f) => {
       expect(f.xml).toContain("KDTPanelFormat");

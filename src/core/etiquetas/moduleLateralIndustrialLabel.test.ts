@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildIndustrialPieceName,
   buildCutLayoutProPartName,
   piecePrefixForCutLayoutPro,
-  resolveIndustrialPieceRef,
 } from "../cutlayout/cutLayoutProPieceNaming";
 import { resolveNomeIndustrialForEtiqueta } from "../etiquetas/industrialDisplayName";
 import { buildIndustrialId, buildFullIndustrialName } from "../naming/industrialNaming";
@@ -56,21 +54,6 @@ describe("Etiquetas industriais — naming unificado (sem inversão L/R)", () =>
     expect(dir).not.toContain("lat_esq");
   });
 
-  it("REF / buildIndustrialPieceName (ainda legado noutros artefactos) mantém inversão até Passo 3", () => {
-    expect(buildIndustrialPieceName({ tipo: "lateral_esquerda" }, boxNome, projectName)).toMatch(
-      /_lat_dir$/i
-    );
-    expect(buildIndustrialPieceName({ tipo: "lateral_direita" }, boxNome, projectName)).toMatch(
-      /_lat_esq$/i
-    );
-    expect(resolveIndustrialPieceRef({ tipo: "lateral_esquerda" }, boxNome, projectName)).toMatch(
-      /LAT_DIR$/
-    );
-    expect(resolveIndustrialPieceRef({ tipo: "lateral_direita" }, boxNome, projectName)).toMatch(
-      /LAT_ESQ$/
-    );
-  });
-
   it.each([1, 3] as const)(
     "módulo com %i gaveta(s): cutlist correcto; etiqueta sem inversão",
     (drawerCount) => {
@@ -102,7 +85,9 @@ describe("Etiquetas industriais — naming unificado (sem inversão L/R)", () =>
       expect(resolveNomeIndustrialForEtiqueta(latDir!, projectName, box.nome)).toContain(
         "lat_dir"
       );
-      expect(buildIndustrialId(resolveNomeIndustrialForEtiqueta(latEsq!, projectName, box.nome))).toBeTruthy();
+      expect(
+        buildIndustrialId(resolveNomeIndustrialForEtiqueta(latEsq!, projectName, box.nome))
+      ).toBeTruthy();
     }
   );
 

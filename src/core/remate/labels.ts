@@ -2,18 +2,7 @@ import type { RematePiece, RematePieceTipo } from "./rematePieceTypes";
 import { remateLIndustrialSuffix } from "./remateLGeometry";
 import { inferProductTypeFromLegacy } from "./remateProductRules";
 
-/** Sanitiza nome de caixa para etiqueta industrial (espelha DIV/SEP). */
-export function sanitizeRemateBoxName(boxName: string): string {
-  return (
-    String(boxName || "BOX")
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_\-]/g, "")
-      .slice(0, 32) || "BOX"
-  );
-}
-
-/** Suffix industrial após `_REMATE_` (ex.: DIR, L_ext, CIMA). */
+/** Suffix industrial do remate (ex.: DIR, L_ext, CIMA) — chave para naming unificado. */
 export function resolveRemateIndustrialSuffix(remate: RematePiece): string {
   const productType = remate.productType ?? inferProductTypeFromLegacy(remate);
 
@@ -61,61 +50,21 @@ function isRemateTipoSuffix(
   );
 }
 
-/** Nome industrial: BOXNAME_REMATE_DIR_01 */
-export function buildRemateIndustrialLabel(
-  boxName: string,
-  suffix: string,
-  index1Based: number
-): string {
-  const safeName = sanitizeRemateBoxName(boxName);
-  const safeSuffix =
-    String(suffix || "REMATE")
-      .trim()
-      .replace(/[^a-zA-Z0-9_]/g, "") || "REMATE";
-  const num = String(Math.max(1, index1Based)).padStart(2, "0");
-  return `${safeName}_REMATE_${safeSuffix}_${num}`;
-}
-
-export function buildRemateIndustrialLabelsForRemates(
-  remates: readonly RematePiece[],
-  boxNameById: ReadonlyMap<string, string> | Record<string, string>
-): Map<string, string> {
-  const getBoxName = (boxId: string): string => {
-    if (boxNameById instanceof Map) return boxNameById.get(boxId) ?? boxId;
-    return boxNameById[boxId] ?? boxId;
-  };
-
-  const counters = new Map<string, number>();
-  const labels = new Map<string, string>();
-
-  for (const remate of remates) {
-    const boxId = remate.parentBoxId ?? "";
-    const suffix = resolveRemateIndustrialSuffix(remate);
-    const counterKey = `${boxId}\0${suffix}`;
-    const index = (counters.get(counterKey) ?? 0) + 1;
-    counters.set(counterKey, index);
-    const boxName = boxId ? getBoxName(boxId) : remate.name.split("_")[0] ?? "BOX";
-    labels.set(remate.id, buildRemateIndustrialLabel(boxName, suffix, index));
-  }
-
-  return labels;
-}
-
-/** Nome exibido na UI/cutlist: personalizado ou rótulo industrial automático. */
+/** Nome exibido na UI/cutlist: personalizado ou rótulo curto por suffix. */
 export function resolveRematePieceDisplayName(
   remate: RematePiece,
-  autoIndustrialLabel: string
+  autoDisplayLabel: string
 ): string {
   const custom = remate.nomePersonalizado?.trim();
   if (custom) return custom;
-  return autoIndustrialLabel;
+  return autoDisplayLabel;
 }
 
 export function resolveRematePieceNomeForRemate(
   remate: RematePiece,
-  boxNameById: ReadonlyMap<string, string> | Record<string, string>
+  _boxNameById?: ReadonlyMap<string, string> | Record<string, string>
 ): string {
-  const autoLabel =
-    buildRemateIndustrialLabelsForRemates([remate], boxNameById).get(remate.id) ?? remate.name;
-  return resolveRematePieceDisplayName(remate, autoLabel);
+  void _boxNameById;
+  const suffix = resolveRemateIndustrialSuffix(remate);
+  return resolveRematePieceDisplayName(remate, `Remate ${suffix}`);
 }

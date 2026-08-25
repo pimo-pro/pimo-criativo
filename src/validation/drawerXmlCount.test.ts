@@ -5,8 +5,12 @@ import { defaultRulesConfig } from "../core/rules/rulesConfig";
 import { isDrawerPieceTipo } from "../services/drawerCutlistAdapter";
 import { buildDrawerScenario, minimalBoxWithDrawers } from "./drawerCertificationTestHelpers";
 
-function countDrawerXml(xmlFiles: { partName: string }[]): number {
-  return xmlFiles.filter((f) => f.partName.includes("gav_")).length;
+function countDrawerXml(xmlFiles: { partName: string; machineTarget?: string }[]): number {
+  return xmlFiles.filter(
+    (f) =>
+      f.machineTarget === "drill" &&
+      (f.partName.includes("gaveta_") || /gav_/.test(f.partName))
+  ).length;
 }
 
 describe("XML industrial — contagem exacta por gaveta", () => {

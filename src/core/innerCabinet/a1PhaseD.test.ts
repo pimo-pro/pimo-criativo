@@ -16,7 +16,6 @@ import {
   INNER_CABINET_A1_PRODUCT_MODE,
   resolveA1SpanSepDivMm,
 } from "./a1Geometry";
-import { buildA1CarcassIndustrialLabel, buildA1DrawerIndustrialLabel } from "./a1Naming";
 import { A1_COMP_TIPO, HINGE_COMPENSATION_MM } from "./hingeCompensation40";
 
 function baseBox(partial: Partial<BoxModule> = {}): BoxModule {
@@ -97,14 +96,6 @@ describe("inner_cabinet_a1 Fase D", () => {
     expect(layout.compensationMm).toBe(HINGE_COMPENSATION_MM);
     expect(layout.outerWidthMm).toBe(380 - HINGE_COMPENSATION_MM);
     expect(layout.hingeSide).toBe("right");
-  });
-
-  it("naming industrial a_1_cx_* e a_1_cx_gav_*", () => {
-    expect(buildA1CarcassIndustrialLabel("A1BOX", "cx_lat_dir")).toBe("A1BOX_a_1_cx_lat_dir");
-    expect(buildA1DrawerIndustrialLabel("A1BOX", 1, "fren")).toBe("A1BOX_a_1_cx_gav_1_fren");
-    expect(buildA1DrawerIndustrialLabel("A1BOX", 2, "lat_esq")).toBe(
-      "A1BOX_a_1_cx_gav_2_lat_esq"
-    );
   });
 
   it("cutlist: carcaça + compensador 40 + gavetas; routing DRILL; orla correcta", () => {
