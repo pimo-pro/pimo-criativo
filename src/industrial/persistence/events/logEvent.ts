@@ -49,12 +49,16 @@ export async function logPieceEvent(pieceId: string, payload: PieceEventPayload)
     return null;
   }
 
+  // Writes bloqueados em PROD via proxy supabase (writePolicy / client.ts).
   const { data, error } = await supabase
     .from(PIECE_PERSISTENCE_TABLES.systemEvents)
     .insert(insertPayload)
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') return null;
+    throw new Error(error.message);
+  }
   return data;
 }

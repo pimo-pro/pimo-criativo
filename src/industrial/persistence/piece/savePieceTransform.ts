@@ -18,6 +18,7 @@ export async function savePieceTransform(pieceId: string, payload: SavePieceTran
     throw new Error('Transformação inválida.');
   }
 
+  // Writes bloqueados em PROD via proxy supabase (writePolicy / client.ts).
   const { data, error } = await supabase
     .from(PIECE_PERSISTENCE_TABLES.transforms)
     .upsert(
@@ -34,7 +35,10 @@ export async function savePieceTransform(pieceId: string, payload: SavePieceTran
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') return null;
+    throw new Error(error.message);
+  }
   return data;
 }
 
