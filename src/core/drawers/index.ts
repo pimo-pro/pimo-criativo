@@ -67,6 +67,7 @@ export {
   calculateDrawerSpecs,
   validateDrawerSpecs,
   getDrawerBoundingBox,
+  resolveDrawerStructuralFrontIntWoodDimsMm,
 } from "./DrawerParametrics";
 
 // Drawer

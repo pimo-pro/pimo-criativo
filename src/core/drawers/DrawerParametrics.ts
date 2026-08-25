@@ -72,7 +72,11 @@ export interface DrawerPieceSpec {
 }
 
 export interface DrawerCalculatedSpecs {
-  /** Frente interna estrutural (ligação ao corpo / caixa metálica). */
+  /**
+   * Frente interna da caixa metálica (produção actual).
+   * NÃO confundir com frente_int madeira estrutural (= costa dims +
+   * `computeDrawerFrenteIntStructuralHoles`) — pronta mas não ligada à cutlist.
+   */
   frontInt: DrawerPieceSpec & { thickness: number };
   /** Frente externa decorativa (overlay + puxador). */
   frontExt: DrawerPieceSpec & { thickness: number };
@@ -187,6 +191,29 @@ const SOFT_CLOSE_COMPATIBLE_SLIDES = new Set<DrawerSlideType>([
   "Hettich ArciTech",
   "Hafele Matrix",
 ]);
+
+/**
+ * Dimensões da frente_int madeira estrutural (= costa):
+ * largura = bodyWidth − 2×T; altura = woodBodyHeight − 23.
+ *
+ * TODO/NOTA: frente_int madeira estrutural — dimensões prontas, furação pronta
+ * (`computeDrawerFrenteIntStructuralHoles`), mas NÃO usada em nenhum caminho de
+ * produção ainda. Trabalho completo de gavetas fica para revisão futura separada.
+ * Não confundir com `specs.frontInt` (caixa metálica), que mantém as dimensões actuais.
+ */
+export function resolveDrawerStructuralFrontIntWoodDimsMm(input: {
+  bodyWidthMm: number;
+  woodBodyHeightMm: number;
+  sideThicknessMm: number;
+}): { widthMm: number; heightMm: number } {
+  const bodyW = Math.max(0, Number(input.bodyWidthMm) || 0);
+  const woodH = Math.max(0, Number(input.woodBodyHeightMm) || 0);
+  const sideT = Math.max(0, Number(input.sideThicknessMm) || 0);
+  return {
+    widthMm: Math.max(MIN_MM, bodyW - 2 * sideT),
+    heightMm: Math.max(MIN_MM, woodH - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM),
+  };
+}
 
 function clampMm(value: number, min = MIN_MM): number {
   return Math.max(min, Number.isFinite(value) ? value : min);
@@ -404,8 +431,9 @@ export function calculateDrawerSpecs(
   const bodyDepth = clampMm(nominalDepth);
 
   const needsStructuralFrontInt = metalBoxEnabled;
+  // Peça metal (`specs.frontInt`) — dimensões actuais intactas; NÃO usar dims madeira estrutural.
   const internalFrontWidth = needsStructuralFrontInt ? bodyWidth : 0;
-  // Frente interna segue a altura madeira das laterais, não a altura metal.
+  // Frente interna metal: altura madeira das laterais, não a altura metal.
   const internalFrontHeight = needsStructuralFrontInt ? woodBodyHeight : 0;
   const internalFrontThickness = needsStructuralFrontInt ? sideThickness : 0;
   const externalFrontWidth = frontWidth;
@@ -430,6 +458,23 @@ export function calculateDrawerSpecs(
   const backHeight = clampMm(
     Math.max(1, woodBodyHeight - DRAWER_COSTA_HEIGHT_BELOW_LATERAL_MM)
   );
+
+  // TODO/NOTA: frente_int madeira estrutural — dimensões prontas (= costa), furação pronta,
+  // mas NÃO usada em nenhum caminho de produção ainda (nem madeira nem metal cutlist).
+  // Trabalho completo de gavetas fica para revisão futura separada.
+  const structuralFrontIntWoodDims = resolveDrawerStructuralFrontIntWoodDimsMm({
+    bodyWidthMm: bodyWidth,
+    woodBodyHeightMm: woodBodyHeight,
+    sideThicknessMm: sideThickness,
+  });
+  if (
+    structuralFrontIntWoodDims.widthMm !== backWidth ||
+    structuralFrontIntWoodDims.heightMm !== backHeight
+  ) {
+    warnings.push(
+      `frente_int madeira estrutural (não produção) divergiu da costa: ${structuralFrontIntWoodDims.widthMm}×${structuralFrontIntWoodDims.heightMm} vs costa ${backWidth}×${backHeight}.`
+    );
+  }
 
   // ===== FUNDO =====
   // Vão entre laterais × comprimento das laterais + entradas industriais:

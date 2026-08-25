@@ -871,9 +871,14 @@ export function computeDrawerCostaStructuralHoles(params: {
 }
 
 /**
- * Frente interna (madeira estrutural) — mesmo padrão de cavilhas laterais da costa:
+ * Frente interna madeira estrutural — mesmo padrão de cavilhas laterais da costa:
  * Y = 15 / H−15, Depth 30 (aresta). Sem furos de face, sem rasgo.
- * Caixa metálica usa `computeDrawerMetalBoxFrontHoles` (caminho separado).
+ *
+ * TODO/NOTA: frente_int madeira estrutural — dimensões prontas
+ * (`resolveDrawerStructuralFrontIntWoodDimsMm` = costa), furação pronta, mas NÃO usada
+ * em nenhum caminho de produção ainda. Trabalho completo de gavetas fica para revisão
+ * futura separada. Caixa metálica usa `computeDrawerMetalBoxFrontHoles` (caminho separado,
+ * intacto).
  */
 export function computeDrawerFrenteIntStructuralHoles(params: {
   largura: number;
