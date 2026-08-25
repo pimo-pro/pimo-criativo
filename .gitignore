@@ -58,3 +58,6 @@ test-output/
 
 # Outputs locais do smoke TCN (gen-test-tcn) — regeneráveis, não versionar
 scripts/armario_*.tcn
+
+# Cache local CLI Supabase — não versionar
+supabase/.temp/
