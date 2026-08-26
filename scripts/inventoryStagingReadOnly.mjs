@@ -233,6 +233,149 @@ async function main() {
       console.log(`INDUSTRIAL\t${name}\t${status}`);
     }
 
+    // --- 6b privileges / ACL (SELECT only; pre-016 gate) ---
+    const apiRoles = ["anon", "authenticated", "service_role", "PUBLIC"];
+    console.log("\n=== INVENTORY 6b: owner + relacl ===");
+    const owners = await client.query(
+      `SELECT c.relname AS table_name,
+              pg_get_userbyid(c.relowner) AS owner,
+              c.relacl::text AS relacl
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public'
+         AND c.relkind IN ('r', 'v')
+         AND c.relname = ANY($1::text[])
+       ORDER BY c.relname`,
+      [
+        [
+          ...INDUSTRIAL_TABLES,
+          "industrial_work_order_tasks_view",
+          "industrial_tracking",
+          "industrial_operations",
+          "industrial_quality",
+          "industrial_time_tracking",
+          "industrial_rework",
+          "industrial_settings",
+          "industrial_events",
+        ],
+      ],
+    );
+    for (const row of owners.rows) {
+      console.log(
+        `OWNER\t${row.table_name}\t${row.owner}\trelacl=${row.relacl ?? "(null)"}`,
+      );
+    }
+
+    console.log("\n=== INVENTORY 6c: role_table_grants (API roles) ===");
+    const grants = await client.query(
+      `SELECT table_name, grantee, privilege_type, is_grantable
+       FROM information_schema.role_table_grants
+       WHERE table_schema = 'public'
+         AND table_name = ANY($1::text[])
+         AND grantee = ANY($2::text[])
+       ORDER BY table_name, grantee, privilege_type`,
+      [INDUSTRIAL_TABLES, apiRoles],
+    );
+    console.log(`grant_rows: ${grants.rows.length}`);
+    for (const row of grants.rows) {
+      console.log(
+        `GRANT\t${row.table_name}\t${row.grantee}\t${row.privilege_type}\tgrantable=${row.is_grantable}`,
+      );
+    }
+    if (grants.rows.length === 0) {
+      console.log(
+        "GRANT_CATALOG: EMPTY for anon/authenticated/service_role/PUBLIC on industrial base tables",
+      );
+    }
+
+    console.log("\n=== INVENTORY 6d: table_privileges ===");
+    const tpriv = await client.query(
+      `SELECT table_name, grantee, privilege_type
+       FROM information_schema.table_privileges
+       WHERE table_schema = 'public'
+         AND table_name = ANY($1::text[])
+         AND grantee = ANY($2::text[])
+       ORDER BY table_name, grantee, privilege_type`,
+      [INDUSTRIAL_TABLES, apiRoles],
+    );
+    console.log(`table_privilege_rows: ${tpriv.rows.length}`);
+    for (const row of tpriv.rows) {
+      console.log(
+        `TPRIV\t${row.table_name}\t${row.grantee}\t${row.privilege_type}`,
+      );
+    }
+
+    console.log("\n=== INVENTORY 6e: has_table_privilege (effective) ===");
+    for (const table of INDUSTRIAL_TABLES) {
+      for (const role of ["anon", "authenticated", "service_role"]) {
+        const bits = {};
+        for (const p of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+          const r = await client.query(
+            `SELECT has_table_privilege($1, $2, $3) AS ok`,
+            [role, `public.${table}`, p],
+          );
+          bits[p] = Boolean(r.rows[0]?.ok);
+        }
+        console.log(
+          `EFF\t${table}\t${role}\tS=${bits.SELECT}\tI=${bits.INSERT}\tU=${bits.UPDATE}\tD=${bits.DELETE}`,
+        );
+      }
+    }
+
+    console.log("\n=== INVENTORY 6f: schema USAGE + default ACL ===");
+    for (const role of ["anon", "authenticated", "service_role"]) {
+      const r = await client.query(
+        `SELECT has_schema_privilege($1, 'public', 'USAGE') AS ok`,
+        [role],
+      );
+      console.log(`SCHEMA_USAGE\t${role}\t${r.rows[0]?.ok}`);
+    }
+    const defs = await client.query(
+      `SELECT pg_get_userbyid(d.defaclrole) AS grantor_role,
+              COALESCE(n.nspname, '(global)') AS schema,
+              d.defaclobjtype AS objtype,
+              d.defaclacl::text AS acl
+       FROM pg_default_acl d
+       LEFT JOIN pg_namespace n ON n.oid = d.defaclnamespace
+       WHERE n.nspname IS NULL OR n.nspname = 'public'
+       ORDER BY 1, 2, 3`,
+    );
+    console.log(`default_acl_rows: ${defs.rows.length}`);
+    for (const row of defs.rows) {
+      console.log(
+        `DEFACL\tgrantor=${row.grantor_role}\tschema=${row.schema}\tobj=${row.objtype}\tacl=${row.acl}`,
+      );
+    }
+
+    console.log("\n=== INVENTORY 6g: view grants (012/014) ===");
+    const viewGrants = await client.query(
+      `SELECT table_name, grantee, privilege_type
+       FROM information_schema.role_table_grants
+       WHERE table_schema = 'public'
+         AND table_name = ANY($1::text[])
+         AND grantee = ANY($2::text[])
+       ORDER BY table_name, grantee, privilege_type`,
+      [
+        [
+          "industrial_work_order_tasks_view",
+          "industrial_tracking",
+          "industrial_operations",
+          "industrial_quality",
+          "industrial_time_tracking",
+          "industrial_rework",
+          "industrial_settings",
+          "industrial_events",
+        ],
+        ["anon", "authenticated", "service_role", "PUBLIC"],
+      ],
+    );
+    console.log(`view_grant_rows: ${viewGrants.rows.length}`);
+    for (const row of viewGrants.rows) {
+      console.log(
+        `VGRANT\t${row.table_name}\t${row.grantee}\t${row.privilege_type}`,
+      );
+    }
+
     // --- 7 comparison ---
     console.log("\n=== INVENTORY 7: repo migrations vs tracking ===");
     const repoFiles = listRepoMigrations();
