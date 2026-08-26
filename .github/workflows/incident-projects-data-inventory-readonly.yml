@@ -1,0 +1,143 @@
+# TEMPORÁRIO — incidente Projetos Salvos.
+# READ-ONLY: LIST + leitura local de metadados (ownerId/updatedAt). Sem upload/delete/move.
+# Trigger: apenas workflow_dispatch.
+
+name: Incident Projects Data Inventory (READ-ONLY)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install lftp + jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp jq
+
+      - name: FTP LIST + JSON metadata (READ-ONLY)
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${FTP_HOST:-}" || -z "${FTP_USERNAME:-}" || -z "${FTP_PASSWORD:-}" ]]; then
+            echo "::error::FTP secrets em falta (FTP_HOST / FTP_USERNAME / FTP_PASSWORD)"
+            exit 1
+          fi
+
+          # Nunca imprimir credenciais
+          unset HISTFILE
+
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          mkdir -p "$WORK/files"
+
+          # Candidatos (home FTP pode ser / ou /public_html)
+          CANDIDATES=(
+            "/public_html/api/projects/data"
+            "public_html/api/projects/data"
+            "/api/projects/data"
+            "api/projects/data"
+          )
+
+          FOUND_DIR=""
+          LIST_FILE="$WORK/list.txt"
+          : > "$LIST_FILE"
+
+          for dir in "${CANDIDATES[@]}"; do
+            echo "=== Tentativa de LIST em: ${dir} ==="
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:max-retries 3;
+              set net:timeout 45;
+              set cmd:fail-exit yes;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              cls -1 ${dir}/
+            " > "$WORK/try_list.txt" 2>"$WORK/try_err.txt"
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 ]] && [[ -s "$WORK/try_list.txt" ]]; then
+              FOUND_DIR="$dir"
+              cp "$WORK/try_list.txt" "$LIST_FILE"
+              echo "LIST OK em: ${FOUND_DIR}"
+              break
+            fi
+            echo "LIST falhou ou vazio (rc=${rc}). stderr (sem secrets):"
+            # redact username/host if echoed
+            sed -E "s/${FTP_USERNAME}//g; s/${FTP_HOST}//g; s/${FTP_PASSWORD}//g" "$WORK/try_err.txt" | head -n 20 || true
+          done
+
+          if [[ -z "$FOUND_DIR" ]]; then
+            echo "::error::Não foi possível listar api/projects/data em nenhum caminho candidato"
+            exit 1
+          fi
+
+          mapfile -t ALL_NAMES < <(grep -E '\.json$' "$LIST_FILE" | sed 's/\r$//' | sort -u)
+          TOTAL=${#ALL_NAMES[@]}
+          echo "=== RESUMO ==="
+          echo "directory=${FOUND_DIR}"
+          echo "json_count=${TOTAL}"
+
+          if [[ "$TOTAL" -eq 0 ]]; then
+            echo "Nenhum ficheiro .json encontrado."
+            exit 0
+          fi
+
+          # Amostra: todos se <= 80; senão primeiros 40 + últimos 20
+          MAX_FULL=80
+          NAMES=("${ALL_NAMES[@]}")
+          if [[ "$TOTAL" -gt "$MAX_FULL" ]]; then
+            echo "Amostra: total=${TOTAL} > ${MAX_FULL} — a processar primeiros 40 + últimos 20"
+            NAMES=("${ALL_NAMES[@]:0:40}" "${ALL_NAMES[@]: -20}")
+          fi
+
+          echo "=== FICHEIROS (nome | size_bytes | ownerId | updatedAt) ==="
+          printf '%s\n' "${NAMES[@]}" | while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            base="$(basename "$name")"
+            # só basename seguro
+            if [[ ! "$base" =~ ^[A-Za-z0-9._%-]+\.json$ ]]; then
+              echo "${base} | SKIP | invalid_name | "
+              continue
+            fi
+            local_path="$WORK/files/$base"
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:max-retries 3;
+              set net:timeout 60;
+              set cmd:fail-exit yes;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get ${FOUND_DIR}/${base} -o ${local_path}
+            " >/dev/null 2>"$WORK/get_err.txt"
+            gre=$?
+            set -e
+            if [[ $gre -ne 0 || ! -f "$local_path" ]]; then
+              echo "${base} | ERROR | get_failed | "
+              continue
+            fi
+            size="$(wc -c < "$local_path" | tr -d ' ')"
+            # Extrair só ownerId / updatedAt — sem dump do JSON
+            meta="$(jq -r '[
+              (if .ownerId then (.ownerId|tostring) else "MISSING" end),
+              (if .updatedAt then (.updatedAt|tostring) else "MISSING" end)
+            ] | @tsv' "$local_path" 2>/dev/null || echo -e "PARSE_ERROR\tPARSE_ERROR")"
+            ownerId="$(printf '%s' "$meta" | cut -f1)"
+            updatedAt="$(printf '%s' "$meta" | cut -f2)"
+            echo "${base} | ${size} | ${ownerId} | ${updatedAt}"
+            rm -f "$local_path"
+          done
+
+          echo "=== FIM INVENTÁRIO READ-ONLY ==="
