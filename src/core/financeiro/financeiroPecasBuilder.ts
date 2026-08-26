@@ -188,7 +188,7 @@ function pieceHasDrill(item: CutListItemComPreco): boolean {
 function iterFerragemDefs(
   item: CutListItemComPreco,
   ctById: Record<string, ComponentType>,
-  onDef: (ferragemId: string, qtd: number) => void
+  onDef: (_ferragemId: string, _qtd: number) => void
 ): void {
   const componentId = TIPO_TO_COMPONENT_ID[item.tipo] ?? item.tipo;
   const ct = ctById[componentId];

@@ -128,7 +128,7 @@ async function loadCutLayoutManualPdfModule(
 }
 
 function toastExportError(
-  showToast: (text: string, type?: ToastMessage["type"], duration?: number) => void,
+  showToast: (_text: string, _type?: ToastMessage["type"], _duration?: number) => void,
   err: unknown,
   fallback: string,
   step = "Exportação industrial"
@@ -164,7 +164,7 @@ function toastExportError(
 
 function guardIndustrialExport(
   project: ProjectState,
-  showToast: (text: string, type?: ToastMessage["type"], duration?: number) => void,
+  showToast: (_text: string, _type?: ToastMessage["type"], _duration?: number) => void,
   cutList?: CutListItemComPreco[] | CutListItem[]
 ): boolean {
   try {
@@ -183,7 +183,7 @@ function guardIndustrialExport(
 /** Fase 6: aviso discreto se flag off mas cutlist tem overrides (etiquetas/PDFs ainda reflectem). */
 function warnCutlistOverridesWithFlagOff(
   project: ProjectState,
-  showToast: (text: string, type?: ToastMessage["type"], duration?: number) => void
+  showToast: (_text: string, _type?: ToastMessage["type"], _duration?: number) => void
 ): void {
   if (industrialFeatureFlags.industrialOnlineAnalysis) return;
   if (!documentHasOverrides(project.industrialDocumentOverrides, "cutlist")) return;

@@ -25,16 +25,16 @@ export type ChapasOficiaisProSnapshot = {
 type ChapasOficiaisProState = {
   /** Último snapshot oficial por projectId. */
   byProjectId: Record<string, ChapasOficiaisProSnapshot>;
-  publish: (input: {
+  publish: (_input: {
     projectId: string;
     fingerprint: string;
     summary: ChapasRealSummary;
     /** Se false/omitido com intenção non-pro, o publish é no-op (A1 / abort→fast). */
     isProMode: boolean;
   }) => boolean;
-  getValid: (projectId: string, fingerprint: string) => ChapasOficiaisProSnapshot | null;
-  getLatest: (projectId: string) => ChapasOficiaisProSnapshot | null;
-  invalidate: (projectId: string) => void;
+  getValid: (_projectId: string, _fingerprint: string) => ChapasOficiaisProSnapshot | null;
+  getLatest: (_projectId: string) => ChapasOficiaisProSnapshot | null;
+  invalidate: (_projectId: string) => void;
   clearAll: () => void;
 };
 
@@ -137,7 +137,7 @@ export function clearChapasOficiaisPro(): void {
 
 /** Hook React opcional (badges / refresh UI). */
 export function useChapasOficiaisPro<T>(
-  selector: (s: ChapasOficiaisProState) => T
+  selector: (_s: ChapasOficiaisProState) => T
 ): T {
   return useStore(chapasOficiaisProStore, selector);
 }
