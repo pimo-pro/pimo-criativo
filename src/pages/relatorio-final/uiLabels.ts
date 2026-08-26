@@ -18,6 +18,9 @@ export const R = {
   exportarPdf: "Exportar PDF",
   guardar: "Guardar altera\u00e7\u00f5es",
   aGuardar: "A guardar...",
+  guardadoServidor: "Altera\u00e7\u00f5es guardadas no servidor.",
+  guardarFail: "Falha ao guardar no servidor.",
+  overrideGuardadoOk: "Override aplicado e guardado.",
   email: "Enviar por email",
   voltar: "Voltar",
   carregar: "A carregar relat\u00f3rio final...",
@@ -160,7 +163,7 @@ export const R = {
   adicionarItem: "Adicionar item",
   aplicarVisualOverride: "Aplicar total visual como override",
   aplicarVisualOverrideHint:
-    "Copia a soma do detalhe para o override da linha. O SSOT Unificado permanece intacto.",
+    "Copia a soma do detalhe para o override da linha e grava no servidor. O SSOT Unificado permanece intacto.",
   precoUnit: "Pre\u00e7o unit\u00e1rio",
   total: "Total",
   subtotal: "Subtotal",
@@ -173,6 +176,11 @@ export const R = {
   semChapasNesting: "Sem chapas. Adicione manualmente ou abra um projeto com nesting real.",
   areaM2: "\u00c1rea (m\u00b2)",
   adicionarFerragem: "Adicionar ferragem",
+  adicionarDoCatalogo: "Adicionar do cat\u00e1logo",
+  adicionarManualmente: "Adicionar manualmente",
+  escolherFerragem: "Escolher ferragem do cat\u00e1logo",
+  escolherChapaCatalogo: "Escolher chapa do cat\u00e1logo",
+  nomeOuCatalogo: "Nome ou escolher da lista",
   nomeFerragem: "Nome da ferragem",
   ferragensAccordionHint:
     "Lista edit\u00e1vel de ferragens (camada visual). O total oficial vem do Unificado.",
@@ -207,6 +215,11 @@ export const R = {
   materiaisFerragens: "Materiais / ferragens",
   qualidadeLabel: "Qualidade",
   totalProjeto: "Total do projeto",
+
+  margemGanho: "Margem de ganho",
+  margemGanhoHint: "Relatório — não altera o Unificado ADMIN",
+  margemGanhoModo: "Modo da margem (% ou €)",
+  margemGanhoValor: "Valor da margem",
 
   paineisTitulo: "Pain\u00e9is (chapas reais)",
   paineisHint:

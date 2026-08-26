@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-import { applyResultados } from "@/context/projectState";
-import { reviveState } from "@/context/projectPersistence";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectState } from "@/context/projectTypes";
 import type { FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import {
   buildLiveReportFinanceiro,
+  createReportSaveQueue,
   loadMaterialsForFinanceiro,
   loadProjectReport,
+  loadReportProjectContext,
   markManualPath,
   saveProjectReport,
   seedOrMergeProjectReport,
@@ -21,13 +21,11 @@ import {
   withLiveFinanceiro,
   type ProjectReport,
   type ReportFinanceiroDetalhe,
+  type ReportSaveResult,
   type ReportStyle,
+  type ReportMargemGanhoConfig,
 } from "@/core/projectReport";
-import {
-  findOfflineProjectByAnyKey,
-  resolveProjectIdentity,
-} from "@/core/projects/projectIdentity";
-import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
+import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
 
 function loadReportFlexible(urlKey: string): Promise<ProjectReport | null> {
   const identity = resolveProjectIdentity(urlKey);
@@ -57,18 +55,10 @@ function resolveSeedKey(urlKey: string): string {
   return urlKey.trim();
 }
 
-function loadProjectState(projectId: string): ProjectState | null {
-  const offline = findOfflineProjectByAnyKey(projectId);
-  if (!offline) return null;
-  const record = toSavedRecordFromOffline(offline);
-  const revived = reviveState(record.snapshot?.projectState);
-  return revived ? applyResultados(revived) : null;
-}
-
 function preserveDetalheMap(report: ProjectReport) {
   const out: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>> = {};
   for (const l of report.financeiro?.linhas ?? []) {
-    if (l.key === "iva" || l.key === "total") continue;
+    if (l.key === "iva" || l.key === "total" || l.key === "margemGanho") continue;
     if ((l.detalhe?.length ?? 0) > 0) {
       out[l.key as FinanceiroCustoKey] = l.detalhe;
     }
@@ -85,6 +75,19 @@ export function useProjectReport(projectKey: string | undefined) {
   const [dirty, setDirty] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
+  const reportRef = useRef<ProjectReport | null>(null);
+  const projectStateRef = useRef<ProjectState | null>(null);
+  const saveQueueRef = useRef(createReportSaveQueue());
+
+  const commitReport = useCallback((next: ProjectReport, markDirty = true) => {
+    reportRef.current = next;
+    setReport(next);
+    if (markDirty) {
+      setDirty(true);
+      setSaveMsg(null);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function run() {
@@ -97,12 +100,15 @@ export function useProjectReport(projectKey: string | undefined) {
       setError(null);
       try {
         const seedKey = resolveSeedKey(projectKey);
-        const state = loadProjectState(seedKey);
+        const ctx = await loadReportProjectContext(seedKey);
+        const state = ctx.state;
         const materials = loadMaterialsForFinanceiro();
         const stored = await loadReportFlexible(projectKey);
         const merged = await seedOrMergeProjectReport(seedKey, stored);
         const withLive = withLiveFinanceiro(merged, state, materials);
         if (!cancelled) {
+          projectStateRef.current = state;
+          reportRef.current = withLive;
           setProjectState(state);
           setReport(withLive);
           setDirty(!stored);
@@ -123,119 +129,159 @@ export function useProjectReport(projectKey: string | undefined) {
 
   const updateReport = useCallback(
     (updater: (prev: ProjectReport) => ProjectReport, manualPath?: string) => {
-      setReport((prev) => {
-        if (!prev) return prev;
-        let next = updater(prev);
-        if (manualPath) {
-          next = markManualPath(next, manualPath);
-          next = withHistoryForPath(prev, next, manualPath);
-        }
-        next = withLiveFinanceiro(next, projectState, loadMaterialsForFinanceiro());
-        return withDerivedMetricas(next);
-      });
-      setDirty(true);
-      setSaveMsg(null);
+      const prev = reportRef.current;
+      if (!prev) return;
+      let next = updater(prev);
+      if (manualPath) {
+        next = markManualPath(next, manualPath);
+        next = withHistoryForPath(prev, next, manualPath);
+      }
+      next = withLiveFinanceiro(next, projectStateRef.current, loadMaterialsForFinanceiro());
+      commitReport(withDerivedMetricas(next));
     },
-    [projectState]
+    [commitReport]
   );
 
   const setLineOverride = useCallback(
     (key: FinanceiroCustoKey, value: number | null) => {
-      setReport((prev) => {
-        if (!prev) return prev;
-        const materials = loadMaterialsForFinanceiro();
-        const live = buildLiveReportFinanceiro(projectState, materials, {
-          lineOverrides: prev.financeiro.lineOverrides,
-          attachChapasDetalhe: true,
-          projectId: prev.projectId,
-          preserveDetalheByKey: preserveDetalheMap(prev),
-          ferragensOverrides: prev.financeiro.overrides?.ferragens,
-        });
-        const withOverride = setReportLineOverride(live, key, value);
-        return withDerivedMetricas({
+      const prev = reportRef.current;
+      if (!prev) return;
+      const materials = loadMaterialsForFinanceiro();
+      const state = projectStateRef.current;
+      const live = buildLiveReportFinanceiro(state, materials, {
+        lineOverrides: prev.financeiro.lineOverrides,
+        attachChapasDetalhe: true,
+        projectId: prev.projectId,
+        preserveDetalheByKey: preserveDetalheMap(prev),
+        ferragensOverrides: prev.financeiro.overrides?.ferragens,
+        margemGanho: prev.financeiro.margemGanho,
+      });
+      const withOverride = setReportLineOverride(live, key, value);
+      commitReport(
+        withDerivedMetricas({
           ...prev,
           financeiro: withOverride,
-        });
-      });
-      setDirty(true);
-      setSaveMsg(null);
+        })
+      );
     },
-    [projectState]
+    [commitReport]
   );
 
   /** Actualiza detalhe visual de uma linha (não altera SSOT). */
   const setLinhaDetalhe = useCallback(
     (key: FinanceiroCustoKey, detalhe: ReportFinanceiroDetalhe[]) => {
-      setReport((prev) => {
-        if (!prev) return prev;
-        const materials = loadMaterialsForFinanceiro();
-        const live = buildLiveReportFinanceiro(projectState, materials, {
-          lineOverrides: prev.financeiro.lineOverrides,
-          attachChapasDetalhe: true,
-          projectId: prev.projectId,
-          preserveDetalheByKey: {
-            ...preserveDetalheMap(prev),
-            [key]: detalhe,
-          },
-          ferragensOverrides: prev.financeiro.overrides?.ferragens,
-        });
-        let withDetalhe =
-          key === "ferragens"
-            ? persistFerragensVisual(
-                live,
-                detalhe,
-                collectUnificadoFerragens(projectState)
-              )
-            : setLinhaDetalheVisual(live, key, detalhe, key === "paineis");
-        if (key === "ferragens") {
-          const visual = emitFerragensTotalVisual(detalhe);
-          const official = Number(withDetalhe.officialSnapshot?.ferragens) || 0;
-          withDetalhe = setReportLineOverride(
-            withDetalhe,
-            key,
-            Math.abs(visual - official) > 0.009 ? visual : null
-          );
-        }
-        return withDerivedMetricas({
+      const prev = reportRef.current;
+      if (!prev) return;
+      const materials = loadMaterialsForFinanceiro();
+      const state = projectStateRef.current;
+      const live = buildLiveReportFinanceiro(state, materials, {
+        lineOverrides: prev.financeiro.lineOverrides,
+        attachChapasDetalhe: true,
+        projectId: prev.projectId,
+        preserveDetalheByKey: {
+          ...preserveDetalheMap(prev),
+          [key]: detalhe,
+        },
+        ferragensOverrides: prev.financeiro.overrides?.ferragens,
+        margemGanho: prev.financeiro.margemGanho,
+      });
+      let withDetalhe =
+        key === "ferragens"
+          ? persistFerragensVisual(
+              live,
+              detalhe,
+              collectUnificadoFerragens(state)
+            )
+          : setLinhaDetalheVisual(live, key, detalhe, key === "paineis");
+      if (key === "ferragens") {
+        const visual = emitFerragensTotalVisual(detalhe);
+        const official = Number(withDetalhe.officialSnapshot?.ferragens) || 0;
+        withDetalhe = setReportLineOverride(
+          withDetalhe,
+          key,
+          Math.abs(visual - official) > 0.009 ? visual : null
+        );
+      }
+      commitReport(
+        withDerivedMetricas({
           ...prev,
           financeiro: withDetalhe,
-        });
-      });
-      setDirty(true);
-      setSaveMsg(null);
+        })
+      );
     },
-    [projectState]
+    [commitReport]
   );
 
-  const changeStyle = useCallback((style: ReportStyle) => {
-    setReport((prev) => {
-      if (!prev) return prev;
-      const next = setReportStyle(prev, style);
-      return withHistoryForPath(prev, next, "reportStyle");
-    });
-    setDirty(true);
-  }, []);
+  const setMargemGanho = useCallback(
+    (config: ReportMargemGanhoConfig | null) => {
+      const prev = reportRef.current;
+      if (!prev) return;
+      const materials = loadMaterialsForFinanceiro();
+      const state = projectStateRef.current;
+      const live = buildLiveReportFinanceiro(state, materials, {
+        lineOverrides: prev.financeiro.lineOverrides,
+        attachChapasDetalhe: true,
+        projectId: prev.projectId,
+        preserveDetalheByKey: preserveDetalheMap(prev),
+        ferragensOverrides: prev.financeiro.overrides?.ferragens,
+        margemGanho: config,
+      });
+      commitReport(
+        withDerivedMetricas({
+          ...prev,
+          financeiro: live,
+        })
+      );
+    },
+    [commitReport]
+  );
 
-  const save = useCallback(async () => {
-    if (!report) return;
+  const changeStyle = useCallback(
+    (style: ReportStyle) => {
+      const prev = reportRef.current;
+      if (!prev) return;
+      const next = setReportStyle(prev, style);
+      commitReport(withHistoryForPath(prev, next, "reportStyle"));
+    },
+    [commitReport]
+  );
+
+  /** Grava o reportRef actual via fila (Guardar geral + atos críticos). */
+  const persistNow = useCallback(async (): Promise<ReportSaveResult> => {
+    if (!reportRef.current) {
+      return { ok: false, error: "Relat\u00f3rio indispon\u00edvel." };
+    }
     setSaving(true);
     setSaveMsg(null);
-    try {
+    const result = await saveQueueRef.current.enqueue(async () => {
+      const current = reportRef.current;
+      if (!current) throw new Error("Relat\u00f3rio indispon\u00edvel.");
       const toSave = withLiveFinanceiro(
-        report,
-        projectState,
+        current,
+        projectStateRef.current,
         loadMaterialsForFinanceiro()
       );
       const saved = await saveProjectReport(toSave);
+      reportRef.current = saved;
       setReport(saved);
       setDirty(false);
-      setSaveMsg("Alterações guardadas no servidor.");
-    } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "Falha ao guardar.");
-    } finally {
-      setSaving(false);
+      setSaveMsg("Altera\u00e7\u00f5es guardadas no servidor.");
+    });
+    setSaving(saveQueueRef.current.isBusy());
+    if (result.ok === false) {
+      setSaveMsg(result.error);
     }
-  }, [report, projectState]);
+    return result;
+  }, []);
+
+  const save = useCallback(async () => {
+    return persistNow();
+  }, [persistNow]);
+
+  /** E2/A2: gravação imediata enfileirada (toast no Passo A). */
+  const saveCritical = useCallback(async (): Promise<ReportSaveResult> => {
+    return persistNow();
+  }, [persistNow]);
 
   const liveFinanceiro = report
     ? buildLiveReportFinanceiro(projectState, loadMaterialsForFinanceiro(), {
@@ -244,6 +290,7 @@ export function useProjectReport(projectKey: string | undefined) {
         projectId: report.projectId,
         preserveDetalheByKey: preserveDetalheMap(report),
         ferragensOverrides: report.financeiro.overrides?.ferragens,
+        margemGanho: report.financeiro.margemGanho,
       })
     : null;
 
@@ -258,8 +305,10 @@ export function useProjectReport(projectKey: string | undefined) {
     updateReport,
     setLineOverride,
     setLinhaDetalhe,
+    setMargemGanho,
     changeStyle,
     save,
+    saveCritical,
     setReport,
   };
 }

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Loader from "@/components/ui/Loader";
 import PageContainer from "@/components/ui/PageContainer";
+import type { FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import {
   deriveMetricas,
   emptyQualidade,
@@ -10,6 +11,8 @@ import {
   exportProjectReportPdfBytes,
   resolveReportCoverImage,
   sendFinalReportEmail,
+  collectUnificadoFerragens,
+  buildPaineisChapasDetalhe,
   type ReportStyle,
 } from "@/core/projectReport";
 import { useToast } from "@/context/ToastContext";
@@ -42,8 +45,10 @@ export default function RelatorioFinalProjeto() {
     updateReport,
     setLineOverride,
     setLinhaDetalhe,
+    setMargemGanho,
     changeStyle,
     save,
+    saveCritical,
   } = useProjectReport(urlKey);
   const backHref = identity?.persistenceId
     ? `/projects/${encodeURIComponent(identity.slug || identity.persistenceId)}`
@@ -54,6 +59,45 @@ export default function RelatorioFinalProjeto() {
   const [emailSending, setEmailSending] = useState(false);
 
   const metricas = useMemo(() => (report ? deriveMetricas(report) : null), [report]);
+
+  const ferragensSsotOrigem = useMemo(() => {
+    const lines = collectUnificadoFerragens(projectState);
+    return Object.fromEntries(lines.map((l) => [l.ferragemId, l.origemPreco]));
+  }, [projectState]);
+
+  const ferragensSugestoesProjeto = useMemo(() => {
+    const lines = collectUnificadoFerragens(projectState);
+    return [...new Set(lines.map((l) => l.nome).filter(Boolean))];
+  }, [projectState]);
+
+  const paineisSugestoesProjeto = useMemo(() => {
+    const projectId = report?.projectId?.trim() || urlKey;
+    if (!projectId) return [];
+    const detalhe = buildPaineisChapasDetalhe(projectId, projectState);
+    return [...new Set(detalhe.map((d) => d.tipo).filter(Boolean))];
+  }, [report?.projectId, projectState, urlKey]);
+
+  const handleGuardar = async () => {
+    const result = await save();
+    if (result.ok) {
+      showToast(R.guardadoServidor, "success");
+    } else if (result.ok === false) {
+      showToast(result.error || R.guardarFail, "error");
+    }
+  };
+
+  const handleApplyVisualPersist = async (
+    key: FinanceiroCustoKey,
+    value: number | null
+  ) => {
+    setLineOverride(key, value);
+    const result = await saveCritical();
+    if (result.ok) {
+      showToast(R.overrideGuardadoOk, "success");
+    } else if (result.ok === false) {
+      showToast(result.error || R.guardarFail, "error");
+    }
+  };
 
   if (loading) {
     return (
@@ -191,7 +235,12 @@ export default function RelatorioFinalProjeto() {
             <Button type="button" variant="secondary" onClick={handleExportPdf}>
               {R.exportarPdf}
             </Button>
-            <Button type="button" variant="primary" disabled={saving} onClick={() => void save()}>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={saving}
+              onClick={() => void handleGuardar()}
+            >
               {saving ? R.aGuardar : R.guardar}
             </Button>
             <Button
@@ -246,6 +295,12 @@ export default function RelatorioFinalProjeto() {
           value={report.financeiro}
           onLineOverride={setLineOverride}
           onLinhaDetalhe={setLinhaDetalhe}
+          onApplyVisualPersist={handleApplyVisualPersist}
+          saving={saving}
+          ferragensSsotOrigem={ferragensSsotOrigem}
+          ferragensSugestoesProjeto={ferragensSugestoesProjeto}
+          paineisSugestoesProjeto={paineisSugestoesProjeto}
+          onMargemGanhoChange={setMargemGanho}
         />
 
         <NotasBlock

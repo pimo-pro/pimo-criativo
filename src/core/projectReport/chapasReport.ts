@@ -239,6 +239,15 @@ export type CatalogoChapaOption = {
   larguraMm: number;
 };
 
+export function findChapaCatalogOption(
+  label: string,
+  catalog: CatalogoChapaOption[] = listCatalogoChapas()
+): CatalogoChapaOption | undefined {
+  const t = label.trim();
+  if (!t) return undefined;
+  return catalog.find((c) => c.label === t || c.id === t);
+}
+
 export function listCatalogoChapas(): CatalogoChapaOption[] {
   return listIndustrialWoodMaterials().map((m) => {
     const comprimentoMm = Number(m.industrialDefaults?.larguraChapa) || CHAPA_PADRAO_LARGURA;

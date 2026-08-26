@@ -59,6 +59,10 @@ export {
 } from "./financeReportCalc";
 
 export { seedOrMergeProjectReport } from "./seedProjectReport";
+export { loadReportProjectContext } from "./loadReportProjectContext";
+export type { ReportProjectContext } from "./loadReportProjectContext";
+export { createReportSaveQueue } from "./reportSaveQueue";
+export type { ReportSaveQueue, ReportSaveResult } from "./reportSaveQueue";
 export {
   snapshotToReportFinanceiro,
   buildLiveReportFinanceiro,
@@ -94,6 +98,19 @@ export type {
 } from "./financeiroOverrides";
 
 export {
+  finalizeReportFinanceiro,
+  setReportMargemGanho,
+  calcReportTotals,
+  effectiveMargemPercentagem,
+  hasActiveMargem,
+  sumBasePreIva,
+  sumSubtotalMateriais,
+} from "./financeiroMargemGanho";
+export type { CalcReportTotalsResult } from "./financeiroMargemGanho";
+export type { ReportMargemGanhoConfig, ReportMargemGanhoMode } from "./types";
+export { MARGEM_GANHO_LABEL } from "./types";
+
+export {
   calcArea,
   calcChapa,
   applyOverride,
@@ -105,6 +122,7 @@ export {
   setLinhaDetalheVisual,
   sumDetalheVisual,
   createEmptyChapaDetalhe,
+  createManualChapaDetalhe,
   createEmptyItemDetalhe,
   DYNAMIC_DETALHE_KEYS,
 } from "./financeiroDynamicEngine";
@@ -160,6 +178,8 @@ export {
   calcTotal as calcFerragemTotal,
   collectUnificadoFerragens,
   createEmptyFerragemDetalhe,
+  findFerragemInCatalog,
+  patchFerragemNome,
   detalheToOverrides,
   emitFerragensTotalVisual,
   getFerragensOverrides,
@@ -184,6 +204,7 @@ export {
   AREA_CHAPA_PADRAO_M2,
   aggregateChapasByEspessura,
   listCatalogoChapas,
+  findChapaCatalogOption,
   detalheFromCatalogoChapa,
   recalcChapaDetalhe,
   applyPrecoChapaEdit,

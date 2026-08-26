@@ -7,6 +7,7 @@ import {
   calcArea,
   calcChapa,
   createEmptyChapaDetalhe,
+  createManualChapaDetalhe,
   emitTotalFinal,
   rebuildChapaDetalhe,
   setLinhaDetalheVisual,
@@ -84,6 +85,12 @@ describe("financeiroDynamicEngine", () => {
   it("applyOverride", () => {
     expect(applyOverride(100, null)).toBe(100);
     expect(applyOverride(100, 50)).toBe(50);
+  });
+
+  it("createManualChapaDetalhe: sem fallback ao catálogo", () => {
+    const row = createManualChapaDetalhe();
+    expect(row.tipo).toBe("");
+    expect(row.precoPorM2).toBe(0);
   });
 
   it("rebuildChapaDetalhe: alterar €/m² recalcula €/chapa e total", () => {

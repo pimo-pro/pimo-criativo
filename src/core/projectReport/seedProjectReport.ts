@@ -3,8 +3,6 @@
  * Merge: adiciona entradas novas; nunca apaga nem sobrescreve campos manuais.
  */
 
-import { applyResultados } from "@/context/projectState";
-import { reviveState } from "@/context/projectPersistence";
 import type { ProjectState } from "@/context/projectTypes";
 import { COMPONENT_TYPES_DEFAULT, type ComponentType } from "@/core/components/componentTypes";
 import { FERRAGENS_DEFAULT, type Ferragem } from "@/core/ferragens/ferragens";
@@ -25,6 +23,7 @@ import { safeGetItem } from "@/utils/storage";
 import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolveProjectCutlistFromRecord";
 
 import { buildLiveReportFinanceiro, loadMaterialsForFinanceiro } from "./financeiroFromUnificado";
+import { loadReportProjectContext } from "./loadReportProjectContext";
 import { withDerivedMetricas } from "./deriveMetricas";
 import { migrateProjectReport } from "./migrateReport";
 import { isManualPath } from "./projectReportStore";
@@ -89,27 +88,8 @@ function resolveDisplayProjectName(
   return "Projeto";
 }
 
-function reviveProjectState(projectId: string): {
-  state: ProjectState | null;
-  name: string;
-  ownerName: string;
-  createdAt: string;
-  updatedAt: string;
-} {
-  const offline = findOfflineProject(projectId);
-  if (!offline) {
-    return { state: null, name: "", ownerName: "", createdAt: "", updatedAt: "" };
-  }
-  const record = toSavedRecordFromOffline(offline);
-  const revived = reviveState(record.snapshot?.projectState);
-  const state = revived ? applyResultados(revived) : null;
-  return {
-    state,
-    name: offline.name || state?.projectName || "",
-    ownerName: offline.ownerName || "",
-    createdAt: offline.createdAt || "",
-    updatedAt: offline.updatedAt || "",
-  };
+async function reviveProjectState(projectId: string) {
+  return loadReportProjectContext(projectId);
 }
 
 function toDateInput(iso: string): string {
@@ -211,7 +191,7 @@ export async function seedOrMergeProjectReport(
 ): Promise<ProjectReport> {
   const id = projectId.trim();
   const now = new Date().toISOString();
-  const { state, name, ownerName, createdAt, updatedAt } = reviveProjectState(id);
+  const { state, name, ownerName, createdAt, updatedAt } = await reviveProjectState(id);
 
   const seededCaixas = buildCaixas(state);
   const seededPecas = buildPecas(id);

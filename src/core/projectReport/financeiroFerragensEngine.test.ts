@@ -5,14 +5,21 @@ import { describe, expect, it } from "vitest";
 import {
   applyOverride,
   buildFerragensVisual,
+  collectUnificadoFerragens,
   calcTotal,
+  createEmptyFerragemDetalhe,
   emitFerragensTotalVisual,
+  listCatalogoFerragens,
+  patchFerragemNome,
   persistFerragensVisual,
   rebuildFerragemDetalhe,
   visualToDetalhe,
   type FerragemUnificadoLine,
 } from "./financeiroFerragensEngine";
 import { snapshotToReportFinanceiro } from "./financeiroFromUnificado";
+import { computeFinanceiroUnificado } from "@/core/financeiro/financeiroUnificado";
+import { defaultRulesConfig } from "@/core/rules/rulesConfig";
+import type { BoxModule } from "@/core/types";
 import { FINANCEIRO_CUSTO_KEYS } from "@/core/financeiro/financeiroUnificadoTypes";
 import type { FinanceiroUnificadoSnapshot } from "@/core/financeiro/financeiroUnificadoTypes";
 
@@ -21,14 +28,19 @@ function round2(n: number): number {
 }
 
 function twelveLines(): FerragemUnificadoLine[] {
-  return Array.from({ length: 12 }, (_, i) => ({
-    ferragemId: `f${i + 1}`,
-    nome: `Ferragem ${i + 1}`,
-    quantidade: i + 1,
-    precoUnitario: 0.5 + i * 0.1,
-    observacoes: `${i + 1} mm`,
-    origemPreco: "catalogo" as const,
-  }));
+  return Array.from({ length: 12 }, (_, i) => {
+    const quantidade = i + 1;
+    const precoUnitario = 0.5 + i * 0.1;
+    return {
+      ferragemId: `f${i + 1}`,
+      nome: `Ferragem ${i + 1}`,
+      quantidade,
+      precoUnitario,
+      precoTotal: calcTotal(quantidade, precoUnitario),
+      observacoes: `${i + 1} mm`,
+      origemPreco: "catalogo" as const,
+    };
+  });
 }
 
 function snapFerragens(total: number): FinanceiroUnificadoSnapshot {
@@ -112,5 +124,53 @@ describe("P3.28 financeiroFerragensEngine", () => {
     const visual = emitFerragensTotalVisual(detalhe);
     expect(visual).not.toBe(official);
     expect(Object.keys(fin.overrides?.ferragens ?? {}).length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("paridade: collectUnificadoFerragens === custosEffective.ferragens (sem overrides)", () => {
+    const box = {
+      id: "b1",
+      nome: "Caixa",
+      dimensoes: { largura: 600, altura: 720, profundidade: 560 },
+      espessura: 19,
+      portaTipo: "sem_porta",
+      gavetas: 0,
+      prateleiras: 1,
+      doorsLayer: [],
+      drawersLayer: [],
+      costaAtiva: true,
+      material: "mdf_branco",
+    } as unknown as BoxModule;
+    const project = {
+      boxes: [box],
+      rules: defaultRulesConfig,
+      materialId: "mdf_branco",
+      projectName: "ferragens-report-parity",
+      remates: [],
+      rodapes: [],
+      workspaceBoxes: [],
+    };
+    const snap = computeFinanceiroUnificado(project);
+    const lines = collectUnificadoFerragens(project as never);
+    const visual = buildFerragensVisual(lines, {});
+    const sum = emitFerragensTotalVisual(visual);
+    expect(sum).toBe(round2(snap.custosEffective.ferragens || 0));
+    expect(lines.length).toBeGreaterThan(0);
+  });
+
+  it("createEmptyFerragemDetalhe manual: linha vazia sem catálogo", () => {
+    const row = createEmptyFerragemDetalhe(null, { manual: true });
+    expect(row.tipo).toBe("");
+    expect(row.precoUnitario).toBe(0);
+  });
+
+  it("patchFerragemNome: catálogo vs manual", () => {
+    const catalog = listCatalogoFerragens();
+    expect(catalog.length).toBeGreaterThan(0);
+    const base = createEmptyFerragemDetalhe(null, { manual: true });
+    const fromCat = patchFerragemNome(base, catalog[0]!.nome, catalog);
+    expect(fromCat.precoUnitario).toBeGreaterThanOrEqual(0);
+    const manual = patchFerragemNome(base, "Parafuso especial XYZ", catalog);
+    expect(manual.tipo).toBe("Parafuso especial XYZ");
+    expect(manual.ferragemId).toBe(base.id);
   });
 });

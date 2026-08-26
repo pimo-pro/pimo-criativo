@@ -91,8 +91,18 @@ export type ReportFinanceiroDetalhe = {
   areaChapaM2?: number;
 };
 
+export type ReportMargemGanhoMode = "percentagem" | "valorFixo";
+
+export type ReportMargemGanhoConfig = {
+  mode: ReportMargemGanhoMode;
+  /** Percentagem introduzida ou equivalente calculada. */
+  percentagem: number;
+  /** Valor fixo em EUR (mode === "valorFixo"). */
+  valorFixo?: number;
+};
+
 export type ReportFinanceiroLinha = {
-  key: FinanceiroCustoKey | "iva" | "total";
+  key: FinanceiroCustoKey | "margemGanho" | "iva" | "total";
   label: string;
   quantidade: number | null;
   precoUnitario: number | null;
@@ -189,7 +199,14 @@ export type ProjectReportFinanceiro = {
   overrides?: {
     ferragens?: ReportFerragensOverridesMap;
   };
+  /**
+   * Margem de ganho (Relatório). Ausente ou 0% → fórmula legacy (IVA só materiais).
+   * > 0 → IVA sobre base total + margem.
+   */
+  margemGanho?: ReportMargemGanhoConfig;
 };
+
+export const MARGEM_GANHO_LABEL = "Margem de ganho";
 
 export type ReportFerragemItemOverride = {
   tipo?: string;

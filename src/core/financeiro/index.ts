@@ -41,6 +41,18 @@ export {
 export type { FinanceiroUnificadoProjectSlice } from "./financeiroUnificado";
 
 export {
+  aggregateFerragensCatalogLines,
+  aggregateFerragensFromBoxes,
+  computeFerragensUnificadoSsot,
+} from "./ferragensUnificadoLines";
+export type {
+  FerragemUnificadoLineSsot,
+  FerragensUnificadoSsotResult,
+  FerragemOrigemPrecoSsot,
+  FerragensUnificadoProjectSlice,
+} from "./ferragensUnificadoLines";
+
+export {
   CUSTO_MONTAGEM_POR_GAVETA_DEFAULT_EUR,
   computeMontagemGavetasEur,
   countGavetasInBoxes,

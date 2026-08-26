@@ -4,15 +4,12 @@
  */
 
 import type { ProjectState } from "@/context/projectTypes";
-import { buildCutlistItemsForIndustrialExport } from "@/core/fabrication/buildCutlistItemsForIndustrialExport";
 import {
-  loadFerragensCatalogForPricing,
-  priceFerragensFromCatalog,
-} from "@/core/financeiro/priceFerragensFromCatalog";
+  computeFerragensUnificadoSsot,
+  type FerragemOrigemPrecoSsot,
+} from "@/core/financeiro/ferragensUnificadoLines";
+import { loadFerragensCatalogForPricing } from "@/core/financeiro/priceFerragensFromCatalog";
 import type { Ferragem } from "@/core/ferragens/ferragens";
-import { freeagem4x35JuntasRematesCusto } from "@/core/ferragens/freeagemParafusos";
-import { ferragensFromBoxes } from "@/core/manufacturing/cutlistFromBoxes";
-import { getSettings } from "@/core/settings/settingsService";
 
 import { applyOverride as applyOverrideShared } from "./financeiroDynamicEngine";
 import {
@@ -34,8 +31,10 @@ export type FerragemUnificadoLine = {
   nome: string;
   quantidade: number;
   precoUnitario: number;
+  /** Total SSOT agregado (paridade com Unificado). */
+  precoTotal: number;
   observacoes: string;
-  origemPreco: FerragemOrigemPreco;
+  origemPreco: FerragemOrigemPreco | FerragemOrigemPrecoSsot;
 };
 
 export type FerragemVisualItem = {
@@ -67,93 +66,21 @@ export function listCatalogoFerragens(): Ferragem[] {
   return loadFerragensCatalogForPricing();
 }
 
-function catalogNome(catalog: Ferragem[], ferragemId: string, fallback: string): string {
-  const hit = catalog.find((f) => f.id === ferragemId || f.nome === ferragemId);
-  return hit?.nome ?? fallback;
-}
-
-function catalogObs(catalog: Ferragem[], ferragemId: string): string {
-  const hit = catalog.find((f) => f.id === ferragemId || f.nome === ferragemId);
-  return hit?.medidas ?? hit?.descricao ?? "";
-}
-
 export function collectUnificadoFerragens(
   state: ProjectState | null | undefined,
   catalog: Ferragem[] = listCatalogoFerragens()
 ): FerragemUnificadoLine[] {
   if (!state) return [];
-  const boxes = state.boxes ?? [];
-  const projectName = state.projectName?.trim() || "Projeto";
-  const aggregated = new Map<string, FerragemUnificadoLine>();
-
-  const add = (line: FerragemUnificadoLine) => {
-    const key = line.ferragemId || line.nome;
-    const prev = aggregated.get(key);
-    if (prev) {
-      prev.quantidade += line.quantidade;
-    } else {
-      aggregated.set(key, { ...line });
-    }
-  };
-
-  let enableUnificacao = false;
-  try {
-    enableUnificacao = getSettings().orcamentos?.ferragens?.enableUnificacao === true;
-  } catch {
-    enableUnificacao = false;
-  }
-
-  if (enableUnificacao) {
-    const cutlist = buildCutlistItemsForIndustrialExport({
-      boxes,
-      rules: state.rules,
-      materialId: state.materialId,
-      projectName,
-      remates: state.remates ?? [],
-      rodapes: state.rodapes ?? [],
-      extractedPartsByBoxId: state.extractedPartsByBoxId,
-      industrialPieceEdits: state.industrialPieceEdits,
-    });
-    const priced = priceFerragensFromCatalog({ cutlist, catalog });
-    for (const line of priced.lines) {
-      add({
-        ferragemId: line.ferragemId,
-        nome: catalogNome(catalog, line.ferragemId, line.ferragemId),
-        quantidade: line.qtd,
-        precoUnitario: line.precoUnitario,
-        observacoes: catalogObs(catalog, line.ferragemId),
-        origemPreco: line.usedFallbackA ? "fallback" : "catalogo",
-      });
-    }
-  } else {
-    const lista = ferragensFromBoxes(boxes, state.rules);
-    for (const f of lista) {
-      const fid = String(f.tipo || f.id || f.nome);
-      add({
-        ferragemId: fid,
-        nome: catalogNome(catalog, fid, f.nome),
-        quantidade: Number(f.quantidade) || 0,
-        precoUnitario: Number(f.precoUnitario) || 0,
-        observacoes: catalogObs(catalog, fid),
-        origemPreco: "unificado",
-      });
-    }
-    const extra = freeagem4x35JuntasRematesCusto(boxes, state.remates, state.workspaceBoxes);
-    if (extra.qty > 0) {
-      add({
-        ferragemId: "parafuso_4x35",
-        nome: catalogNome(catalog, "parafuso_4x35", "Parafuso 4\u00d735"),
-        quantidade: extra.qty,
-        precoUnitario: extra.qty > 0 ? round2(extra.custo / extra.qty) : 0,
-        observacoes: catalogObs(catalog, "parafuso_4x35"),
-        origemPreco: "unificado",
-      });
-    }
-  }
-
-  return [...aggregated.values()]
-    .filter((l) => l.quantidade > 0)
-    .sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  const ssot = computeFerragensUnificadoSsot(state, catalog);
+  return ssot.lines.map((l) => ({
+    ferragemId: l.ferragemId,
+    nome: l.nome,
+    quantidade: l.quantidade,
+    precoUnitario: l.precoUnitario,
+    precoTotal: l.precoTotal,
+    observacoes: l.observacoes,
+    origemPreco: l.origemPreco,
+  }));
 }
 
 export function visualFerragemId(ferragemId: string): string {
@@ -180,7 +107,7 @@ export function buildFerragensVisual(
     const total =
       itemOv?.total !== undefined && Number.isFinite(itemOv.total)
         ? round2(itemOv.total)
-        : calcTotal(quantidade, precoUnitario);
+        : round2(base.precoTotal ?? calcTotal(quantidade, precoUnitario));
     const isOverride = Boolean(
       itemOv &&
         (itemOv.quantidade !== undefined ||
@@ -354,9 +281,46 @@ export function getFerragensOverrides(
   return fin?.overrides?.ferragens ?? {};
 }
 
-export function createEmptyFerragemDetalhe(opt?: Ferragem | null): ReportFinanceiroDetalhe {
+export function findFerragemInCatalog(
+  nome: string,
+  catalog: Ferragem[] = listCatalogoFerragens()
+): Ferragem | undefined {
+  const t = nome.trim();
+  if (!t) return undefined;
+  return catalog.find((c) => c.nome === t || c.id === t);
+}
+
+/** Actualiza nome: catálogo → preços; manual → tipo livre. */
+export function patchFerragemNome(
+  row: ReportFinanceiroDetalhe,
+  nome: string,
+  catalog: Ferragem[] = listCatalogoFerragens()
+): ReportFinanceiroDetalhe {
+  const opt = findFerragemInCatalog(nome, catalog);
+  if (opt) return applyFerragemCatalogOpt(row, opt);
+  return rebuildFerragemDetalhe(row, {
+    tipo: nome,
+    ferragemId: row.id,
+  });
+}
+
+export function createEmptyFerragemDetalhe(
+  opt?: Ferragem | null,
+  opts?: { manual?: boolean }
+): ReportFinanceiroDetalhe {
   const id = makeReportId("ferr");
   const qty = 1;
+  if (opts?.manual) {
+    return {
+      id,
+      ferragemId: id,
+      tipo: "",
+      dimensoes: "",
+      quantidade: qty,
+      precoUnitario: 0,
+      total: 0,
+    };
+  }
   const unit = Math.max(0, Number(opt?.precoUnitario) || 0);
   return {
     id,
@@ -429,11 +393,12 @@ export function origemPrecoLabel(origem: FerragemOrigemPreco): string {
 
 export function resolveOrigemPrecoLinha(
   row: ReportFinanceiroDetalhe,
-  overrides: ReportFerragensOverridesMap | null | undefined
+  overrides: ReportFerragensOverridesMap | null | undefined,
+  baseOrigem?: FerragemOrigemPreco
 ): FerragemOrigemPreco {
   const ov = overrides?.[row.id] ?? (row.ferragemId ? overrides?.[row.ferragemId] : undefined);
   if (ov?.added) return "manual";
   if (ov && (ov.precoUnitario !== undefined || ov.total !== undefined)) return "override";
   if (ov) return "override";
-  return "catalogo";
+  return baseOrigem ?? "catalogo";
 }

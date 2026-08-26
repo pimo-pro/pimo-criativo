@@ -4,12 +4,10 @@
  * P3.26: totais oficiais (paineis/orla/portas/remates) NÃO são reprecificados pelo detalhe.
  */
 
-import {
-  FINANCEIRO_CUSTO_KEYS,
-  FINANCEIRO_CUSTO_MATERIAL_KEYS,
-} from "../financeiro/financeiroUnificadoTypes";
+import { FINANCEIRO_CUSTO_KEYS } from "../financeiro/financeiroUnificadoTypes";
 import type { FinanceiroCustoKey } from "../financeiro/financeiroUnificadoTypes";
 import { recalcChapaDetalhe } from "./chapasReport";
+import { finalizeReportFinanceiro } from "./financeiroMargemGanho";
 import {
   FINANCEIRO_REPORT_LABELS,
   PROJECT_REPORT_IVA_DEFAULT,
@@ -21,8 +19,6 @@ import {
 function round2(n: number): number {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
-
-const ADMIN_EXTRA_KEYS: FinanceiroCustoKey[] = ["adm", "montagem", "portes"];
 
 /**
  * Keys cujo total oficial vem do Unificado (ADMIN).
@@ -123,7 +119,7 @@ export function recalcLinha(linha: ReportFinanceiroLinha): ReportFinanceiroLinha
   };
 }
 
-/** Recalcula subtotal, IVA e total — fórmula ADMIN (P3.17). */
+/** Recalcula subtotal, IVA e total — delega em finalizeReportFinanceiro (legacy ou margem). */
 export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFinanceiro {
   const ivaPct =
     typeof fin.ivaPct === "number" && Number.isFinite(fin.ivaPct) && fin.ivaPct >= 0
@@ -131,64 +127,14 @@ export function recalcFinanceiro(fin: ProjectReportFinanceiro): ProjectReportFin
       : PROJECT_REPORT_IVA_DEFAULT;
 
   const custoLinhas = fin.linhas
-    .filter((l) => l.key !== "iva" && l.key !== "total")
+    .filter((l) => l.key !== "iva" && l.key !== "total" && l.key !== "margemGanho")
     .map(recalcLinha);
 
-  const byKey = new Map(custoLinhas.map((l) => [l.key, l]));
-
-  const subtotalMateriais = round2(
-    FINANCEIRO_CUSTO_MATERIAL_KEYS.reduce((s, k) => s + (Number(byKey.get(k)?.total) || 0), 0)
-  );
-  const extraAdmin = round2(
-    ADMIN_EXTRA_KEYS.reduce((s, k) => s + (Number(byKey.get(k)?.total) || 0), 0)
-  );
-  const ivaValor = round2(subtotalMateriais * (ivaPct / 100));
-  const totalProjeto = round2(subtotalMateriais + extraAdmin + ivaValor);
-
-  const ordered: ReportFinanceiroLinha[] = [];
-
-  for (const key of FINANCEIRO_CUSTO_KEYS) {
-    const existing = byKey.get(key);
-    ordered.push(
-      existing ?? {
-        key,
-        label: FINANCEIRO_REPORT_LABELS[key],
-        quantidade: null,
-        precoUnitario: null,
-        total: 0,
-        detalhe: [],
-      }
-    );
-  }
-
-  ordered.push({
-    key: "iva",
-    label: `IVA (${ivaPct}%)`,
-    quantidade: null,
-    precoUnitario: null,
-    total: ivaValor,
-    detalhe: [],
-  });
-  ordered.push({
-    key: "total",
-    label: "Total do projeto",
-    quantidade: null,
-    precoUnitario: null,
-    total: totalProjeto,
-    detalhe: [],
-  });
-
-  return {
+  return finalizeReportFinanceiro({
+    ...fin,
     ivaPct,
-    linhas: ordered,
-    subtotal: subtotalMateriais,
-    ivaValor,
-    totalProjeto,
-    lineOverrides: fin.lineOverrides,
-    paineisOrigem: fin.paineisOrigem,
-    officialSnapshot: fin.officialSnapshot,
-    overrides: fin.overrides,
-  };
+    linhas: custoLinhas,
+  });
 }
 
 export function updateFinanceiroLinha(
@@ -261,5 +207,6 @@ export function ensureFinanceiroShape(
     paineisOrigem: partial?.paineisOrigem,
     officialSnapshot: partial?.officialSnapshot,
     overrides: partial?.overrides,
+    margemGanho: partial?.margemGanho,
   });
 }

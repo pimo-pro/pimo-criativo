@@ -6,12 +6,12 @@
 
 import {
   FINANCEIRO_CUSTO_KEYS,
-  FINANCEIRO_CUSTO_MATERIAL_KEYS,
   type FinanceiroCustoKey,
 } from "@/core/financeiro/financeiroUnificadoTypes";
 import type { FinanceiroUnificadoSnapshot } from "@/core/financeiro/financeiroUnificadoTypes";
 
 import { isOfficialTotalLockedKey } from "./financeReportCalc";
+import { finalizeReportFinanceiro } from "./financeiroMargemGanho";
 import type { ProjectReportFinanceiro, ReportFinanceiroLinha } from "./types";
 
 function round2(n: number): number {
@@ -94,7 +94,7 @@ export function applyReportLineOverrides(
     fin.officialSnapshot ??
     Object.fromEntries([
       ...fin.linhas
-        .filter((l) => l.key !== "iva" && l.key !== "total")
+        .filter((l) => l.key !== "iva" && l.key !== "total" && l.key !== "margemGanho")
         .map((l) => [l.key, round2(Number(l.total) || 0)]),
       ["subtotal", round2(fin.subtotal)],
       ["ivaValor", round2(fin.ivaValor)],
@@ -102,8 +102,9 @@ export function applyReportLineOverrides(
       ["ivaPct", ivaPct],
     ]);
 
-  const linhas: ReportFinanceiroLinha[] = fin.linhas.map((l) => {
-    if (l.key === "iva" || l.key === "total") return l;
+  const linhas: ReportFinanceiroLinha[] = fin.linhas
+    .filter((l) => l.key !== "iva" && l.key !== "total" && l.key !== "margemGanho")
+    .map((l) => {
     if (l.key === "chapasReais") {
       return {
         ...l,
@@ -134,34 +135,13 @@ export function applyReportLineOverrides(
     };
   });
 
-  const byKey = new Map(linhas.map((l) => [l.key, l]));
-  const subtotal = round2(
-    FINANCEIRO_CUSTO_MATERIAL_KEYS.reduce((s, k) => s + (Number(byKey.get(k)?.total) || 0), 0)
-  );
-  const adm = round2(Number(byKey.get("adm")?.total) || 0);
-  const montagem = round2(Number(byKey.get("montagem")?.total) || 0);
-  const portes = round2(Number(byKey.get("portes")?.total) || 0);
-  const ivaValor = round2(subtotal * (ivaPct / 100));
-  const totalProjeto = round2(subtotal + adm + montagem + portes + ivaValor);
-
-  return {
+  return finalizeReportFinanceiro({
     ...fin,
     ivaPct,
     officialSnapshot,
-    linhas: linhas.map((l) => {
-      if (l.key === "iva") {
-        return { ...l, label: `IVA (${ivaPct}%)`, total: ivaValor, detalhe: [] };
-      }
-      if (l.key === "total") {
-        return { ...l, total: totalProjeto, detalhe: [] };
-      }
-      return l;
-    }),
-    subtotal,
-    ivaValor,
-    totalProjeto,
+    linhas,
     lineOverrides: Object.keys(ov).length > 0 ? ov : undefined,
-  };
+  });
 }
 
 /** Define/remove um override de linha sem tocar no motor Unificado. */

@@ -16,6 +16,7 @@ import { safeGetItem } from "@/utils/storage";
 
 import { ensureFinanceiroShape } from "./financeReportCalc";
 import { syncWithUnificado } from "./financeiroDynamicEngine";
+import { finalizeReportFinanceiro } from "./financeiroMargemGanho";
 import {
   applyReportLineOverrides,
   normalizeReportLineOverrides,
@@ -39,6 +40,7 @@ import {
   type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
   type ReportFerragensOverridesMap,
+  type ReportMargemGanhoConfig,
 } from "./types";
 
 function round2(n: number): number {
@@ -100,39 +102,19 @@ export function snapshotToReportFinanceiro(
     typeof snap.ivaPct === "number" && Number.isFinite(snap.ivaPct) && snap.ivaPct >= 0
       ? snap.ivaPct
       : PROJECT_REPORT_IVA_DEFAULT;
-  const subtotal = round2(snap.subtotal);
-  const ivaValor = round2(snap.ivaValor);
-  const totalProjeto = round2(snap.totalProjeto);
-
-  linhas.push({
-    key: "iva",
-    label: `IVA (${ivaPct}%)`,
-    quantidade: null,
-    precoUnitario: null,
-    total: ivaValor,
-    detalhe: [],
-  });
-  linhas.push({
-    key: "total",
-    label: "Total do projeto",
-    quantidade: null,
-    precoUnitario: null,
-    total: totalProjeto,
-    detalhe: [],
-  });
 
   const fin: ProjectReportFinanceiro = {
     ivaPct,
     linhas,
-    subtotal,
-    ivaValor,
-    totalProjeto,
+    subtotal: round2(snap.subtotal),
+    ivaValor: round2(snap.ivaValor),
+    totalProjeto: round2(snap.totalProjeto),
     paineisOrigem: resolvePaineisOrigem(snap),
   };
-  return {
+  return finalizeReportFinanceiro({
     ...fin,
     officialSnapshot: syncWithUnificado(fin),
-  };
+  });
 }
 
 export type BuildLiveReportFinanceiroOptions = {
@@ -148,6 +130,8 @@ export type BuildLiveReportFinanceiroOptions = {
   preserveDetalheByKey?: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>>;
   /** Overrides de item Ferragens (camada visual). */
   ferragensOverrides?: ReportFerragensOverridesMap | null;
+  /** Margem de ganho persistida no relatório. */
+  margemGanho?: ReportMargemGanhoConfig | null;
 };
 
 /** Financeiro do Relatório sempre live a partir do Unificado (P3.25–P3.27). */
@@ -215,6 +199,10 @@ export function buildLiveReportFinanceiro(
       fin = applyReportLineOverrides(fin, overrides);
     }
 
+    const margem =
+      opts.margemGanho !== undefined ? opts.margemGanho ?? undefined : fin.margemGanho;
+    fin = finalizeReportFinanceiro({ ...fin, margemGanho: margem });
+
     return fin;
   } catch {
     return ensureFinanceiroShape(null);
@@ -226,7 +214,7 @@ function collectPreservedDetalhe(
 ): Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>> {
   const out: Partial<Record<FinanceiroCustoKey, ReportFinanceiroDetalhe[]>> = {};
   for (const l of report.financeiro?.linhas ?? []) {
-    if (l.key === "iva" || l.key === "total") continue;
+    if (l.key === "iva" || l.key === "total" || l.key === "margemGanho") continue;
     if ((l.detalhe?.length ?? 0) > 0) {
       out[l.key as FinanceiroCustoKey] = l.detalhe;
     }
@@ -246,6 +234,7 @@ export function withLiveFinanceiro(
     projectId: report.projectId,
     preserveDetalheByKey: collectPreservedDetalhe(report),
     ferragensOverrides: report.financeiro?.overrides?.ferragens,
+    margemGanho: report.financeiro?.margemGanho,
   });
   return {
     ...report,

@@ -10,6 +10,7 @@ import {
   type ReportFinanceiroDetalhe,
   type ReportFinanceiroLinha,
   type ReportStyle,
+  type FerragemOrigemPreco,
 } from "@/core/projectReport";
 import { type FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import {
@@ -26,12 +27,24 @@ import { R } from "../uiLabels";
 import PaineisAccordion from "./PaineisAccordion";
 import FerragensAccordion from "./FerragensAccordion";
 import LinhaDetalheAccordion from "./LinhaDetalheAccordion";
+import MargemGanhoRow from "./MargemGanhoRow";
+import type { ReportMargemGanhoConfig } from "@/core/projectReport";
 
 type Props = {
   style: ReportStyle;
   value: ProjectReportFinanceiro;
   onLineOverride?: (key: FinanceiroCustoKey, value: number | null) => void;
   onLinhaDetalhe?: (key: FinanceiroCustoKey, detalhe: ReportFinanceiroDetalhe[]) => void;
+  /** Botão «Aplicar total visual…» → override + gravação imediata (A2). */
+  onApplyVisualPersist?: (
+    key: FinanceiroCustoKey,
+    value: number | null
+  ) => void | Promise<void>;
+  saving?: boolean;
+  ferragensSsotOrigem?: Record<string, FerragemOrigemPreco>;
+  ferragensSugestoesProjeto?: string[];
+  paineisSugestoesProjeto?: string[];
+  onMargemGanhoChange?: (config: ReportMargemGanhoConfig | null) => void;
 };
 
 function formatEur(n: number): string {
@@ -39,7 +52,7 @@ function formatEur(n: number): string {
 }
 
 function isCustoKey(key: ReportFinanceiroLinha["key"]): key is FinanceiroCustoKey {
-  return key !== "iva" && key !== "total";
+  return key !== "iva" && key !== "total" && key !== "margemGanho";
 }
 
 const OVERRIDEABLE_KEYS = new Set<FinanceiroCustoKey>([
@@ -65,6 +78,12 @@ export default function FinanceiroBlock({
   value,
   onLineOverride,
   onLinhaDetalhe,
+  onApplyVisualPersist,
+  saving = false,
+  ferragensSsotOrigem,
+  ferragensSugestoesProjeto,
+  paineisSugestoesProjeto,
+  onMargemGanhoChange,
 }: Props) {
   const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(() => new Set());
 
@@ -119,10 +138,14 @@ export default function FinanceiroBlock({
           </thead>
           <tbody>
             {value.linhas
-              .filter((linha) => linha.key !== "chapasReais")
+              .filter(
+                (linha) =>
+                  linha.key !== "chapasReais" &&
+                  linha.key !== "margemGanho" &&
+                  linha.key !== "iva" &&
+                  linha.key !== "total"
+              )
               .map((linha) => {
-                const locked = linha.key === "iva" || linha.key === "total";
-                const bold = linha.key === "total";
                 const key = isCustoKey(linha.key) ? linha.key : null;
                 const isOpen = key ? openKeys.has(key) : false;
                 const displayLabel =
@@ -139,13 +162,7 @@ export default function FinanceiroBlock({
 
                 return (
                   <Fragment key={linha.key}>
-                    <tr
-                      style={
-                        bold
-                          ? { fontWeight: 700, background: "rgba(59,130,246,0.08)" }
-                          : undefined
-                      }
-                    >
+                    <tr>
                       <td style={reportTd}>
                         {key ? (
                           <button
@@ -176,8 +193,6 @@ export default function FinanceiroBlock({
                           >
                             {badge}
                           </span>
-                        ) : locked ? (
-                          "-"
                         ) : hasOverride ? (
                           <span
                             style={{ fontSize: 11, color: "var(--warning, #ca8a04)" }}
@@ -195,7 +210,7 @@ export default function FinanceiroBlock({
                         )}
                       </td>
                       <td style={reportTd}>
-                        {locked || !canOverride || !key ? (
+                        {!canOverride || !key ? (
                           "-"
                         ) : (
                           <input
@@ -231,12 +246,14 @@ export default function FinanceiroBlock({
                               detalhe={linha.detalhe ?? []}
                               totalOficial={official}
                               badgeLabel={badge}
+                              paineisSugestoesProjeto={paineisSugestoesProjeto}
                               onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
                               onApplyVisualAsOverride={
-                                onLineOverride
-                                  ? (v) => onLineOverride(key, v)
+                                onApplyVisualPersist
+                                  ? (v) => void onApplyVisualPersist(key, v)
                                   : undefined
                               }
+                              saving={saving}
                             />
                           ) : key === "ferragens" ? (
                             <FerragensAccordion
@@ -244,12 +261,18 @@ export default function FinanceiroBlock({
                               totalOficial={official}
                               hasOverride={hasOverride}
                               itemOverrides={value.overrides?.ferragens}
+                              ferragensSsotOrigem={ferragensSsotOrigem}
+                              ferragensSugestoesProjeto={ferragensSugestoesProjeto}
                               onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
+                              onSyncVisualOverride={
+                                onLineOverride ? (v) => onLineOverride(key, v) : undefined
+                              }
                               onApplyVisualAsOverride={
-                                onLineOverride
-                                  ? (v) => onLineOverride(key, v)
+                                onApplyVisualPersist
+                                  ? (v) => void onApplyVisualPersist(key, v)
                                   : undefined
                               }
+                              saving={saving}
                             />
                           ) : (
                             <LinhaDetalheAccordion
@@ -259,10 +282,11 @@ export default function FinanceiroBlock({
                               hasOverride={hasOverride}
                               onChange={(detalhe) => onLinhaDetalhe(key, detalhe)}
                               onApplyVisualAsOverride={
-                                onLineOverride
-                                  ? (v) => onLineOverride(key, v)
+                                onApplyVisualPersist
+                                  ? (v) => void onApplyVisualPersist(key, v)
                                   : undefined
                               }
+                              saving={saving}
                             />
                           )}
                         </td>
@@ -271,6 +295,35 @@ export default function FinanceiroBlock({
                   </Fragment>
                 );
               })}
+            {onMargemGanhoChange ? (
+              <MargemGanhoRow
+                financeiro={value}
+                margemTotal={
+                  Number(value.linhas.find((l) => l.key === "margemGanho")?.total) || 0
+                }
+                onChange={onMargemGanhoChange}
+              />
+            ) : null}
+            {(["iva", "total"] as const).map((rowKey) => {
+              const linha = value.linhas.find((l) => l.key === rowKey);
+              if (!linha) return null;
+              const bold = rowKey === "total";
+              return (
+                <tr
+                  key={rowKey}
+                  style={
+                    bold
+                      ? { fontWeight: 700, background: "rgba(59,130,246,0.08)" }
+                      : undefined
+                  }
+                >
+                  <td style={reportTd}>{linha.label}</td>
+                  <td style={reportTd}>-</td>
+                  <td style={reportTd}>-</td>
+                  <td style={reportTd}>{formatEur(linha.total)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

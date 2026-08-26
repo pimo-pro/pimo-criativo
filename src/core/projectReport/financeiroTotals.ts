@@ -12,6 +12,7 @@ import {
 import type { MaterialIndustrial } from "@/core/manufacturing/materials";
 
 import { sanitizeFinanceiroDetalhe } from "./financeiroDetalheSanitize";
+import { finalizeReportFinanceiro } from "./financeiroMargemGanho";
 import { isOfficialTotalLockedKey, ensureFinanceiroShape, recalcFinanceiro } from "./financeReportCalc";
 import {
   officialPaineisTotal,
@@ -48,9 +49,6 @@ export function alignOfficialTotalsToUnificado(
       typeof snap.ivaPct === "number" && Number.isFinite(snap.ivaPct) && snap.ivaPct >= 0
         ? snap.ivaPct
         : totaled.ivaPct;
-    const subtotal = round2(snap.subtotal);
-    const ivaValor = round2(snap.ivaValor);
-    const totalProjeto = round2(snap.totalProjeto);
 
     const officialForKey = (key: FinanceiroCustoKey): number => {
       if (key === "chapasReais") return 0;
@@ -59,21 +57,13 @@ export function alignOfficialTotalsToUnificado(
       return round2(Number(snap.custosEffective[key]) || 0);
     };
 
-    return {
+    const aligned: ProjectReportFinanceiro = {
       ...totaled,
       ivaPct,
-      subtotal,
-      ivaValor,
-      totalProjeto,
       paineisOrigem: resolvePaineisOrigem(snap),
       lineOverrides: fin.lineOverrides,
+      margemGanho: fin.margemGanho,
       linhas: totaled.linhas.map((l) => {
-        if (l.key === "iva") {
-          return { ...l, label: `IVA (${ivaPct}%)`, total: ivaValor, detalhe: [] };
-        }
-        if (l.key === "total") {
-          return { ...l, total: totalProjeto, detalhe: [] };
-        }
         if (l.key === "chapasReais") {
           return {
             ...l,
@@ -96,6 +86,8 @@ export function alignOfficialTotalsToUnificado(
         return l;
       }),
     };
+
+    return finalizeReportFinanceiro(aligned);
   } catch {
     return financeiroTotals(fin);
   }

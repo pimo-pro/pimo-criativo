@@ -1,22 +1,24 @@
 /**
  * Accordion de Ferragens — P3.28 editável (camada visual).
- * Totais oficiais SSOT não são alterados; só o detalhe visual.
+ * Totais oficiais SSOT não são alterados; só reconstrói a lista editável e persistida.
  */
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
 import type { ReportFinanceiroDetalhe, ReportFerragensOverridesMap } from "@/core/projectReport";
 import {
   formatEurDisplay,
-  applyFerragemCatalogOpt,
+  type FerragemOrigemPreco,
   createEmptyFerragemDetalhe,
   emitFerragensTotalVisual,
   listCatalogoFerragens,
   origemPrecoLabel,
+  patchFerragemNome,
   rebuildFerragemDetalhe,
   resolveOrigemPrecoLinha,
 } from "@/core/projectReport";
 import { reportInput, reportTable, reportTableWrap, reportTd, reportTh } from "../reportStyles";
 import { R } from "../uiLabels";
+import ReportCatalogOrManualField from "./ReportCatalogOrManualField";
 
 type Props = {
   detalhe: ReportFinanceiroDetalhe[];
@@ -24,7 +26,14 @@ type Props = {
   hasOverride?: boolean;
   itemOverrides?: ReportFerragensOverridesMap;
   onChange: (next: ReportFinanceiroDetalhe[]) => void;
+  /** Origem SSOT por ferragemId (catálogo / fallback / unificado). */
+  ferragensSsotOrigem?: Record<string, FerragemOrigemPreco>;
+  /** Nomes SSOT do projecto (sugestões datalist). */
+  ferragensSugestoesProjeto?: string[];
+  /** Sync do override em memória (edições); não grava. */
+  onSyncVisualOverride?: (visualTotal: number | null) => void;
   onApplyVisualAsOverride?: (visualTotal: number | null) => void;
+  saving?: boolean;
 };
 
 const panelStyle: CSSProperties = {
@@ -64,18 +73,27 @@ export default function FerragensAccordion({
   hasOverride,
   itemOverrides,
   onChange,
+  ferragensSsotOrigem,
+  ferragensSugestoesProjeto,
+  onSyncVisualOverride,
   onApplyVisualAsOverride,
+  saving = false,
 }: Props) {
   const catalogo = useMemo(() => listCatalogoFerragens(), []);
+  const [catalogPick, setCatalogPick] = useState("");
+  const nomeSugestoes = useMemo(
+    () => [...catalogo.map((c) => c.nome), ...(ferragensSugestoesProjeto ?? [])],
+    [catalogo, ferragensSugestoesProjeto]
+  );
   const visualTotal = emitFerragensTotalVisual(detalhe);
   const diverges = Math.abs(visualTotal - totalOficial) > 0.009;
 
   const commit = (next: ReportFinanceiroDetalhe[]) => {
     onChange(next);
-    if (!onApplyVisualAsOverride) return;
+    if (!onSyncVisualOverride) return;
     const sum = emitFerragensTotalVisual(next);
-    if (Math.abs(sum - totalOficial) > 0.009) onApplyVisualAsOverride(sum);
-    else onApplyVisualAsOverride(null);
+    if (Math.abs(sum - totalOficial) > 0.009) onSyncVisualOverride(sum);
+    else onSyncVisualOverride(null);
   };
 
   const updateRow = (
@@ -89,10 +107,6 @@ export default function FerragensAccordion({
 
   const removeRow = (idx: number) => {
     commit(detalhe.filter((_, i) => i !== idx));
-  };
-
-  const addRow = () => {
-    commit([...detalhe, createEmptyFerragemDetalhe(catalogo[0] ?? null)]);
   };
 
   return (
@@ -144,41 +158,27 @@ export default function FerragensAccordion({
               </tr>
             ) : (
               detalhe.map((d, idx) => {
-                const origem = resolveOrigemPrecoLinha(d, itemOverrides);
+                const origem = resolveOrigemPrecoLinha(
+                  d,
+                  itemOverrides,
+                  d.ferragemId ? ferragensSsotOrigem?.[d.ferragemId] : undefined
+                );
                 const isItemOv = origem === "override" || origem === "manual";
-                const selectValue =
-                  catalogo.find((c) => c.id === d.ferragemId)?.nome ??
-                  catalogo.find((c) => c.nome === d.tipo)?.nome ??
-                  d.tipo;
                 return (
                   <tr key={d.id}>
                     <td style={reportTd}>
-                      <select
-                        style={{ ...reportInput, minHeight: 32, minWidth: 140 }}
-                        value={selectValue}
+                      <ReportCatalogOrManualField
+                        listId={`ferr-nome-${d.id}`}
+                        value={d.tipo}
+                        options={nomeSugestoes}
+                        placeholder={R.nomeOuCatalogo}
                         title={`${R.substituirFerragem} \u2014 ${R.tooltipOrigemPrecoFerragem}: ${origemPrecoLabel(origem)}`}
-                        onChange={(e) => {
-                          const opt = catalogo.find(
-                            (c) => c.nome === e.target.value || c.id === e.target.value
-                          );
-                          if (opt) {
-                            const next = [...detalhe];
-                            next[idx] = applyFerragemCatalogOpt(d, opt);
-                            commit(next);
-                          } else {
-                            updateRow(idx, { tipo: e.target.value });
-                          }
+                        onChange={(nome) => {
+                          const next = [...detalhe];
+                          next[idx] = patchFerragemNome(d, nome, catalogo);
+                          commit(next);
                         }}
-                      >
-                        {!catalogo.some((c) => c.nome === d.tipo || c.id === d.ferragemId) ? (
-                          <option value={d.tipo}>{d.tipo}</option>
-                        ) : null}
-                        {catalogo.map((c) => (
-                          <option key={c.id} value={c.nome}>
-                            {c.nome}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       {isItemOv ? (
                         <div>
                           <span style={{ ...badgeStyle("override"), marginTop: 4 }}>
@@ -251,18 +251,50 @@ export default function FerragensAccordion({
         </table>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <Button type="button" variant="secondary" onClick={addRow}>
-          {R.adicionarFerragem}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <select
+          style={{ ...reportInput, minHeight: 32, minWidth: 160 }}
+          value={catalogPick}
+          onChange={(e) => setCatalogPick(e.target.value)}
+        >
+          <option value="">{R.escolherFerragem}</option>
+          {catalogo.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!catalogPick}
+          onClick={() => {
+            const opt = catalogo.find((c) => c.id === catalogPick);
+            if (!opt) return;
+            commit([...detalhe, createEmptyFerragemDetalhe(opt)]);
+            setCatalogPick("");
+          }}
+        >
+          {R.adicionarDoCatalogo}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() =>
+            commit([...detalhe, createEmptyFerragemDetalhe(null, { manual: true })])
+          }
+        >
+          {R.adicionarManualmente}
         </Button>
         {diverges && onApplyVisualAsOverride ? (
           <Button
             type="button"
             variant="primary"
+            disabled={saving}
             onClick={() => onApplyVisualAsOverride(visualTotal)}
             title={R.aplicarVisualOverrideHint}
           >
-            {R.aplicarVisualOverride}
+            {saving ? R.aGuardar : R.aplicarVisualOverride}
           </Button>
         ) : null}
       </div>

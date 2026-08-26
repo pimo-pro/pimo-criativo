@@ -21,6 +21,7 @@ type Props = {
   hasOverride?: boolean;
   onChange: (next: ReportFinanceiroDetalhe[]) => void;
   onApplyVisualAsOverride?: (visualTotal: number) => void;
+  saving?: boolean;
 };
 
 const panelStyle: CSSProperties = {
@@ -61,6 +62,7 @@ export default function LinhaDetalheAccordion({
   hasOverride,
   onChange,
   onApplyVisualAsOverride,
+  saving = false,
 }: Props) {
   const visualTotal = sumDetalheVisual(detalhe);
   const diverges = detalhe.length > 0 && Math.abs(visualTotal - totalOficial) > 0.009;
@@ -189,10 +191,11 @@ export default function LinhaDetalheAccordion({
           <Button
             type="button"
             variant="primary"
+            disabled={saving}
             onClick={() => onApplyVisualAsOverride(visualTotal)}
             title={R.aplicarVisualOverrideHint}
           >
-            {R.aplicarVisualOverride}
+            {saving ? R.aGuardar : R.aplicarVisualOverride}
           </Button>
         ) : null}
       </div>

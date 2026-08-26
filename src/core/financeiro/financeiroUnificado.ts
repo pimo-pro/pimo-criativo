@@ -13,8 +13,6 @@ import {
   DENSIDADE_PADRAO,
 } from "../manufacturing/materials";
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
-import { ferragensFromBoxes } from "../manufacturing/cutlistFromBoxes";
-import { freeagem4x35JuntasRematesCusto } from "../ferragens/freeagemParafusos";
 import { computeChapasReal, hasChapasSheets, isChapasRealOficial } from "../industrial/computeChapasReal";
 import { deriveCustoChapaReal } from "./deriveCustoChapaReal";
 import { getSettings } from "../settings/settingsService";
@@ -29,10 +27,8 @@ import {
   normalizeFinanceiroAdminSettings,
   type FinanceiroAdminSettings,
 } from "./financeiroAdminRules";
-import {
-  compareFerragensAvsB,
-  priceFerragensFromCatalog,
-} from "./priceFerragensFromCatalog";
+import { compareFerragensAvsB } from "./priceFerragensFromCatalog";
+import { computeFerragensUnificadoSsot } from "./ferragensUnificadoLines";
 import { computeOperacoesFinanceiras } from "./computeOperacoesFinanceiras";
 import {
   computeDesperdicioSerragemFinanceiras,
@@ -264,17 +260,12 @@ export function computeFinanceiroUnificado(
     industrialPieceEdits: project.industrialPieceEdits,
   });
 
-  const enableUnificacao =
-    getSettings().orcamentos?.ferragens?.enableUnificacao === true;
-
-  let ferragensTotais = 0;
-  let ferragensEur = 0;
+  const ferragensSsot = computeFerragensUnificadoSsot(project);
+  const ferragensTotais = ferragensSsot.totalQty;
+  const ferragensEur = ferragensSsot.totalEur;
   let ferragensUnificacao: FinanceiroUnificadoSnapshot["ferragensUnificacao"];
 
-  if (enableUnificacao) {
-    const priced = priceFerragensFromCatalog({ cutlist });
-    ferragensTotais = priced.totalQty;
-    ferragensEur = priced.totalEur;
+  if (ferragensSsot.enableUnificacao && ferragensSsot.unificacaoMeta) {
     let compare: ReturnType<typeof compareFerragensAvsB> | undefined;
     try {
       compare = compareFerragensAvsB(boxes, project.rules, cutlist);
@@ -283,21 +274,10 @@ export function computeFinanceiroUnificado(
     }
     ferragensUnificacao = {
       enabled: true,
-      warnings: priced.warnings,
-      fallbacks: priced.fallbacks,
+      warnings: ferragensSsot.unificacaoMeta.warnings,
+      fallbacks: ferragensSsot.unificacaoMeta.fallbacks,
       compare,
     };
-  } else {
-    const ferragens = ferragensFromBoxes(boxes, project.rules);
-    ferragensTotais = ferragens.reduce((s, a) => s + (a.quantidade ?? 0), 0);
-    ferragensEur = ferragens.reduce((s, a) => s + (Number(a.precoTotal) || 0), 0);
-    const extra4x35 = freeagem4x35JuntasRematesCusto(
-      boxes,
-      project.remates,
-      project.workspaceBoxes
-    );
-    ferragensTotais += extra4x35.qty;
-    ferragensEur += extra4x35.custo;
   }
 
   const pecasTotais = cutlist.reduce((s, i) => s + (i.quantidade ?? 0), 0);

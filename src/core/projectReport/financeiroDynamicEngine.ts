@@ -5,17 +5,18 @@
 
 import type { FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import {
-  FINANCEIRO_CUSTO_MATERIAL_KEYS,
   FINANCEIRO_CUSTO_KEYS,
 } from "@/core/financeiro/financeiroUnificadoTypes";
 
 import { applyPrecoPorM2Edit, recalcChapaDetalhe, resolveDimensoesMm } from "./chapasReport";
-import { listCatalogoChapas, type CatalogoChapaOption } from "./chapasReport";
+import type { CatalogoChapaOption } from "./chapasReport";
 import type {
   ProjectReportFinanceiro,
   ReportFinanceiroDetalhe,
   ReportFinanceiroLinha,
+  ReportMargemGanhoConfig,
 } from "./types";
+import { calcReportTotals } from "./financeiroMargemGanho";
 import { makeReportId } from "./types";
 
 function round2(n: number): number {
@@ -234,7 +235,8 @@ export type EmitTotalFinalResult = {
 export function emitTotalFinal(
   official: OfficialTotalsMap,
   lineOverrides: Partial<Record<FinanceiroCustoKey, number>> | null | undefined,
-  ivaPct = 23
+  ivaPct = 23,
+  margemGanho?: ReportMargemGanhoConfig | null
 ): EmitTotalFinalResult {
   const ov = lineOverrides ?? {};
   const hasOverrides = Object.keys(ov).some((k) => {
@@ -242,22 +244,22 @@ export function emitTotalFinal(
     return typeof v === "number" && Number.isFinite(v);
   });
 
-  let subtotal = 0;
-  for (const key of FINANCEIRO_CUSTO_MATERIAL_KEYS) {
+  const totalsByKey = new Map<string, number>();
+  for (const key of FINANCEIRO_CUSTO_KEYS) {
     const base = Number(official[key]) || 0;
-    subtotal += applyOverride(base, ov[key]);
+    totalsByKey.set(key, applyOverride(base, ov[key]));
   }
-  subtotal = round2(subtotal);
 
-  const adm = applyOverride(Number(official.adm) || 0, ov.adm);
-  const montagem = applyOverride(Number(official.montagem) || 0, ov.montagem);
-  const portes = applyOverride(Number(official.portes) || 0, ov.portes);
   const pct =
     typeof official.ivaPct === "number" && Number.isFinite(official.ivaPct)
       ? official.ivaPct
       : ivaPct;
-  const ivaValor = round2(subtotal * (pct / 100));
-  const totalProjeto = round2(subtotal + adm + montagem + portes + ivaValor);
+
+  const { subtotal, ivaValor, totalProjeto } = calcReportTotals(
+    totalsByKey,
+    pct,
+    margemGanho
+  );
 
   return {
     subtotal,
@@ -266,6 +268,23 @@ export function emitTotalFinal(
     official,
     hasOverrides,
   };
+}
+
+/** Linha de chapa vazia (sem fallback ao catálogo). */
+export function createManualChapaDetalhe(): ReportFinanceiroDetalhe {
+  return rebuildChapaDetalhe({
+    id: makeReportId("ch"),
+    tipo: "",
+    dimensoes: "",
+    comprimentoMm: 0,
+    larguraMm: 0,
+    espessuraMm: 0,
+    quantidade: 1,
+    precoPorM2: 0,
+    precoPorMetro: 0,
+    precoUnitario: 0,
+    total: 0,
+  });
 }
 
 /** Nova chapa vazia / do catálogo. */
@@ -287,21 +306,7 @@ export function createEmptyChapaDetalhe(
       total: 0,
     });
   }
-  const catalogo = listCatalogoChapas();
-  if (catalogo[0]) return createEmptyChapaDetalhe(catalogo[0]);
-  return rebuildChapaDetalhe({
-    id: makeReportId("ch"),
-    tipo: "Chapa",
-    dimensoes: "2800 x 2070 mm",
-    comprimentoMm: 2800,
-    larguraMm: 2070,
-    espessuraMm: 19,
-    quantidade: 1,
-    precoPorM2: 31,
-    precoPorMetro: 0,
-    precoUnitario: 0,
-    total: 0,
-  });
+  return createManualChapaDetalhe();
 }
 
 export function createEmptyItemDetalhe(tipo = "Item"): ReportFinanceiroDetalhe {

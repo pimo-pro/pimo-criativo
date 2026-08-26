@@ -2,28 +2,34 @@
  * Accordion de chapas — P3.27 editável (camada visual).
  * Totais oficiais SSOT não são alterados; só o detalhe visual.
  */
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
-import type { ReportFinanceiroDetalhe, CatalogoChapaOption } from "@/core/projectReport";
+import type { ReportFinanceiroDetalhe } from "@/core/projectReport";
 import {
   formatEurDisplay,
   listCatalogoChapas,
   resolveDimensoesMm,
   calcArea,
   createEmptyChapaDetalhe,
+  createManualChapaDetalhe,
+  findChapaCatalogOption,
   rebuildChapaDetalhe,
   sumDetalheVisual,
 } from "@/core/projectReport";
 import { reportInput, reportTable, reportTableWrap, reportTd, reportTh } from "../reportStyles";
 import { R } from "../uiLabels";
+import ReportCatalogOrManualField from "./ReportCatalogOrManualField";
 
 type Props = {
   detalhe: ReportFinanceiroDetalhe[];
   totalOficial: number;
   badgeLabel: string;
   onChange: (next: ReportFinanceiroDetalhe[]) => void;
+  /** Tipos de chapa do nesting/projecto (sugestões datalist). */
+  paineisSugestoesProjeto?: string[];
   /** Aplicar soma visual como override da linha Painéis. */
   onApplyVisualAsOverride?: (visualTotal: number) => void;
+  saving?: boolean;
 };
 
 const panelStyle: CSSProperties = {
@@ -62,9 +68,16 @@ export default function PaineisAccordion({
   totalOficial,
   badgeLabel,
   onChange,
+  paineisSugestoesProjeto,
   onApplyVisualAsOverride,
+  saving = false,
 }: Props) {
   const catalogo = useMemo(() => listCatalogoChapas(), []);
+  const [catalogPick, setCatalogPick] = useState("");
+  const tipoSugestoes = useMemo(() => {
+    const fromDetalhe = detalhe.map((d) => d.tipo).filter(Boolean);
+    return [...catalogo.map((c) => c.label), ...fromDetalhe, ...(paineisSugestoesProjeto ?? [])];
+  }, [catalogo, detalhe, paineisSugestoesProjeto]);
   const visualTotal = sumDetalheVisual(detalhe);
   const diverges = Math.abs(visualTotal - totalOficial) > 0.009;
 
@@ -76,10 +89,6 @@ export default function PaineisAccordion({
 
   const removeRow = (idx: number) => {
     onChange(detalhe.filter((_, i) => i !== idx));
-  };
-
-  const addRow = (opt?: CatalogoChapaOption) => {
-    onChange([...detalhe, createEmptyChapaDetalhe(opt ?? catalogo[0] ?? null)]);
   };
 
   return (
@@ -140,25 +149,18 @@ export default function PaineisAccordion({
                 return (
                   <tr key={d.id}>
                     <td style={reportTd}>
-                      <select
-                        style={{ ...reportInput, minHeight: 32, minWidth: 120 }}
+                      <ReportCatalogOrManualField
+                        listId={`ch-tipo-${d.id}`}
                         value={d.tipo}
+                        options={tipoSugestoes}
+                        placeholder={R.nomeOuCatalogo}
                         title={R.substituirMaterial}
-                        onChange={(e) => {
-                          const opt = catalogo.find((c) => c.label === e.target.value);
+                        onChange={(label) => {
+                          const opt = findChapaCatalogOption(label, catalogo);
                           if (opt) updateRow(idx, { materialOpt: opt });
-                          else updateRow(idx, { tipo: e.target.value });
+                          else updateRow(idx, { tipo: label });
                         }}
-                      >
-                        {!catalogo.some((c) => c.label === d.tipo) ? (
-                          <option value={d.tipo}>{d.tipo}</option>
-                        ) : null}
-                        {catalogo.map((c) => (
-                          <option key={c.id} value={c.label}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </td>
                     <td style={reportTd}>
                       <input
@@ -272,18 +274,48 @@ export default function PaineisAccordion({
         </table>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <Button type="button" variant="secondary" onClick={() => addRow()}>
-          {R.adicionarChapa}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <select
+          style={{ ...reportInput, minHeight: 32, minWidth: 160 }}
+          value={catalogPick}
+          onChange={(e) => setCatalogPick(e.target.value)}
+        >
+          <option value="">{R.escolherChapaCatalogo}</option>
+          {catalogo.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!catalogPick}
+          onClick={() => {
+            const opt = catalogo.find((c) => c.id === catalogPick);
+            if (!opt) return;
+            onChange([...detalhe, createEmptyChapaDetalhe(opt)]);
+            setCatalogPick("");
+          }}
+        >
+          {R.adicionarDoCatalogo}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => onChange([...detalhe, createManualChapaDetalhe()])}
+        >
+          {R.adicionarManualmente}
         </Button>
         {diverges && onApplyVisualAsOverride ? (
           <Button
             type="button"
             variant="primary"
+            disabled={saving}
             onClick={() => onApplyVisualAsOverride(visualTotal)}
             title={R.aplicarVisualOverrideHint}
           >
-            {R.aplicarVisualOverride}
+            {saving ? R.aGuardar : R.aplicarVisualOverride}
           </Button>
         ) : null}
       </div>
