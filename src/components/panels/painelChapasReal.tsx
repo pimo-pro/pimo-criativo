@@ -5,6 +5,13 @@ import { buildCutlistItemsForIndustrialExport } from "../../core/fabrication/bui
 import { computeChapasReal } from "../../core/industrial/computeChapasReal";
 import { computeConsumoMateriais } from "../../core/industrial/computeConsumoMateriais";
 import {
+  financeiroChapasBadgeLabel,
+  financeiroChapasEstimadoHint,
+  isChapasModeEstimado,
+  isChapasModeOficial,
+} from "../../core/financeiro/financeiroChapasModeLabels";
+import type { FinanceiroChapasMode } from "../../core/financeiro/financeiroUnificadoTypes";
+import {
   buildIndustrialArmazemPdf,
   industrialArmazemPdfFileName,
 } from "../../core/pdf/pdfIndustrialArmazem";
@@ -37,9 +44,14 @@ export default function PainelChapasReal({ embedded }: { embedded?: boolean } = 
   );
 
   const chapas = useMemo(
-    () => computeChapasReal(items, projectName, boxes),
+    () => computeChapasReal(items, projectName, boxes, { projectId: projectName }),
     [items, projectName, boxes]
   );
+
+  const chapasUiMode: FinanceiroChapasMode | null =
+    chapas.mode === "oficial_pro" || chapas.mode === "estimado" || chapas.mode === "real"
+      ? chapas.mode
+      : null;
 
   const exportPdf = () => {
     beginIndustrialFileGeneration();
@@ -59,14 +71,40 @@ export default function PainelChapasReal({ embedded }: { embedded?: boolean } = 
       <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 0 }}>
         Distribuição real das peças nas chapas via motor de nesting industrial.
       </p>
-      <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          marginBottom: 12,
+          fontSize: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
         <span>
           Chapas: <strong>{chapas.totalSheets}</strong>
+          {chapasUiMode ? (
+            <span
+              style={{
+                marginLeft: 8,
+                fontWeight: 600,
+                color: isChapasModeOficial(chapasUiMode) ? "#16a34a" : "#ea580c",
+                fontSize: 11,
+              }}
+            >
+              {financeiroChapasBadgeLabel(chapasUiMode)}
+            </span>
+          ) : null}
         </span>
         <span>
           Desperdício: <strong>{chapas.totalWastePct.toFixed(1)}%</strong>
         </span>
       </div>
+      {chapasUiMode && isChapasModeEstimado(chapasUiMode) ? (
+        <p style={{ fontSize: 12, color: "#ea580c", fontWeight: 600, marginTop: 0 }}>
+          {financeiroChapasEstimadoHint()}
+        </p>
+      ) : null}
       <Button variant="secondary" onClick={exportPdf} style={{ marginBottom: 12, fontSize: 12 }}>
         Gerar PDF — chapas_real
       </Button>

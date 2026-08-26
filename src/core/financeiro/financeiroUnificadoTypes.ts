@@ -11,7 +11,8 @@ import {
 
 export const FINANCEIRO_IVA_DEFAULT_PCT = 23;
 
-export type FinanceiroChapasMode = "estimado" | "real";
+/** estimado = fast/área (A1); oficial_pro = snapshot TCN/PRO; real = legado até unificar no passo 5. */
+export type FinanceiroChapasMode = "estimado" | "real" | "oficial_pro";
 
 /** Custos de materiais + administrativos. */
 export type FinanceiroCustoKey =

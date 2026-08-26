@@ -63,9 +63,10 @@ export function buildPaineisChapasDetalhe(
     const chapas = computeChapasReal(
       cutlist,
       state?.projectName || projectId,
-      boxes
+      boxes,
+      { projectId }
     );
-    if (chapas.mode !== "real" || chapas.sheets.length === 0) return [];
+    if (chapas.sheets.length === 0) return [];
 
     const derived = deriveCustoChapaReal({ cutlist });
     const rows = aggregateChapasByEspessura(chapas.sheets);

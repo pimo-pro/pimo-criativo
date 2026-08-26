@@ -23,12 +23,14 @@ export type ReportLineOverrides = Partial<Record<FinanceiroCustoKey, number>>;
 export type PaineisOrigemBadge =
   | "chapas_reais_m2_area"
   | "fallback_por_peca"
-  | "estimado";
+  | "estimado"
+  | "oficial_pro";
 
 export const PAINEIS_ORIGEM_LABEL: Record<PaineisOrigemBadge, string> = {
   chapas_reais_m2_area: "chapas reais · €/m² × área",
   fallback_por_peca: "fallback por peça",
-  estimado: "chapas estimadas (sem nesting real)",
+  estimado: "Estimado — pode diferir do TCN final",
+  oficial_pro: "Oficial (TCN/PRO)",
 };
 
 /** Painéis oficiais = paineis + chapasReais (anti double-count na UI). */
@@ -44,11 +46,14 @@ export function resolvePaineisOrigem(
 ): PaineisOrigemBadge {
   const chapasEur = Number(snap.custosEffective.chapasReais) || 0;
   const meta = snap.chapasReaisMeta;
-  if (chapasEur > 0 && meta?.nestingMode === "real") {
-    return "chapas_reais_m2_area";
+  if (snap.chapas?.mode === "oficial_pro" || meta?.nestingMode === "oficial_pro") {
+    return "oficial_pro";
   }
   if (snap.chapas?.mode === "estimado" || meta?.nestingMode === "estimado") {
     return "estimado";
+  }
+  if (chapasEur > 0 && meta?.nestingMode === "real") {
+    return "chapas_reais_m2_area";
   }
   return "fallback_por_peca";
 }

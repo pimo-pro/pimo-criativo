@@ -227,7 +227,7 @@ export function buildFerragensTotaisArmazemData(
     industrialPieceEdits: undefined,
   });
 
-  const chapas = computeChapasReal(items, projectName, boxes);
+  const chapas = computeChapasReal(items, projectName, boxes, { projectId: projectName });
   const sheetDef = getSheetDefinitionFromSettings();
   const defaultW = sheetDef.largura_mm || CHAPA_PADRAO_LARGURA;
   const defaultH = sheetDef.altura_mm || CHAPA_PADRAO_ALTURA;

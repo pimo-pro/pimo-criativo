@@ -1,6 +1,8 @@
 import jsPDF from "jspdf";
 import type { ChapasRealSummary } from "../industrial/computeChapasReal";
 import type { ConsumoMateriaisSummary } from "../industrial/computeConsumoMateriais";
+import { financeiroChapasBadgeLabel } from "../financeiro/financeiroChapasModeLabels";
+import type { FinanceiroChapasMode } from "../financeiro/financeiroUnificadoTypes";
 import { loadLogoIndustrialDataUrl } from "./logoIndustrialPublic";
 import {
   drawIndustrialSectionPdfBrandOnly,
@@ -12,6 +14,13 @@ import {
 
 export function industrialArmazemPdfFileName(projectName: string): string {
   return industrialSectionPdfFileName(projectName, "industrial_armazem");
+}
+
+function chapasOrigemPdfLabel(mode: ChapasRealSummary["mode"]): string {
+  if (mode === "oficial_pro" || mode === "estimado" || mode === "real") {
+    return financeiroChapasBadgeLabel(mode as FinanceiroChapasMode);
+  }
+  return "—";
 }
 
 function aggregateChapasByMaterial(summary: ChapasRealSummary): string[][] {
@@ -51,6 +60,7 @@ export async function buildIndustrialArmazemPdf(
 
   const resumo = [
     ["Chapas necessárias", String(chapas.totalSheets)],
+    ["Origem da contagem", chapasOrigemPdfLabel(chapas.mode)],
     ["Desperdício total (mm²)", chapas.totalWasteMm2.toFixed(0)],
     ["Desperdício total (%)", `${chapas.totalWastePct.toFixed(1)}%`],
     ["Peças totais", String(totalPecas)],

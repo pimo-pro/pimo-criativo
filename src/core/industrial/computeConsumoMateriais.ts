@@ -72,7 +72,7 @@ export function computeConsumoMateriais(
     };
   });
 
-  const chapas = computeChapasReal(items, projectName, boxes);
+  const chapas = computeChapasReal(items, projectName, boxes, { projectId: projectName });
   const porChapa: ConsumoPorChapaRow[] =
     chapas.sheets.length > 0
       ? chapas.sheets.map((s) => ({

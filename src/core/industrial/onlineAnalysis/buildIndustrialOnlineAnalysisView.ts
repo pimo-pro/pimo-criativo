@@ -425,7 +425,7 @@ export function buildCanonicalIndustrialOnlineAnalysisSections(
 
   if (docId === "industrial_armazem") {
     const items = cutlistItems(project);
-    const chapas = computeChapasReal(items, projectName, boxes);
+    const chapas = computeChapasReal(items, projectName, boxes, { projectId: projectName });
     const consumo = computeConsumoMateriais(items, materials, projectName, boxes);
     return [
       {

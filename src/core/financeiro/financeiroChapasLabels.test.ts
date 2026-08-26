@@ -97,6 +97,26 @@ describe("Labels Financeiro UI — Painéis / Gavetas (sem Chapas reais)", () =>
     );
   });
 
+  it("labels de métrica chapas: estimado / oficial_pro / real", () => {
+    expect(
+      financeiroMetricRows(
+        baseSnap({ chapas: { count: 3, mode: "estimado" }, custosEffective: zeroCustos })
+      ).find(([k]) => k.startsWith("Nº de chapas"))?.[0]
+    ).toBe("Nº de chapas (Estimado)");
+
+    expect(
+      financeiroMetricRows(
+        baseSnap({ chapas: { count: 5, mode: "oficial_pro" }, custosEffective: zeroCustos })
+      ).find(([k]) => k.startsWith("Nº de chapas"))?.[0]
+    ).toBe("Nº de chapas (Oficial TCN/PRO)");
+
+    expect(
+      financeiroMetricRows(
+        baseSnap({ chapas: { count: 2, mode: "real" }, custosEffective: zeroCustos })
+      ).find(([k]) => k.startsWith("Nº de chapas"))?.[0]
+    ).toBe("Nº de chapas (Real)");
+  });
+
   it("acentos PT nas linhas de custo", () => {
     const snap = baseSnap({ custosEffective: zeroCustos });
     const labels = financeiroCustoRows(snap).map((r) => r.label);

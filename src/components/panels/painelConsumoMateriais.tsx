@@ -45,7 +45,7 @@ export default function PainelConsumoMateriais({ embedded }: { embedded?: boolea
     beginIndustrialFileGeneration();
     void (async () => {
       try {
-        const chapas = computeChapasReal(items, projectName, boxes);
+        const chapas = computeChapasReal(items, projectName, boxes, { projectId: projectName });
         const doc = await buildIndustrialArmazemPdf(projectName, chapas, summary);
         doc.save(industrialArmazemPdfFileName(projectName));
       } finally {

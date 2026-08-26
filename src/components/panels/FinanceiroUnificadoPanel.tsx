@@ -12,14 +12,21 @@ import {
   financeiroCustoRows,
   financeiroMetricRows,
 } from "../../core/financeiro";
+import {
+  financeiroChapasBadgeLabel,
+  financeiroChapasEstimadoHint,
+  isChapasModeEstimado,
+  isChapasModeOficial,
+} from "../../core/financeiro/financeiroChapasModeLabels";
 import { formatCurrency } from "../../utils/formatting";
+import type { FinanceiroChapasMode } from "../../core/financeiro/financeiroUnificadoTypes";
 
-const chapasBadgeStyle = (mode: "estimado" | "real"): React.CSSProperties => ({
+const chapasBadgeStyle = (mode: FinanceiroChapasMode): React.CSSProperties => ({
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
   fontWeight: 600,
-  color: mode === "real" ? "#16a34a" : "#ea580c",
+  color: isChapasModeOficial(mode) || mode === "real" ? "#16a34a" : "#ea580c",
 });
 
 const gridStyle: React.CSSProperties = {
@@ -114,7 +121,7 @@ export default function FinanceiroUnificadoPanel({ embedded }: { embedded?: bool
                         <span style={chapasBadgeStyle(snap.chapas.mode)}>
                           {value}
                           <span style={{ fontSize: 11, fontWeight: 600 }}>
-                            {snap.chapas.mode === "real" ? "Real" : "Estimado"}
+                            {financeiroChapasBadgeLabel(snap.chapas.mode)}
                           </span>
                         </span>
                       ) : (
@@ -125,13 +132,12 @@ export default function FinanceiroUnificadoPanel({ embedded }: { embedded?: bool
                 );
               })}
             </div>
-            {snap.chapas.mode === "estimado" ||
+            {isChapasModeEstimado(snap.chapas.mode) ||
             (snap.custosAvancadosWarnings && snap.custosAvancadosWarnings.length > 0) ? (
               <div style={{ marginTop: 10, display: "grid", gap: 4 }}>
-                {snap.chapas.mode === "estimado" ? (
+                {isChapasModeEstimado(snap.chapas.mode) ? (
                   <p style={{ ...microMuted, color: "#ea580c", fontWeight: 600 }}>
-                    Chapas em modo estimado: custo de chapas = 0 € até haver nesting real
-                    (sheets[]).
+                    {financeiroChapasEstimadoHint()}
                   </p>
                 ) : null}
                 {(snap.custosAvancadosWarnings ?? []).slice(0, 4).map((w) => (

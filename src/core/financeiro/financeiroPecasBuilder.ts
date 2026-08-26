@@ -42,7 +42,7 @@ import {
 import { computeDesperdicioSerragemFinanceiras } from "./computeDesperdicioSerragemFinanceiras";
 import { computeCustosAvancadosFinanceiras } from "./computeCustosAvancadosFinanceiras";
 import { computeOperacoesIndustriaisAvancadas } from "./computeOperacoesIndustriaisAvancadas";
-import { computeChapasReal } from "../industrial/computeChapasReal";
+import { computeChapasReal, hasChapasSheets, isChapasRealOficial } from "../industrial/computeChapasReal";
 import { deriveCustoChapaReal } from "./deriveCustoChapaReal";
 import { FINANCEIRO_PIECE_MATERIAL_KEYS } from "./financeiroUnificadoTypes";
 
@@ -322,9 +322,12 @@ export function buildFinanceiroPecasRows(
   const orlaPieces = project.orlaPieces ?? {};
   const orlaByPiece = buildOrlaCustoByPieceId(project);
   const opsFinanceiras = computeOperacoesFinanceiras(cutlist);
-  const chapasReal = computeChapasReal(cutlist, projectName, boxes);
-  const isReal = chapasReal.mode === "real" && chapasReal.sheets.length > 0;
-  const wasteM2 = isReal ? chapasReal.totalWasteMm2 / 1_000_000 : 0;
+  const chapasReal = computeChapasReal(cutlist, projectName, boxes, {
+    projectId: projectName,
+  });
+  const isOficial = isChapasRealOficial(chapasReal.mode) && hasChapasSheets(chapasReal);
+  const hasSheets = hasChapasSheets(chapasReal);
+  const wasteM2 = hasSheets ? chapasReal.totalWasteMm2 / 1_000_000 : 0;
   const despSerr = computeDesperdicioSerragemFinanceiras({
     cutlist,
     wasteM2,
@@ -340,8 +343,8 @@ export function buildFinanceiroPecasRows(
   const derivedChapa = deriveCustoChapaReal({ cutlist });
   const avancados = computeCustosAvancadosFinanceiras({
     cutlist,
-    chapasCount: isReal ? chapasReal.totalSheets : 0,
-    chapasModeReal: isReal,
+    chapasCount: isOficial ? chapasReal.totalSheets : 0,
+    chapasModeReal: isOficial,
     pesoTotalKg,
     pesoByPieceId,
     custoChapaRealDerived: derivedChapa.custoChapaReal,

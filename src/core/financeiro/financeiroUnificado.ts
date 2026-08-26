@@ -15,7 +15,7 @@ import {
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import { ferragensFromBoxes } from "../manufacturing/cutlistFromBoxes";
 import { freeagem4x35JuntasRematesCusto } from "../ferragens/freeagemParafusos";
-import { computeChapasReal } from "../industrial/computeChapasReal";
+import { computeChapasReal, hasChapasSheets, isChapasRealOficial } from "../industrial/computeChapasReal";
 import { deriveCustoChapaReal } from "./deriveCustoChapaReal";
 import { getSettings } from "../settings/settingsService";
 import { isDrawerPieceTipo } from "../../services/drawerCutlistAdapter";
@@ -59,6 +59,7 @@ import {
   type FinanceiroOverrides,
   type FinanceiroUnificadoSnapshot,
 } from "./financeiroUnificadoTypes";
+import { financeiroChapasMetricLabel } from "./financeiroChapasModeLabels";
 
 /** Recalcula orla industrial (nunca confiar em ferragemOrla stale). */
 function computeOrlaFinanceirasLive(
@@ -360,11 +361,14 @@ export function computeFinanceiroUnificado(
     total: opsFinanceiras.precoTotal,
   };
 
-  // Chapas reais 1× — métricas + desperdício € + F3c avançados
-  const chapasReal = computeChapasReal(cutlist, projectName, boxes);
-  const isReal = chapasReal.mode === "real" && chapasReal.sheets.length > 0;
+  // Chapas: SSOT oficial = snapshot PRO; senão estimado A1 (N visível, € chapas = 0)
+  const chapasReal = computeChapasReal(cutlist, projectName, boxes, {
+    projectId: projectName,
+  });
+  const isOficial = isChapasRealOficial(chapasReal.mode) && hasChapasSheets(chapasReal);
+  const hasSheets = hasChapasSheets(chapasReal);
   const derivedChapa = deriveCustoChapaReal({ cutlist });
-  const wasteM2 = isReal ? chapasReal.totalWasteMm2 / 1_000_000 : 0;
+  const wasteM2 = hasSheets ? chapasReal.totalWasteMm2 / 1_000_000 : 0;
   const serragemM2 = estimateSerragemM2(cutlist);
   const despSerr = computeDesperdicioSerragemFinanceiras({
     cutlist,
@@ -386,8 +390,8 @@ export function computeFinanceiroUnificado(
   }
   const avancados = computeCustosAvancadosFinanceiras({
     cutlist,
-    chapasCount: isReal ? chapasReal.totalSheets : 0,
-    chapasModeReal: isReal,
+    chapasCount: isOficial ? chapasReal.totalSheets : 0,
+    chapasModeReal: isOficial,
     pesoTotalKg,
     pesoByPieceId,
     custoChapaRealDerived: derivedChapa.custoChapaReal,
@@ -404,9 +408,11 @@ export function computeFinanceiroUnificado(
   custosComputed.logistica = avancados.precoLogistica;
 
   const chapasNestingWarnings: string[] = [];
-  if (!isReal && chapasReal.mode === "estimado") {
+  if (!isOficial && chapasReal.mode === "estimado") {
     chapasNestingWarnings.push(
-      `chapasMode=estimado (N≈${chapasReal.totalSheets}): chapasReais€=0 — nesting fast sem sheets[]`
+      hasSheets
+        ? `chapasMode=estimado (N=${chapasReal.totalSheets} fast): chapasReais€=0 — aguarda TCN/PRO oficial`
+        : `chapasMode=estimado (N≈${chapasReal.totalSheets}): chapasReais€=0 — nesting fast sem sheets[]`
     );
   }
   if (chapasReal.diagnostics.length > 0) {
@@ -523,8 +529,8 @@ export function computeFinanceiroUnificado(
     pesoTotalKg,
     areaTotalMontadoM3,
     chapas: {
-      count: isReal ? chapasReal.totalSheets : chapasEstimadas,
-      mode: isReal ? "real" : "estimado",
+      count: hasSheets ? chapasReal.totalSheets : chapasEstimadas,
+      mode: isOficial ? "oficial_pro" : "estimado",
       diagnostics: chapasReal.diagnostics.length > 0 ? chapasReal.diagnostics : undefined,
     },
     desperdicioTotalM2: wasteM2,
@@ -547,9 +553,9 @@ export function computeFinanceiroUnificado(
     custosAvancadosWarnings,
     materialCostMode: avancados.materialCostMode,
     chapasReaisMeta: {
-      countMonetizado: isReal ? chapasReal.totalSheets : 0,
+      countMonetizado: isOficial ? chapasReal.totalSheets : 0,
       custoChapaDerived: derivedChapa.custoChapaReal,
-      nestingMode: isReal ? "real" : "estimado",
+      nestingMode: isOficial ? "oficial_pro" : "estimado",
     },
     operacoesAvancadasBreakdown,
     ferragensUnificacao,
@@ -558,15 +564,13 @@ export function computeFinanceiroUnificado(
 
 /** Linhas PDF/UI de métricas (bloco A). */
 export function financeiroMetricRows(snap: FinanceiroUnificadoSnapshot): Array<[string, string]> {
-  const chapasLabel =
-    snap.chapas.mode === "real" ? `Nº de chapas (Real)` : `Nº de chapas (Estimado)`;
   const rows: Array<[string, string]> = [
     ["Caixas", String(snap.caixas)],
     ["Peças totais", String(snap.pecasTotais)],
     ["Área total", `${snap.areaTotalM2.toFixed(3)} m²`],
     ["Peso total", `${snap.pesoTotalKg.toFixed(2)} kg`],
     ["Área total montado", `${snap.areaTotalMontadoM3.toFixed(3)} m³`],
-    [chapasLabel, String(snap.chapas.count)],
+    [financeiroChapasMetricLabel(snap.chapas.mode), String(snap.chapas.count)],
     ["Desperdício total", `${snap.desperdicioTotalM2.toFixed(3)} m²`],
     ["Serragem total", `${snap.serragemTotalM2.toFixed(3)} m²`],
     ["Ferragens totais", String(snap.ferragensTotais)],

@@ -161,7 +161,8 @@ export type ProjectReportMontagem = {
 export type ReportPaineisOrigem =
   | "chapas_reais_m2_area"
   | "fallback_por_peca"
-  | "estimado";
+  | "estimado"
+  | "oficial_pro";
 
 export type ProjectReportFinanceiro = {
   ivaPct: number;

@@ -65,9 +65,10 @@ export function seedChapasDetalhe(
     const chapas = computeChapasReal(
       cutlist,
       state?.projectName || projectId,
-      boxes
+      boxes,
+      { projectId }
     );
-    if (chapas.mode !== "real" || chapas.sheets.length === 0) return fin;
+    if (chapas.sheets.length === 0) return fin;
     const detalhe = aggregateChapasByEspessura(chapas.sheets);
     if (detalhe.length === 0) return fin;
     return withPaineisChapasDetalhe(fin, detalhe);

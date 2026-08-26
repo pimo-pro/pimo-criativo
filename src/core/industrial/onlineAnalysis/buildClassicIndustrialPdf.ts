@@ -165,7 +165,7 @@ export async function buildClassicIndustrialPdf(
         industrialPieceEdits: project.industrialPieceEdits,
       });
       const consumo = computeConsumoMateriais(items, materials, projectName, boxes);
-      const chapas = computeChapasReal(items, projectName, boxes);
+      const chapas = computeChapasReal(items, projectName, boxes, { projectId: projectName });
       return buildIndustrialArmazemPdf(projectName, chapas, consumo);
     }
     default: {

@@ -35,6 +35,7 @@ import { assertFerragensTotaisInExport } from "../core/fabrication/exportProject
 import { ensureLogoIndustrialLoaded } from "../core/pdf/logoIndustrialPublic";
 import { computeConsumoMateriais } from "../core/industrial/computeConsumoMateriais";
 import { computeChapasReal } from "../core/industrial/computeChapasReal";
+import { publishChapasOficiaisFromProBundles } from "../core/industrial/chapasOficiaisPublish";
 import {
   buildIndustrialArmazemPdf,
   industrialArmazemPdfFileName,
@@ -676,6 +677,15 @@ export function useGerarArquivoHandlers() {
         getDefaultCncLayoutOptions()
       );
 
+      publishChapasOficiaisFromProBundles({
+        projectId: project.projectName ?? "Projeto",
+        projectName: project.projectName ?? "Projeto",
+        items: allItems as CutlistItemForPieces[],
+        bundles: thicknessBundles,
+        boxes,
+        isProMode: true,
+      });
+
       if (thicknessBundles.length === 0) {
         showToast("Nenhuma peça com espessura válida para o layout de corte.", "warning");
         return;
@@ -753,6 +763,15 @@ export function useGerarArquivoHandlers() {
           }
         )
       );
+
+      publishChapasOficiaisFromProBundles({
+        projectId: project.projectName ?? "Projeto",
+        projectName: project.projectName ?? "Projeto",
+        items: allItems as CutlistItemForPieces[],
+        bundles: thicknessBundles,
+        boxes,
+        isProMode: true,
+      });
 
       if (thicknessBundles.length === 0) {
         showToast("Nenhuma peça com espessura válida para o layout de corte.", "warning");
@@ -954,6 +973,16 @@ export function useGerarArquivoHandlers() {
             cncItems,
             layoutOptionsBase
           );
+          if (mode === "pro") {
+            publishChapasOficiaisFromProBundles({
+              projectId: project.projectName ?? "Projeto",
+              projectName: project.projectName ?? "Projeto",
+              items: allItems,
+              bundles: thicknessBundles,
+              boxes,
+              isProMode: true,
+            });
+          }
           const rows: Array<{ name: string; tcn: string; base: string }> = [];
           for (const bundle of thicknessBundles) {
             const files = bundle.cncBundle.cnc?.files ?? [];
@@ -1319,22 +1348,6 @@ export function useGerarArquivoHandlers() {
             errors.push({ step: `PDF ${name}`, message: "Documento inválido." });
           }
         }
-
-        const consumoSummary = computeConsumoMateriais(
-          allItems,
-          listIndustrialMaterialsSnapshot(),
-          proj.projectName ?? safeSlug,
-          boxes
-        );
-        const chapasReal = computeChapasReal(allItems, proj.projectName ?? safeSlug, boxes);
-        const armazemPdf = await resolveIndustrialZipPdf(
-          fullProjectState,
-          "industrial_armazem",
-          () => buildIndustrialArmazemPdf(proj.projectName ?? safeSlug, chapasReal, consumoSummary)
-        );
-        if (!safeAddPdf(zip, industrialArmazemPdfFileName(safeSlug), armazemPdf)) {
-          errors.push({ step: "PDF industrial_armazem", message: "Documento inválido." });
-        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         errors.push({ step: "PDFs secções industriais", message: msg });
@@ -1356,11 +1369,42 @@ export function useGerarArquivoHandlers() {
             ...getDefaultCncLayoutOptions(),
           }
         );
+        publishChapasOficiaisFromProBundles({
+          projectId: project.projectName ?? safeSlug,
+          projectName: project.projectName ?? safeSlug,
+          items: allItems as CutlistItemForPieces[],
+          bundles: thicknessCncBundles,
+          boxes,
+          isProMode: true,
+        });
       } catch (err) {
         pushFullExportError(errors, err, "Nesting por espessura");
         devLogger.error("Full export: Nesting por espessura", err);
       } finally {
         hideCutLayoutLoader();
+      }
+
+      // PDF armazém DEPOIS do nesting PRO + publish (SSOT oficial quando fingerprint bate)
+      try {
+        const consumoSummary = computeConsumoMateriais(
+          allItems,
+          listIndustrialMaterialsSnapshot(),
+          proj.projectName ?? safeSlug,
+          boxes
+        );
+        const chapasReal = computeChapasReal(allItems, proj.projectName ?? safeSlug, boxes);
+        const armazemPdf = await resolveIndustrialZipPdf(
+          fullProjectState,
+          "industrial_armazem",
+          () => buildIndustrialArmazemPdf(proj.projectName ?? safeSlug, chapasReal, consumoSummary)
+        );
+        if (!safeAddPdf(zip, industrialArmazemPdfFileName(safeSlug), armazemPdf)) {
+          errors.push({ step: "PDF industrial_armazem", message: "Documento inválido." });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push({ step: "PDF industrial_armazem", message: msg });
+        devLogger.error("Full export: PDF industrial_armazem", err);
       }
 
       // --- Etiquetas UEE (um PDF por espessura em cnc/<espessura>/) ---

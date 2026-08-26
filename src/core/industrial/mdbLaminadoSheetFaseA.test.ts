@@ -153,7 +153,7 @@ describe("Fase A — chapa MDB Laminado 30 (3660×630×30)", () => {
       "FaseA_Chapas",
       [{ id: "box-1", nome: "Caixa 1" }]
     );
-    expect(summary.mode).toBe("real");
+    expect(summary.mode).toBe("estimado");
     const mdb = summary.sheets.filter(
       (s) => s.sheetLarguraMm === MDB_LAMINADO_SHEET_LF_MM && s.sheetAlturaMm === MDB_LAMINADO_SHEET_HF_MM
     );

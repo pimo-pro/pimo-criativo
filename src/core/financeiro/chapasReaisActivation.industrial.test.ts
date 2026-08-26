@@ -191,15 +191,15 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
 
     const avancados = computeCustosAvancadosFinanceiras({
       cutlist,
-      chapasCount: chapas.mode === "real" ? chapas.totalSheets : 0,
-      chapasModeReal: chapas.mode === "real" && chapas.sheets.length > 0,
+      chapasCount: chapas.mode === "oficial_pro" ? chapas.totalSheets : 0,
+      chapasModeReal: chapas.mode === "oficial_pro" && chapas.sheets.length > 0,
       pesoTotalKg: 20,
       custoChapaRealDerived: derived.custoChapaReal,
     });
 
     expect(FINANCEIRO_PIECE_MATERIAL_KEYS).not.toContain("gavetas");
 
-    if (chapas.mode === "real" && chapas.sheets.length > 0) {
+    if (chapas.mode === "oficial_pro" && chapas.sheets.length > 0) {
       expect(avancados.suppressPieceMaterial).toBe(true);
       expect(chapas.totalSheets).toBeGreaterThan(0);
       expect(avancados.precoChapasReais).toBe(
@@ -223,7 +223,7 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     }
   });
 
-  it("cutlist multi-espessura: grupos 19+10 separados; € só com mode=real", () => {
+  it("cutlist multi-espessura: grupos 19+10 separados; € só com mode=oficial_pro", () => {
     enableChapasReaisMode();
     const cutlist = cutlistMultiEspessura();
     const groups = groupCutlistItemsByMaterialAndThickness(
@@ -235,13 +235,13 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     const derived = deriveCustoChapaReal({ cutlist });
     const avancados = computeCustosAvancadosFinanceiras({
       cutlist,
-      chapasCount: chapas.mode === "real" ? chapas.totalSheets : 0,
-      chapasModeReal: chapas.mode === "real" && chapas.sheets.length > 0,
+      chapasCount: chapas.mode === "oficial_pro" ? chapas.totalSheets : 0,
+      chapasModeReal: chapas.mode === "oficial_pro" && chapas.sheets.length > 0,
       pesoTotalKg: 25,
       custoChapaRealDerived: derived.custoChapaReal,
     });
 
-    if (chapas.mode === "real") {
+    if (chapas.mode === "oficial_pro") {
       expect(avancados.suppressPieceMaterial).toBe(true);
       expect(avancados.precoChapasReais).toBeGreaterThan(0);
       expect(chapas.sheets.some((s) => s.espessuraMm === 19)).toBe(true);
@@ -269,7 +269,7 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
 
     const labels = financeiroCustoRows(snap).map((r) => r.label);
 
-    if (snap.chapas.mode === "real" && (snap.chapasReaisMeta?.countMonetizado ?? 0) > 0) {
+    if (snap.chapas.mode === "oficial_pro" && (snap.chapasReaisMeta?.countMonetizado ?? 0) > 0) {
       expect(snap.custosEffective.paineis).toBe(0);
       expect(labels).toContain("Painéis");
       const n = snap.chapasReaisMeta!.countMonetizado;

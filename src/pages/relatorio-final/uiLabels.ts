@@ -210,7 +210,7 @@ export const R = {
 
   paineisTitulo: "Pain\u00e9is (chapas reais)",
   paineisHint:
-    "Chapas reais do projeto (mesmas do nesting/TCN). Edi\u00e7\u00e3o local no relat\u00f3rio; totais oficiais no Financeiro Unificado.",
+    "Contagem oficial = nesting PRO/TCN (quando j\u00e1 gerado). Sem TCN: estimativa r\u00e1pida \u2014 pode diferir do TCN final. Totais oficiais no Financeiro Unificado.",
   semChapas: "Sem chapas. Adicione do cat\u00e1logo ou abra um projeto com nesting real.",
   totalChapas: "Total das chapas",
   totalUnificadoMadeira: "Refer\u00eancia Unificado (madeira)",

@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { CutListItemComPreco } from "../types";
 import { computeChapasReal } from "./computeChapasReal";
 import {
+  clearChapasOficiaisPro,
+  publishChapasOficiaisPro,
+} from "./chapasOficiaisProStore";
+import { buildChapasOficiaisFingerprint } from "./cutlistFingerprint";
+import { buildChapasSummaryFromProBundles } from "./chapasSummaryFromProBundles";
+import {
   groupCutlistItemsByMaterialAndThickness,
   resolveMaterialLabelForCutlistItem,
 } from "../cnc/industrialThicknessGroups";
@@ -176,7 +182,7 @@ describe("computeChapasReal - parity with TCN grouping", () => {
     expect(result.diagnostics.some((d) => d.includes("vazio"))).toBe(true);
   });
 
-  it("resultado real expõe mode=real", () => {
+  it("fast com sheets → mode=estimado (A1, não oficial)", () => {
     const items: CutListItemComPreco[] = [
       makeItem({
         nome: "Lat_A",
@@ -189,12 +195,143 @@ describe("computeChapasReal - parity with TCN grouping", () => {
     ];
     const result = computeChapasReal(items, "TesteMode", [{ id: "box-1", nome: "Caixa 1" }]);
     if (result.sheets.length > 0) {
-      expect(result.mode).toBe("real");
+      expect(result.mode).toBe("estimado");
+      expect(result.diagnostics.some((d) => d.includes("nesting_fast_a1"))).toBe(true);
     } else {
       expect(result.mode).toBe("estimado");
       expect(result.diagnostics.length).toBeGreaterThan(0);
       expect(result.diagnostics[0]).toMatch(/fallback estimado|chapasReais€=0/);
     }
+  });
+
+  it("snapshot PRO válido → mode=oficial_pro", () => {
+    clearChapasOficiaisPro();
+    const items: CutListItemComPreco[] = [
+      makeItem({
+        nome: "Lat_Pro",
+        material: "MDF Branco 19",
+        materialId: "mdf_branco-19",
+        espessura: 19,
+        largura: 600,
+        altura: 400,
+      }),
+    ];
+    const projectName = "Projeto Oficial Chapas";
+    const fingerprint = buildChapasOficiaisFingerprint(items as CutlistItemForPieces[]);
+    const summary = buildChapasSummaryFromProBundles({
+      bundles: [
+        {
+          thicknessMm: 19,
+          materialLabel: "MDF Branco",
+          items: items as CutlistItemForPieces[],
+          layoutResult: {
+            sheets: [
+              {
+                sheet: { largura_mm: 2800, altura_mm: 2070, espessura_mm: 19 },
+                placements: [
+                  {
+                    x_mm: 0,
+                    y_mm: 0,
+                    largura_mm: 600,
+                    altura_mm: 400,
+                    rotacao: 0,
+                    sheetIndex: 0,
+                    boxId: "box-1",
+                    partName: "lateral",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      projectName,
+      boxes: [{ id: "box-1", nome: "C1" }],
+    });
+    expect(
+      publishChapasOficiaisPro({
+        projectId: projectName,
+        fingerprint,
+        summary,
+        isProMode: true,
+      })
+    ).toBe(true);
+
+    const result = computeChapasReal(items, projectName, [{ id: "box-1" }], {
+      projectId: projectName,
+    });
+    expect(result.mode).toBe("oficial_pro");
+    expect(result.totalSheets).toBe(1);
+    clearChapasOficiaisPro();
+  });
+
+  it("fingerprint stale (cutlist mudou após publish) → estimado", () => {
+    clearChapasOficiaisPro();
+    const itemsA: CutListItemComPreco[] = [
+      makeItem({
+        nome: "Lat_A",
+        material: "MDF Branco 19",
+        materialId: "mdf_branco-19",
+        espessura: 19,
+        largura: 600,
+        altura: 400,
+      }),
+    ];
+    const itemsB: CutListItemComPreco[] = [
+      makeItem({
+        nome: "Lat_A",
+        material: "MDF Branco 19",
+        materialId: "mdf_branco-19",
+        espessura: 19,
+        largura: 700,
+        altura: 400,
+      }),
+    ];
+    const projectName = "Projeto Stale Fingerprint";
+    const fingerprintA = buildChapasOficiaisFingerprint(itemsA as CutlistItemForPieces[]);
+    const summary = buildChapasSummaryFromProBundles({
+      bundles: [
+        {
+          thicknessMm: 19,
+          materialLabel: "MDF Branco",
+          items: itemsA as CutlistItemForPieces[],
+          layoutResult: {
+            sheets: [
+              {
+                sheet: { largura_mm: 2800, altura_mm: 2070, espessura_mm: 19 },
+                placements: [
+                  {
+                    x_mm: 0,
+                    y_mm: 0,
+                    largura_mm: 600,
+                    altura_mm: 400,
+                    rotacao: 0,
+                    sheetIndex: 0,
+                    boxId: "box-1",
+                    partName: "lateral",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      projectName,
+      boxes: [{ id: "box-1" }],
+    });
+    publishChapasOficiaisPro({
+      projectId: projectName,
+      fingerprint: fingerprintA,
+      summary,
+      isProMode: true,
+    });
+
+    const result = computeChapasReal(itemsB, projectName, [{ id: "box-1" }], {
+      projectId: projectName,
+    });
+    expect(result.mode).toBe("estimado");
+    expect(result.mode).not.toBe("oficial_pro");
+    clearChapasOficiaisPro();
   });
 
   it("peças nas chapas trazem nome completo + N QR (= buildIndustrialId)", () => {

@@ -31,6 +31,8 @@ import {
   resolveIndustrialIdForDocument,
 } from "../etiquetas/industrialDisplayName";
 import { resolvePieceToken } from "../naming/industrialNaming";
+import { buildChapasOficiaisFingerprint } from "./cutlistFingerprint";
+import { getChapasOficiaisProValid } from "./chapasOficiaisProStore";
 
 /** Peça dentro de uma chapa — nome completo + N QR (= etiqueta). */
 export type ChapasRealPieceRow = {
@@ -55,8 +57,13 @@ export type ChapasRealSheetRow = {
   pieces: ChapasRealPieceRow[];
 };
 
-/** real = sheets[] do nesting fast; estimado = fallback por área; vazio = sem peças. */
-export type ChapasRealMode = "real" | "estimado" | "vazio";
+/**
+ * oficial_pro = snapshot TCN/PRO (monetizável);
+ * estimado = nesting fast ou área (A1: mostrar N, não monetizar);
+ * vazio = sem peças;
+ * real = legado (já não emitido por computeChapasReal).
+ */
+export type ChapasRealMode = "oficial_pro" | "estimado" | "vazio" | "real";
 
 export type ChapasRealSummary = {
   totalSheets: number;
@@ -68,6 +75,19 @@ export type ChapasRealSummary = {
   /** Motivos de fallback / grupos sem layout (observabilidade Fase 5B). */
   diagnostics: string[];
 };
+
+export type ComputeChapasRealOptions = {
+  /** Chave do store (nome ou slug). Default = projectName. */
+  projectId?: string | null;
+};
+
+export function isChapasRealOficial(mode: ChapasRealMode): boolean {
+  return mode === "oficial_pro";
+}
+
+export function hasChapasSheets(summary: Pick<ChapasRealSummary, "sheets">): boolean {
+  return (summary.sheets?.length ?? 0) > 0;
+}
 
 function emptySummary(
   partial: Partial<ChapasRealSummary> & Pick<ChapasRealSummary, "mode" | "diagnostics">
@@ -157,23 +177,35 @@ export function resolveChapasRealPieceRow(
 }
 
 /**
- * Contagem de chapas alinhada ao agrupamento TCN (material + espessura).
- * Usa opções CNC "fast" na thread principal — as metaheurísticas PRO bloqueariam o browser.
- * O nesting PRO/TCN continua no worker via buildCncBundlesPerThickness.
- *
- * Fase 5B: em fallback (sheets=[]), mantém N estimado mas mode="estimado" + diagnostics.
- * O financeiro só monetiza chapas quando mode="real".
+ * Contagem de chapas: SSOT = snapshot PRO (store) quando fingerprint bate;
+ * senão nesting fast na thread principal (A1 → mode estimado, sem monetizar).
+ * Não altera params industriais de sheet/kerf — só lê as mesmas funções do PRO.
  */
 export function computeChapasReal(
   items: CutListItemComPreco[],
   projectName: string,
-  boxes: Array<{ id: string; nome?: string }>
+  boxes: Array<{ id: string; nome?: string }>,
+  options?: ComputeChapasRealOptions
 ): ChapasRealSummary {
   if (items.length === 0) {
     return emptySummary({
       mode: "vazio",
       diagnostics: ["cutlist vazio — sem chapas para calcular"],
     });
+  }
+
+  const projectKey = String(options?.projectId ?? projectName ?? "").trim() || projectName;
+  const fingerprint = buildChapasOficiaisFingerprint(items as CutlistItemForPieces[]);
+  const proSnap = getChapasOficiaisProValid(projectKey, fingerprint);
+  if (proSnap?.summary && hasChapasSheets(proSnap.summary)) {
+    const prior = (proSnap.summary.diagnostics ?? []).filter(
+      (d) => d !== "origem=oficial_pro" && d !== "origem=oficial_pro_store"
+    );
+    return {
+      ...proSnap.summary,
+      mode: "oficial_pro",
+      diagnostics: ["origem=oficial_pro_store", ...prior],
+    };
   }
 
   const sheetDef = getSheetDefinitionFromSettings();
@@ -324,7 +356,11 @@ export function computeChapasReal(
     totalWastePct: totalArea > 0 ? (totalWaste / totalArea) * 100 : 0,
     sheets,
     layout,
-    mode: "real",
-    diagnostics: diagnostics.length > 0 ? diagnostics : [],
+    mode: "estimado",
+    diagnostics: [
+      "origem=nesting_fast_a1",
+      "Estimado — pode diferir do TCN final",
+      ...diagnostics,
+    ],
   };
 }

@@ -65,6 +65,7 @@ import { buildBottomSectionPdfs } from "./industrialBottomSectionExports";
 import { ensureLogoIndustrialLoaded } from "../pdf/logoIndustrialPublic";
 import { computeConsumoMateriais } from "../industrial/computeConsumoMateriais";
 import { computeChapasReal } from "../industrial/computeChapasReal";
+import { publishChapasOficiaisFromProBundles } from "../industrial/chapasOficiaisPublish";
 import {
   buildIndustrialArmazemPdf,
   industrialArmazemPdfFileName,
@@ -669,28 +670,6 @@ export async function generateMultiProjectFabrication(
       safeAddPdf(zip, `${basePath}/${bottomPdfs.fileNames.pecasTotais}`, pecasDoc);
       safeAddPdf(zip, `${basePath}/${bottomPdfs.fileNames.ferragensTotais}`, ferragensTotaisDoc);
       safeAddPdf(zip, `${basePath}/${bottomPdfs.fileNames.totaisProjeto}`, totaisDoc);
-
-      const armazemItems = buildCutlistItemsForIndustrialExport({
-        boxes: proj.boxes,
-        rules: proj.rules,
-        materialId: proj.materialId,
-        projectName: proj.projectName,
-        remates: entry.state.remates ?? [],
-        rodapes: entry.state.rodapes ?? [],
-        extractedPartsByBoxId: proj.extractedPartsByBoxId ?? {},
-        industrialPieceEdits: entry.state.industrialPieceEdits ?? {},
-      });
-      const chapasReal = computeChapasReal(armazemItems, proj.projectName ?? folder, proj.boxes);
-      const consumoSummary = computeConsumoMateriais(
-        armazemItems,
-        industrialMaterialsSnapshot,
-        proj.projectName ?? folder,
-        proj.boxes
-      );
-      const armazemPdf = await resolveIndustrialZipPdf(entry.state, "industrial_armazem", () =>
-        buildIndustrialArmazemPdf(proj.projectName ?? folder, chapasReal, consumoSummary)
-      );
-      safeAddPdf(zip, `${basePath}/${industrialArmazemPdfFileName(folder)}`, armazemPdf);
     } catch (err) {
       devLogger.error("multiProjectFabrication: ferragens PDF/XLSX", err);
       throw err;
@@ -717,8 +696,20 @@ export async function generateMultiProjectFabrication(
       devLogger.error("multiProjectFabrication: etiquetas PDF", err);
     }
 
-    // TCN/CNC por projeto (nesting por espessura das peças do projeto)
+    // TCN/CNC por projeto (nesting PRO → publish oficial → PDF armazém)
     try {
+      const projectKey = proj.projectName ?? folder;
+      const armazemItems = buildCutlistItemsForIndustrialExport({
+        boxes: proj.boxes,
+        rules: proj.rules,
+        materialId: proj.materialId,
+        projectName: proj.projectName,
+        remates: entry.state.remates ?? [],
+        rodapes: entry.state.rodapes ?? [],
+        extractedPartsByBoxId: proj.extractedPartsByBoxId ?? {},
+        industrialPieceEdits: entry.state.industrialPieceEdits ?? {},
+      });
+
       const projPrefixedItems = allPrefixedCncItems.filter((item) =>
         (item.boxId ?? "").startsWith(entry.prefix)
       );
@@ -731,6 +722,17 @@ export async function generateMultiProjectFabrication(
           projPrefixedItems as CutlistItemForPieces[],
           cncPipelineOpts
         );
+
+        // Fingerprint = cutlist sem prefixo (igual Financeiro / Relatório)
+        publishChapasOficiaisFromProBundles({
+          projectId: projectKey,
+          projectName: projectKey,
+          items: armazemItems as CutlistItemForPieces[],
+          bundles: projThicknessBundles,
+          boxes: (proj.boxes ?? []).map((b) => ({ id: b.id, nome: b.nome })),
+          isProMode: nestingMode !== "none",
+        });
+
         const usedProjTcnNames = new Set<string>();
         for (const bundle of projThicknessBundles) {
           const files = bundle.cncBundle.cnc?.files ?? [];
@@ -760,6 +762,20 @@ export async function generateMultiProjectFabrication(
           }
         }
       }
+
+      const chapasReal = computeChapasReal(armazemItems, projectKey, proj.boxes, {
+        projectId: projectKey,
+      });
+      const consumoSummary = computeConsumoMateriais(
+        armazemItems,
+        industrialMaterialsSnapshot,
+        projectKey,
+        proj.boxes
+      );
+      const armazemPdf = await resolveIndustrialZipPdf(entry.state, "industrial_armazem", () =>
+        buildIndustrialArmazemPdf(projectKey, chapasReal, consumoSummary)
+      );
+      safeAddPdf(zip, `${basePath}/${industrialArmazemPdfFileName(folder)}`, armazemPdf);
     } catch (err) {
       devLogger.error("multiProjectFabrication: TCN por projeto", err);
     }
