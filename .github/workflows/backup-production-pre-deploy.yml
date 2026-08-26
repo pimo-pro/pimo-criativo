@@ -43,18 +43,25 @@ jobs:
           lftp -c "
             set ssl:verify-certificate no;
             set ftp:passive-mode true;
-            set net:timeout 120;
-            set net:max-retries 3;
+            set net:timeout 300;
+            set net:max-retries 5;
+            set cmd:fail-exit no;
             open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
             pwd;
-            mirror -c --verbose api/projects/data ${OUT}/api/projects/data || true;
-            mirror -c --verbose public_html/api/projects/data ${OUT}/api/projects/data || true;
-            get api/_impl/data/users.json -o ${OUT}/api/_impl/data/users.json || true;
-            get api/data/users.json -o ${OUT}/api/_impl/data/users.json.fallback || true;
+            ls api/projects/data;
+            lcd ${OUT}/api/projects/data;
+            cd api/projects/data;
+            mget -c *.json;
+            cd /;
+            get api/_impl/data/users.json -o ${OUT}/api/_impl/data/users.json;
             bye
           "
 
           COUNT="$(find "${OUT}/api/projects/data" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
+          if [ "${COUNT}" -lt 1 ]; then
+            echo "::error::Backup sem ficheiros JSON de projetos (count=${COUNT})"
+            exit 1
+          fi
           echo "project_json_count=${COUNT}" >> "${GITHUB_OUTPUT}"
           echo "backup_dir=${OUT}" >> "${GITHUB_OUTPUT}"
           echo "Projetos JSON: ${COUNT}"
