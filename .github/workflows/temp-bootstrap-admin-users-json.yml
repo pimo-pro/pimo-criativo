@@ -43,42 +43,38 @@ jobs:
           TARGET_EMAIL: ${{ inputs.target_email }}
         run: |
           set -euo pipefail
-          # shellcheck disable=SC2016
-          lftp -c "
-            set ssl:verify-certificate no;
-            set net:timeout 20;
-            set net:max-retries 2;
-            set ftp:passive-mode true;
-            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
-            cls -1 public_html/api/_impl/data/users.json || true;
-            cls -1 api/_impl/data/users.json || true;
-            cls -1 public_html/api/data/users.json || true;
-            bye
-          " | tee /tmp/ftp-cls.txt
-
+          # FTP cwd do deploy = public_html (não prefixar public_html/).
           REMOTE=""
-          if grep -q 'public_html/api/_impl/data/users.json' /tmp/ftp-cls.txt; then
-            REMOTE="public_html/api/_impl/data/users.json"
-          elif grep -q '^api/_impl/data/users.json$' /tmp/ftp-cls.txt || grep -q 'api/_impl/data/users.json' /tmp/ftp-cls.txt; then
-            REMOTE="api/_impl/data/users.json"
-          elif grep -q 'public_html/api/data/users.json' /tmp/ftp-cls.txt; then
-            REMOTE="public_html/api/data/users.json"
-          else
-            echo "::error::users.json não encontrado nos caminhos candidatos"
-            cat /tmp/ftp-cls.txt
+          for cand in api/_impl/data/users.json api/data/users.json; do
+            rm -f /tmp/users.probe.json
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set net:timeout 20;
+              set net:max-retries 1;
+              set ftp:passive-mode true;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get ${cand} -o /tmp/users.probe.json;
+              bye
+            " >/tmp/get-probe.log 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 && -s /tmp/users.probe.json ]]; then
+              REMOTE="$cand"
+              mv /tmp/users.probe.json /tmp/users.json
+              echo "FOUND=${cand}"
+              break
+            fi
+            echo "MISS=${cand}"
+            cat /tmp/get-probe.log || true
+          done
+          if [[ -z "${REMOTE}" || ! -s /tmp/users.json ]]; then
+            echo "::error::users.json não encontrado nos caminhos candidatos (cwd FTP = public_html)"
             exit 1
           fi
           echo "REMOTE_PATH=${REMOTE}"
 
-          lftp -c "
-            set ssl:verify-certificate no;
-            set net:timeout 30;
-            set net:max-retries 2;
-            set ftp:passive-mode true;
-            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
-            get ${REMOTE} -o /tmp/users.json;
-            bye
-          "
+          # já descarregado no probe bem-sucedido
 
           python3 - <<'PY'
           import json, os, sys
