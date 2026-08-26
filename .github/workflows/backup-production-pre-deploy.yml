@@ -40,6 +40,7 @@ jobs:
           echo "${BACKUP_LABEL}" > "${OUT}/meta/label.txt"
           echo "https://pimo.pro" > "${OUT}/meta/production_url.txt"
 
+          set +e
           lftp -c "
             set ssl:verify-certificate no;
             set ftp:passive-mode true;
@@ -54,8 +55,12 @@ jobs:
             mget -c *.json;
             cd /;
             get api/_impl/data/users.json -o ${OUT}/api/_impl/data/users.json;
+            get api/data/users.json -o ${OUT}/api/_impl/data/users.json;
             bye
           "
+          LFTP_RC=$?
+          set -e
+          echo "lftp exit=${LFTP_RC} (users.json opcional)"
 
           COUNT="$(find "${OUT}/api/projects/data" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
           if [ "${COUNT}" -lt 1 ]; then
