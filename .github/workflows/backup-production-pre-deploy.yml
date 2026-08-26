@@ -1,0 +1,70 @@
+# Backup FTP de produção antes de deploy (projetos + users.json).
+# Trigger manual — não faz deploy.
+
+name: Backup Production Pre-Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: "Etiqueta do backup (ex. pre-relatorio-final-0826)"
+        required: false
+        type: string
+        default: "pre-deploy"
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: FTP backup projects data + users.json
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          BACKUP_LABEL: ${{ inputs.label }}
+        run: |
+          set -euo pipefail
+          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+          OUT="/tmp/pimo-prod-backup-${STAMP}"
+          mkdir -p "${OUT}/api/projects/data" "${OUT}/api/_impl/data" "${OUT}/meta"
+          echo "${STAMP}" > "${OUT}/meta/stamp.txt"
+          echo "${BACKUP_LABEL}" > "${OUT}/meta/label.txt"
+          echo "https://pimo.pro" > "${OUT}/meta/production_url.txt"
+
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            set net:timeout 120;
+            set net:max-retries 3;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            pwd;
+            mirror -c --verbose api/projects/data ${OUT}/api/projects/data || true;
+            mirror -c --verbose public_html/api/projects/data ${OUT}/api/projects/data || true;
+            get api/_impl/data/users.json -o ${OUT}/api/_impl/data/users.json || true;
+            get api/data/users.json -o ${OUT}/api/_impl/data/users.json.fallback || true;
+            bye
+          "
+
+          COUNT="$(find "${OUT}/api/projects/data" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
+          echo "project_json_count=${COUNT}" >> "${GITHUB_OUTPUT}"
+          echo "backup_dir=${OUT}" >> "${GITHUB_OUTPUT}"
+          echo "Projetos JSON: ${COUNT}"
+          ls -la "${OUT}/api/projects/data" | head -20
+          du -sh "${OUT}"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pimo-prod-backup-${{ inputs.label }}-${{ github.run_number }}
+          path: /tmp/pimo-prod-backup-*
+          retention-days: 30
+          if-no-files-found: error
