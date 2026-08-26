@@ -2,7 +2,10 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 
 import { createAccountRemote } from "../api/authApi";
 import { useAuth } from "../auth/useAuth";
-import RegisterUserForm, { type RegisterFormValues } from "../components/admin/RegisterUserForm";
+import RegisterUserForm, {
+  mapAccountCategoryToPublicRole,
+  type RegisterFormValues,
+} from "../components/admin/RegisterUserForm";
 import { initialInviteCodes } from "../components/admin/inviteCodesMock";
 import Card from "../components/ui/Card";
 import PageHeader from "../components/ui/PageHeader";
@@ -22,7 +25,8 @@ export default function RegisterPage() {
       username: values.username.trim(),
       email: values.email.trim(),
       password: values.senha,
-      role: values.tipoConta,
+      role: mapAccountCategoryToPublicRole(values.accountCategory),
+      accountCategory: values.accountCategory,
     });
     await login(values.email.trim(), values.senha);
     navigate("/dashboard", { replace: true });

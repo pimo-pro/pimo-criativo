@@ -67,6 +67,8 @@ export type RegisterAccountPayload = {
   password: string;
   /** Apenas visitor ou pro; o servidor rejeita qualquer outro (força visitor). */
   role: PublicRegisterRole;
+  /** Categoria de negócio (independente da role). */
+  accountCategory: "visitor" | "designer_arquiteto" | "lojista" | "fabricante";
 };
 
 /** Resposta POST /auth/register (público, sem JWT). */
@@ -77,6 +79,7 @@ export type RegisterAccountResponse = {
     username: string;
     email: string;
     role: string;
+    accountCategory?: string;
   };
 };
 
@@ -91,6 +94,7 @@ export async function createAccountRemote(payload: RegisterAccountPayload): Prom
       email: payload.email.trim().toLowerCase(),
       password: payload.password,
       role: payload.role,
+      accountCategory: payload.accountCategory,
     });
     if (!data || data.status !== "ok" || !data.user?.id) {
       throw new Error("Resposta inválida do servidor");

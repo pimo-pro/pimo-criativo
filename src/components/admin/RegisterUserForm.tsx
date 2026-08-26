@@ -7,8 +7,37 @@ import Section from "../ui/Section";
 import "../ui/ui.css";
 import { resolveInviteCode, type InviteCode } from "./inviteCodesMock";
 
-/** Conta pública: só estes valores são enviados em POST /auth/register (validados no servidor). */
-export type RegisterPublicAccountType = "visitor" | "pro";
+/** Categoria de negócio (independente da role RBAC). */
+export type AccountCategory =
+  | "visitor"
+  | "designer_arquiteto"
+  | "lojista"
+  | "fabricante";
+
+export const ACCOUNT_CATEGORY_OPTIONS: readonly {
+  value: AccountCategory;
+  label: string;
+}[] = [
+  { value: "visitor", label: "Visitor" },
+  { value: "designer_arquiteto", label: "Designer/Arquiteto" },
+  { value: "lojista", label: "Lojista" },
+  { value: "fabricante", label: "Fabricante" },
+];
+
+/** Role pública enviada ao servidor — mesmo contrato de sempre (visitor|pro). */
+export type RegisterPublicRole = "visitor" | "pro";
+
+export function mapAccountCategoryToPublicRole(
+  category: AccountCategory
+): RegisterPublicRole {
+  return category === "visitor" ? "visitor" : "pro";
+}
+
+const INVITE_CLIENT_TYPE_TO_CATEGORY: Record<string, AccountCategory> = {
+  Visitante: "visitor",
+  Designer: "designer_arquiteto",
+  Fábrica: "fabricante",
+};
 
 export type RegisterFormValues = {
   nome: string;
@@ -20,8 +49,7 @@ export type RegisterFormValues = {
   cep: string;
   cidade: string;
   endereco: string;
-  tipoCliente: string;
-  tipoConta: RegisterPublicAccountType;
+  accountCategory: AccountCategory;
   username: string;
   senha: string;
   confirmarSenha: string;
@@ -137,8 +165,6 @@ const FISCAL_LABEL_BY_COUNTRY: Record<string, string> = {
   US: "Tax ID",
 };
 
-const CLIENT_TYPES = ["Visitante", "Designer", "Carpinteiro", "Fábrica", "Gestor de Operações"];
-
 const DEFAULT_VALUES: RegisterFormValues = {
   nome: "",
   sobrenome: "",
@@ -149,8 +175,7 @@ const DEFAULT_VALUES: RegisterFormValues = {
   cep: "",
   cidade: "",
   endereco: "",
-  tipoCliente: "Visitante",
-  tipoConta: "visitor",
+  accountCategory: "visitor",
   username: "",
   senha: "",
   confirmarSenha: "",
@@ -255,7 +280,10 @@ export default function RegisterUserForm({
 
     setValues((current) => ({
       ...current,
-      tipoCliente: result.inviteCode?.clientType ?? current.tipoCliente,
+      accountCategory:
+        (result.inviteCode?.clientType
+          ? INVITE_CLIENT_TYPE_TO_CATEGORY[result.inviteCode.clientType]
+          : undefined) ?? current.accountCategory,
     }));
     setInvitePermissions(result.inviteCode.permissions);
     setStatusMessage("Código de convite válido. Preferências aplicadas.");
@@ -281,7 +309,7 @@ export default function RegisterUserForm({
       "cep",
       "cidade",
       "endereco",
-      "tipoCliente",
+      "accountCategory",
       "username",
       "senha",
       "confirmarSenha",
@@ -297,8 +325,8 @@ export default function RegisterUserForm({
       nextErrors.email = "Email inválido";
     }
 
-    if (values.tipoConta !== "visitor" && values.tipoConta !== "pro") {
-      nextErrors.tipoConta = "Tipo de conta inválido";
+    if (!ACCOUNT_CATEGORY_OPTIONS.some((o) => o.value === values.accountCategory)) {
+      nextErrors.accountCategory = "Tipo de conta inválido";
     }
 
     if (values.senha && values.senha.length < 6) {
@@ -360,38 +388,24 @@ export default function RegisterUserForm({
           required
         />
         <FormGroup>
-          <span className="ui-input__label">Tipo de conta: Visitor ou Designer (Pro)</span>
+          <span className="ui-input__label">Tipo de conta</span>
           <select
             className="ui-input"
-            value={values.tipoConta}
+            value={values.accountCategory}
             onChange={(event) =>
-              updateValue("tipoConta", event.target.value as RegisterPublicAccountType)
+              updateValue("accountCategory", event.target.value as AccountCategory)
             }
             required
           >
-            <option value="visitor">Visitor — acesso básico</option>
-            <option value="pro">Designer (Pro) — acesso de designer (sem permissões administrativas)</option>
-          </select>
-          <span className="ui-input__hint" style={{ display: "block", marginTop: 6 }}>
-            Ultra, Ultra+ e Admin só podem ser atribuídos por um administrador no painel de utilizadores.
-          </span>
-          {errors.tipoConta ? <span className="ui-input__error">{errors.tipoConta}</span> : null}
-        </FormGroup>
-        <FormGroup>
-          <span className="ui-input__label">Tipo de Cliente</span>
-          <select
-            className="ui-input"
-            value={values.tipoCliente}
-            onChange={(event) => updateValue("tipoCliente", event.target.value)}
-            required
-          >
-            {CLIENT_TYPES.map((item) => (
-              <option key={item} value={item}>
-                {item}
+            {ACCOUNT_CATEGORY_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
               </option>
             ))}
           </select>
-          {errors.tipoCliente ? <span className="ui-input__error">{errors.tipoCliente}</span> : null}
+          {errors.accountCategory ? (
+            <span className="ui-input__error">{errors.accountCategory}</span>
+          ) : null}
         </FormGroup>
 
         <FormGroup>

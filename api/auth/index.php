@@ -311,6 +311,14 @@ function pimo_register_normalize_public_role(mixed $roleInput): string
     return $r === 'pro' ? 'pro' : 'visitor';
 }
 
+/** Categorias de negócio públicas (independentes de role/RBAC). */
+function pimo_register_normalize_account_category(mixed $input): ?string
+{
+    $c = strtolower(trim((string) ($input ?? '')));
+    $allowed = ['visitor', 'designer_arquiteto', 'lojista', 'fabricante'];
+    return in_array($c, $allowed, true) ? $c : null;
+}
+
 /** Ficheiro inicial para GET/PATCH /user/settings (vazio). */
 function pimo_auth_write_empty_user_settings(string $userId): void
 {
@@ -365,6 +373,11 @@ function pimo_auth_handle_register(): void
         pimo_json_response(['status' => 'error', 'message' => 'Username já em uso'], 409);
         return;
     }
+    $accountCategory = pimo_register_normalize_account_category($body['accountCategory'] ?? null);
+    if ($accountCategory === null) {
+        pimo_json_response(['status' => 'error', 'message' => 'accountCategory inválido'], 400);
+        return;
+    }
     $role = pimo_register_normalize_public_role($body['role'] ?? null);
     $id = bin2hex(random_bytes(16));
     $newUser = [
@@ -373,6 +386,7 @@ function pimo_auth_handle_register(): void
         'username' => $username,
         'passwordHash' => password_hash($password, PASSWORD_DEFAULT),
         'role' => $role,
+        'accountCategory' => $accountCategory,
         'createdAt' => gmdate('c'),
     ];
     $users[] = $newUser;
@@ -392,6 +406,7 @@ function pimo_auth_handle_register(): void
             'username' => $username,
             'email' => $email,
             'role' => $role,
+            'accountCategory' => $accountCategory,
         ],
     ], 201);
 }
