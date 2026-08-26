@@ -13,7 +13,7 @@ permissions:
 jobs:
   inventory:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Install lftp + jq
         run: |
@@ -34,79 +34,104 @@ jobs:
             exit 1
           fi
 
-          # Nunca imprimir credenciais
           unset HISTFILE
-
           WORK="$(mktemp -d)"
           trap 'rm -rf "$WORK"' EXIT
           mkdir -p "$WORK/files"
 
-          # Candidatos (home FTP pode ser / ou /public_html)
-          CANDIDATES=(
-            "/public_html/api/projects/data"
-            "public_html/api/projects/data"
-            "/api/projects/data"
-            "api/projects/data"
-          )
+          # Descoberta rápida (igual ao deploy: fail-exit no, timeouts curtos)
+          echo "=== FTP pwd + ls (descoberta) ==="
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            set ftp:list-options -a;
+            set net:max-retries 2;
+            set net:timeout 25;
+            set cmd:fail-exit no;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            pwd;
+            cls -1;
+            echo '--- public_html ---';
+            cls -1 public_html;
+            echo '--- public_html/api/projects/data ---';
+            cls -1 public_html/api/projects/data;
+            echo '--- api/projects/data ---';
+            cls -1 api/projects/data;
+            echo '--- /public_html/api/projects/data ---';
+            cls -1 /public_html/api/projects/data;
+            bye
+          " > "$WORK/discover.txt" 2>"$WORK/discover.err" || true
+
+          echo "--- discover stdout ---"
+          cat "$WORK/discover.txt"
+          echo "--- discover stderr (redacted) ---"
+          sed -E "s/${FTP_USERNAME}/REDACTED_USER/g; s/${FTP_HOST}/REDACTED_HOST/g; s/${FTP_PASSWORD}/REDACTED_PASS/g" "$WORK/discover.err" | head -n 40 || true
 
           FOUND_DIR=""
-          LIST_FILE="$WORK/list.txt"
-          : > "$LIST_FILE"
-
-          for dir in "${CANDIDATES[@]}"; do
-            echo "=== Tentativa de LIST em: ${dir} ==="
+          for dir in "public_html/api/projects/data" "api/projects/data" "/public_html/api/projects/data"; do
+            echo "=== LIST target: ${dir} ==="
             set +e
             lftp -c "
               set ssl:verify-certificate no;
               set ftp:passive-mode true;
-              set net:max-retries 3;
-              set net:timeout 45;
+              set net:max-retries 2;
+              set net:timeout 25;
               set cmd:fail-exit yes;
               open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
               cls -1 ${dir}/
-            " > "$WORK/try_list.txt" 2>"$WORK/try_err.txt"
+            " > "$WORK/list_raw.txt" 2>"$WORK/list_err.txt"
             rc=$?
             set -e
-            if [[ $rc -eq 0 ]] && [[ -s "$WORK/try_list.txt" ]]; then
-              FOUND_DIR="$dir"
-              cp "$WORK/try_list.txt" "$LIST_FILE"
-              echo "LIST OK em: ${FOUND_DIR}"
-              break
+            if [[ $rc -eq 0 ]]; then
+              grep -E '\.json$' "$WORK/list_raw.txt" | sed 's/\r$//' | sort -u > "$WORK/list.txt" || true
+              count="$(wc -l < "$WORK/list.txt" | tr -d ' ')"
+              echo "LIST rc=0 path=${dir} json_lines=${count}"
+              if [[ "$count" -gt 0 ]]; then
+                FOUND_DIR="$dir"
+                break
+              fi
+              # pasta existe mas vazia de json — registar e continuar a procurar
+              if [[ ! -s "$WORK/list_raw.txt" ]]; then
+                echo "LIST vazio (sem linhas)"
+              else
+                echo "LIST sem .json; primeiras linhas:"
+                head -n 15 "$WORK/list_raw.txt"
+                FOUND_DIR="$dir"
+                break
+              fi
+            else
+              echo "LIST falhou rc=${rc}"
+              sed -E "s/${FTP_USERNAME}/REDACTED_USER/g; s/${FTP_HOST}/REDACTED_HOST/g; s/${FTP_PASSWORD}/REDACTED_PASS/g" "$WORK/list_err.txt" | head -n 10 || true
             fi
-            echo "LIST falhou ou vazio (rc=${rc}). stderr (sem secrets):"
-            # redact username/host if echoed
-            sed -E "s/${FTP_USERNAME}//g; s/${FTP_HOST}//g; s/${FTP_PASSWORD}//g" "$WORK/try_err.txt" | head -n 20 || true
           done
 
           if [[ -z "$FOUND_DIR" ]]; then
-            echo "::error::Não foi possível listar api/projects/data em nenhum caminho candidato"
+            echo "::error::Não foi possível listar api/projects/data"
             exit 1
           fi
 
-          mapfile -t ALL_NAMES < <(grep -E '\.json$' "$LIST_FILE" | sed 's/\r$//' | sort -u)
+          mapfile -t ALL_NAMES < <(cat "$WORK/list.txt" 2>/dev/null || true)
           TOTAL=${#ALL_NAMES[@]}
           echo "=== RESUMO ==="
           echo "directory=${FOUND_DIR}"
           echo "json_count=${TOTAL}"
 
           if [[ "$TOTAL" -eq 0 ]]; then
-            echo "Nenhum ficheiro .json encontrado."
+            echo "Nenhum ficheiro .json encontrado (pasta acessível mas vazia de JSON)."
+            echo "=== FIM INVENTÁRIO READ-ONLY ==="
             exit 0
           fi
 
-          # Amostra: todos se <= 80; senão primeiros 40 + últimos 20
           MAX_FULL=80
           NAMES=("${ALL_NAMES[@]}")
           if [[ "$TOTAL" -gt "$MAX_FULL" ]]; then
-            echo "Amostra: total=${TOTAL} > ${MAX_FULL} — a processar primeiros 40 + últimos 20"
+            echo "Amostra: total=${TOTAL} > ${MAX_FULL} — primeiros 40 + últimos 20"
             NAMES=("${ALL_NAMES[@]:0:40}" "${ALL_NAMES[@]: -20}")
           fi
 
           echo "=== FICHEIROS (nome | size_bytes | ownerId | updatedAt) ==="
-          printf '%s\n' "${NAMES[@]}" | while IFS= read -r name; do
-            [[ -z "$name" ]] && continue
+          for name in "${NAMES[@]}"; do
             base="$(basename "$name")"
-            # só basename seguro
             if [[ ! "$base" =~ ^[A-Za-z0-9._%-]+\.json$ ]]; then
               echo "${base} | SKIP | invalid_name | "
               continue
@@ -116,8 +141,8 @@ jobs:
             lftp -c "
               set ssl:verify-certificate no;
               set ftp:passive-mode true;
-              set net:max-retries 3;
-              set net:timeout 60;
+              set net:max-retries 2;
+              set net:timeout 40;
               set cmd:fail-exit yes;
               open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
               get ${FOUND_DIR}/${base} -o ${local_path}
@@ -129,11 +154,10 @@ jobs:
               continue
             fi
             size="$(wc -c < "$local_path" | tr -d ' ')"
-            # Extrair só ownerId / updatedAt — sem dump do JSON
             meta="$(jq -r '[
               (if .ownerId then (.ownerId|tostring) else "MISSING" end),
               (if .updatedAt then (.updatedAt|tostring) else "MISSING" end)
-            ] | @tsv' "$local_path" 2>/dev/null || echo -e "PARSE_ERROR\tPARSE_ERROR")"
+            ] | @tsv' "$local_path" 2>/dev/null || printf 'PARSE_ERROR\tPARSE_ERROR\n')"
             ownerId="$(printf '%s' "$meta" | cut -f1)"
             updatedAt="$(printf '%s' "$meta" | cut -f2)"
             echo "${base} | ${size} | ${ownerId} | ${updatedAt}"
