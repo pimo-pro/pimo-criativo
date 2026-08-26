@@ -1,0 +1,181 @@
+# TEMPORÁRIO — bootstrap admin em users.json (Hostinger).
+# Trigger: apenas workflow_dispatch.
+# Nunca imprime passwordHash. Não toca em api/projects/data nem server-env.local.php.
+
+name: Temp Bootstrap Admin users.json
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "inspect = backup + report; apply = role→admin (só se exactamente 1 match)"
+        required: true
+        type: choice
+        options:
+          - inspect
+          - apply
+        default: inspect
+      target_email:
+        description: "Email exacto a promover"
+        required: true
+        type: string
+        default: "shecivara@gmail.com"
+
+permissions:
+  contents: read
+
+jobs:
+  users_json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install lftp + jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp jq
+
+      - name: Discover path, backup, inspect or apply
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          MODE: ${{ inputs.mode }}
+          TARGET_EMAIL: ${{ inputs.target_email }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2016
+          lftp -c "
+            set ssl:verify-certificate no;
+            set net:timeout 20;
+            set net:max-retries 2;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            cls -1 public_html/api/_impl/data/users.json || true;
+            cls -1 api/_impl/data/users.json || true;
+            cls -1 public_html/api/data/users.json || true;
+            bye
+          " | tee /tmp/ftp-cls.txt
+
+          REMOTE=""
+          if grep -q 'public_html/api/_impl/data/users.json' /tmp/ftp-cls.txt; then
+            REMOTE="public_html/api/_impl/data/users.json"
+          elif grep -q '^api/_impl/data/users.json$' /tmp/ftp-cls.txt || grep -q 'api/_impl/data/users.json' /tmp/ftp-cls.txt; then
+            REMOTE="api/_impl/data/users.json"
+          elif grep -q 'public_html/api/data/users.json' /tmp/ftp-cls.txt; then
+            REMOTE="public_html/api/data/users.json"
+          else
+            echo "::error::users.json não encontrado nos caminhos candidatos"
+            cat /tmp/ftp-cls.txt
+            exit 1
+          fi
+          echo "REMOTE_PATH=${REMOTE}"
+
+          lftp -c "
+            set ssl:verify-certificate no;
+            set net:timeout 30;
+            set net:max-retries 2;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            get ${REMOTE} -o /tmp/users.json;
+            bye
+          "
+
+          python3 - <<'PY'
+          import json, os, sys
+          path = "/tmp/users.json"
+          with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+          if not isinstance(data, list):
+              print("::error::users.json raiz não é array", file=sys.stderr)
+              sys.exit(1)
+          email = os.environ["TARGET_EMAIL"].strip().lower()
+          matches = [u for u in data if isinstance(u, dict) and str(u.get("email", "")).strip().lower() == email]
+          print(f"TOTAL_USERS={len(data)}")
+          print(f"MATCH_COUNT={len(matches)}")
+          if len(matches) != 1:
+              print("::error::esperado exactamente 1 match para o email alvo")
+              sys.exit(2)
+          u = matches[0]
+          safe = {
+              "id": u.get("id"),
+              "email": u.get("email"),
+              "username": u.get("username"),
+              "role": u.get("role"),
+              "createdAt": u.get("createdAt"),
+          }
+          print("SAFE_USER_JSON=" + json.dumps(safe, ensure_ascii=False, separators=(",", ":")))
+          with open("/tmp/match_meta.json", "w", encoding="utf-8") as f:
+              json.dump({"total": len(data), "safe": safe, "current_role": u.get("role")}, f, ensure_ascii=False)
+          PY
+
+          TS="$(date -u +%Y%m%d-%H%M%S)"
+          BAK="${REMOTE}.bak-${TS}"
+          echo "BACKUP_PATH=${BAK}"
+          lftp -c "
+            set ssl:verify-certificate no;
+            set net:timeout 30;
+            set net:max-retries 2;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            put /tmp/users.json -o ${BAK};
+            bye
+          "
+          echo "BACKUP_OK=1"
+
+          if [[ "${MODE}" == "inspect" ]]; then
+            echo "MODE=inspect — sem alterar role"
+            cat /tmp/match_meta.json
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import json, os, sys
+          email = os.environ["TARGET_EMAIL"].strip().lower()
+          with open("/tmp/users.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+          total_before = len(data)
+          changed = 0
+          for u in data:
+              if isinstance(u, dict) and str(u.get("email", "")).strip().lower() == email:
+                  u["role"] = "admin"
+                  changed += 1
+          if changed != 1:
+              print(f"::error::changed={changed}, esperado 1", file=sys.stderr)
+              sys.exit(3)
+          with open("/tmp/users.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          # re-validate
+          with open("/tmp/users.json", "r", encoding="utf-8") as f:
+              data2 = json.load(f)
+          if len(data2) != total_before:
+              print("::error::contagem de users mudou", file=sys.stderr)
+              sys.exit(4)
+          matches = [u for u in data2 if str(u.get("email", "")).strip().lower() == email]
+          if len(matches) != 1 or matches[0].get("role") != "admin":
+              print("::error::apply verification failed", file=sys.stderr)
+              sys.exit(5)
+          safe = {
+              "id": matches[0].get("id"),
+              "email": matches[0].get("email"),
+              "username": matches[0].get("username"),
+              "role": matches[0].get("role"),
+              "createdAt": matches[0].get("createdAt"),
+          }
+          print(f"TOTAL_USERS_AFTER={len(data2)}")
+          print("SAFE_USER_AFTER=" + json.dumps(safe, ensure_ascii=False, separators=(",", ":")))
+          with open("/tmp/total_before.txt", "w") as f:
+              f.write(str(total_before))
+          PY
+
+          lftp -c "
+            set ssl:verify-certificate no;
+            set net:timeout 30;
+            set net:max-retries 2;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            put /tmp/users.json -o ${REMOTE};
+            bye
+          "
+          echo "APPLY_OK=1"
+          echo "REMOTE_UPDATED=${REMOTE}"
