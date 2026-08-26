@@ -16,6 +16,25 @@ const PIMO_USERS_FILE = __DIR__ . '/../data/users.json';
 const PIMO_JWT_TTL = 86400;
 
 /**
+ * Hostinger Shared: carrega env SERVER-ONLY se o ficheiro existir.
+ * Nunca versionar o ficheiro com secret. Ordem: fora da webroot → fallback data/.
+ */
+(function (): void {
+    $candidates = [
+        // Prod (lib em public_html/api/_impl/auth): ../../../../ = /files/
+        __DIR__ . '/../../../../pimo-private/server-env.local.php',
+        // Fallback local / data ao lado da lib (api/data ou api/_impl/data)
+        __DIR__ . '/../data/server-env.local.php',
+    ];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+})();
+
+/**
  * Ambiente da aplicação (fail-closed).
  * Ausente / desconhecido → production (nunca assume local).
  * Valores: local | development | staging | production | preview
