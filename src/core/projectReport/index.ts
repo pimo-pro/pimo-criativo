@@ -108,6 +108,14 @@ export {
   officialLineTotal,
 } from "./financeiroFromUnificado";
 export type { BuildLiveReportFinanceiroOptions } from "./financeiroFromUnificado";
+export {
+  buildFinanceiroFromProductionRelease,
+  withProductionReleaseFinanceiro,
+  pricePaineisFromReleaseChapas,
+  detalhePaineisFromRelease,
+  detalheFerragensFromRelease,
+  releaseFerragensAsUnificadoLines,
+} from "./financeiroFromProductionRelease";
 /** P3.22 — fluxo original da página Financeiro (custos dinâmicos). */
 export { financeiroAdapter, adapterModelToFinanceiroShape } from "./financeiroAdapter";
 export type { FinanceiroAdapterModel } from "./financeiroAdapter";
@@ -272,6 +280,7 @@ export {
 
 export {
   collectPaineisSugestoesProjeto,
+  collectPaineisSugestoesFromRelease,
   collectSugestoesFromRemates,
   collectSugestoesFromCutlistTipos,
   labelFromRemateProductType,

@@ -4,7 +4,8 @@
 
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { drainProductionReleaseOutbox } from "../core/industrial/productionReleasePersist";
 
 export type ToastMessage = {
   id: string;
@@ -50,6 +51,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
+
+  useEffect(() => {
+    drainProductionReleaseOutbox(showToast);
+  }, [showToast]);
 
   const startLoading = useCallback((label = "A processar...") => {
     const id = `loading-${++loadingIdCounter}`;

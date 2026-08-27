@@ -140,7 +140,11 @@ export const R = {
 
   financeiro: "4. Financeiro (custos din\u00e2micos)",
   financeiroHint:
-    "Totais oficiais = Financeiro ADMIN (SSOT). Accordion edit\u00e1vel = camada visual; override manual n\u00e3o altera o motor Unificado.",
+    "Totais oficiais = \u00faltima gera\u00e7\u00e3o TCN (\u00abGerar arquivo completo\u00bb). ADMIN Custos continua a ser o or\u00e7amento live do projeto aberto.",
+  financeiroSemRelease:
+    "Ainda n\u00e3o existe snapshot da \u00faltima gera\u00e7\u00e3o TCN. Execute \u00abGerar arquivo completo\u00bb para preencher o Financeiro do Relat\u00f3rio. O or\u00e7amento live continua dispon\u00edvel em ADMIN \u2192 Custos.",
+  financeiroParcialHint:
+    "Nesta vers\u00e3o o total inclui apenas Pain\u00e9is (TCN) e Ferragens. Orla, m\u00e3o de obra, desperd\u00edcio, serragem, log\u00edstica e restantes linhas entram numa fase seguinte \u2014 este total ainda n\u00e3o \u00e9 o custo completo do projeto.",
   custoChapasReais: "Custo total das chapas",
   mostrarDetalheCustos: "Mostrar detalhe de custos",
   ocultarDetalheCustos: "Ocultar detalhe de custos",

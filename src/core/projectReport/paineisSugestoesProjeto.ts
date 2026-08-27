@@ -4,6 +4,7 @@
  */
 
 import type { ProjectState } from "@/context/projectTypes";
+import type { ProductionRelease } from "@/core/industrial/productionRelease";
 import type { RematePiece } from "@/core/remate/rematePieceTypes";
 
 import { buildPaineisChapasDetalhe } from "./paineisChapasDetalhe";
@@ -129,5 +130,26 @@ export function collectPaineisSugestoesProjeto(
     }
   }
 
+  return out;
+}
+
+/**
+ * F2 — sugestões só a partir do productionRelease (última geração TCN).
+ * Não lê remates/cutlist live do ProjectState.
+ */
+export function collectPaineisSugestoesFromRelease(
+  release: ProductionRelease | null | undefined
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  if (!release) return out;
+  for (const sheet of release.chapas?.sheets ?? []) {
+    pushUnique(out, seen, sheet.material);
+    for (const piece of sheet.pieces ?? []) {
+      const nome = String(piece.nome ?? "").trim();
+      if (/tampo/i.test(nome)) pushUnique(out, seen, "TAMPO");
+      if (isCutlistNomeSugestaoSegura(nome)) pushUnique(out, seen, nome);
+    }
+  }
   return out;
 }

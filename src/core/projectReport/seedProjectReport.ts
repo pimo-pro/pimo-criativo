@@ -22,7 +22,8 @@ import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 import { safeGetItem } from "@/utils/storage";
 import { resolveProjectCutlistFromRecord } from "@/industrial/work-orders/resolveProjectCutlistFromRecord";
 
-import { buildLiveReportFinanceiro, loadMaterialsForFinanceiro } from "./financeiroFromUnificado";
+import { buildFinanceiroFromProductionRelease } from "./financeiroFromProductionRelease";
+import type { ProductionRelease } from "@/core/industrial/productionRelease";
 import { loadReportProjectContext } from "./loadReportProjectContext";
 import { withDerivedMetricas } from "./deriveMetricas";
 import { migrateProjectReport } from "./migrateReport";
@@ -187,7 +188,8 @@ function mergeBySourceId<T extends { id: string; sourceId?: string }>(
 
 export async function seedOrMergeProjectReport(
   projectId: string,
-  existing: ProjectReport | null
+  existing: ProjectReport | null,
+  release: ProductionRelease | null = null
 ): Promise<ProjectReport> {
   const id = projectId.trim();
   const now = new Date().toISOString();
@@ -196,8 +198,8 @@ export async function seedOrMergeProjectReport(
   const seededCaixas = buildCaixas(state);
   const seededPecas = buildPecas(id);
   const seededMateriais = buildMateriais(state);
-  /** P3.25: financeiro = SSOT Unificado (ADMIN), sem recalculo / detalhe / fallback. */
-  const seededFinanceiro = buildLiveReportFinanceiro(state, loadMaterialsForFinanceiro());
+  /** F1: financeiro = última geração TCN (ou vazio). Não usa Unificado live. */
+  const seededFinanceiro = buildFinanceiroFromProductionRelease(release);
   const trak = await importTrakSnapshot(id);
 
   if (!existing) {
@@ -285,7 +287,7 @@ export async function seedOrMergeProjectReport(
     isManualPath(migrated, "materiais")
   );
 
-  /** P3.25: sempre live do Unificado — sem sticky, sem chapas/orla/ferragens de detalhe. */
+  /** F1: financeiro do release (ou vazio) — sem Unificado live. */
   const financeiro = seededFinanceiro;
 
   const report: ProjectReport = {

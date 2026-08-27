@@ -36,6 +36,9 @@ import { ensureLogoIndustrialLoaded } from "../core/pdf/logoIndustrialPublic";
 import { computeConsumoMateriais } from "../core/industrial/computeConsumoMateriais";
 import { computeChapasReal } from "../core/industrial/computeChapasReal";
 import { publishChapasOficiaisFromProBundles } from "../core/industrial/chapasOficiaisPublish";
+import { buildProductionRelease } from "../core/industrial/productionRelease";
+import { concludeArquivoCompletoSuccess } from "../core/industrial/arquivoCompletoSuccess";
+import { saveProductionRelease } from "../core/industrial/productionReleasePersist";
 import {
   buildIndustrialArmazemPdf,
   industrialArmazemPdfFileName,
@@ -1124,6 +1127,7 @@ export function useGerarArquivoHandlers() {
   /** Gera todos os arquivos disponíveis, coloca numa pasta (ZIP) e descarrega. */
   const onArquivoCompleto = useCallback(async () => {
     let redirectProjectPagePath: string | null = null;
+    let savedProjectId: string | null = null;
 
     try {
       if (!hasBoxes) {
@@ -1167,6 +1171,7 @@ export function useGerarArquivoHandlers() {
           localProjectId: project.currentProjectId ?? undefined,
         });
         const internalProjectId = saved?.id ?? project.currentProjectId ?? null;
+        savedProjectId = internalProjectId;
         const projectName =
           saved?.name ?? stateForSnapshot.projectName ?? project.projectName ?? "Projeto";
         if (internalProjectId) {
@@ -1651,10 +1656,30 @@ export function useGerarArquivoHandlers() {
         });
         showToast(`Erro ao gerar arquivo completo — ${detail}`, "error");
       } else {
-        showToast("Arquivo completo (ZIP) gerado.", "info");
-        if (redirectProjectPagePath && typeof window !== "undefined") {
-          window.location.href = redirectProjectPagePath;
-        }
+        const persistId = savedProjectId ?? project.currentProjectId ?? null;
+        const release = persistId
+          ? buildProductionRelease({
+              projectId: persistId,
+              generatedAt: new Date().toISOString(),
+              bundles: thicknessCncBundles,
+              project,
+            })
+          : null;
+        concludeArquivoCompletoSuccess(
+          {
+            zipDelivered: true,
+            redirectPath: redirectProjectPagePath,
+            projectId: persistId,
+            release,
+          },
+          {
+            showToast,
+            saveRelease: saveProductionRelease,
+            assignLocation: (path) => {
+              window.location.href = path;
+            },
+          }
+        );
       }
       } finally {
         endIndustrialRequiredArtifactTracking();

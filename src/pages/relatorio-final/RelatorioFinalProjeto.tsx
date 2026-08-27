@@ -11,8 +11,7 @@ import {
   exportProjectReportPdfBytes,
   resolveReportCoverImage,
   sendFinalReportEmail,
-  collectUnificadoFerragens,
-  collectPaineisSugestoesProjeto,
+  collectPaineisSugestoesFromRelease,
   type ReportStyle,
 } from "@/core/projectReport";
 import { useToast } from "@/context/ToastContext";
@@ -49,6 +48,7 @@ export default function RelatorioFinalProjeto() {
     changeStyle,
     save,
     saveCritical,
+    productionRelease,
   } = useProjectReport(urlKey);
   const backHref = identity?.persistenceId
     ? `/projects/${encodeURIComponent(identity.slug || identity.persistenceId)}`
@@ -61,20 +61,21 @@ export default function RelatorioFinalProjeto() {
   const metricas = useMemo(() => (report ? deriveMetricas(report) : null), [report]);
 
   const ferragensSsotOrigem = useMemo(() => {
-    const lines = collectUnificadoFerragens(projectState);
+    const lines = productionRelease?.ferragens.lines ?? [];
     return Object.fromEntries(lines.map((l) => [l.ferragemId, l.origemPreco]));
-  }, [projectState]);
+  }, [productionRelease]);
 
   const ferragensSugestoesProjeto = useMemo(() => {
-    const lines = collectUnificadoFerragens(projectState);
-    return [...new Set(lines.map((l) => l.nome).filter(Boolean))];
-  }, [projectState]);
+    const names = (productionRelease?.ferragens.lines ?? [])
+      .map((l) => l.nome)
+      .filter(Boolean);
+    return [...new Set(names)];
+  }, [productionRelease]);
 
-  const paineisSugestoesProjeto = useMemo(() => {
-    const projectId = report?.projectId?.trim() || urlKey;
-    if (!projectId) return [];
-    return collectPaineisSugestoesProjeto(projectId, projectState);
-  }, [report?.projectId, projectState, urlKey]);
+  const paineisSugestoesProjeto = useMemo(
+    () => collectPaineisSugestoesFromRelease(productionRelease),
+    [productionRelease]
+  );
 
   const handleGuardar = async () => {
     const result = await save();
@@ -300,6 +301,7 @@ export default function RelatorioFinalProjeto() {
           ferragensSugestoesProjeto={ferragensSugestoesProjeto}
           paineisSugestoesProjeto={paineisSugestoesProjeto}
           onMargemGanhoChange={setMargemGanho}
+          hasProductionRelease={Boolean(productionRelease)}
         />
 
         <NotasBlock

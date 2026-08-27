@@ -45,6 +45,7 @@ type Props = {
   ferragensSugestoesProjeto?: string[];
   paineisSugestoesProjeto?: string[];
   onMargemGanhoChange?: (config: ReportMargemGanhoConfig | null) => void;
+  hasProductionRelease?: boolean;
 };
 
 function formatEur(n: number): string {
@@ -84,6 +85,7 @@ export default function FinanceiroBlock({
   ferragensSugestoesProjeto,
   paineisSugestoesProjeto,
   onMargemGanhoChange,
+  hasProductionRelease = false,
 }: Props) {
   const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(() => new Set());
 
@@ -110,8 +112,23 @@ export default function FinanceiroBlock({
   return (
     <section style={reportSection(style)} data-testid="financeiro-block-ssot">
       <h2 style={reportSectionTitle}>{R.financeiro}</h2>
+      {!hasProductionRelease ? (
+        <p
+          style={{ margin: "0 0 10px", fontSize: 13 }}
+          data-testid="financeiro-sem-release"
+        >
+          {R.financeiroSemRelease}
+        </p>
+      ) : (
+        <>
       <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-muted)" }}>
         {R.financeiroHint}
+      </p>
+      <p
+        style={{ margin: "0 0 10px", fontSize: 12, color: "var(--warning, #ca8a04)" }}
+        data-testid="financeiro-parcial-hint"
+      >
+        {R.financeiroParcialHint}
       </p>
 
       <label style={{ display: "inline-block", marginBottom: 10 }}>
@@ -381,6 +398,8 @@ export default function FinanceiroBlock({
           </span>
         ) : null}
       </div>
+        </>
+      )}
     </section>
   );
 }
