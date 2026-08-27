@@ -1,6 +1,9 @@
 /**
- * Carrega ProjectState para o Relatório Final: offline primeiro, remoto se faltar.
- * Não toca no pipeline industrial; só lê snapshot já persistido.
+ * Carrega ProjectState para o Relatório Final.
+ * R1: escolhe o snapshot mais fresco entre offline e remoto (updatedAt),
+ * em vez de "offline primeiro cego".
+ * Não toca no pipeline industrial; só lê (o merge remoto pode actualizar
+ * o cache offline via loadProjectFromServerAndMerge).
  */
 
 import { applyResultados } from "@/context/projectState";
@@ -10,7 +13,7 @@ import {
   findOfflineProjectByAnyKey,
   resolveProjectIdentity,
 } from "@/core/projects/projectIdentity";
-import { loadProjectRecord } from "@/core/projects/projectsClient";
+import { loadProjectRecordFresh } from "@/core/projects/projectsClient";
 import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";
 import type { SavedProjectRecord } from "@/core/projects/types";
 
@@ -63,9 +66,33 @@ function contextFromOffline(projectId: string): ReportProjectContext | null {
   return contextFromRecord(toSavedRecordFromOffline(offline));
 }
 
+function parseUpdatedAtMs(iso: string): number {
+  const t = Date.parse(iso || "");
+  return Number.isFinite(t) ? t : 0;
+}
+
 /**
- * 1) Offline com state válido → usa já.
- * 2) Senão → loadProjectRecord (remoto + merge offline se necessário).
+ * Prefere contexto com state; entre dois com state, o updatedAt mais recente.
+ * Empate → mantém `a` (quem chama passa remoto/fresco primeiro → ganha empates).
+ */
+export function pickFresherReportContext(
+  a: ReportProjectContext | null,
+  b: ReportProjectContext | null
+): ReportProjectContext | null {
+  if (!a) return b;
+  if (!b) return a;
+  const aOk = Boolean(a.state);
+  const bOk = Boolean(b.state);
+  if (aOk && !bOk) return a;
+  if (bOk && !aOk) return b;
+  if (parseUpdatedAtMs(b.updatedAt) > parseUpdatedAtMs(a.updatedAt)) return b;
+  return a;
+}
+
+/**
+ * 1) Tenta load fresco (remoto+merge, com timeout) por cada key de identidade.
+ * 2) Compara com offline puro.
+ * 3) Devolve o mais recente com state válido.
  */
 export async function loadReportProjectContext(
   projectId: string
@@ -73,26 +100,26 @@ export async function loadReportProjectContext(
   const id = projectId.trim();
   if (!id) return emptyContext();
 
-  for (const key of resolveLoadKeys(id)) {
-    const offlineCtx = contextFromOffline(key);
-    if (offlineCtx?.state) return offlineCtx;
-  }
+  const keys = resolveLoadKeys(id);
+  let best: ReportProjectContext | null = null;
 
-  for (const key of resolveLoadKeys(id)) {
+  for (const key of keys) {
     try {
-      const record = await loadProjectRecord(key);
+      const record = await loadProjectRecordFresh(key);
       if (!record) continue;
-      const ctx = contextFromRecord(record);
-      if (ctx.state || ctx.name) return ctx;
+      best = pickFresherReportContext(best, contextFromRecord(record));
     } catch (err) {
-      console.warn("[pimo] Falha ao carregar ProjectState remoto para relatório:", key, err);
+      console.warn(
+        "[pimo] Falha ao carregar ProjectState fresco para relatório:",
+        key,
+        err
+      );
     }
   }
 
-  for (const key of resolveLoadKeys(id)) {
-    const offlineCtx = contextFromOffline(key);
-    if (offlineCtx) return offlineCtx;
+  for (const key of keys) {
+    best = pickFresherReportContext(best, contextFromOffline(key));
   }
 
-  return emptyContext();
+  return best ?? emptyContext();
 }

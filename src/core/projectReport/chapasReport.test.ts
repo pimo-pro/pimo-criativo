@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateChapasByEspessura,
+  aggregateChapasByEspessuraEMaterial,
   applyPrecoPorMetroEdit,
   areaM2FromMedida,
   precoM2FromChapa,
@@ -40,6 +41,21 @@ describe("chapasReport", () => {
     expect(r10?.quantidade).toBe(1);
     expect(r19?.comprimentoMm).toBe(2800);
     expect(r19?.larguraMm).toBe(2070);
+  });
+
+  it("aggregateChapasByEspessuraEMaterial: dois materiais @18mm → duas linhas", () => {
+    const rows = aggregateChapasByEspessuraEMaterial([
+      sheet(18, "Carvalho"),
+      sheet(18, "MDF Branco"),
+      sheet(18, "Carvalho"),
+    ]);
+    expect(rows).toHaveLength(2);
+    const carvalho = rows.find((r) => r.tipo === "Carvalho");
+    const mdf = rows.find((r) => r.tipo === "MDF Branco");
+    expect(carvalho?.quantidade).toBe(2);
+    expect(mdf?.quantidade).toBe(1);
+    expect(carvalho?.id).toBe("ch-18-carvalho");
+    expect(mdf?.id).toBe("ch-18-mdf-branco");
   });
 
   it("area real = L x A / 1e6 (legado)", () => {

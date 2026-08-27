@@ -76,7 +76,15 @@ export default function PaineisAccordion({
   const [catalogPick, setCatalogPick] = useState("");
   const tipoSugestoes = useMemo(() => {
     const fromDetalhe = detalhe.map((d) => d.tipo).filter(Boolean);
-    return [...catalogo.map((c) => c.label), ...fromDetalhe, ...(paineisSugestoesProjeto ?? [])];
+    return [
+      ...new Set(
+        [
+          ...catalogo.map((c) => c.label),
+          ...fromDetalhe,
+          ...(paineisSugestoesProjeto ?? []),
+        ].filter(Boolean)
+      ),
+    ];
   }, [catalogo, detalhe, paineisSugestoesProjeto]);
   const visualTotal = sumDetalheVisual(detalhe);
   const diverges = Math.abs(visualTotal - totalOficial) > 0.009;

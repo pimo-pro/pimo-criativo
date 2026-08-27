@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { migrateProjectReport, stringToTextoItems } from "./migrateReport";
+import {
+  migrateProjectReport,
+  reportNeedsFinanceiroProvenanceMigration,
+  stringToTextoItems,
+} from "./migrateReport";
+import { emptyFinanceiro } from "./types";
 
 describe("migrateReport", () => {
   it("converte string multi-linha em itens", () => {
@@ -54,5 +59,21 @@ describe("migrateReport", () => {
     expect(migrated.producao.erros[0]?.texto).toBe("prod");
     expect(migrated.montagem.erros).toEqual([]);
     expect(migrated.design.melhoriasPropostas[0]?.texto).toBe("m1");
+  });
+
+  it("gate provenance: financeiro sem version → pending; com version actual → ok", () => {
+    const base = migrateProjectReport({
+      projectId: "x",
+      version: 2,
+      financeiro: emptyFinanceiro(),
+    } as never);
+    expect(reportNeedsFinanceiroProvenanceMigration(base)).toBe(true);
+
+    const withV = migrateProjectReport({
+      projectId: "x",
+      version: 2,
+      financeiro: { ...emptyFinanceiro(), provenanceVersion: 1 },
+    } as never);
+    expect(reportNeedsFinanceiroProvenanceMigration(withV)).toBe(false);
   });
 });

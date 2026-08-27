@@ -12,7 +12,7 @@ import {
   resolveReportCoverImage,
   sendFinalReportEmail,
   collectUnificadoFerragens,
-  buildPaineisChapasDetalhe,
+  collectPaineisSugestoesProjeto,
   type ReportStyle,
 } from "@/core/projectReport";
 import { useToast } from "@/context/ToastContext";
@@ -73,8 +73,7 @@ export default function RelatorioFinalProjeto() {
   const paineisSugestoesProjeto = useMemo(() => {
     const projectId = report?.projectId?.trim() || urlKey;
     if (!projectId) return [];
-    const detalhe = buildPaineisChapasDetalhe(projectId, projectState);
-    return [...new Set(detalhe.map((d) => d.tipo).filter(Boolean))];
+    return collectPaineisSugestoesProjeto(projectId, projectState);
   }, [report?.projectId, projectState, urlKey]);
 
   const handleGuardar = async () => {

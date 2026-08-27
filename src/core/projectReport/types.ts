@@ -68,6 +68,9 @@ export type ReportMaterialLinha = {
   sourceId?: string;
 };
 
+/** Origem de uma linha de detalhe face ao SSOT Unificado. */
+export type ReportDetalheProvenance = "ssot" | "manual_added" | "manual_edit";
+
 export type ReportFinanceiroDetalhe = {
   id: string;
   tipo: string;
@@ -89,6 +92,11 @@ export type ReportFinanceiroDetalhe = {
   precoPorM2?: number;
   /** @deprecated legado área chapa. */
   areaChapaM2?: number;
+  /**
+   * Provenance da linha de detalhe (Fase 0+).
+   * Ausente em documentos legados → classificar na migração lazy.
+   */
+  provenance?: ReportDetalheProvenance;
 };
 
 export type ReportMargemGanhoMode = "percentagem" | "valorFixo";
@@ -204,6 +212,25 @@ export type ProjectReportFinanceiro = {
    * > 0 → IVA sobre base total + margem.
    */
   margemGanho?: ReportMargemGanhoConfig;
+  /**
+   * Versão da política de provenance (detalhe / lineOverrides).
+   * Ausente ou < FINANCEIRO_PROVENANCE_VERSION → migração lazy pendente
+   * (só aplicada quando `features.reportFinanceiroProvenance` estiver on — fases seguintes).
+   */
+  provenanceVersion?: number;
+  /**
+   * Meta informativa de lineOverrides (Fase 3).
+   * Nunca implica remoção automática — só badges / UI.
+   */
+  lineOverrideMeta?: Partial<
+    Record<
+      FinanceiroCustoKey,
+      {
+        kind: "redundant_eq_ssot" | "suspected_sticky_echo" | "keep_explicit";
+        suspectedStickyEcho: boolean;
+      }
+    >
+  >;
 };
 
 export const MARGEM_GANHO_LABEL = "Margem de ganho";

@@ -8,6 +8,7 @@ import {
   loadProjectReport,
   loadReportProjectContext,
   markManualPath,
+  moneyEq,
   saveProjectReport,
   seedOrMergeProjectReport,
   setLinhaDetalheVisual,
@@ -25,6 +26,7 @@ import {
   type ReportStyle,
   type ReportMargemGanhoConfig,
 } from "@/core/projectReport";
+import { isReportFinanceiroProvenanceEnabled } from "@/core/features";
 import { resolveProjectIdentity } from "@/core/projects/projectIdentity";
 
 function loadReportFlexible(urlKey: string): Promise<ProjectReport | null> {
@@ -77,6 +79,8 @@ export function useProjectReport(projectKey: string | undefined) {
 
   const reportRef = useRef<ProjectReport | null>(null);
   const projectStateRef = useRef<ProjectState | null>(null);
+  const projectUpdatedAtRef = useRef<string>("");
+  const loadingRef = useRef(false);
   const saveQueueRef = useRef(createReportSaveQueue());
 
   const commitReport = useCallback((next: ProjectReport, markDirty = true) => {
@@ -88,6 +92,28 @@ export function useProjectReport(projectKey: string | undefined) {
     }
   }, []);
 
+  const refreshProjectState = useCallback(async () => {
+    if (!projectKey?.trim() || !reportRef.current) return;
+    if (loadingRef.current || saveQueueRef.current.isBusy()) return;
+    try {
+      const seedKey = resolveSeedKey(projectKey);
+      const ctx = await loadReportProjectContext(seedKey);
+      const nextUpdated = ctx.updatedAt || "";
+      if (
+        nextUpdated &&
+        nextUpdated === projectUpdatedAtRef.current &&
+        projectStateRef.current
+      ) {
+        return;
+      }
+      projectUpdatedAtRef.current = nextUpdated;
+      projectStateRef.current = ctx.state;
+      setProjectState(ctx.state);
+    } catch (err) {
+      console.warn("[pimo] refresh ProjectState (Relatório) falhou:", err);
+    }
+  }, [projectKey]);
+
   useEffect(() => {
     let cancelled = false;
     async function run() {
@@ -96,6 +122,7 @@ export function useProjectReport(projectKey: string | undefined) {
         setLoading(false);
         return;
       }
+      loadingRef.current = true;
       setLoading(true);
       setError(null);
       try {
@@ -107,25 +134,50 @@ export function useProjectReport(projectKey: string | undefined) {
         const merged = await seedOrMergeProjectReport(seedKey, stored);
         const withLive = withLiveFinanceiro(merged, state, materials);
         if (!cancelled) {
+          projectUpdatedAtRef.current = ctx.updatedAt || "";
           projectStateRef.current = state;
           reportRef.current = withLive;
           setProjectState(state);
           setReport(withLive);
           setDirty(!stored);
           setLoading(false);
+          loadingRef.current = false;
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Falha ao carregar relat\u00f3rio.");
           setLoading(false);
+          loadingRef.current = false;
         }
       }
     }
     void run();
     return () => {
       cancelled = true;
+      loadingRef.current = false;
     };
   }, [projectKey]);
+
+  useEffect(() => {
+    if (!projectKey?.trim()) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void refreshProjectState();
+      }, 300);
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") schedule();
+    };
+    window.addEventListener("focus", schedule);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("focus", schedule);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [projectKey, refreshProjectState]);
 
   const updateReport = useCallback(
     (updater: (prev: ProjectReport) => ProjectReport, manualPath?: string) => {
@@ -155,14 +207,29 @@ export function useProjectReport(projectKey: string | undefined) {
         preserveDetalheByKey: preserveDetalheMap(prev),
         ferragensOverrides: prev.financeiro.overrides?.ferragens,
         margemGanho: prev.financeiro.margemGanho,
+        sourceFinanceiro: prev.financeiro,
       });
-      const withOverride = setReportLineOverride(live, key, value);
-      commitReport(
-        withDerivedMetricas({
-          ...prev,
-          financeiro: withOverride,
-        })
-      );
+      let nextValue = value;
+      if (
+        isReportFinanceiroProvenanceEnabled() &&
+        nextValue != null &&
+        Number.isFinite(nextValue)
+      ) {
+        const official = Number(live.officialSnapshot?.[key]) || 0;
+        if (moneyEq(nextValue, official)) nextValue = null;
+      }
+      let withOverride = setReportLineOverride(live, key, nextValue);
+      let nextReport: ProjectReport = {
+        ...prev,
+        financeiro: withOverride,
+      };
+      if (nextValue != null && isReportFinanceiroProvenanceEnabled()) {
+        nextReport = markManualPath(
+          nextReport,
+          `financeiro.lineOverrides.${key}`
+        );
+      }
+      commitReport(withDerivedMetricas(nextReport));
     },
     [commitReport]
   );
@@ -184,6 +251,7 @@ export function useProjectReport(projectKey: string | undefined) {
         },
         ferragensOverrides: prev.financeiro.overrides?.ferragens,
         margemGanho: prev.financeiro.margemGanho,
+        sourceFinanceiro: prev.financeiro,
       });
       let withDetalhe =
         key === "ferragens"
@@ -225,6 +293,7 @@ export function useProjectReport(projectKey: string | undefined) {
         preserveDetalheByKey: preserveDetalheMap(prev),
         ferragensOverrides: prev.financeiro.overrides?.ferragens,
         margemGanho: config,
+        sourceFinanceiro: prev.financeiro,
       });
       commitReport(
         withDerivedMetricas({
@@ -270,9 +339,11 @@ export function useProjectReport(projectKey: string | undefined) {
     setSaving(saveQueueRef.current.isBusy());
     if (result.ok === false) {
       setSaveMsg(result.error);
+    } else {
+      void refreshProjectState();
     }
     return result;
-  }, []);
+  }, [refreshProjectState]);
 
   const save = useCallback(async () => {
     return persistNow();
@@ -291,6 +362,7 @@ export function useProjectReport(projectKey: string | undefined) {
         preserveDetalheByKey: preserveDetalheMap(report),
         ferragensOverrides: report.financeiro.overrides?.ferragens,
         margemGanho: report.financeiro.margemGanho,
+        sourceFinanceiro: report.financeiro,
       })
     : null;
 

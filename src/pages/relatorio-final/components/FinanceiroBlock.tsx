@@ -156,6 +156,9 @@ export default function FinanceiroBlock({
                   key != null &&
                   value.lineOverrides != null &&
                   Object.prototype.hasOwnProperty.call(value.lineOverrides, key);
+                const suspectedSticky =
+                  key != null &&
+                  Boolean(value.lineOverrideMeta?.[key]?.suspectedStickyEcho);
                 const canOverride =
                   key != null && OVERRIDEABLE_KEYS.has(key) && Boolean(onLineOverride);
                 const official = key ? officialOf(key) : linha.total;
@@ -186,19 +189,30 @@ export default function FinanceiroBlock({
                         )}
                       </td>
                       <td style={reportTd}>
-                        {key === "paineis" ? (
+                        {hasOverride ? (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: suspectedSticky
+                                ? "var(--pi-btn-danger-bg, #dc2626)"
+                                : "var(--warning, #ca8a04)",
+                            }}
+                            title={
+                              suspectedSticky
+                                ? R.tooltipOverrideSuspeito
+                                : R.tooltipOverride
+                            }
+                          >
+                            {suspectedSticky
+                              ? R.badgeOverrideSuspeito
+                              : R.badgeOverride}
+                          </span>
+                        ) : key === "paineis" ? (
                           <span
                             style={{ fontSize: 11, color: "var(--text-muted)" }}
                             title={R.tooltipOrigemPreco}
                           >
                             {badge}
-                          </span>
-                        ) : hasOverride ? (
-                          <span
-                            style={{ fontSize: 11, color: "var(--warning, #ca8a04)" }}
-                            title={R.tooltipOverride}
-                          >
-                            {R.badgeOverride}
                           </span>
                         ) : (
                           <span
@@ -213,26 +227,51 @@ export default function FinanceiroBlock({
                         {!canOverride || !key ? (
                           "-"
                         ) : (
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            style={{ ...reportInput, minHeight: 32, width: 110 }}
-                            value={hasOverride ? value.lineOverrides![key]! : ""}
-                            placeholder={official.toFixed(2)}
-                            title={R.ajusteManualHint}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              if (raw.trim() === "") {
-                                onLineOverride?.(key, null);
-                                return;
-                              }
-                              const n = Number(raw);
-                              if (Number.isFinite(n) && n >= 0) {
-                                onLineOverride?.(key, n);
-                              }
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                              gap: 6,
                             }}
-                          />
+                          >
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              style={{ ...reportInput, minHeight: 32, width: 110 }}
+                              value={hasOverride ? value.lineOverrides![key]! : ""}
+                              placeholder={official.toFixed(2)}
+                              title={R.ajusteManualHint}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                if (raw.trim() === "") {
+                                  onLineOverride?.(key, null);
+                                  return;
+                                }
+                                const n = Number(raw);
+                                if (Number.isFinite(n) && n >= 0) {
+                                  onLineOverride?.(key, n);
+                                }
+                              }}
+                            />
+                            {hasOverride ? (
+                              <button
+                                type="button"
+                                disabled={saving}
+                                title={R.reporAoOficialHint}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "4px 8px",
+                                  cursor: saving ? "default" : "pointer",
+                                  opacity: saving ? 0.6 : 1,
+                                }}
+                                onClick={() => onLineOverride?.(key, null)}
+                              >
+                                {R.reporAoOficial}
+                              </button>
+                            ) : null}
+                          </div>
                         )}
                       </td>
                       <td style={reportTd}>{formatEur(linha.total)}</td>

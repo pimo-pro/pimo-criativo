@@ -2,6 +2,7 @@
  * Migracao de Relatorio Final v1 (strings) -> v2 (listas de itens).
  */
 
+import { needsFinanceiroProvenanceMigration } from "./financeiroDetalheProvenance";
 import {
   emptyDesign,
   emptyMontagem,
@@ -115,4 +116,15 @@ export function migrateProjectReport(raw: ProjectReport | Record<string, unknown
 export function joinTextoItems(items: ReportTextoItem[] | undefined): string {
   if (!items?.length) return "";
   return items.map((i) => i.texto).filter(Boolean).join("\n");
+}
+
+/**
+ * Gate Fase 0: documentos sem `financeiro.provenanceVersion` actual
+ * precisam de migração lazy (só quando features.reportFinanceiroProvenance).
+ * Não reescreve o financeiro aqui — evita persistir mudanças sem a flag.
+ */
+export function reportNeedsFinanceiroProvenanceMigration(
+  report: ProjectReport
+): boolean {
+  return needsFinanceiroProvenanceMigration(report.financeiro);
 }

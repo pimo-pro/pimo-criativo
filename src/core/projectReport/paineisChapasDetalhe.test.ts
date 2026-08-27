@@ -11,11 +11,14 @@ import {
 } from "./chapasReport";
 import { snapshotToReportFinanceiro } from "./financeiroFromUnificado";
 import {
+  cutlistItemsFromProjectState,
   madeiraTotalFromFinanceiro,
   totalChapasDetalhe,
   withPaineisChapasDetalhe,
 } from "./paineisChapasDetalhe";
 import { makeReportId } from "./types";
+import type { ProjectState } from "@/context/projectTypes";
+import type { CutListItem } from "@/core/types";
 
 const zeroCustos = Object.fromEntries(
   FINANCEIRO_CUSTO_KEYS.map((k) => [k, 0])
@@ -135,5 +138,38 @@ describe("P3.19 Painéis detalhe", () => {
     expect(fin.linhas.find((l) => l.key === "paineis")?.total).toBe(150);
     expect(fin.linhas.find((l) => l.key === "chapasReais")?.total).toBe(0);
     expect(madeiraTotalFromFinanceiro(fin)).toBe(150);
+  });
+
+  it("cutlistItemsFromProjectState: usa state.cutList quando não vazio (R1)", () => {
+    const cutList = [
+      {
+        id: "p1",
+        nome: "Lateral",
+        material: "MDF",
+        quantidade: 1,
+        dimensoes: { comprimento: 100, largura: 50, espessura: 18 },
+      },
+    ] as unknown as CutListItem[];
+    const state = {
+      cutList,
+      boxes: [],
+      projectName: "Teste",
+    } as unknown as ProjectState;
+    const items = cutlistItemsFromProjectState(state, "proj-1");
+    expect(items).toHaveLength(1);
+    expect(items[0]?.id).toBe("p1");
+  });
+
+  it("cutlistItemsFromProjectState: cutList vazio → não devolve o array vazio como fonte única sem export", () => {
+    const state = {
+      cutList: [],
+      boxes: [],
+      projectName: "Vazio",
+      rules: {},
+    } as unknown as ProjectState;
+    // Sem boxes, export industrial devolve []; o importante é não preferir offline aqui.
+    const items = cutlistItemsFromProjectState(state, "proj-2");
+    expect(Array.isArray(items)).toBe(true);
+    expect(items).toHaveLength(0);
   });
 });

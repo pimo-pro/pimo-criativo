@@ -169,6 +169,56 @@ export async function loadProjectRecord(id: string): Promise<SavedProjectRecord 
   }
 }
 
+/** Timeout do merge remoto no Relatório (R1) — evita abertura bloqueada em rede fraca. */
+export const LOAD_PROJECT_RECORD_FRESH_TIMEOUT_MS = 3000;
+
+function withTimeoutOrNull<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      }
+    );
+  });
+}
+
+/**
+ * Relatório Final (R1): aguarda merge remoto vs offline (updatedAt),
+ * em vez do refresh só em background de loadProjectRecord.
+ * Se o remoto falhar, demorar > timeout, ou não existir → offline local.
+ * O merge em curso após timeout pode ainda actualizar o cache; o próximo refresh apanha-o.
+ */
+export async function loadProjectRecordFresh(
+  id: string
+): Promise<SavedProjectRecord | null> {
+  ensureProjectsSyncStarted();
+  const fromOffline = (): SavedProjectRecord | null => {
+    const projects = readOfflineProjects();
+    const local =
+      projects.find((p) => !p.deleted && projectMatchesId(p, id)) ?? null;
+    return local ? toSavedRecordFromOffline(local) : null;
+  };
+
+  if (isOnline()) {
+    try {
+      const merged = await withTimeoutOrNull(
+        loadProjectFromServerAndMerge(id, projectsApiDeps),
+        LOAD_PROJECT_RECORD_FRESH_TIMEOUT_MS
+      );
+      if (merged) return merged;
+    } catch (err) {
+      console.warn("[pimo] loadProjectRecordFresh remoto falhou:", id, err);
+    }
+  }
+  return fromOffline();
+}
+
 export async function saveProject(request: SaveProjectRequest): Promise<SavedProjectMeta | null> {
   ensureProjectsSyncStarted();
   const savedLocal = saveProjectOffline(request);

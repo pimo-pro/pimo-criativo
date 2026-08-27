@@ -152,10 +152,16 @@ export const R = {
     "Override opcional. Deixe vazio para usar o valor oficial (SSOT).",
   overrideManual: "override manual",
   badgeOverride: "override",
+  badgeOverrideSuspeito: "override · possível eco sticky",
   badgeValorOficial: "valor oficial",
   tooltipOrigemPreco: "Origem do pre\u00e7o oficial (Unificado / chapas reais).",
   tooltipValorOficial: "Total oficial do Financeiro ADMIN (SSOT).",
   tooltipOverride: "Override manual activo na camada visual.",
+  tooltipOverrideSuspeito:
+    "Este override coincide com a soma do detalhe antigo (poss\u00edvel eco sticky). N\u00e3o foi removido automaticamente \u2014 use \u00abRepor ao oficial\u00bb se n\u00e3o for intencional.",
+  reporAoOficial: "Repor ao oficial",
+  reporAoOficialHint:
+    "Remove o override desta linha e volta ao total SSOT (Unificado).",
   tooltipTotalVisual: "Soma do detalhe edit\u00e1vel (n\u00e3o \u00e9 o SSOT).",
   totalVisual: "Total visual",
   totalVisualChapas: "\u20ac/total chapas",

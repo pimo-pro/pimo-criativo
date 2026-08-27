@@ -150,6 +150,70 @@ export function aggregateChapasByEspessura(
 }
 
 /**
+ * R1/Fase 2 (flag on): uma linha por (espessura, material).
+ * Id determinístico — matching live usa paineisStableMatchKey (não depende do id).
+ */
+export function aggregateChapasByEspessuraEMaterial(
+  sheets: ChapasRealSheetRow[]
+): ReportFinanceiroDetalhe[] {
+  const byKey = new Map<
+    string,
+    { esp: number; tipo: string; L: number; A: number; qtd: number; material: string }
+  >();
+
+  for (const s of sheets) {
+    const esp = Math.round(Number(s.espessuraMm) || 0) || 18;
+    const material = String(s.material || "Chapa");
+    const norm = material.trim().toLowerCase().replace(/\s+/g, " ");
+    const key = `${esp}|${norm}`;
+    const prev = byKey.get(key);
+    if (prev) {
+      prev.qtd += 1;
+    } else {
+      byKey.set(key, {
+        esp,
+        tipo: material || "Chapa",
+        L: Number(s.sheetLarguraMm) || CHAPA_PADRAO_LARGURA,
+        A: Number(s.sheetAlturaMm) || CHAPA_PADRAO_ALTURA,
+        qtd: 1,
+        material,
+      });
+    }
+  }
+
+  const rows: ReportFinanceiroDetalhe[] = [];
+  const sorted = [...byKey.values()].sort((a, b) => {
+    if (a.esp !== b.esp) return a.esp - b.esp;
+    return a.tipo.localeCompare(b.tipo, "pt");
+  });
+  for (const row of sorted) {
+    const eurM2 = resolveEurM2(row.material, row.esp);
+    const precoPorMetro = precoPorMetroFromM2(eurM2, row.A);
+    const slug = row.material
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "chapa";
+    rows.push(
+      recalcChapaDetalhe({
+        id: `ch-${row.esp}-${slug}`,
+        tipo: row.tipo,
+        dimensoes: formatMedidaMm(row.L, row.A),
+        comprimentoMm: row.L,
+        larguraMm: row.A,
+        espessuraMm: row.esp,
+        quantidade: row.qtd,
+        precoPorMetro,
+        precoPorM2: eurM2,
+        precoUnitario: 0,
+        total: 0,
+      })
+    );
+  }
+  return rows;
+}
+
+/**
  * Recalcula preços dinâmicos da chapa:
  * - preco_m2 = preco_chapa / area_chapa (quando só há unitário legado)
  * - preco_metro (€/m) = preco_m2 × largura_m

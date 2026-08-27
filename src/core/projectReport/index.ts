@@ -10,6 +10,7 @@ export type {
   ReportMaterialLinha,
   ReportFinanceiroLinha,
   ReportFinanceiroDetalhe,
+  ReportDetalheProvenance,
   ReportTextoItem,
   ProjectReportGerais,
   ProjectReportMetricas,
@@ -59,7 +60,43 @@ export {
 } from "./financeReportCalc";
 
 export { seedOrMergeProjectReport } from "./seedProjectReport";
-export { loadReportProjectContext } from "./loadReportProjectContext";
+export {
+  reportNeedsFinanceiroProvenanceMigration,
+} from "./migrateReport";
+export {
+  FINANCEIRO_PROVENANCE_VERSION,
+  PROVENANCE_MONEY_EPS,
+  needsFinanceiroProvenanceMigration,
+  classifyLegacyDetalhe,
+  mergeSsotWithManual,
+  classifyLegacyLineOverrides,
+  filterFerragensOverridesToKeep,
+  previewFinanceiroProvenanceMigration,
+  applyDetalheProvenanceForKey,
+  buildLineOverrideMeta,
+  paineisStableMatchKey,
+  normalizeMaterialName,
+  matchKeyForFinanceiroKey,
+  moneyEq,
+  softMatchKey,
+  sumDetalheTotals,
+  withProvenance,
+} from "./financeiroDetalheProvenance";
+export type {
+  DetalheClassifyKind,
+  ClassifiedDetalheItem,
+  LineOverrideClassifyKind,
+  LineOverrideClassification,
+  ClassifyDetalheOptions,
+  MergeDetalheOptions,
+} from "./financeiroDetalheProvenance";
+export {
+  features,
+  isFeatureEnabled,
+  isReportFinanceiroProvenanceEnabled,
+} from "../features";
+export type { AppFeatureKey } from "../features";
+export { loadReportProjectContext, pickFresherReportContext } from "./loadReportProjectContext";
 export type { ReportProjectContext } from "./loadReportProjectContext";
 export { createReportSaveQueue } from "./reportSaveQueue";
 export type { ReportSaveQueue, ReportSaveResult } from "./reportSaveQueue";
@@ -203,6 +240,7 @@ export { buildOrlaDetalheFromState, recalcOrlaDetalhe } from "./orlaReport";
 export {
   AREA_CHAPA_PADRAO_M2,
   aggregateChapasByEspessura,
+  aggregateChapasByEspessuraEMaterial,
   listCatalogoChapas,
   findChapaCatalogOption,
   detalheFromCatalogoChapa,
@@ -223,6 +261,7 @@ export type { CatalogoChapaOption } from "./chapasReport";
 
 export {
   buildPaineisChapasDetalhe,
+  cutlistItemsFromProjectState,
   withPaineisChapasDetalhe,
   getPaineisDetalhe,
   madeiraTotalFromFinanceiro,
@@ -230,6 +269,14 @@ export {
   addChapaToPaineisFinanceiro,
   setPaineisChapasDetalhe,
 } from "./paineisChapasDetalhe";
+
+export {
+  collectPaineisSugestoesProjeto,
+  collectSugestoesFromRemates,
+  collectSugestoesFromCutlistTipos,
+  labelFromRemateProductType,
+  isCutlistNomeSugestaoSegura,
+} from "./paineisSugestoesProjeto";
 
 export {
   appendHistoryEntry,
