@@ -15,6 +15,7 @@ import {
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import { computeChapasReal, hasChapasSheets, isChapasRealOficial } from "../industrial/computeChapasReal";
 import { deriveCustoChapaReal } from "./deriveCustoChapaReal";
+import { priceChapasSheetsEur } from "./priceChapasSheetsEur";
 import { getSettings } from "../settings/settingsService";
 import { isDrawerPieceTipo } from "../../services/drawerCutlistAdapter";
 import { isIndustrialDoorPanelTipo } from "../doors/industrialDoorPanels";
@@ -348,6 +349,9 @@ export function computeFinanceiroUnificado(
   const isOficial = isChapasRealOficial(chapasReal.mode) && hasChapasSheets(chapasReal);
   const hasSheets = hasChapasSheets(chapasReal);
   const derivedChapa = deriveCustoChapaReal({ cutlist });
+  const pricedSheets = isOficial
+    ? priceChapasSheetsEur(chapasReal.sheets)
+    : { totalEur: 0, sheetCount: 0 };
   const wasteM2 = hasSheets ? chapasReal.totalWasteMm2 / 1_000_000 : 0;
   const serragemM2 = estimateSerragemM2(cutlist);
   const despSerr = computeDesperdicioSerragemFinanceiras({
@@ -375,6 +379,7 @@ export function computeFinanceiroUnificado(
     pesoTotalKg,
     pesoByPieceId,
     custoChapaRealDerived: derivedChapa.custoChapaReal,
+    precoChapasSheetsEur: isOficial ? pricedSheets.totalEur : undefined,
   });
   if (avancados.suppressPieceMaterial) {
     for (const k of FINANCEIRO_PIECE_MATERIAL_KEYS) {
@@ -534,7 +539,11 @@ export function computeFinanceiroUnificado(
     materialCostMode: avancados.materialCostMode,
     chapasReaisMeta: {
       countMonetizado: isOficial ? chapasReal.totalSheets : 0,
-      custoChapaDerived: derivedChapa.custoChapaReal,
+      // Média efectiva €/chapa (só meta UI); € oficial = pricedSheets.totalEur via avancados.
+      custoChapaDerived:
+        isOficial && pricedSheets.sheetCount > 0
+          ? Math.round((pricedSheets.totalEur / pricedSheets.sheetCount) * 100) / 100
+          : derivedChapa.custoChapaReal,
       nestingMode: isOficial ? "oficial_pro" : "estimado",
     },
     operacoesAvancadasBreakdown,

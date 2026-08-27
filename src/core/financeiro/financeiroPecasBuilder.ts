@@ -44,6 +44,7 @@ import { computeCustosAvancadosFinanceiras } from "./computeCustosAvancadosFinan
 import { computeOperacoesIndustriaisAvancadas } from "./computeOperacoesIndustriaisAvancadas";
 import { computeChapasReal, hasChapasSheets, isChapasRealOficial } from "../industrial/computeChapasReal";
 import { deriveCustoChapaReal } from "./deriveCustoChapaReal";
+import { priceChapasSheetsEur } from "./priceChapasSheetsEur";
 import { FINANCEIRO_PIECE_MATERIAL_KEYS } from "./financeiroUnificadoTypes";
 
 /** @deprecated P3.9 F3a — tarifas passam a Orçamentos (defaults 0). Mantido para compat. */
@@ -341,6 +342,9 @@ export function buildFinanceiroPecasRows(
     pesoTotalKg += w;
   }
   const derivedChapa = deriveCustoChapaReal({ cutlist });
+  const pricedSheets = isOficial
+    ? priceChapasSheetsEur(chapasReal.sheets)
+    : { totalEur: 0, sheetCount: 0 };
   const avancados = computeCustosAvancadosFinanceiras({
     cutlist,
     chapasCount: isOficial ? chapasReal.totalSheets : 0,
@@ -348,6 +352,7 @@ export function buildFinanceiroPecasRows(
     pesoTotalKg,
     pesoByPieceId,
     custoChapaRealDerived: derivedChapa.custoChapaReal,
+    precoChapasSheetsEur: isOficial ? pricedSheets.totalEur : undefined,
   });
   const opsAvancadas = computeOperacoesIndustriaisAvancadas(cutlist);
   const pieceMaterialKeySet = new Set<string>(FINANCEIRO_PIECE_MATERIAL_KEYS);

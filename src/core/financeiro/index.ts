@@ -114,6 +114,9 @@ export type {
   CustosAvancadosTarifas,
 } from "./computeCustosAvancadosFinanceiras";
 
+export { priceChapasSheetsEur } from "./priceChapasSheetsEur";
+export type { ChapasSheetForPricing } from "./priceChapasSheetsEur";
+
 export {
   computeOperacoesIndustriaisAvancadas,
   OPS_ADV_MAP,

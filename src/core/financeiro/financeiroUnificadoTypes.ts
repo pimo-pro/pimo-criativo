@@ -119,7 +119,8 @@ export type FinanceiroUnificadoSnapshot = {
   custosAvancadosWarnings?: string[];
   materialCostMode?: import("../orcamentos").OrcamentosMaterialCostMode;
   /**
-   * Detalhe para labels UI/PDF: N monetizado × €/chapa derivado.
+   * Meta UI/PDF: N monetizado + média efectiva €/chapa (totalEur/N).
+   * O € oficial em custosEffective.chapasReais é Σ exacto (priceChapasSheetsEur), não N×média.
    * countMonetizado = 0 se nesting estimado (chapasReais€=0).
    */
   chapasReaisMeta?: {

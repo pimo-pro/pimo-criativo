@@ -1,7 +1,7 @@
 /**
  * Chapas reais para o detalhe Painéis do Relatório Final (só visualização).
  * Agrupa por espessura. Preços de detalhe NÃO alimentam totais oficiais —
- * o SSOT é computeFinanceiroUnificado (deriveCustoChapaReal × N).
+ * o SSOT € é priceChapasSheetsEur (por chapa × material), via Unificado / Relatório.
  */
 
 import { getPrecoPorMaterial } from "@/core/pricing/pricing";

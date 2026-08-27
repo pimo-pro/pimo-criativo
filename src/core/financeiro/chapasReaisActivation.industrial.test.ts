@@ -27,6 +27,7 @@ import {
   financeiroCustoRows,
 } from "./financeiroUnificado";
 import { FINANCEIRO_PIECE_MATERIAL_KEYS } from "./financeiroUnificadoTypes";
+import { priceChapasSheetsEur } from "./priceChapasSheetsEur";
 
 function enableChapasReaisMode(): void {
   setIndustrialSettingsReadOverride({
@@ -182,12 +183,13 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     setIndustrialSettingsReadOverride(null);
   });
 
-  it("cutlist mono: nesting real → N×€ derivado + suppress Painéis", () => {
+  it("cutlist mono: nesting real → Σ sheets exacto + suppress Painéis", () => {
     enableChapasReaisMode();
     const cutlist = cutlistNestableMono();
     const chapas = computeChapasReal(cutlist, "5D-mono", [{ id: "box-syn" }]);
     const derived = deriveCustoChapaReal({ cutlist });
     expect(derived.custoChapaReal).toBeGreaterThan(0);
+    const priced = priceChapasSheetsEur(chapas.sheets);
 
     const avancados = computeCustosAvancadosFinanceiras({
       cutlist,
@@ -195,6 +197,10 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
       chapasModeReal: chapas.mode === "oficial_pro" && chapas.sheets.length > 0,
       pesoTotalKg: 20,
       custoChapaRealDerived: derived.custoChapaReal,
+      precoChapasSheetsEur:
+        chapas.mode === "oficial_pro" && chapas.sheets.length > 0
+          ? priced.totalEur
+          : undefined,
     });
 
     expect(FINANCEIRO_PIECE_MATERIAL_KEYS).not.toContain("gavetas");
@@ -202,9 +208,7 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     if (chapas.mode === "oficial_pro" && chapas.sheets.length > 0) {
       expect(avancados.suppressPieceMaterial).toBe(true);
       expect(chapas.totalSheets).toBeGreaterThan(0);
-      expect(avancados.precoChapasReais).toBe(
-        Math.round(chapas.totalSheets * derived.custoChapaReal * 100) / 100
-      );
+      expect(avancados.precoChapasReais).toBe(priced.totalEur);
       assertNoMaterialDoubleCount({
         pieceMaterialSum: 0,
         chapasReais: avancados.precoChapasReais,
@@ -233,16 +237,22 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
 
     const chapas = computeChapasReal(cutlist, "5D-multi", [{ id: "box-syn" }]);
     const derived = deriveCustoChapaReal({ cutlist });
+    const priced = priceChapasSheetsEur(chapas.sheets);
     const avancados = computeCustosAvancadosFinanceiras({
       cutlist,
       chapasCount: chapas.mode === "oficial_pro" ? chapas.totalSheets : 0,
       chapasModeReal: chapas.mode === "oficial_pro" && chapas.sheets.length > 0,
       pesoTotalKg: 25,
       custoChapaRealDerived: derived.custoChapaReal,
+      precoChapasSheetsEur:
+        chapas.mode === "oficial_pro" && chapas.sheets.length > 0
+          ? priced.totalEur
+          : undefined,
     });
 
     if (chapas.mode === "oficial_pro") {
       expect(avancados.suppressPieceMaterial).toBe(true);
+      expect(avancados.precoChapasReais).toBe(priced.totalEur);
       expect(avancados.precoChapasReais).toBeGreaterThan(0);
       expect(chapas.sheets.some((s) => s.espessuraMm === 19)).toBe(true);
       expect(chapas.sheets.some((s) => s.espessuraMm === 10)).toBe(true);
@@ -273,9 +283,14 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
       expect(snap.custosEffective.paineis).toBe(0);
       expect(labels).toContain("Painéis");
       const n = snap.chapasReaisMeta!.countMonetizado;
-      const unit = snap.chapasReaisMeta!.custoChapaDerived;
-      expect(unit).toBeGreaterThan(0);
-      expect(snap.custosEffective.chapasReais).toBe(Math.round(n * unit * 100) / 100);
+      const avgMeta = snap.chapasReaisMeta!.custoChapaDerived;
+      expect(n).toBeGreaterThan(0);
+      expect(avgMeta).toBeGreaterThan(0);
+      // € oficial = Σ exacto; meta.avg é só UI (n×avg pode divergir por arredondamento).
+      expect(avgMeta).toBe(
+        Math.round((snap.custosEffective.chapasReais / n) * 100) / 100
+      );
+      expect(snap.custosEffective.chapasReais).toBeGreaterThan(0);
       // UI não lista «Chapas reais» — valor continua em custosEffective.
       expect(labels.some((l) => l.startsWith("Chapas reais"))).toBe(false);
       assertNoMaterialDoubleCount({

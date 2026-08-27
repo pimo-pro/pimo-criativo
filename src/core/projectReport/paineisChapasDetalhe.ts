@@ -5,7 +5,6 @@
  */
 
 import type { ProjectState } from "@/context/projectTypes";
-import { deriveCustoChapaReal } from "@/core/financeiro/deriveCustoChapaReal";
 import { buildCutlistItemsForIndustrialExport } from "@/core/fabrication/buildCutlistItemsForIndustrialExport";
 import { computeChapasReal } from "@/core/industrial/computeChapasReal";
 import { findOfflineProjectByAnyKey } from "@/core/projects/projectIdentity";
@@ -17,9 +16,7 @@ import {
   aggregateChapasByEspessura,
   aggregateChapasByEspessuraEMaterial,
   detalheFromCatalogoChapa,
-  formatMedidaMm,
   recalcChapaDetalhe,
-  resolveDimensoesMm,
 } from "./chapasReport";
 import type { CatalogoChapaOption } from "./chapasReport";
 import { isReportFinanceiroProvenanceEnabled } from "../features";
@@ -27,10 +24,6 @@ import type { ProjectReportFinanceiro, ReportFinanceiroDetalhe } from "./types";
 
 function round2(n: number): number {
   return Math.round((Number(n) || 0) * 100) / 100;
-}
-
-function round4(n: number): number {
-  return Math.round((Number(n) || 0) * 10000) / 10000;
 }
 
 /** Total madeira no Unificado (Painéis + chapas reais, anti double-count). */
@@ -91,7 +84,7 @@ function resolveCutlistForPaineisDetalhe(
 
 /**
  * Constrói detalhe visual de chapas reais.
- * Usa o mesmo €/m² dominante de deriveCustoChapaReal (SSOT ADMIN) para exibição.
+ * €/m² por material da linha (aggregate → resolveEurM2 / getPrecoPorMaterial).
  * Com `state` presente, ignora cutlist offline (pode estar stale).
  */
 export function buildPaineisChapasDetalhe(
@@ -110,31 +103,11 @@ export function buildPaineisChapasDetalhe(
     );
     if (chapas.sheets.length === 0) return [];
 
-    const derived = deriveCustoChapaReal({ cutlist });
     const rows = isReportFinanceiroProvenanceEnabled()
       ? aggregateChapasByEspessuraEMaterial(chapas.sheets)
       : aggregateChapasByEspessura(chapas.sheets);
 
-    // Alinhar €/m² e €/chapa ao derivado ADMIN (não ao resolveEurM2 local divergente).
-    if (derived.eurM2 > 0 && derived.custoChapaReal > 0) {
-      return rows.map((d) => {
-        const { L, A } = resolveDimensoesMm(d);
-        const area = round4((Math.max(0, L) * Math.max(0, A)) / 1_000_000);
-        const precoUnitario = round2(derived.eurM2 * area);
-        return recalcChapaDetalhe({
-          ...d,
-          dimensoes: formatMedidaMm(L, A),
-          comprimentoMm: L,
-          larguraMm: A,
-          precoPorM2: derived.eurM2,
-          precoPorMetro: 0,
-          precoUnitario,
-          total: round2((Number(d.quantidade) || 0) * precoUnitario),
-        });
-      });
-    }
-
-    return rows;
+    return rows.map((d) => recalcChapaDetalhe(d));
   } catch {
     return [];
   }

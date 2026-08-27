@@ -7,7 +7,7 @@
 import { FINANCEIRO_CUSTO_KEYS } from "@/core/financeiro/financeiroUnificadoTypes";
 import type { FinanceiroCustoKey } from "@/core/financeiro/financeiroUnificadoTypes";
 import type { ProductionRelease } from "@/core/industrial/productionRelease";
-import { getPrecoPorMaterial } from "@/core/pricing/pricing";
+import { priceChapasSheetsEur } from "@/core/financeiro/priceChapasSheetsEur";
 import { aggregateChapasByEspessuraEMaterial, recalcChapaDetalhe } from "./chapasReport";
 import {
   buildFerragensVisual,
@@ -33,16 +33,7 @@ function round2(n: number): number {
 export function pricePaineisFromReleaseChapas(
   release: ProductionRelease
 ): { totalEur: number; sheetCount: number } {
-  let totalEur = 0;
-  const sheets = release.chapas?.sheets ?? [];
-  for (const sheet of sheets) {
-    const L = Number(sheet.sheetLarguraMm) || 0;
-    const A = Number(sheet.sheetAlturaMm) || 0;
-    const areaM2 = (Math.max(0, L) / 1000) * (Math.max(0, A) / 1000);
-    const eurM2 = getPrecoPorMaterial(sheet.material, sheet.espessuraMm);
-    totalEur = round2(totalEur + eurM2 * areaM2);
-  }
-  return { totalEur, sheetCount: sheets.length };
+  return priceChapasSheetsEur(release.chapas?.sheets ?? []);
 }
 
 export function detalhePaineisFromRelease(

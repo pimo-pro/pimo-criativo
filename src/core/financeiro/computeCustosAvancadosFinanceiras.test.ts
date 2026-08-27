@@ -95,6 +95,30 @@ describe("computeCustosAvancadosFinanceiras (P3.9 F3c)", () => {
     });
   });
 
+  it("por_chapas_reais → precoChapasSheetsEur tem prioridade sobre N × derivado", () => {
+    const cutlist = [
+      piece({ id: "a", w: 1000, h: 1000 }),
+      piece({ id: "b", w: 1000, h: 1000 }),
+    ];
+    const r = computeCustosAvancadosFinanceiras({
+      cutlist,
+      chapasCount: 4,
+      chapasModeReal: true,
+      pesoTotalKg: 10,
+      custoChapaRealDerived: 25,
+      precoChapasSheetsEur: 2385.42,
+      tarifas: {
+        materialCostMode: "por_chapas_reais",
+        enableMaoDeObra: false,
+        enableLogistica: false,
+      },
+    });
+    expect(r.suppressPieceMaterial).toBe(true);
+    expect(r.precoChapasReais).toBe(2385.42);
+    expect(r.precoChapasReais).not.toBe(100);
+    expect(sumMap(r.chapasByPieceId)).toBe(2385.42);
+  });
+
   it("por_chapas_reais sem derivado → chapasReais 0 + fallback (sem suppress)", () => {
     const r = computeCustosAvancadosFinanceiras({
       cutlist: [piece({ id: "a" })],

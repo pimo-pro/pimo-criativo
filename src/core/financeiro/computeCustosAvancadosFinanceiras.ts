@@ -142,9 +142,14 @@ export function computeCustosAvancadosFinanceiras(input: {
   tarifas?: Partial<CustosAvancadosTarifas> | null;
   /**
    * Custo €/chapa derivado de €/m² (Painéis) × área chapa padrão.
-   * Sem este valor, chapasReais permanece 0 no modo exclusivo.
+   * Sem este valor (e sem precoChapasSheetsEur), chapasReais permanece 0 no modo exclusivo.
    */
   custoChapaRealDerived?: number;
+  /**
+   * Quando há sheets oficiais: € = priceChapasSheetsEur(sheets).
+   * Tem prioridade sobre N × custoChapaRealDerived.
+   */
+  precoChapasSheetsEur?: number;
 }): CustosAvancadosFinanceirasResult {
   const tarifas = resolveCustosAvancadosTarifas(input.tarifas);
   const cutlist = input.cutlist ?? [];
@@ -168,11 +173,17 @@ export function computeCustosAvancadosFinanceiras(input: {
     typeof input.custoChapaRealDerived === "number" && Number.isFinite(input.custoChapaRealDerived)
       ? Math.max(0, input.custoChapaRealDerived)
       : 0;
+  const sheetsEur =
+    typeof input.precoChapasSheetsEur === "number" && Number.isFinite(input.precoChapasSheetsEur)
+      ? Math.max(0, input.precoChapasSheetsEur)
+      : 0;
   if (wantsChapasReais) {
     if (!input.chapasModeReal || !(chapasCount > 0)) {
       warnings.push(
         "materialCostMode=por_chapas_reais sem chapas reais → chapasReais=0; fallback Painéis por peça"
       );
+    } else if (sheetsEur > 0) {
+      precoChapasReais = round2(sheetsEur);
     } else if (!(custoChapa > 0)) {
       warnings.push(
         "custoChapaReal derivado=0 (sem €/m² ou área chapa) → chapasReais=0; fallback Painéis por peça"
