@@ -25,6 +25,10 @@ import {
 } from "./productionRelease";
 
 export const PRODUCTION_RELEASE_OUTBOX_KEY = "pimo.productionRelease.outbox";
+/** Espera máxima antes do redirect após «Gerar arquivo completo». */
+export const PRODUCTION_RELEASE_REDIRECT_BUDGET_MS = 3000;
+/** Limite prático do fetch keepalive (Chrome ~64KB); acima disso não usamos keepalive. */
+export const PRODUCTION_RELEASE_KEEPALIVE_MAX_BYTES = 60_000;
 
 const projectsApiDeps: ProjectsApiDeps = {
   buildPimoProjectDataFromRequest,
@@ -51,6 +55,52 @@ function resolveLoadKeys(urlKey: string): string[] {
     out.push(key);
   }
   return out;
+}
+
+function uniqueKeys(keys: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of keys) {
+    const key = String(raw ?? "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
+/** Chaves com que o outbox pode ser encontrado na leitura (Relatório / drain). */
+export function buildProductionReleaseMatchKeys(
+  projectId: string,
+  release: ProductionRelease,
+  aliasKeys: readonly string[] = []
+): string[] {
+  return uniqueKeys([
+    projectId,
+    release.projectId,
+    ...aliasKeys,
+    ...resolveLoadKeys(projectId),
+    ...aliasKeys.flatMap((k) => resolveLoadKeys(k)),
+  ]);
+}
+
+export function outboxMatchesProjectKey(
+  outbox: ProductionReleaseOutboxItem,
+  readKey: string
+): boolean {
+  const id = String(readKey ?? "").trim();
+  if (!id) return false;
+  const readKeys = new Set(uniqueKeys([id, ...resolveLoadKeys(id)]));
+  const candidates = uniqueKeys([
+    outbox.projectId,
+    outbox.release?.projectId,
+    ...(outbox.matchKeys ?? []),
+    ...resolveLoadKeys(outbox.projectId),
+  ]);
+  for (const c of candidates) {
+    if (readKeys.has(c)) return true;
+  }
+  return false;
 }
 
 async function loadRemoteProjectData(projectKey: string): Promise<PimoProjectData | null> {
@@ -112,10 +162,17 @@ export async function saveProductionRelease(
     updatedAt: new Date().toISOString(),
   };
 
+  const body = JSON.stringify(merged);
+  const useKeepalive =
+    typeof body === "string" &&
+    body.length > 0 &&
+    body.length <= PRODUCTION_RELEASE_KEEPALIVE_MAX_BYTES;
+
   const response = await fetch(buildProjectsUrl(), {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(merged),
+    body,
+    ...(useKeepalive ? { keepalive: true } : {}),
   });
   const payload = (await toJson(response)) as {
     status?: string;
@@ -131,6 +188,8 @@ export async function saveProductionRelease(
 export type ProductionReleaseOutboxItem = {
   projectId: string;
   release: ProductionRelease;
+  /** Slug / nome / ids — para match na leitura sem depender só do pimo-id. */
+  matchKeys?: string[];
 };
 
 function readOutbox(): ProductionReleaseOutboxItem | null {
@@ -143,7 +202,19 @@ function readOutbox(): ProductionReleaseOutboxItem | null {
     if (!obj) return null;
     const projectId = typeof obj.projectId === "string" ? obj.projectId.trim() : "";
     if (!projectId || !isProductionRelease(obj.release)) return null;
-    return { projectId, release: obj.release };
+    const matchKeysRaw = Array.isArray(obj.matchKeys) ? obj.matchKeys : [];
+    const matchKeys = uniqueKeys(
+      matchKeysRaw.map((k) => (typeof k === "string" ? k : ""))
+    );
+    const release = obj.release as ProductionRelease;
+    return {
+      projectId,
+      release,
+      matchKeys:
+        matchKeys.length > 0
+          ? matchKeys
+          : buildProductionReleaseMatchKeys(projectId, release),
+    };
   } catch {
     return null;
   }
@@ -174,7 +245,7 @@ const PERSIST_FAIL_TOAST =
 
 /**
  * Grava outbox já; dispara o POST sem await.
- * Usado pela cauda de sucesso e pelo drain após redirect.
+ * Usado pelo drain após redirect (e retries em background).
  */
 export function scheduleProductionReleasePersist(
   projectId: string,
@@ -182,10 +253,15 @@ export function scheduleProductionReleasePersist(
   deps: {
     saveRelease?: typeof saveProductionRelease;
     showToast?: PersistToast;
+    aliasKeys?: readonly string[];
   } = {}
 ): void {
   const saveRelease = deps.saveRelease ?? saveProductionRelease;
-  writeOutbox({ projectId, release });
+  writeOutbox({
+    projectId,
+    release,
+    matchKeys: buildProductionReleaseMatchKeys(projectId, release, deps.aliasKeys ?? []),
+  });
   void saveRelease(projectId, release)
     .then(() => {
       clearOutbox();
@@ -196,11 +272,70 @@ export function scheduleProductionReleasePersist(
     });
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * Grava outbox, tenta o POST até `budgetMs`, depois devolve (redirect seguro).
+ * Se ainda estiver a correr, o outbox + drain / keepalive cobrem o resto.
+ * Em timeout NÃO mostra toast bloqueante — só avisa se a gravação falhar depois.
+ */
+export async function persistProductionReleaseBeforeRedirect(
+  projectId: string,
+  release: ProductionRelease,
+  deps: {
+    saveRelease?: typeof saveProductionRelease;
+    showToast?: PersistToast;
+    aliasKeys?: readonly string[];
+    budgetMs?: number;
+  } = {}
+): Promise<void> {
+  const saveRelease = deps.saveRelease ?? saveProductionRelease;
+  const budgetMs = deps.budgetMs ?? PRODUCTION_RELEASE_REDIRECT_BUDGET_MS;
+  writeOutbox({
+    projectId,
+    release,
+    matchKeys: buildProductionReleaseMatchKeys(projectId, release, deps.aliasKeys ?? []),
+  });
+
+  const savePromise = saveRelease(projectId, release).then(() => {
+    clearOutbox();
+  });
+
+  const outcome = await Promise.race([
+    savePromise.then(
+      () => ({ kind: "ok" as const }),
+      (err: unknown) => ({ kind: "error" as const, err })
+    ),
+    delay(budgetMs).then(() => ({ kind: "timeout" as const })),
+  ]);
+
+  if (outcome.kind === "ok") return;
+
+  if (outcome.kind === "error") {
+    const msg = outcome.err instanceof Error ? outcome.err.message : String(outcome.err);
+    deps.showToast?.(`${PERSIST_FAIL_TOAST} ${msg}`, "warning");
+    return;
+  }
+
+  // Timeout: não falha o fluxo; deixa outbox e avisa só se a gravação falhar depois.
+  void savePromise.catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    deps.showToast?.(`${PERSIST_FAIL_TOAST} ${msg}`, "warning");
+  });
+}
+
 /** Retry após reload (ToastProvider). Também fire-and-forget. */
 export function drainProductionReleaseOutbox(showToast?: PersistToast): void {
   const item = readOutbox();
   if (!item) return;
-  scheduleProductionReleasePersist(item.projectId, item.release, { showToast });
+  scheduleProductionReleasePersist(item.projectId, item.release, {
+    showToast,
+    aliasKeys: item.matchKeys,
+  });
 }
 
 export function peekProductionReleaseOutbox(): ProductionReleaseOutboxItem | null {
@@ -222,8 +357,7 @@ export async function loadProductionRelease(
   }
   const outbox = peekProductionReleaseOutbox();
   if (!outbox) return null;
-  const keys = resolveLoadKeys(id);
-  if (outbox.projectId === id || keys.includes(outbox.projectId)) {
+  if (outboxMatchesProjectKey(outbox, id)) {
     return outbox.release;
   }
   return null;

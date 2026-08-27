@@ -1,9 +1,14 @@
 /**
  * Cauda de sucesso de «Gerar arquivo completo».
- * O caller já fez a.click() do ZIP. Esta função NUNCA espera pela rede.
+ * O caller já fez a.click() do ZIP.
+ * Espera um orçamento curto pela gravação do snapshot antes do redirect
+ * (não bloqueia o nesting/CNC — só a cauda pós-ZIP).
  */
 
-import { scheduleProductionReleasePersist, type PersistToast } from "./productionReleasePersist";
+import {
+  persistProductionReleaseBeforeRedirect,
+  type PersistToast,
+} from "./productionReleasePersist";
 import { buildProductionRelease, type ProductionRelease } from "./productionRelease";
 import type { BuildProductionReleaseInput } from "./productionRelease";
 
@@ -22,18 +27,21 @@ export type ConcludeArquivoCompletoSuccessInput = {
   redirectPath: string | null;
   projectId: string | null;
   release: ProductionRelease | null;
+  /** Nome / slug / ids extras para o outbox casar com a leitura no Relatório. */
+  aliasKeys?: readonly string[];
 };
 
-export function concludeArquivoCompletoSuccess(
+export async function concludeArquivoCompletoSuccess(
   input: ConcludeArquivoCompletoSuccessInput,
   deps: ArquivoCompletoSuccessDeps
-): void {
+): Promise<void> {
   deps.showToast("Arquivo completo (ZIP) gerado.", "info");
 
   if (input.release && input.projectId) {
-    scheduleProductionReleasePersist(input.projectId, input.release, {
+    await persistProductionReleaseBeforeRedirect(input.projectId, input.release, {
       saveRelease: deps.saveRelease,
       showToast: deps.showToast,
+      aliasKeys: input.aliasKeys,
     });
   } else {
     deps.showToast(

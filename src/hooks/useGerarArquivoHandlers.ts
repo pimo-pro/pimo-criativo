@@ -8,7 +8,7 @@ import type { ProjectSnapshot, ProjectState } from "../context/projectTypes";
 import { getCurrentProjectUser } from "../core/projects/currentUser";
 import { saveProject } from "../core/projects/projectsClient";
 import { saveProjectRecord } from "../app/PROJETOS/projetosSnapshotCache";
-import { buildProjetosPagePath } from "../app/PROJETOS/projetosPageSlug";
+import { buildProjetosPagePath, toProjetosPageSlug } from "../app/PROJETOS/projetosPageSlug";
 import {
   captureWorkspaceProjectThumbnail,
   uploadProjectThumbnail,
@@ -1128,6 +1128,7 @@ export function useGerarArquivoHandlers() {
   const onArquivoCompleto = useCallback(async () => {
     let redirectProjectPagePath: string | null = null;
     let savedProjectId: string | null = null;
+    let savedProjectName: string | null = null;
 
     try {
       if (!hasBoxes) {
@@ -1174,6 +1175,7 @@ export function useGerarArquivoHandlers() {
         savedProjectId = internalProjectId;
         const projectName =
           saved?.name ?? stateForSnapshot.projectName ?? project.projectName ?? "Projeto";
+        savedProjectName = projectName;
         if (internalProjectId) {
           await saveProjectRecord(internalProjectId, persistedSnapshot, {
             ...(saved ?? {}),
@@ -1665,12 +1667,20 @@ export function useGerarArquivoHandlers() {
               project,
             })
           : null;
-        concludeArquivoCompletoSuccess(
+        const aliasName =
+          savedProjectName ?? project.projectName ?? slug ?? "Projeto";
+        await concludeArquivoCompletoSuccess(
           {
             zipDelivered: true,
             redirectPath: redirectProjectPagePath,
             projectId: persistId,
             release,
+            aliasKeys: [
+              aliasName,
+              toProjetosPageSlug(aliasName),
+              slug,
+              persistId,
+            ].filter((k): k is string => Boolean(k && String(k).trim())),
           },
           {
             showToast,

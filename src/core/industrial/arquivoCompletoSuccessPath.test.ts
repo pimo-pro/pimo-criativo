@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { concludeArquivoCompletoSuccess } from "./arquivoCompletoSuccess";
-import { PRODUCTION_RELEASE_OUTBOX_KEY } from "./productionReleasePersist";
+import {
+  PRODUCTION_RELEASE_OUTBOX_KEY,
+  PRODUCTION_RELEASE_REDIRECT_BUDGET_MS,
+} from "./productionReleasePersist";
 import type { ProductionRelease } from "./productionRelease";
 
 function sampleRelease(): ProductionRelease {
@@ -44,17 +47,42 @@ describe("onArquivoCompleto — cauda de sucesso (ZIP + productionRelease)", () 
     vi.useRealTimers();
   });
 
-  it("geração OK + persistência falha: ZIP e redirect não esperam; só toast de aviso depois", async () => {
+  it("ZIP já entregue: save rápido → redirect só depois do save; outbox limpo", async () => {
     const events: string[] = [];
-    let rejectSave!: (_err: Error) => void;
-    const hanging = new Promise<void>((_resolve, reject) => {
-      rejectSave = reject;
-    });
-
-    // 1. Espelha a.click() do ZIP — já aconteceu no handler real ANTES de conclude
     events.push("zip-click");
 
-    concludeArquivoCompletoSuccess(
+    await concludeArquivoCompletoSuccess(
+      {
+        zipDelivered: true,
+        redirectPath: "/PROJETOS/Antunes_Novo_Cozinha",
+        projectId: "proj-1",
+        release: sampleRelease(),
+        aliasKeys: ["Antunes_Novo_Cozinha", "Antunes Novo Cozinha"],
+      },
+      {
+        showToast: (_text, type) => events.push(`toast:${type ?? "info"}`),
+        saveRelease: async () => {
+          events.push("save-ok");
+        },
+        assignLocation: (path) => events.push(`redirect:${path}`),
+      }
+    );
+
+    expect(events).toEqual([
+      "zip-click",
+      "toast:info",
+      "save-ok",
+      "redirect:/PROJETOS/Antunes_Novo_Cozinha",
+    ]);
+    expect(events.indexOf("zip-click")).toBeLessThan(events.indexOf("redirect:/PROJETOS/Antunes_Novo_Cozinha"));
+    expect(store.get(PRODUCTION_RELEASE_OUTBOX_KEY)).toBeUndefined();
+  });
+
+  it("save falha dentro do budget: toast warning + redirect; outbox mantém-se", async () => {
+    const events: string[] = [];
+    events.push("zip-click");
+
+    await concludeArquivoCompletoSuccess(
       {
         zipDelivered: true,
         redirectPath: "/PROJETOS/Antunes_Novo_Cozinha",
@@ -63,46 +91,30 @@ describe("onArquivoCompleto — cauda de sucesso (ZIP + productionRelease)", () 
       },
       {
         showToast: (_text, type) => events.push(`toast:${type ?? "info"}`),
-        saveRelease: () => {
-          events.push("save-start");
-          return hanging;
+        saveRelease: async () => {
+          events.push("save-fail");
+          throw new Error("rede lenta");
         },
         assignLocation: (path) => events.push(`redirect:${path}`),
       }
     );
 
-    // 2. Depois de conclude() regressar, ZIP e redirect JÁ aconteceram — persistência ainda pendente
     expect(events).toEqual([
       "zip-click",
       "toast:info",
-      "save-start",
+      "save-fail",
+      "toast:warning",
       "redirect:/PROJETOS/Antunes_Novo_Cozinha",
     ]);
     expect(store.get(PRODUCTION_RELEASE_OUTBOX_KEY)).toBeTruthy();
-
-    // 3. Persistência falha DEPOIS — aviso assíncrono; ZIP/redirect não se desfazem
-    rejectSave(new Error("rede lenta"));
-    await vi.waitFor(() => {
-      expect(events).toContain("toast:warning");
-    });
-
-    expect(events).toEqual([
-      "zip-click",
-      "toast:info",
-      "save-start",
-      "redirect:/PROJETOS/Antunes_Novo_Cozinha",
-      "toast:warning",
-    ]);
-    expect(events.filter((e) => e === "zip-click")).toHaveLength(1);
-    expect(events.filter((e) => e.startsWith("redirect:"))).toHaveLength(1);
   });
 
-  it("persistência que nunca resolve: redirect acontece na mesma (não bloqueia o fluxo CNC)", () => {
+  it("save nunca resolve: redirect após budget; sem toast bloqueante; outbox mantém-se", async () => {
     vi.useFakeTimers();
     const events: string[] = [];
     events.push("zip-click");
 
-    concludeArquivoCompletoSuccess(
+    const done = concludeArquivoCompletoSuccess(
       {
         zipDelivered: true,
         redirectPath: "/PROJETOS/NP2625622",
@@ -111,20 +123,52 @@ describe("onArquivoCompleto — cauda de sucesso (ZIP + productionRelease)", () 
       },
       {
         showToast: (_text, type) => events.push(`toast:${type ?? "info"}`),
-        saveRelease: () => new Promise(() => { /* nunca resolve */ }),
+        saveRelease: () => new Promise(() => {
+          /* nunca resolve */
+        }),
         assignLocation: (path) => events.push(`redirect:${path}`),
       }
     );
 
-    expect(events).toContain("zip-click");
-    expect(events).toContain("redirect:/PROJETOS/NP2625622");
-    expect(events.indexOf("zip-click")).toBeLessThan(
-      events.indexOf("redirect:/PROJETOS/NP2625622")
-    );
-    expect(events.some((e) => e === "toast:warning")).toBe(false);
+    await vi.advanceTimersByTimeAsync(PRODUCTION_RELEASE_REDIRECT_BUDGET_MS);
+    await done;
 
-    vi.advanceTimersByTime(60_000);
-    expect(events.filter((e) => e.startsWith("redirect:"))).toHaveLength(1);
+    expect(events).toEqual([
+      "zip-click",
+      "toast:info",
+      "redirect:/PROJETOS/NP2625622",
+    ]);
     expect(events.some((e) => e === "toast:warning")).toBe(false);
+    expect(events.some((e) => e === "toast:error")).toBe(false);
+    expect(store.get(PRODUCTION_RELEASE_OUTBOX_KEY)).toBeTruthy();
+  });
+
+  it("sem release: toast warning + redirect imediato (sem espera de rede)", async () => {
+    const events: string[] = [];
+    events.push("zip-click");
+
+    await concludeArquivoCompletoSuccess(
+      {
+        zipDelivered: true,
+        redirectPath: "/PROJETOS/X",
+        projectId: "proj-1",
+        release: null,
+      },
+      {
+        showToast: (_text, type) => events.push(`toast:${type ?? "info"}`),
+        saveRelease: async () => {
+          events.push("save-should-not-run");
+        },
+        assignLocation: (path) => events.push(`redirect:${path}`),
+      }
+    );
+
+    expect(events).toEqual([
+      "zip-click",
+      "toast:info",
+      "toast:warning",
+      "redirect:/PROJETOS/X",
+    ]);
+    expect(events).not.toContain("save-should-not-run");
   });
 });
