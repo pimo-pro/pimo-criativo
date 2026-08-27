@@ -145,6 +145,8 @@ export const R = {
     "Ainda n\u00e3o existe snapshot da \u00faltima gera\u00e7\u00e3o TCN. Execute \u00abGerar arquivo completo\u00bb para preencher o Financeiro do Relat\u00f3rio. O or\u00e7amento live continua dispon\u00edvel em ADMIN \u2192 Custos.",
   financeiroParcialHint:
     "Nesta vers\u00e3o o total inclui apenas Pain\u00e9is (TCN) e Ferragens. Orla, m\u00e3o de obra, desperd\u00edcio, serragem, log\u00edstica e restantes linhas entram numa fase seguinte \u2014 este total ainda n\u00e3o \u00e9 o custo completo do projeto.",
+  financeiroCustosEstimadoHint:
+    "O snapshot de custos desta gera\u00e7\u00e3o usou nesting estimado (fallback), n\u00e3o o PRO oficial. Pain\u00e9is/Ferragens v\u00eam do TCN; Desperd\u00edcio e linhas dependentes de chapas podem diferir do or\u00e7amento ADMIN. Volte a gerar o arquivo completo se precisar de valores oficiais.",
   custoChapasReais: "Custo total das chapas",
   mostrarDetalheCustos: "Mostrar detalhe de custos",
   ocultarDetalheCustos: "Ocultar detalhe de custos",

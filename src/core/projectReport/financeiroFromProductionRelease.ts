@@ -1,7 +1,8 @@
 /**
- * F1/F2 — Financeiro do Relatório a partir do productionRelease (última geração TCN).
- * Não chama Unificado live nem nesting FAST.
- * F2: preenche detalhe accordion a partir de chapas.sheets e ferragens.lines.
+ * F1/F2/F4 — Financeiro do Relatório a partir do productionRelease (última geração TCN).
+ * Não chama Unificado live nem nesting FAST na leitura.
+ * F2: detalhe Painéis/Ferragens a partir de chapas.sheets e ferragens.lines.
+ * F4: restantes linhas a partir de release.custos (congelado no ZIP).
  */
 
 import { FINANCEIRO_CUSTO_KEYS } from "@/core/financeiro/financeiroUnificadoTypes";
@@ -85,6 +86,7 @@ export function buildFinanceiroFromProductionRelease(
   const ferragensQty = Number(release.ferragens.totalQty) || 0;
   const paineisDetalhe = detalhePaineisFromRelease(release);
   const ferragensDetalhe = detalheFerragensFromRelease(release, opts?.ferragensOverrides);
+  const frozen = release.custos;
 
   const officialSnapshot: ProjectReportFinanceiro["officialSnapshot"] = {};
   const linhas = FINANCEIRO_CUSTO_KEYS.map((key: FinanceiroCustoKey) => {
@@ -92,6 +94,7 @@ export function buildFinanceiroFromProductionRelease(
     let quantidade: number | null = null;
     let detalhe: ReportFinanceiroDetalhe[] = [];
     if (key === "paineis") {
+      // F2 SSOT madeira = Σ sheets (Passo A); não usar custos.paineis (0 sob por_chapas_reais)
       total = paineis.totalEur;
       quantidade = paineis.sheetCount;
       detalhe = paineisDetalhe;
@@ -99,6 +102,11 @@ export function buildFinanceiroFromProductionRelease(
       total = ferragensEur;
       quantidade = ferragensQty;
       detalhe = ferragensDetalhe;
+    } else if (key === "chapasReais") {
+      // Madeira já em Painéis — evita double-count no Relatório
+      total = 0;
+    } else if (frozen) {
+      total = round2(Number(frozen[key]) || 0);
     }
     officialSnapshot[key] = total;
     return {
@@ -112,7 +120,7 @@ export function buildFinanceiroFromProductionRelease(
   });
 
   const base: ProjectReportFinanceiro = {
-    ivaPct: opts?.ivaPct ?? PROJECT_REPORT_IVA_DEFAULT,
+    ivaPct: opts?.ivaPct ?? release.ivaPct ?? PROJECT_REPORT_IVA_DEFAULT,
     linhas,
     subtotal: 0,
     ivaValor: 0,

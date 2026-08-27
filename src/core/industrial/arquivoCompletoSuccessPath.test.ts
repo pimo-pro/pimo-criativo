@@ -171,4 +171,44 @@ describe("onArquivoCompleto — cauda de sucesso (ZIP + productionRelease)", () 
     ]);
     expect(events).not.toContain("save-should-not-run");
   });
+
+  it("F4: toast ZIP antes de buildRelease (Unificado fora do caminho pré-toast)", async () => {
+    const events: string[] = [];
+    events.push("zip-click");
+    let built = false;
+
+    await concludeArquivoCompletoSuccess(
+      {
+        zipDelivered: true,
+        redirectPath: "/PROJETOS/X",
+        projectId: "proj-1",
+        release: null,
+        buildRelease: () => {
+          events.push("build-release");
+          built = true;
+          return sampleRelease();
+        },
+      },
+      {
+        showToast: (_text, type) => events.push(`toast:${type ?? "info"}`),
+        saveRelease: async () => {
+          events.push("save-ok");
+        },
+        assignLocation: (path) => events.push(`redirect:${path}`),
+        yieldToMain: async () => {
+          events.push("yield");
+        },
+      }
+    );
+
+    expect(built).toBe(true);
+    expect(events).toEqual([
+      "zip-click",
+      "toast:info",
+      "yield",
+      "build-release",
+      "save-ok",
+      "redirect:/PROJETOS/X",
+    ]);
+  });
 });

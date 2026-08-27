@@ -46,6 +46,10 @@ type Props = {
   paineisSugestoesProjeto?: string[];
   onMargemGanhoChange?: (config: ReportMargemGanhoConfig | null) => void;
   hasProductionRelease?: boolean;
+  /** true = release F4 com custos congelados (esconde aviso parcial). */
+  hasFinanceiroCompleto?: boolean;
+  /** true = custosOrigem estimado_fallback no freeze. */
+  custosOrigemEstimado?: boolean;
 };
 
 function formatEur(n: number): string {
@@ -86,6 +90,8 @@ export default function FinanceiroBlock({
   paineisSugestoesProjeto,
   onMargemGanhoChange,
   hasProductionRelease = false,
+  hasFinanceiroCompleto = false,
+  custosOrigemEstimado = false,
 }: Props) {
   const [openKeys, setOpenKeys] = useState<Set<FinanceiroCustoKey>>(() => new Set());
 
@@ -124,12 +130,22 @@ export default function FinanceiroBlock({
       <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-muted)" }}>
         {R.financeiroHint}
       </p>
-      <p
-        style={{ margin: "0 0 10px", fontSize: 12, color: "var(--warning, #ca8a04)" }}
-        data-testid="financeiro-parcial-hint"
-      >
-        {R.financeiroParcialHint}
-      </p>
+      {!hasFinanceiroCompleto ? (
+        <p
+          style={{ margin: "0 0 10px", fontSize: 12, color: "var(--warning, #ca8a04)" }}
+          data-testid="financeiro-parcial-hint"
+        >
+          {R.financeiroParcialHint}
+        </p>
+      ) : null}
+      {hasFinanceiroCompleto && custosOrigemEstimado ? (
+        <p
+          style={{ margin: "0 0 10px", fontSize: 12, color: "var(--warning, #ca8a04)" }}
+          data-testid="financeiro-custos-estimado-hint"
+        >
+          {R.financeiroCustosEstimadoHint}
+        </p>
+      ) : null}
 
       <label style={{ display: "inline-block", marginBottom: 10 }}>
         <span style={reportLabel}>{R.ivaPct}</span>

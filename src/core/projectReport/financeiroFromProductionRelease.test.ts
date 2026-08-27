@@ -93,6 +93,32 @@ function sampleRelease(): ProductionRelease {
   };
 }
 
+function sampleReleaseWithCustos(): ProductionRelease {
+  return {
+    ...sampleRelease(),
+    custos: {
+      paineis: 0,
+      portas: 0,
+      gavetas: 45,
+      ferragens: 12.5,
+      orla: 20,
+      remates: 0,
+      operacoes: 30,
+      desperdicio: 5,
+      serragem: 2,
+      chapasReais: 999,
+      maoDeObra: 10,
+      logistica: 8,
+      operacoesAvancadas: 4,
+      adm: 15,
+      montagem: 50,
+      portes: 12,
+    },
+    ivaPct: 23,
+    custosOrigem: "oficial",
+  };
+}
+
 function stubReport(financeiro = buildFinanceiroFromProductionRelease(null)): ProjectReport {
   return {
     projectId: "proj-1",
@@ -206,5 +232,31 @@ describe("buildFinanceiroFromProductionRelease", () => {
     expect(src).not.toMatch(/from ["'][^"']*computeChapasReal/);
     expect(src).not.toMatch(/computeFinanceiroUnificado\s*\(/);
     expect(src).not.toMatch(/buildPaineisChapasDetalhe\s*\(/);
+  });
+
+  it("F4: com custos → linhas restantes do freeze; chapasReais=0; Painéis/Ferragens F2", () => {
+    const fin = buildFinanceiroFromProductionRelease(sampleReleaseWithCustos());
+    expect(fin.linhas.find((l) => l.key === "orla")?.total).toBe(20);
+    expect(fin.linhas.find((l) => l.key === "gavetas")?.total).toBe(45);
+    expect(fin.linhas.find((l) => l.key === "operacoes")?.total).toBe(30);
+    expect(fin.linhas.find((l) => l.key === "desperdicio")?.total).toBe(5);
+    expect(fin.linhas.find((l) => l.key === "serragem")?.total).toBe(2);
+    expect(fin.linhas.find((l) => l.key === "maoDeObra")?.total).toBe(10);
+    expect(fin.linhas.find((l) => l.key === "logistica")?.total).toBe(8);
+    expect(fin.linhas.find((l) => l.key === "operacoesAvancadas")?.total).toBe(4);
+    expect(fin.linhas.find((l) => l.key === "adm")?.total).toBe(15);
+    expect(fin.linhas.find((l) => l.key === "montagem")?.total).toBe(50);
+    expect(fin.linhas.find((l) => l.key === "portes")?.total).toBe(12);
+    expect(fin.linhas.find((l) => l.key === "chapasReais")?.total).toBe(0);
+    const sheetM2 = 2.8 * 2.07;
+    expect(fin.linhas.find((l) => l.key === "paineis")?.total).toBeCloseTo(10 * sheetM2 * 2, 2);
+    expect(fin.linhas.find((l) => l.key === "ferragens")?.total).toBe(12.5);
+    expect(fin.ivaPct).toBe(23);
+  });
+
+  it("F4: sem custos → resto 0 (compat F2)", () => {
+    const fin = buildFinanceiroFromProductionRelease(sampleRelease());
+    expect(fin.linhas.find((l) => l.key === "orla")?.total).toBe(0);
+    expect(fin.linhas.find((l) => l.key === "maoDeObra")?.total).toBe(0);
   });
 });

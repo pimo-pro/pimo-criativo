@@ -1659,14 +1659,6 @@ export function useGerarArquivoHandlers() {
         showToast(`Erro ao gerar arquivo completo — ${detail}`, "error");
       } else {
         const persistId = savedProjectId ?? project.currentProjectId ?? null;
-        const release = persistId
-          ? buildProductionRelease({
-              projectId: persistId,
-              generatedAt: new Date().toISOString(),
-              bundles: thicknessCncBundles,
-              project,
-            })
-          : null;
         const aliasName =
           savedProjectName ?? project.projectName ?? slug ?? "Projeto";
         await concludeArquivoCompletoSuccess(
@@ -1674,7 +1666,17 @@ export function useGerarArquivoHandlers() {
             zipDelivered: true,
             redirectPath: redirectProjectPagePath,
             projectId: persistId,
-            release,
+            release: null,
+            buildRelease: persistId
+              ? () =>
+                  buildProductionRelease({
+                    projectId: persistId,
+                    generatedAt: new Date().toISOString(),
+                    bundles: thicknessCncBundles,
+                    project,
+                    materials: listIndustrialMaterialsSnapshot(),
+                  })
+              : undefined,
             aliasKeys: [
               aliasName,
               toProjetosPageSlug(aliasName),
@@ -1685,6 +1687,7 @@ export function useGerarArquivoHandlers() {
           {
             showToast,
             saveRelease: saveProductionRelease,
+            yieldToMain: yieldToMainThread,
             assignLocation: (path) => {
               window.location.href = path;
             },

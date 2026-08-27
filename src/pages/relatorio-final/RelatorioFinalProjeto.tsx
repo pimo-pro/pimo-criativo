@@ -302,6 +302,8 @@ export default function RelatorioFinalProjeto() {
           paineisSugestoesProjeto={paineisSugestoesProjeto}
           onMargemGanhoChange={setMargemGanho}
           hasProductionRelease={Boolean(productionRelease)}
+          hasFinanceiroCompleto={Boolean(productionRelease?.custos)}
+          custosOrigemEstimado={productionRelease?.custosOrigem === "estimado_fallback"}
         />
 
         <NotasBlock
