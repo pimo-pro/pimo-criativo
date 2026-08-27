@@ -70,8 +70,8 @@ jobs:
           echo "project_json_count=${COUNT}" >> "${GITHUB_OUTPUT}"
           echo "backup_dir=${OUT}" >> "${GITHUB_OUTPUT}"
           echo "Projetos JSON: ${COUNT}"
-          ls -la "${OUT}/api/projects/data" | head -20
-          du -sh "${OUT}"
+          ls -la "${OUT}/api/projects/data" | head -20 || true
+          du -sh "${OUT}" || true
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
