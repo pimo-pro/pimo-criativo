@@ -18,6 +18,7 @@ import {
   toMetaFromProjectData,
   toRecordFromProjectData,
 } from "../projects/projectsMappers";
+import { authHeaders, canUseRemoteProjectsApi } from "../projects/remoteApiAuth";
 import { resolveProjectIdentity } from "../projects/projectIdentity";
 import type { PimoProjectData } from "../projects/types";
 import { withDerivedMetricas } from "./deriveMetricas";
@@ -178,6 +179,12 @@ export async function saveProjectReport(report: ProjectReport): Promise<ProjectR
   const id = report.projectId.trim();
   if (!id) throw new Error("projectId em falta no relatório.");
 
+  if (!canUseRemoteProjectsApi()) {
+    throw new Error(
+      "Sessão remota indisponível. Inicie sessão para guardar o relatório no servidor."
+    );
+  }
+
   const next: ProjectReport = normalizeReport({
     ...report,
     projectId: id,
@@ -203,7 +210,7 @@ export async function saveProjectReport(report: ProjectReport): Promise<ProjectR
 
   const response = await fetch(buildProjectsUrl(), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(merged),
   });
   const payload = (await toJson(response)) as {
