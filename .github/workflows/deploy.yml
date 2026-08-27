@@ -104,7 +104,7 @@ jobs:
           VITE_PIMO_APP_ENV=production
           EOF
           # Phase 0: NÃO injectar PIMO_INTERNAL_API_SECRET / VITE_INTERNAL_API_SECRET no bundle.
-          # Configurar PIMO_INTERNAL_API_SECRET no Hostinger (PHP) para /api/quotes.
+          # Configurar PIMO_INTERNAL_API_SECRET no Hostinger (PHP) para /api/quotes e /api/final-report.
 
       - name: Build
         run: npm run build

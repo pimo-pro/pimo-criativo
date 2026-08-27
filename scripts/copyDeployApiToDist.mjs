@@ -71,6 +71,7 @@ const srcUsers = path.join(root, "api", "users", "index.php");
 const srcUserSettings = path.join(root, "api", "user-settings", "index.php");
 const srcGlobalConfig = path.join(root, "api", "global-config", "index.php");
 const srcQuotes = path.join(root, "api", "quotes", "index.php");
+const srcFinalReport = path.join(root, "api", "final-report", "index.php");
 
 if (!fs.existsSync(srcAuth) || !fs.existsSync(srcUsers)) {
   console.warn("[copyDeployApiToDist] api/auth ou api/users em falta — nada a copiar.");
@@ -92,6 +93,9 @@ if (fs.existsSync(srcGlobalConfig)) {
 }
 if (fs.existsSync(srcQuotes)) {
   copyFile(srcQuotes, path.join(dist, "api", "_impl", "quotes", "index.php"));
+}
+if (fs.existsSync(srcFinalReport)) {
+  copyFile(srcFinalReport, path.join(dist, "api", "_impl", "final-report", "index.php"));
 }
 
 const gitkeep = path.join(root, "api", "data", ".gitkeep");
@@ -128,6 +132,11 @@ define('PIMO_QUOTES_ROUTER', true);
 require_once __DIR__ . '/../_impl/quotes/index.php';
 `;
 
+const finalReportStub = `<?php
+define('PIMO_FINAL_REPORT_ROUTER', true);
+require_once __DIR__ . '/../_impl/final-report/index.php';
+`;
+
 ensureDir(path.join(dist, "api", "auth"));
 ensureDir(path.join(dist, "api", "users"));
 fs.writeFileSync(path.join(dist, "api", "auth", "index.php"), authStub, "utf8");
@@ -144,11 +153,16 @@ if (fs.existsSync(srcQuotes)) {
   ensureDir(path.join(dist, "api", "quotes"));
   fs.writeFileSync(path.join(dist, "api", "quotes", "index.php"), quotesStub, "utf8");
 }
+if (fs.existsSync(srcFinalReport)) {
+  ensureDir(path.join(dist, "api", "final-report"));
+  fs.writeFileSync(path.join(dist, "api", "final-report", "index.php"), finalReportStub, "utf8");
+}
 
 const extras = [];
 if (fs.existsSync(srcUserSettings)) extras.push("user-settings");
 if (fs.existsSync(srcGlobalConfig)) extras.push("global-config");
 if (fs.existsSync(srcQuotes)) extras.push("quotes");
+if (fs.existsSync(srcFinalReport)) extras.push("final-report");
 const projectsCopied = copyProjectsApiToDist();
 if (projectsCopied) extras.push("projects");
 

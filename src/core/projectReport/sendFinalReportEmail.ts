@@ -1,4 +1,7 @@
-const FINAL_REPORT_EMAIL_URL = "https://pimo-mail-service.onrender.com/send-final-report";
+import { buildApiUrl } from "../../config/api";
+
+/** Proxy PHP no mesmo host — secret fica só no servidor (PIMO_INTERNAL_API_SECRET). */
+const FINAL_REPORT_EMAIL_PROXY_PATH = "/api/final-report/index.php";
 // Cobre o "cold start" do plano free do Render (~50s observados) + margem.
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -23,15 +26,12 @@ export type FinalReportEmailResult = {
 };
 
 /**
- * Envia o Relatório Final para o pimo-mail-service (mesmo padrão vivo do orçamento:
- * POST directo + header x-internal-secret via VITE_INTERNAL_API_SECRET).
+ * Envia o Relatório Final via proxy server-side (sem secret no bundle).
  * Lança erro apenas se o pedido não chegar a completar (rede/timeout).
  */
 export async function sendFinalReportEmail(
   payload: FinalReportEmailPayload
 ): Promise<FinalReportEmailResult> {
-  const secret = import.meta.env.VITE_INTERNAL_API_SECRET as string | undefined;
-
   const formData = new FormData();
   formData.append("recipientEmail", payload.recipientEmail);
   formData.append("projectName", payload.projectName);
@@ -53,9 +53,8 @@ export async function sendFinalReportEmail(
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(FINAL_REPORT_EMAIL_URL, {
+    const response = await fetch(buildApiUrl(FINAL_REPORT_EMAIL_PROXY_PATH), {
       method: "POST",
-      headers: secret ? { "x-internal-secret": secret } : undefined,
       body: formData,
       signal: controller.signal,
     });
