@@ -16,12 +16,13 @@ import { industrialFeatureFlags } from "@/industrial/config/featureFlags";
 
 import Button from "@/components/ui/Button";
 
+import ProjetosLoginGate from "../../ProjetosLoginGate";
 import IndustrialOnlineAnalysisLayout from "../../analise/IndustrialOnlineAnalysisLayout";
 import IndustrialOnlineAnalysisHistoryPanel from "../../analise/IndustrialOnlineAnalysisHistoryPanel";
 import IndustrialOnlineAnalysisDownloadBar from "../../analise/IndustrialOnlineAnalysisDownloadBar";
 import { useIndustrialAnalysisProject } from "../../analise/useIndustrialAnalysisProject";
 
-export default function ProjetosAnaliseIndexPage() {
+function ProjetosAnaliseIndexPageContent() {
   const { project: pageSlug } = useParams();
   const enabled = industrialFeatureFlags.industrialOnlineAnalysis;
 
@@ -248,5 +249,13 @@ export default function ProjetosAnaliseIndexPage() {
         </>
       ) : null}
     </IndustrialOnlineAnalysisLayout>
+  );
+}
+
+export default function ProjetosAnaliseIndexPage() {
+  return (
+    <ProjetosLoginGate title="Inicia sessão para veres este projeto">
+      <ProjetosAnaliseIndexPageContent />
+    </ProjetosLoginGate>
   );
 }

@@ -8,6 +8,7 @@ import Section from "@/components/ui/Section";
 import "@/components/ui/ui.css";
 import type { SavedProjectMeta } from "@/core/projects/types";
 
+import ProjetosLoginGate from "./ProjetosLoginGate";
 import ProjetosProjectCard from "./ProjetosProjectCard";
 import { listProjetosPageProjects } from "./projetosPagesClient";
 
@@ -46,7 +47,7 @@ function EmptyState() {
   );
 }
 
-export default function ProjetosIndexPage() {
+function ProjetosIndexContent() {
   const [projects, setProjects] = useState<SavedProjectMeta[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,5 +171,13 @@ function StatPill({
       </span>
       <span style={{ fontSize: 12, color: "var(--ui-color-muted, #71717a)" }}>{label}</span>
     </div>
+  );
+}
+
+export default function ProjetosIndexPage() {
+  return (
+    <ProjetosLoginGate title="Inicia sessão para veres os teus projetos" fromPath="/PROJETOS">
+      <ProjetosIndexContent />
+    </ProjetosLoginGate>
   );
 }

@@ -2,6 +2,7 @@ import type { SavedProjectRecord } from "@/core/projects/types";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import ProjetosLoginGate from "../ProjetosLoginGate";
 import ProjetosShowroomPanel, { type ProjetosFocusLevel } from "../ProjetosShowroomPanel";
 import ProjetosElementSections from "../ProjetosElementSections";
 import ProjetosIndustrialPanel from "../industrial/ProjetosIndustrialPanel";
@@ -28,7 +29,7 @@ function snapshotMatchesProject(snapshot: SavedProjectRecord | null, pageSlug: s
   return snapshotMatchesProjetosPageSlug(snapshot, pageSlug);
 }
 
-export default function ProjetosHubLayout({ children }: { children?: ReactNode }) {
+function ProjetosHubLayoutContent({ children }: { children?: ReactNode }) {
   const { project: pageSlug, box: boxSegment, piece: pieceSegment } = useParams();
   const focusLevel = useMemo(
     () => resolveFocusLevel(boxSegment, pieceSegment),
@@ -176,5 +177,13 @@ export default function ProjetosHubLayout({ children }: { children?: ReactNode }
         </main>
       </div>
     </div>
+  );
+}
+
+export default function ProjetosHubLayout({ children }: { children?: ReactNode }) {
+  return (
+    <ProjetosLoginGate title="Inicia sessão para veres este projeto">
+      <ProjetosHubLayoutContent>{children}</ProjetosHubLayoutContent>
+    </ProjetosLoginGate>
   );
 }

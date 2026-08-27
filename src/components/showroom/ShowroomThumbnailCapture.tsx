@@ -5,6 +5,7 @@ import {
   ensureProjectThumbnailUploaded,
   projectThumbnailExists,
 } from "@/core/projects/projectThumbnail";
+import { canUseRemoteProjectsApi } from "@/core/projects/remoteApiAuth";
 
 type Props = {
   projectName: string;
@@ -20,6 +21,7 @@ export default function ShowroomThumbnailCapture({ projectName, enabled }: Props
 
   useEffect(() => {
     if (!enabled || startedRef.current) return;
+    if (!canUseRemoteProjectsApi()) return;
     const name = projectName.trim();
     if (!name) return;
 

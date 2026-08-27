@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
+
 import { buildApiUrl } from "../../config/api";
 import type { ViewerRenderOptions, ViewerRenderResult } from "../../context/projectTypes";
 
 import { buildProjectsUrl } from "./projectsApi";
+import { authHeaders, canUseRemoteProjectsApi } from "./remoteApiAuth";
 
 const THUMBS_BASE = "/api/projects/thumbs";
 /** Mínimo para considerar uma imagem gerada válida (evita POST vazio). */
@@ -31,6 +34,10 @@ export function buildProjectThumbnailPath(projectName: string, ext: "webp" | "jp
   return `${THUMBS_BASE}/${encodeURIComponent(name)}.${ext}`;
 }
 
+/**
+ * Resolução síncrona: só data URLs / URLs absolutas já utilizáveis em <img>.
+ * Paths `/api/projects/thumbs/...` NÃO são devolvidos aqui — exigem Bearer (ver hook B1).
+ */
 export function resolveProjectThumbnailSrc(
   projectName: string,
   thumbnailDataUrl?: string | null,
@@ -38,18 +45,97 @@ export function resolveProjectThumbnailSrc(
 ): string | null {
   const trimmed = typeof thumbnailDataUrl === "string" ? thumbnailDataUrl.trim() : "";
   if (trimmed) {
-    const withCache =
-      cacheKey && !trimmed.startsWith("data:") && !trimmed.includes("?")
-        ? `${trimmed}?v=${encodeURIComponent(cacheKey)}`
-        : trimmed;
-    return trimmed.startsWith("/") ? buildApiUrl(withCache) : withCache;
+    if (trimmed.startsWith("data:") || /^https?:\/\//i.test(trimmed) || trimmed.startsWith("blob:")) {
+      const withCache =
+        cacheKey && !trimmed.startsWith("data:") && !trimmed.startsWith("blob:") && !trimmed.includes("?")
+          ? `${trimmed}?v=${encodeURIComponent(cacheKey)}`
+          : trimmed;
+      return withCache;
+    }
+    if (trimmed.startsWith("/") && !trimmed.includes("/api/projects/thumbs")) {
+      const withCache =
+        cacheKey && !trimmed.includes("?")
+          ? `${trimmed}?v=${encodeURIComponent(cacheKey)}`
+          : trimmed;
+      return buildApiUrl(withCache);
+    }
+    // Path de thumbs API — não usar directamente em <img> (sem Authorization).
   }
 
+  void projectName;
+  return null;
+}
+
+/** Fetch autenticado de `/api/projects/thumbs/...` → blob URL (revogar no cleanup do caller). */
+export async function fetchAuthenticatedThumbnailBlobUrl(
+  projectName: string,
+  cacheKey?: string
+): Promise<string | null> {
+  if (!canUseRemoteProjectsApi()) return null;
   const name = safeProjectFileName(projectName);
   if (!name) return null;
-  const path = buildProjectThumbnailPath(name, "jpg");
-  const suffix = cacheKey ? `?v=${encodeURIComponent(cacheKey)}` : "";
-  return `${buildApiUrl(path)}${suffix}`;
+
+  const tryExt = async (ext: "jpg" | "webp"): Promise<string | null> => {
+    const path = buildProjectThumbnailPath(name, ext);
+    const suffix = cacheKey ? `?v=${encodeURIComponent(cacheKey)}` : "";
+    const url = `${buildApiUrl(path)}${suffix}`;
+    try {
+      const response = await fetch(url, { headers: authHeaders(), method: "GET" });
+      if (!response.ok) return null;
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) return null;
+      const blob = await response.blob();
+      if (!isValidThumbnailBlob(blob)) return null;
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
+  };
+
+  return (await tryExt("jpg")) ?? (await tryExt("webp"));
+}
+
+/**
+ * Hook B1: preferir thumbnailDataUrl; senão fetch com Bearer → blob URL.
+ * Placeholder (null) em falha pontual — sem erros ruidosos.
+ */
+export function useAuthenticatedProjectThumbnailSrc(
+  projectName: string,
+  thumbnailDataUrl?: string | null,
+  cacheKey?: string
+): string | null {
+  const syncSrc = resolveProjectThumbnailSrc(projectName, thumbnailDataUrl, cacheKey);
+  const [blobSrc, setBlobSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let createdUrl: string | null = null;
+
+    if (syncSrc) {
+      setBlobSrc(null);
+      return;
+    }
+    if (!canUseRemoteProjectsApi()) {
+      setBlobSrc(null);
+      return;
+    }
+
+    void fetchAuthenticatedThumbnailBlobUrl(projectName, cacheKey).then((url) => {
+      if (cancelled) {
+        if (url) URL.revokeObjectURL(url);
+        return;
+      }
+      createdUrl = url;
+      setBlobSrc(url);
+    });
+
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [projectName, thumbnailDataUrl, cacheKey, syncSrc]);
+
+  return syncSrc ?? blobSrc;
 }
 
 export function isValidThumbnailBlob(blob: Blob | null | undefined): blob is Blob {
@@ -76,17 +162,23 @@ export async function projectThumbnailExists(
 ): Promise<{ exists: boolean; url: string | null }> {
   const name = coerceSafeProjectThumbName(projectName);
   if (!name) return { exists: false, url: null };
+  if (!canUseRemoteProjectsApi()) return { exists: false, url: null };
 
   const params = new URLSearchParams({ action: "thumb", name });
   try {
-    const response = await fetch(buildProjectsUrl(params), { method: "HEAD" });
+    const response = await fetch(buildProjectsUrl(params), {
+      method: "HEAD",
+      headers: authHeaders(),
+    });
     if (response.ok) {
       return {
         exists: true,
         url: buildApiUrl(buildProjectThumbnailPath(name)),
       };
     }
-    const getResponse = await fetch(buildProjectsUrl(params));
+    const getResponse = await fetch(buildProjectsUrl(params), {
+      headers: authHeaders(),
+    });
     if (!getResponse.ok) return { exists: false, url: null };
     const payload = (await getResponse.json()) as { exists?: boolean; url?: string };
     const url = typeof payload.url === "string" ? payload.url : null;
@@ -149,6 +241,7 @@ export async function uploadProjectThumbnail(
 ): Promise<string | null> {
   const name = coerceSafeProjectThumbName(projectName);
   if (!name || !isValidThumbnailBlob(blob)) return null;
+  if (!canUseRemoteProjectsApi()) return null;
 
   const ext = blob.type.includes("webp") ? "webp" : "jpg";
   const params = new URLSearchParams({ action: "thumb", name });
@@ -169,7 +262,7 @@ export async function uploadProjectThumbnail(
     // Caminho principal: JSON com dataUrl (payload explícito, sem ficheiro vazio)
     const jsonResponse = await fetch(buildProjectsUrl(params), {
       method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: authHeaders({ "Content-Type": "application/json; charset=utf-8" }),
       body: JSON.stringify({ name, dataUrl, mime: blob.type || "image/jpeg" }),
     });
     if (jsonResponse.ok) {
@@ -182,6 +275,7 @@ export async function uploadProjectThumbnail(
     form.append("file", blob, `${name}.${ext}`);
     const multipartResponse = await fetch(buildProjectsUrl(params), {
       method: "POST",
+      headers: authHeaders(),
       body: form,
     });
     return parseUrl(multipartResponse);
@@ -195,6 +289,7 @@ export async function ensureProjectThumbnailUploaded(
   blob: Blob
 ): Promise<string | null> {
   if (!isValidThumbnailBlob(blob)) return null;
+  if (!canUseRemoteProjectsApi()) return null;
   const existing = await projectThumbnailExists(projectName);
   if (existing.exists) return existing.url;
   return uploadProjectThumbnail(projectName, blob);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/useAuth";
 import Button from "../components/ui/Button";
@@ -11,8 +11,16 @@ import Section from "../components/ui/Section";
 import { isFrontendLocalDevAuthAllowed, isLocalAuthSession } from "../local-auth";
 import "../components/ui/ui.css";
 
+function resolvePostLoginPath(from: unknown): string {
+  if (typeof from === "string" && from.startsWith("/") && !from.startsWith("//")) {
+    return from;
+  }
+  return isLocalAuthSession() ? "/industrial/pimo-drill" : "/dashboard";
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,9 +28,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const showLocalDevHint = isFrontendLocalDevAuthAllowed();
+  const fromPath = resolvePostLoginPath(
+    (location.state as { from?: unknown } | null)?.from
+  );
 
   if (isAuthenticated()) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={fromPath} replace />;
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -31,7 +42,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate(isLocalAuthSession() ? "/industrial/pimo-drill" : "/dashboard", {
+      navigate(resolvePostLoginPath((location.state as { from?: unknown } | null)?.from), {
         replace: true,
       });
     } catch (err) {

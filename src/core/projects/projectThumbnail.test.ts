@@ -3,6 +3,7 @@ import {
   coerceSafeProjectThumbName,
   isValidThumbnailBlob,
   isValidThumbnailDataUrl,
+  resolveProjectThumbnailSrc,
 } from "./projectThumbnail";
 
 describe("coerceSafeProjectThumbName", () => {
@@ -40,5 +41,20 @@ describe("isValidThumbnailBlob / dataUrl", () => {
     expect(isValidThumbnailDataUrl("data:text/plain,abc")).toBe(false);
     const b64 = "A".repeat(100);
     expect(isValidThumbnailDataUrl(`data:image/jpeg;base64,${b64}`)).toBe(true);
+  });
+});
+
+describe("resolveProjectThumbnailSrc (B1 sync)", () => {
+  it("usa dataUrl directamente", () => {
+    const b64 = "A".repeat(100);
+    const dataUrl = `data:image/jpeg;base64,${b64}`;
+    expect(resolveProjectThumbnailSrc("Proj", dataUrl)).toBe(dataUrl);
+  });
+
+  it("não devolve path /api/projects/thumbs para <img> sem Bearer", () => {
+    expect(
+      resolveProjectThumbnailSrc("Proj", "/api/projects/thumbs/Proj.jpg")
+    ).toBeNull();
+    expect(resolveProjectThumbnailSrc("Proj", null)).toBeNull();
   });
 });

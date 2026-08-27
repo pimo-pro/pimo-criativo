@@ -23,6 +23,7 @@ import { industrialFeatureFlags } from "@/industrial/config/featureFlags";
 
 import Button from "@/components/ui/Button";
 
+import ProjetosLoginGate from "../../../ProjetosLoginGate";
 import IndustrialOnlineAnalysisLayout from "../../../analise/IndustrialOnlineAnalysisLayout";
 import IndustrialOnlineAnalysisTable from "../../../analise/IndustrialOnlineAnalysisTable";
 import IndustrialOnlineAnalysisHistoryPanel from "../../../analise/IndustrialOnlineAnalysisHistoryPanel";
@@ -42,7 +43,7 @@ function cloneSections(
   }));
 }
 
-export default function ProjetosAnaliseDocPage() {
+function ProjetosAnaliseDocPageContent() {
   const { project: pageSlug, docId } = useParams();
   const location = useLocation();
   const enabled = industrialFeatureFlags.industrialOnlineAnalysis;
@@ -377,5 +378,13 @@ export default function ProjetosAnaliseDocPage() {
         </>
       ) : null}
     </IndustrialOnlineAnalysisLayout>
+  );
+}
+
+export default function ProjetosAnaliseDocPage() {
+  return (
+    <ProjetosLoginGate title="Inicia sessão para veres este projeto">
+      <ProjetosAnaliseDocPageContent />
+    </ProjetosLoginGate>
   );
 }

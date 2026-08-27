@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import Button from "@/components/ui/Button";
-import { resolveProjectThumbnailSrc } from "@/core/projects/projectThumbnail";
+import { useAuthenticatedProjectThumbnailSrc } from "@/core/projects/projectThumbnail";
 import type { SavedProjectMeta } from "@/core/projects/types";
 
 import { buildProjetosPagePath } from "./projetosPageSlug";
@@ -57,13 +57,12 @@ export default function ProjetosProjectCard({ project }: Props) {
   const href = buildProjetosPagePath(project);
   const [thumbBroken, setThumbBroken] = useState(false);
 
-  const thumbnailSrc = useMemo(
-    () =>
-      thumbBroken
-        ? null
-        : resolveProjectThumbnailSrc(project.name, project.thumbnailDataUrl, project.updatedAt),
-    [project.name, project.thumbnailDataUrl, project.updatedAt, thumbBroken]
+  const resolvedSrc = useAuthenticatedProjectThumbnailSrc(
+    project.name,
+    project.thumbnailDataUrl,
+    project.updatedAt
   );
+  const thumbnailSrc = thumbBroken ? null : resolvedSrc;
 
   return (
     <Link
