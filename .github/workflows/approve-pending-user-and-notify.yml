@@ -1,0 +1,180 @@
+# One-shot E2E: aprova conta pending (role pro) e envia email send-account-approved.
+# Não imprime secrets. Não imprime passwordHash.
+
+name: Approve Pending User And Notify
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_email:
+        description: "Email exacto a aprovar"
+        required: true
+        type: string
+      role:
+        description: "Role aprovado"
+        required: true
+        type: choice
+        options:
+          - pro
+          - ultra
+          - ultra+
+        default: pro
+
+permissions:
+  contents: read
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Approve user + send email
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          TARGET_EMAIL: ${{ inputs.target_email }}
+          APPROVE_ROLE: ${{ inputs.role }}
+        run: |
+          set -euo pipefail
+          # --- users.json ---
+          REMOTE=""
+          for cand in api/_impl/data/users.json api/data/users.json; do
+            rm -f /tmp/users.probe.json
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:timeout 30;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get ${cand} -o /tmp/users.probe.json;
+              bye
+            " >/dev/null 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 && -s /tmp/users.probe.json ]]; then
+              REMOTE="$cand"
+              mv /tmp/users.probe.json /tmp/users.json
+              echo "FOUND_USERS=${cand}"
+              break
+            fi
+          done
+          if [[ -z "${REMOTE}" ]]; then
+            echo "::error::users.json não encontrado"
+            exit 1
+          fi
+
+          # --- server-env (secret + app url) ---
+          ENV_REMOTE=""
+          for cand in ../pimo-private/server-env.local.php pimo-private/server-env.local.php; do
+            rm -f /tmp/server-env.local.php
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:timeout 30;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get \"${cand}\" -o /tmp/server-env.local.php;
+              bye
+            " >/dev/null 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 && -s /tmp/server-env.local.php ]]; then
+              ENV_REMOTE="$cand"
+              echo "FOUND_ENV=${cand}"
+              break
+            fi
+          done
+          if [[ -z "${ENV_REMOTE}" ]]; then
+            echo "::error::server-env.local.php não encontrado"
+            exit 1
+          fi
+
+          TS="$(date -u +%Y%m%dT%H%M%SZ)"
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            put /tmp/users.json -o ${REMOTE}.bak-${TS};
+            bye
+          "
+          echo "BACKUP_USERS=${REMOTE}.bak-${TS}"
+
+          python3 - <<'PY'
+          import json, os, re, sys, urllib.request
+          email = os.environ["TARGET_EMAIL"].strip().lower()
+          role = os.environ["APPROVE_ROLE"].strip()
+          with open("/tmp/users.json", "r", encoding="utf-8") as f:
+              users = json.load(f)
+          idx = None
+          for i, u in enumerate(users):
+              if isinstance(u, dict) and str(u.get("email", "")).strip().lower() == email:
+                  idx = i
+                  break
+          if idx is None:
+              print("::error::utilizador não encontrado")
+              sys.exit(2)
+          u = users[idx]
+          u["accountStatus"] = "approved"
+          u["role"] = role
+          u["approvedAt"] = __import__("datetime").datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+          u["approvedBy"] = "e2e-ci"
+          users[idx] = u
+          with open("/tmp/users.json", "w", encoding="utf-8") as f:
+              json.dump(users, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          print("SAFE=" + json.dumps({
+              "id": u.get("id"),
+              "email": u.get("email"),
+              "role": u.get("role"),
+              "accountStatus": u.get("accountStatus"),
+              "emailVerified": u.get("emailVerified"),
+          }, ensure_ascii=False, separators=(",", ":")))
+
+          env_raw = open("/tmp/server-env.local.php", "r", encoding="utf-8").read()
+          m = re.search(r"PIMO_INTERNAL_API_SECRET=([^'\"]+)", env_raw)
+          if not m:
+              print("::error::PIMO_INTERNAL_API_SECRET em falta")
+              sys.exit(3)
+          secret = m.group(1).strip()
+          app_m = re.search(r"PIMO_PUBLIC_APP_URL=([^'\"]+)", env_raw)
+          app_url = (app_m.group(1).strip().rstrip("/") if app_m else "https://pimo.pro")
+          payload = {
+              "to": u.get("email"),
+              "username": u.get("username") or u.get("email"),
+              "role": role,
+              "meUrl": f"{app_url}/me",
+          }
+          req = urllib.request.Request(
+              "https://pimo-mail-service.onrender.com/send-account-approved",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "x-internal-secret": secret,
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=20) as resp:
+                  body = resp.read().decode("utf-8", errors="replace")
+                  print(f"MAIL_HTTP={resp.status}")
+                  print(f"MAIL_BODY={body[:200]}")
+          except Exception as e:
+              print(f"::warning::email aprovação falhou: {type(e).__name__}")
+              # aprovação no users.json já gravada localmente; ainda vamos fazer upload
+          open("/tmp/mail_done.txt", "w").write("1")
+          PY
+
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            put /tmp/users.json -o ${REMOTE};
+            bye
+          "
+          echo "APPROVE_OK=1"
