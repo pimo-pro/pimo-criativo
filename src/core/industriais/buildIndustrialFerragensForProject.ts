@@ -19,6 +19,12 @@ import {
   CAVILHA_10x40_FERRAGEM_ID,
   countCavilha10x40FromEdgeHoles,
 } from "../drill/cavilha10x40Rule";
+import { sanitizeFerragensCatalog } from "../ferragens/ferragensCatalogSanitize";
+import {
+  pieceTemParafusoPuxador,
+  resolveCanonicalFerragemId,
+  resolveFerragemCommercialName,
+} from "../ferragens/ferragensCountRules";
 
 const TIPO_TO_COMPONENT_ID: Record<string, string> = {
   cima: "cima",
@@ -36,6 +42,7 @@ const TIPO_TO_COMPONENT_ID: Record<string, string> = {
   gaveta_lat_dir: "gaveta_lat_dir",
   gaveta_fundo: "gaveta_fundo",
   gaveta_traseira: "gaveta_traseira",
+  frente_fixa: "frente_fixa",
 };
 
 /**
@@ -125,7 +132,7 @@ function loadFerragens(): Ferragem[] {
 }
 
 function ferragemLabel(ferragemId: string, catalog: Map<string, Ferragem>): string {
-  return catalog.get(ferragemId)?.nome ?? ferragemId;
+  return resolveFerragemCommercialName(ferragemId, catalog);
 }
 
 function pushPieceFerragens(
@@ -135,7 +142,8 @@ function pushPieceFerragens(
   projectName: string,
   ctById: Record<string, ComponentType>,
   ferragemById: Map<string, Ferragem>,
-  pieceObservacoes?: PieceObservacoesStore
+  pieceObservacoes?: PieceObservacoesStore,
+  box?: BoxModule
 ): void {
   const componentId = TIPO_TO_COMPONENT_ID[item.tipo] ?? item.tipo;
   const ct = ctById[componentId];
@@ -153,6 +161,12 @@ function pushPieceFerragens(
   const qtyMult = Math.max(1, item.quantidade ?? 1);
 
   for (const def of defs) {
+    if (def.ferragem_id === "parafuso_puxador" && !pieceTemParafusoPuxador(item, box)) {
+      continue;
+    }
+    if (def.ferragem_id === "prego_costa") {
+      continue;
+    }
     if (
       JOINT_FERRAGEM_IDS.has(def.ferragem_id) &&
       !JOINT_COUNT_PIECE_TIPOS.has(pieceTipo)
@@ -181,7 +195,7 @@ export function buildIndustrialFerragensForProject(
 ): ProjectIndustrialFerragens {
   const projectName = project.projectName?.trim() || "Projeto";
   const componentTypes = loadComponentTypes();
-  const ferragens = loadFerragens();
+  const ferragens = sanitizeFerragensCatalog(loadFerragens());
   const ctById = Object.fromEntries(componentTypes.map((ct) => [ct.id, ct]));
   const ferragemById = new Map(ferragens.map((f) => [f.id, f]));
   const rows: IndustrialFerragemPdfRow[] = [];
@@ -202,6 +216,7 @@ export function buildIndustrialFerragensForProject(
   );
 
   for (const item of items) {
+    const box = boxes.find((b) => b.id === item.boxId);
     const boxNome = boxNomeById[item.boxId ?? ""] ?? item.boxId ?? "—";
     pushPieceFerragens(
       rows,
@@ -210,7 +225,8 @@ export function buildIndustrialFerragensForProject(
       projectName,
       ctById,
       ferragemById,
-      project.pieceObservacoes
+      project.pieceObservacoes,
+      box
     );
 
     // CAVILHA_10x40 — 1 por cada furo 10×30 (par obrigatório com 10×13 na peça oposta)
@@ -240,7 +256,7 @@ export function buildIndustrialFerragensForProject(
       rows.push({
         caixa: boxNome,
         peca: boxNome,
-        ferragem: f.tipo,
+        ferragem: ferragemLabel(resolveCanonicalFerragemId(f.tipo), ferragemById),
         qtd: f.quantidade,
         material: "—",
         nQr: "—",

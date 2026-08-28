@@ -630,7 +630,7 @@ export default function ComponentTypesAdminPage() {
                             updateOne(ct.id, {
                               regras_de_furo: [
                                 ...(ct.regras_de_furo || []),
-                                { tipo: "cavilha", diametro: 8, aplicar_em: [] },
+                                { tipo: "cavilha", diametro: 10, aplicar_em: [] },
                               ],
                             })
                           }

@@ -1,4 +1,6 @@
 import { FERRAGENS_DEFAULT, type Ferragem } from "../core/ferragens/ferragens";
+import { sanitizeFerragensCatalog } from "../core/ferragens/ferragensCatalogSanitize";
+import { useMemo } from "react";
 import { useStorageList } from "./useStorageList";
 
 const STORAGE_KEY = "pimo_ferragens";
@@ -26,5 +28,7 @@ export const useFerragens = () => {
     validate: validateFerragens,
   });
 
-  return { ferragens: items, setFerragens: setItems, reload };
+  const ferragens = useMemo(() => sanitizeFerragensCatalog(items), [items]);
+
+  return { ferragens, setFerragens: setItems, reload };
 };

@@ -17,6 +17,10 @@ import {
   type FerragensFallbackUsage,
   type FerragensStrictWarning,
 } from "./priceFerragensFromCatalog";
+import {
+  resolveCanonicalFerragemId,
+  resolveFerragemCommercialName,
+} from "../ferragens/ferragensCountRules";
 
 export type FerragemOrigemPrecoSsot = "catalogo" | "unificado" | "fallback";
 
@@ -61,7 +65,7 @@ function round2(n: number): number {
 }
 
 function catalogNome(catalog: Ferragem[], ferragemId: string, fallback: string): string {
-  return catalog.find((f) => f.id === ferragemId || f.nome === ferragemId)?.nome ?? fallback;
+  return resolveFerragemCommercialName(ferragemId, catalog) || fallback;
 }
 
 function catalogObs(catalog: Ferragem[], ferragemId: string): string {
@@ -81,7 +85,7 @@ export function aggregateFerragensCatalogLines(
 
   for (const line of rawLines) {
     if (!(line.qtd > 0)) continue;
-    const key = line.ferragemId;
+    const key = resolveCanonicalFerragemId(line.ferragemId);
     const prev = byId.get(key) ?? { qty: 0, totalEur: 0, usedFallbackA: false };
     byId.set(key, {
       qty: prev.qty + line.qtd,
@@ -130,7 +134,7 @@ export function aggregateFerragensFromBoxes(
   };
 
   for (const f of ferragensFromBoxes(boxes ?? [], rules)) {
-    const fid = String(f.tipo || f.id || f.nome);
+    const fid = resolveCanonicalFerragemId(String(f.tipo || f.id || f.nome));
     add(
       fid,
       catalogNome(catalog, fid, f.nome),
@@ -188,7 +192,7 @@ export function computeFerragensUnificadoSsot(
       extractedPartsByBoxId: project.extractedPartsByBoxId,
       industrialPieceEdits: project.industrialPieceEdits,
     });
-    const priced = priceFerragensFromCatalog({ cutlist, catalog });
+    const priced = priceFerragensFromCatalog({ cutlist, catalog, boxes });
     const lines = aggregateFerragensCatalogLines(priced.lines, catalog);
     return {
       totalEur: priced.totalEur,

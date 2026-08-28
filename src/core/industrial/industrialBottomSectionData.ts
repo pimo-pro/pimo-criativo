@@ -5,7 +5,6 @@ import {
 } from "../manufacturing/materials";
 import { buildCutlistItemsForIndustrialExport } from "../fabrication/buildCutlistItemsForIndustrialExport";
 import { buildIndustrialFerragensForProject } from "../industriais/buildIndustrialFerragensForProject";
-import { gerarFerragensIndustriais, agruparPorComponente } from "../industriais/ferragensIndustriais";
 import { computeChapasReal } from "./computeChapasReal";
 import { getSheetDefinitionFromSettings } from "../cnc/cncPipeline";
 import type { BoxModule, CutListItemComPreco } from "../types";
@@ -34,16 +33,22 @@ import {
   PUXA_8MM_NOME,
 } from "../ferragens/freeagemParafusos";
 import {
-  aggregateCalcoRowsForPdf,
-  CALCO_MATERIAL,
   countPortasFrenteFixa,
   loadCalcoConfig,
+  CALCO_MATERIAL,
 } from "../ferragens/calcoConfig";
 import {
-  countDobradicasForPdf,
   countDobradicasPorCaixaForPdf,
   DOBRADICA_REF,
 } from "../pdf/pdfFerragensTotaisNormalize";
+import {
+  aggregateFerragensByCommercialName,
+  boxHasCornerFixedFront,
+  DOBRADICA_W90_NOME,
+  resolveCanonicalFerragemId,
+  resolveFerragemCommercialName,
+} from "../ferragens/ferragensCountRules";
+import { buildFerragensTotaisNormalized } from "../ferragens/ferragensTotaisSsot";
 import {
   computeFinanceiroUnificado,
   financeiroCustoRows,
@@ -190,19 +195,7 @@ export type FerragensTotaisArmazemRow = {
   preco?: number;
 };
 
-type FerragensTotaisProjectSlice = Pick<
-  ProjectState,
-  | "boxes"
-  | "rules"
-  | "materialId"
-  | "projectName"
-  | "remates"
-  | "rodapes"
-  | "extractedPartsByBoxId"
-  | "pieceObservacoes"
-> & {
-  workspaceBoxes?: ProjectState["workspaceBoxes"];
-};
+import type { FerragensTotaisProjectSlice } from "../ferragens/ferragensTotaisSsot";
 
 /**
  * Totais agregados para o PDF ferragens_totais (armazém):
@@ -296,20 +289,21 @@ export function buildFerragensTotaisArmazemData(
   const catalogById = new Map(catalogFerragens.map((f) => [f.id, f]));
 
   for (const row of industrial.rows) {
-    const nome = row.ferragem.trim() || "—";
+    const rawLabel = row.ferragem.trim() || EM_DASH;
     const cat =
-      catalogByNome.get(nome.toLowerCase()) ??
-      catalogById.get(nome) ??
-      catalogFerragens.find((f) => f.nome.includes(nome) || nome.includes(f.nome));
-    const key = cat?.id ?? nome.toLowerCase();
+      catalogById.get(rawLabel) ??
+      catalogByNome.get(rawLabel.toLowerCase()) ??
+      catalogFerragens.find((f) => f.nome.includes(rawLabel) || rawLabel.includes(f.nome));
+    const key = resolveCanonicalFerragemId(cat?.id ?? rawLabel);
     const prev = byFerragem.get(key);
+    const commercialName = resolveFerragemCommercialName(key, catalogById);
     if (prev) {
       prev.qty += row.qtd;
     } else {
       byFerragem.set(key, {
-        nome: cat?.nome ?? nome,
-        ref: cat?.id ?? "—",
-        medida: cat?.medidas?.trim() || "—",
+        nome: commercialName,
+        ref: key,
+        medida: cat?.medidas?.trim() || EM_DASH,
         qty: row.qtd,
       });
     }
@@ -340,18 +334,10 @@ export function buildFerragensTotaisPdfData(
   project: FerragensTotaisProjectSlice,
   componentTypes: ComponentType[],
   catalogFerragens: Ferragem[]
-): { detalhe: string[][]; porTipo: string[][] } {
+): { detalhe: string[][]; porTipo: string[][]; totalQty: number } {
   const boxes = project.boxes ?? [];
-  const projectName = project.projectName?.trim() || "Projeto";
-  const cutlistItems = buildCutlistItemsForIndustrialExport({
-    boxes,
-    rules: project.rules,
-    materialId: project.materialId,
-    projectName,
-    remates: project.remates ?? [],
-    rodapes: project.rodapes ?? [],
-    extractedPartsByBoxId: project.extractedPartsByBoxId,
-  });
+  const normalized = buildFerragensTotaisNormalized(project, componentTypes, catalogFerragens, []);
+  const cutlistItems = normalized.cutlistItems;
 
   const industrial = buildIndustrialFerragensForProject({
     projectName: project.projectName,
@@ -364,55 +350,30 @@ export function buildFerragensTotaisPdfData(
     pieceObservacoes: project.pieceObservacoes,
   });
 
-  // Ignorar dobradiças industriais (fixas); usar canecos reais do cutlist/CNC.
   const detalhe = industrial.rows
     .filter((r) => !isDobradicaFerragemLabel(r.ferragem))
     .map((r) => [r.caixa || r.peca, r.ferragem, String(r.qtd), r.material, r.nQr]);
 
-  const byTipo = new Map<string, number>();
-  for (const row of industrial.rows) {
-    if (isDobradicaFerragemLabel(row.ferragem)) continue;
-    const key = row.ferragem.trim() || "—";
-    byTipo.set(key, (byTipo.get(key) ?? 0) + row.qtd);
-  }
-
-  const catalog = gerarFerragensIndustriais(componentTypes, catalogFerragens);
-  for (const entry of catalog) {
-    if (isDobradicaFerragemLabel(entry.ferragem_id)) {
-      continue;
-    }
-    const key = entry.ferragem_id;
-    const existing = byTipo.get(key) ?? 0;
-    if (existing === 0) byTipo.set(key, entry.quantidade);
-  }
-
-  const porTipo = [...byTipo.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0], "pt"))
-    .map(([tipo, total]) => [tipo, String(total)]);
-
-  const porComponente = agruparPorComponente(gerarFerragensIndustriais(componentTypes, catalogFerragens));
-  for (const [comp, entries] of porComponente.entries()) {
-    if (isDobradicaFerragemLabel(comp)) continue;
-    const qty = entries.reduce((s, e) => s + e.quantidade, 0);
-    if (!porTipo.some(([t]) => t === comp)) {
-      porTipo.push([`${comp} (catálogo)`, String(qty)]);
-    }
-  }
-
-  const dobradicaTotal = countDobradicasForPdf(cutlistItems, boxes, project.rules);
-  if (dobradicaTotal > 0) {
-    for (const row of countDobradicasPorCaixaForPdf(cutlistItems, boxes, project.rules)) {
-      detalhe.push([row.caixa, "Dobradi\u00e7a", String(row.quantidade), "35mm", DOBRADICA_REF]);
-    }
-    porTipo.push(["Dobradi\u00e7a", String(dobradicaTotal)]);
+  for (const box of boxes) {
+    const qty =
+      countDobradicasPorCaixaForPdf(cutlistItems, [box], project.rules)[0]?.quantidade ?? 0;
+    if (qty <= 0) continue;
+    const w90 = boxHasCornerFixedFront(box);
+    detalhe.push([
+      box.nome?.trim() || box.id,
+      w90 ? DOBRADICA_W90_NOME : "Dobradi\u00e7a",
+      String(qty),
+      "35mm",
+      w90 ? "W90" : DOBRADICA_REF,
+    ]);
   }
 
   const calcoCfg = loadCalcoConfig();
-  for (const calco of aggregateCalcoRowsForPdf(dobradicaTotal, boxes, calcoCfg)) {
-    porTipo.push([`${CALCO_MATERIAL} ${calco.ref}`, String(calco.quantidade)]);
-  }
   for (const box of boxes) {
-    const n00 = countDobradicasPorCaixaForPdf(cutlistItems, [box], project.rules)[0]?.quantidade ?? 0;
+    const n00 =
+      boxHasCornerFixedFront(box)
+        ? 0
+        : countDobradicasPorCaixaForPdf(cutlistItems, [box], project.rules)[0]?.quantidade ?? 0;
     if (calcoCfg.refs["00"].ativo && n00 > 0) {
       detalhe.push([
         box.nome?.trim() || box.id,
@@ -434,81 +395,32 @@ export function buildFerragensTotaisPdfData(
     }
   }
 
-  // Pés de plástico: ferragem de catálogo (não industrial) — só apresentação online/PDF.
   const peCfg = loadPesPlasticoConfig();
-  const pePorCaixa = listPesPlasticoPorCaixa(boxes, project.rules, peCfg);
-  let peTotalQty = 0;
-  let peTotalPreco = 0;
-  for (const pe of pePorCaixa) {
-    peTotalQty += pe.quantidade;
-    peTotalPreco += pe.precoTotal;
-    detalhe.push([
-      pe.caixa,
-      PE_PLASTICO_NOME,
-      String(pe.quantidade),
-      pe.medida,
-      formatCurrency(pe.precoTotal),
-    ]);
+  for (const pe of listPesPlasticoPorCaixa(boxes, project.rules, peCfg)) {
+    detalhe.push([pe.caixa, PE_PLASTICO_NOME, String(pe.quantidade), pe.medida, formatCurrency(pe.precoTotal)]);
   }
-  if (peTotalQty > 0) {
-    porTipo.push([
-      PE_PLASTICO_NOME,
-      `${peTotalQty} un · ${formatCurrency(peTotalPreco)}`,
-    ]);
+  for (const p of listParafuso3x30PorCaixa(boxes, project.rules, peCfg)) {
+    detalhe.push([p.caixa, PARAFUSO_3X30_NOME, String(p.quantidade), p.medida, formatCurrency(p.precoTotal)]);
   }
-
-  // Parafuso 3×30 freeagem: pés × 4 — só apresentação/custo (sem furos/CNC/industrial).
-  const parafPorCaixa = listParafuso3x30PorCaixa(boxes, project.rules, peCfg);
-  let parafTotalQty = 0;
-  let parafTotalPreco = 0;
-  for (const p of parafPorCaixa) {
-    parafTotalQty += p.quantidade;
-    parafTotalPreco += p.precoTotal;
-    detalhe.push([
-      p.caixa,
-      PARAFUSO_3X30_NOME,
-      String(p.quantidade),
-      p.medida,
-      formatCurrency(p.precoTotal),
-    ]);
-  }
-  if (parafTotalQty > 0) {
-    porTipo.push([
-      PARAFUSO_3X30_NOME,
-      `${parafTotalQty} un · ${formatCurrency(parafTotalPreco)}`,
-    ]);
-  }
-
-  const pushFreeagemOnline = (
+  const pushFreeagemDetalhe = (
     rows: Array<{ caixa: string; quantidade: number; medida: string; precoTotal: number }>,
     nome: string
   ) => {
-    let totalQty = 0;
-    let totalPreco = 0;
     for (const p of rows) {
-      totalQty += p.quantidade;
-      totalPreco += p.precoTotal;
-      detalhe.push([
-        p.caixa,
-        nome,
-        String(p.quantidade),
-        p.medida,
-        formatCurrency(p.precoTotal),
-      ]);
-    }
-    if (totalQty > 0) {
-      porTipo.push([nome, `${totalQty} un · ${formatCurrency(totalPreco)}`]);
+      detalhe.push([p.caixa, nome, String(p.quantidade), p.medida, formatCurrency(p.precoTotal)]);
     }
   };
-
-  pushFreeagemOnline(
+  pushFreeagemDetalhe(
     listParafuso4x35PorCaixa(boxes, project.remates, project.workspaceBoxes),
     PARAFUSO_4X35_NOME
   );
-  pushFreeagemOnline(listParafuso5x50PorCaixa(boxes), PARAFUSO_5X50_NOME);
-  pushFreeagemOnline(listPuxa8mmPorCaixa(boxes), PUXA_8MM_NOME);
+  pushFreeagemDetalhe(listParafuso5x50PorCaixa(boxes), PARAFUSO_5X50_NOME);
+  pushFreeagemDetalhe(listPuxa8mmPorCaixa(boxes), PUXA_8MM_NOME);
 
-  return { detalhe, porTipo };
+  const aggregated = aggregateFerragensByCommercialName(normalized.ferragens);
+  const porTipo = aggregated.map((row) => [row.material, String(row.quantidade)]);
+
+  return { detalhe, porTipo, totalQty: normalized.totalQty };
 }
 
 /** P3.5 — alias do SSOT financeiro (totais = resumo detalhado). */

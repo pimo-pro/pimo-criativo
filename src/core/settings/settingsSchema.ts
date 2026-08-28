@@ -343,7 +343,7 @@ export const settingsDefaults: SettingsSchema = {
   },
   ferragens: {
     cavilha: {
-      diametro: 8,
+      diametro: 10,
       profundidade: 30,
       distanciaBorda: 37,
       ativo: true,

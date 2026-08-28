@@ -42,6 +42,13 @@ import {
 import type { OrlaPreset } from "../orla/orlaTypes";
 import type { ProjectFerragemOrla } from "../orla/orlaTypes";
 import { normalizeOrlaPresets } from "../orla/orlaPresets";
+import {
+  boxHasCornerFixedFront,
+  countParafuso3x30PorGavetas,
+  DOBRADICA_W90_ID,
+  DOBRADICA_W90_NOME,
+  DOBRADICA_W90_REF,
+} from "../ferragens/ferragensCountRules";
 
 export const CORREDICA_LENGTHS_MM = [300, 350, 400, 450, 500, 550] as const;
 export const PARAFUSO_COSTA_SPACING_MM = 180;
@@ -103,6 +110,7 @@ type Bucket =
   | "cavilha"
   | "corredica"
   | "dobradica"
+  | "dobradica_w90"
   | "calco"
   | "suporte"
   | "parafuso_puxador"
@@ -140,6 +148,7 @@ function classifyFerragem(nome: string, ref: string): Bucket {
     return "corredica";
   }
   if (n.includes("dobradica") || r.startsWith("dobradica") || n === "dobradicas") {
+    if (r === DOBRADICA_W90_ID || n.includes("w90")) return "dobradica_w90";
     return "dobradica";
   }
   if (n.includes("calco") || r.startsWith("calco_")) {
@@ -256,6 +265,77 @@ function countCupsOnPanel(holes: PanelDrillHole[] | undefined): number {
 }
 
 /**
+ * Contagem de dobradiças separada: I-Sensys (normal) vs W90 (portas em módulos canto FF).
+ */
+export type DobradicaSplit = { standard: number; w90: number };
+
+function countDobradicasForDoorItem(
+  item: Pick<CutListItemComPreco, "tipo" | "dimensoes" | "quantidade" | "drillHoles">,
+  rules?: RulesConfig
+): number {
+  const pieceQty = Math.max(1, Math.floor(Number(item.quantidade) || 1));
+  const cups = countCupsOnPanel(item.drillHoles);
+  if (cups > 0) return cups * pieceQty;
+  if (rules) {
+    const alturaMm =
+      Number(item.dimensoes?.altura) || Number(item.dimensoes?.largura) || 0;
+    return getNumDobradicas(alturaMm, rules) * pieceQty;
+  }
+  return 0;
+}
+
+export function countDobradicasSplitForPdf(
+  cutlistItems: Array<
+    Pick<CutListItemComPreco, "tipo" | "dimensoes" | "quantidade" | "drillHoles" | "boxId">
+  >,
+  boxes: BoxModule[],
+  rules?: RulesConfig
+): DobradicaSplit {
+  const boxById = new Map((boxes ?? []).map((b) => [b.id, b]));
+  let standard = 0;
+  let w90 = 0;
+  let doorPanelsSeen = 0;
+
+  for (const item of cutlistItems ?? []) {
+    if (!isDoorPanelTipo(String(item.tipo ?? ""))) continue;
+    doorPanelsSeen += Math.max(1, Math.floor(Number(item.quantidade) || 1));
+    const n = countDobradicasForDoorItem(item, rules);
+    if (n <= 0) continue;
+    const box = boxById.get(String(item.boxId ?? ""));
+    if (box && boxHasCornerFixedFront(box)) {
+      w90 += n;
+    } else {
+      standard += n;
+    }
+  }
+
+  if (doorPanelsSeen > 0 || standard > 0 || w90 > 0) {
+    return { standard, w90 };
+  }
+
+  if (!rules) return { standard: 0, w90: 0 };
+  for (const box of boxes ?? []) {
+    const layer = box.doorsLayer ?? [];
+    if (layer.length > 0) {
+      for (const door of layer) {
+        const n = getNumDobradicas(Math.max(0, Number(door.height) || 0), rules);
+        if (boxHasCornerFixedFront(box)) w90 += n;
+        else standard += n;
+      }
+      continue;
+    }
+    if (box.portaTipo && box.portaTipo !== "sem_porta") {
+      const alturaMm = Number(box.dimensoes?.altura) || 0;
+      const perLeaf = getNumDobradicas(alturaMm, rules);
+      const n = box.portaTipo === "porta_dupla" ? perLeaf * 2 : perLeaf;
+      if (boxHasCornerFixedFront(box)) w90 += n;
+      else standard += n;
+    }
+  }
+  return { standard, w90 };
+}
+
+/**
  * Contagem oficial de dobradiças para PDF/online (apresentacao).
  * Fonte: canecos ?35 (holeType === "dobradica") nas pecas porta do cutlist.
  * Fallback: getNumDobradicas(alturaMm, rules) por folha.
@@ -263,49 +343,13 @@ function countCupsOnPanel(holes: PanelDrillHole[] | undefined): number {
  */
 export function countDobradicasForPdf(
   cutlistItems: Array<
-    Pick<CutListItemComPreco, "tipo" | "dimensoes" | "quantidade" | "drillHoles">
+    Pick<CutListItemComPreco, "tipo" | "dimensoes" | "quantidade" | "drillHoles" | "boxId">
   >,
   boxes: BoxModule[],
   rules?: RulesConfig
 ): number {
-  let total = 0;
-  let doorPanelsSeen = 0;
-
-  for (const item of cutlistItems ?? []) {
-    if (!isDoorPanelTipo(String(item.tipo ?? ""))) continue;
-    const pieceQty = Math.max(1, Math.floor(Number(item.quantidade) || 1));
-    doorPanelsSeen += pieceQty;
-    const cups = countCupsOnPanel(item.drillHoles);
-    if (cups > 0) {
-      total += cups * pieceQty;
-      continue;
-    }
-    if (rules) {
-      const alturaMm =
-        Number(item.dimensoes?.altura) || Number(item.dimensoes?.largura) || 0;
-      total += getNumDobradicas(alturaMm, rules) * pieceQty;
-    }
-  }
-
-  if (doorPanelsSeen > 0 || total > 0) return total;
-
-  // Sem pecas porta na cutlist: fallback pelas caixas / doorsLayer.
-  if (!rules) return 0;
-  for (const box of boxes ?? []) {
-    const layer = box.doorsLayer ?? [];
-    if (layer.length > 0) {
-      for (const door of layer) {
-        total += getNumDobradicas(Math.max(0, Number(door.height) || 0), rules);
-      }
-      continue;
-    }
-    if (box.portaTipo && box.portaTipo !== "sem_porta") {
-      const alturaMm = Number(box.dimensoes?.altura) || 0;
-      const perLeaf = getNumDobradicas(alturaMm, rules);
-      total += box.portaTipo === "porta_dupla" ? perLeaf * 2 : perLeaf;
-    }
-  }
-  return total;
+  const split = countDobradicasSplitForPdf(cutlistItems, boxes, rules);
+  return split.standard + split.w90;
 }
 
 /** Quantidade de canecos por caixa (para detalhe online). */
@@ -396,6 +440,7 @@ export function normalizeFerragensTotaisForPdf(
         // Freeagem: recalculado a nível de projeto; ignorar industrial.
         break;
       case "dobradica":
+      case "dobradica_w90":
         // Ignorar industrial (gerarFerragens + ComponentTypes). Fonte = canecos reais.
         break;
       case "calco":
@@ -449,17 +494,33 @@ export function normalizeFerragensTotaisForPdf(
     });
   }
 
-  const dobradicaQty = countDobradicasForPdf(input.cutlistItems ?? [], input.boxes ?? [], input.rules);
-  if (dobradicaQty > 0) {
+  const dobradicaSplit = countDobradicasSplitForPdf(
+    input.cutlistItems ?? [],
+    input.boxes ?? [],
+    input.rules
+  );
+  if (dobradicaSplit.standard > 0) {
     result.push({
       material: DOBRADICA_LABEL,
       ref: DOBRADICA_REF,
       medida: "35mm",
-      quantidade: dobradicaQty,
+      quantidade: dobradicaSplit.standard,
+    });
+  }
+  if (dobradicaSplit.w90 > 0) {
+    result.push({
+      material: DOBRADICA_W90_NOME,
+      ref: DOBRADICA_W90_REF,
+      medida: "35mm",
+      quantidade: dobradicaSplit.w90,
     });
   }
 
-  for (const calco of aggregateCalcoRowsForPdf(dobradicaQty, input.boxes ?? [], loadCalcoConfig())) {
+  for (const calco of aggregateCalcoRowsForPdf(
+    dobradicaSplit.standard,
+    input.boxes ?? [],
+    loadCalcoConfig()
+  )) {
     result.push({
       material: calco.material,
       ref: calco.ref,
@@ -473,7 +534,8 @@ export function normalizeFerragensTotaisForPdf(
   const peParafRows = aggregateParafuso3x30FromBoxes(input.boxes ?? [], input.rules, peCfg);
   const peParafQty = peParafRows.reduce((s, r) => s + r.quantidade, 0);
   const parafusosCosta = countParafusosCosta3x30(input.cutlistItems ?? []);
-  const parafuso3x30Qty = peParafQty + parafusosCosta;
+  const parafusosGaveta = countParafuso3x30PorGavetas(input.boxes ?? []);
+  const parafuso3x30Qty = peParafQty + parafusosCosta + parafusosGaveta;
   if (parafuso3x30Qty > 0) {
     result.push({
       material: PARAFUSO_3X30_NOME,

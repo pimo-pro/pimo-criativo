@@ -84,6 +84,14 @@ export const FERRAGENS_DEFAULT: Ferragem[] = [
     precoUnitario: 2.5,
   },
   {
+    id: "dobradica_w90",
+    nome: "Dobradi\u00e7a W90",
+    categoria: "dobradica",
+    medidas: "35mm",
+    descricao: "Dobradi\u00e7a W90 para portas em m\u00f3dulos com frente fixa (canto)",
+    precoUnitario: 2.5,
+  },
+  {
     id: "calco_00",
     nome: "Cal\u00e7o",
     categoria: "acessorio",

@@ -35,6 +35,11 @@ import {
   countPortasFrenteFixa,
   loadCalcoConfig,
 } from "../ferragens/calcoConfig";
+import { CAVILHA_10x40_FERRAGEM_ID } from "../drill/cavilha10x40Rule";
+import {
+  countParafuso3x30PorGavetas,
+  DOBRADICA_W90_ID,
+} from "../ferragens/ferragensCountRules";
 import { computeBoxProfundidadeAlvoFromBoxLike } from "../box/boxDepthModel";
 import { resolveCostaAtivaForBox } from "../box/backPanelFlags";
 import { getProfundidadeInternaUtilMm } from "../box/boxDepthHelpers";
@@ -704,8 +709,13 @@ export function gerarFerragens(box: BoxModule, rules: RulesConfig): FerragemIndu
   if ((box.divisores?.length ?? 0) > 0 || (box.separadores?.length ?? 0) > 0) {
     const divSepDrilling = buildDivSepDrilling(box, box.panelIds);
     const { cavilhas10, parafusos4x50 } = countDivSepFerragens(box, divSepDrilling);
-    addFerragem("cavilha_10mm", cavilhas10);
+    addFerragem(CAVILHA_10x40_FERRAGEM_ID, cavilhas10);
     addFerragem("parafuso_4x50", parafusos4x50);
+  }
+
+  const parafGavetaQty = countParafuso3x30PorGavetas([box]);
+  if (parafGavetaQty > 0) {
+    addFerragem(PARAFUSO_3X30_ID, parafGavetaQty);
   }
 
   if (peCfg.ativo) {
@@ -754,10 +764,10 @@ function ferragensUnitPriceTable(
   return {
     // Soft-close: pricing.json; fallback 2.5 se ausente.
     dobradicas: dob > 0 ? dob : 2.5,
-    // Par de corrediças = 2× unitário; tipo "corredicas" cobra por unidade (par=2).
+    [DOBRADICA_W90_ID]: dob > 0 ? dob : 2.5,
     corredicas: corredica,
     suportes_prateleira: suporte,
-    cavilha_10mm: 0.12,
+    [CAVILHA_10x40_FERRAGEM_ID]: 0.08,
     parafuso_4x50: typeof f.parafuso === "number" ? f.parafuso : 0.15,
     pe_plastico: peUnit,
     [PARAFUSO_3X30_ID]: PARAFUSO_3X30_PRECO,

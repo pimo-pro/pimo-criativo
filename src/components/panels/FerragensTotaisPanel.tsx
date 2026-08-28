@@ -6,16 +6,14 @@ import Panel from "../ui/Panel";
 import IndustrialPanelPdfActions from "./IndustrialPanelPdfActions";
 import { useIndustrialBottomPdf } from "../../hooks/useIndustrialBottomPdf";
 import { buildFerragensTotaisPdfData } from "../../core/industrial/industrialBottomSectionData";
-import { useCutlistData } from "../../hooks/useCutlistData";
 
 export default function FerragensTotaisPanel({ embedded }: { embedded?: boolean } = {}) {
   const { project } = useProject();
   const { componentTypes } = useComponentTypes();
   const { ferragens } = useFerragens();
   const { exportFerragensTotaisPdf, viewFerragensTotaisPdf } = useIndustrialBottomPdf();
-  const { totalFerragensQty } = useCutlistData();
 
-  const { detalhe, porTipo } = useMemo(
+  const { detalhe, porTipo, totalQty } = useMemo(
     () =>
       buildFerragensTotaisPdfData(
         {
@@ -28,6 +26,8 @@ export default function FerragensTotaisPanel({ embedded }: { embedded?: boolean 
           extractedPartsByBoxId: project.extractedPartsByBoxId,
           pieceObservacoes: project.pieceObservacoes,
           workspaceBoxes: project.workspaceBoxes,
+          ferragemOrla: project.ferragemOrla,
+          orlaPresets: project.orlaPresets,
         },
         componentTypes,
         ferragens
@@ -42,7 +42,7 @@ export default function FerragensTotaisPanel({ embedded }: { embedded?: boolean 
         onDownloadPdf={exportFerragensTotaisPdf}
       />
       <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
-        Total de unidades: <strong style={{ color: "var(--text-main)" }}>{totalFerragensQty}</strong>
+        Total de unidades: <strong style={{ color: "var(--text-main)" }}>{totalQty}</strong>
       </p>
 
       <h4 style={{ fontSize: 12, margin: "12px 0 6px", color: "var(--text-main)" }}>Por tipo</h4>

@@ -6,6 +6,8 @@ import type {
 } from "../types";
 import { resolveIndustrialGrainCode } from "../materials/grainDirection";
 import { gerarModeloIndustrial, getPieceLabel } from "./boxManufacturing";
+import { resolveCanonicalFerragemId, resolveFerragemCommercialName } from "../ferragens/ferragensCountRules";
+import { FERRAGENS_DEFAULT } from "../ferragens/ferragens";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { getMaterialForBox, getMaterialDisplayInfo, getIndustrialMaterialKeyForBox, resolveIndustrialMaterialKey } from "../materials/materialsService";
 import { resolveMaterial, getDefaultOfficialMaterial, resolveCostaMaterialForBox, resolveCostaThicknessMm, resolveSeparadorMaterialForBox, resolveFrenteFixaMaterialForBox } from "../materials/materials.api";
@@ -951,28 +953,31 @@ export function buildGlobalQrCutlistMerged(
  * no array modelo.ferragens não é usada — apenas mapeamos f → AcessorioComPreco.
  */
 export function ferragensFromBoxes(boxes: BoxModule[], rules: RulesConfig): AcessorioComPreco[] {
+  const catalogById = new Map(FERRAGENS_DEFAULT.map((f) => [f.id, f]));
   const acc: AcessorioComPreco[] = [];
   for (const box of boxes) {
     const modelo = gerarModeloIndustrial(box, rules);
     for (const f of modelo.ferragens) {
+      const canonicalTipo = resolveCanonicalFerragemId(f.tipo);
+      const nome =
+        f.tipo === "pe_plastico"
+          ? "Pé"
+          : f.tipo === "parafuso_3x30"
+            ? "Parafuso 3×30"
+            : f.tipo === "parafuso_4x35"
+              ? "Parafuso 4×35"
+              : f.tipo === "parafuso_5x50"
+                ? "Parafuso 5×50"
+                : f.tipo === "puxa_8mm"
+                  ? "puxa 8mm"
+                  : resolveFerragemCommercialName(canonicalTipo, catalogById);
       acc.push({
         id: `${box.id}-${f.id}`,
-        nome:
-          f.tipo === "pe_plastico"
-            ? "Pé"
-            : f.tipo === "parafuso_3x30"
-              ? "Parafuso 3×30"
-              : f.tipo === "parafuso_4x35"
-                ? "Parafuso 4×35"
-                : f.tipo === "parafuso_5x50"
-                  ? "Parafuso 5×50"
-                  : f.tipo === "puxa_8mm"
-                    ? "puxa 8mm"
-                    : f.tipo,
+        nome,
         quantidade: f.quantidade,
         precoUnitario: f.quantidade > 0 ? f.custo / f.quantidade : 0,
         precoTotal: f.custo,
-        tipo: f.tipo,
+        tipo: canonicalTipo,
       });
     }
   }

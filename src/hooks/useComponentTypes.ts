@@ -1,4 +1,6 @@
 import { COMPONENT_TYPES_DEFAULT, type ComponentType } from "../core/components/componentTypes";
+import { sanitizeComponentTypes } from "../core/ferragens/ferragensCatalogSanitize";
+import { useMemo } from "react";
 import { useStorageList } from "./useStorageList";
 
 const STORAGE_KEY = "pimo_component_types";
@@ -27,5 +29,7 @@ export const useComponentTypes = () => {
     validate: validateComponentTypes,
   });
 
-  return { componentTypes: items, setComponentTypes: setItems, reload };
+  const componentTypes = useMemo(() => sanitizeComponentTypes(items), [items]);
+
+  return { componentTypes, setComponentTypes: setItems, reload };
 };

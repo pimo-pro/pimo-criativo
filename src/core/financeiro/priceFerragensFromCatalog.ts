@@ -12,6 +12,12 @@ import { ferragensFromBoxes } from "../manufacturing/cutlistFromBoxes";
 import type { BoxModule, CutListItemComPreco } from "../types";
 import type { RulesConfig } from "../rules/rulesConfig";
 import { safeGetItem } from "../../utils/storage";
+import { sanitizeFerragensCatalog } from "../ferragens/ferragensCatalogSanitize";
+import { sanitizeComponentTypes } from "../ferragens/ferragensCatalogSanitize";
+import {
+  pieceTemParafusoPuxador,
+  resolveCanonicalFerragemId,
+} from "../ferragens/ferragensCountRules";
 
 const TIPO_TO_COMPONENT_ID: Record<string, string> = {
   cima: "cima",
@@ -30,6 +36,7 @@ const TIPO_TO_COMPONENT_ID: Record<string, string> = {
   gaveta_lat_dir: "gaveta_lat_dir",
   gaveta_fundo: "gaveta_fundo",
   gaveta_traseira: "gaveta_traseira",
+  frente_fixa: "frente_fixa",
 };
 
 const JOINT_FERRAGEM_IDS = new Set(["parafuso_4x50"]);
@@ -47,8 +54,7 @@ const FALLBACK_PRECO_A_STATIC: Record<string, number> = {
   parafuso_5x50: 0.24,
   puxa_8mm: 0.7,
   cavilha_10x40: 0.08,
-  cavilha_10mm: 0.08,
-  prego_costa: 0.02,
+  dobradica_w90: 2.5,
   parafuso_puxador: 0.12,
 };
 
@@ -113,7 +119,8 @@ export function loadFerragensCatalogForPricing(): Ferragem[] {
   if (!raw) return FERRAGENS_DEFAULT;
   try {
     const parsed = JSON.parse(raw) as Ferragem[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : FERRAGENS_DEFAULT;
+    const list = Array.isArray(parsed) && parsed.length > 0 ? parsed : FERRAGENS_DEFAULT;
+    return sanitizeFerragensCatalog(list);
   } catch {
     return FERRAGENS_DEFAULT;
   }
@@ -124,7 +131,8 @@ export function loadComponentTypesForPricing(): ComponentType[] {
   if (!raw) return COMPONENT_TYPES_DEFAULT;
   try {
     const parsed = JSON.parse(raw) as ComponentType[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : COMPONENT_TYPES_DEFAULT;
+    const list = Array.isArray(parsed) && parsed.length > 0 ? parsed : COMPONENT_TYPES_DEFAULT;
+    return sanitizeComponentTypes(list);
   } catch {
     return COMPONENT_TYPES_DEFAULT;
   }
@@ -199,7 +207,8 @@ function iterDefsForItem(
   item: CutListItemComPreco,
   ctById: Record<string, ComponentType>,
   warnings: FerragensStrictWarning[],
-  onDef: (ferragemId: string, qtd: number) => void
+  onDef: (ferragemId: string, qtd: number) => void,
+  box?: BoxModule
 ): void {
   const pieceId = String(item.id ?? "");
   const pieceTipo = String(item.tipo ?? "");
@@ -230,6 +239,10 @@ function iterDefsForItem(
 
   const qtyMult = Math.max(1, item.quantidade ?? 1);
   for (const def of defs) {
+    if (def.ferragem_id === "prego_costa") continue;
+    if (def.ferragem_id === "parafuso_puxador" && !pieceTemParafusoPuxador(item, box)) {
+      continue;
+    }
     if (JOINT_FERRAGEM_IDS.has(def.ferragem_id) && !JOINT_COUNT_PIECE_TIPOS.has(pieceTipo)) {
       continue;
     }
@@ -238,7 +251,7 @@ function iterDefsForItem(
       (def.quantidade_por_lado != null
         ? def.quantidade_por_lado * Math.max(1, def.aplicar_em?.length ?? 1)
         : 1);
-    onDef(def.ferragem_id, qtdBase * qtyMult);
+    onDef(resolveCanonicalFerragemId(def.ferragem_id), qtdBase * qtyMult);
   }
 }
 
@@ -249,11 +262,13 @@ export function priceFerragensFromCatalog(input: {
   cutlist: CutListItemComPreco[];
   componentTypes?: ComponentType[];
   catalog?: Ferragem[];
+  boxes?: BoxModule[];
 }): PriceFerragensFromCatalogResult {
   const componentTypes = input.componentTypes ?? loadComponentTypesForPricing();
-  const catalog = input.catalog ?? loadFerragensCatalogForPricing();
+  const catalog = sanitizeFerragensCatalog(input.catalog ?? loadFerragensCatalogForPricing());
   const ctById = Object.fromEntries(componentTypes.map((ct) => [ct.id, ct]));
   const catalogById = new Map(catalog.map((f) => [f.id, f]));
+  const boxById = new Map((input.boxes ?? []).map((b) => [b.id, b]));
 
   const warnings: FerragensStrictWarning[] = [];
   const fallbacks: FerragensFallbackUsage[] = [];
@@ -265,6 +280,7 @@ export function priceFerragensFromCatalog(input: {
 
   for (const item of input.cutlist ?? []) {
     const pieceId = String(item.id ?? "");
+    const box = boxById.get(String(item.boxId ?? ""));
     iterDefsForItem(item, ctById, warnings, (ferragemId, qtd) => {
       if (!(qtd > 0)) return;
       const { unit, usedFallbackA } = resolveUnitPrice(
@@ -288,7 +304,7 @@ export function priceFerragensFromCatalog(input: {
       totalQty += qtd;
       eurByPieceId.set(pieceId, round2((eurByPieceId.get(pieceId) ?? 0) + precoTotal));
       qtyByPieceId.set(pieceId, (qtyByPieceId.get(pieceId) ?? 0) + qtd);
-    });
+    }, box);
   }
 
   return {

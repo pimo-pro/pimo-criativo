@@ -134,8 +134,8 @@ describe("CAIXA 1201 — precos de mercado", () => {
 
     expect(c.orla, diag).toBeGreaterThan(0.5);
     expect(c.orla, diag).toBeLessThan(40);
-    expect(c.ferragens, diag).toBeGreaterThan(7);
-    expect(c.ferragens, diag).toBeLessThan(30);
+    // Ferragens SSOT (catálogo B): sem prego_costa nem parafuso_puxador fantasma.
+    expect(c.ferragens, diag).toBeCloseTo(14.8, 2);
     expect(c.operacoes, diag).toBeGreaterThan(2);
     expect(c.operacoes, diag).toBeLessThan(12);
     expect(c.operacoesAvancadas ?? 0, diag).toBeLessThan(3);
@@ -143,9 +143,14 @@ describe("CAIXA 1201 — precos de mercado", () => {
     expect(c.adm, diag).toBeGreaterThan(0);
     expect(c.adm / Math.max(1e-6, snap.subtotal), diag).toBeCloseTo(0.05, 2);
 
-    // Total documentado deste caso (IVA 23% sobre subtotal materiais):
-    // subtotal≈331.22 + ADM≈16.56 + montagem≈7.34 + IVA≈76.18 ≈ 431.30
-    expect(total, diag).toBeCloseTo(431.3, 0);
+    // Total documentado (IVA 23% sobre subtotal materiais; ADM 5% sobre subtotal):
+    // Fix Ferragens Totais SSOT — removidas ferragens fantasma dos componentTypes:
+    //   prego_costa: 12×0,02€ = 0,24€ (1× costa b1-costa-1)
+    //   parafuso_puxador: 4×0,12€ = 0,48€ (2 portas × 2 un.; sem puxador na caixa)
+    //   Δ ferragens = −0,72€ → cascata ADM (−0,03€) + IVA (−0,1656€) = −0,9156€
+    // Antes: subtotal≈331,22 + ADM≈16,56 + montagem≈7,34 + IVA≈76,18 ≈ 431,30
+    // Depois: subtotal≈330,50 + ADM≈16,53 + montagem≈7,34 + IVA≈76,02 ≈ 430,39
+    expect(total, diag).toBeCloseTo(430.389305, 2);
     expect(snap.ivaPct, diag).toBe(23);
   });
 });
