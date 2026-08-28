@@ -2,7 +2,7 @@
  * Labels UI para modo de chapas (Financeiro Unificado / badges).
  * Semântica:
  * - oficial_pro → nesting PRO/TCN (único oficial para N e €)
- * - estimado → fast/área (A1: mostrar N, não monetizar)
+ * - estimado → fast/área (N visível + monetização preliminar N×€/chapa ou Σ sheets)
  * - real → legado (até passo 5: nesting com sheets[], tipicamente fast)
  */
 
@@ -40,10 +40,10 @@ export function financeiroChapasBadgeLabel(mode: FinanceiroChapasMode): string {
   }
 }
 
-/** Aviso sob a métrica quando mode=estimado (A1). */
+/** Aviso sob a métrica quando mode=estimado. */
 export function financeiroChapasEstimadoHint(): string {
   return (
     "Estimado — pode diferir do TCN final. " +
-    "Custo oficial de chapas = 0 € até gerar nesting PRO/TCN."
+    "Painéis usa N × €/chapa (ou Σ sheets fast) como preliminar; o valor oficial vem do nesting PRO/TCN."
   );
 }

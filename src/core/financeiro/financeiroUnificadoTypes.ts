@@ -120,8 +120,8 @@ export type FinanceiroUnificadoSnapshot = {
   materialCostMode?: import("../orcamentos").OrcamentosMaterialCostMode;
   /**
    * Meta UI/PDF: N monetizado + média efectiva €/chapa (totalEur/N).
-   * O € oficial em custosEffective.chapasReais é Σ exacto (priceChapasSheetsEur), não N×média.
-   * countMonetizado = 0 se nesting estimado (chapasReais€=0).
+   * O € em custosEffective.chapasReais é Σ exacto (priceChapasSheetsEur) ou N×derivado.
+   * countMonetizado > 0 também em nesting estimado (monetização preliminar).
    */
   chapasReaisMeta?: {
     countMonetizado: number;

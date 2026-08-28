@@ -342,14 +342,15 @@ export function computeFinanceiroUnificado(
     total: opsFinanceiras.precoTotal,
   };
 
-  // Chapas: SSOT oficial = snapshot PRO; senão estimado A1 (N visível, € chapas = 0)
+  // Chapas: oficial = snapshot PRO; estimado = monetização preliminar (N×€/chapa ou Σ sheets fast).
   const chapasReal = computeChapasReal(cutlist, projectName, boxes, {
     projectId: projectName,
   });
   const isOficial = isChapasRealOficial(chapasReal.mode) && hasChapasSheets(chapasReal);
   const hasSheets = hasChapasSheets(chapasReal);
   const derivedChapa = deriveCustoChapaReal({ cutlist });
-  const pricedSheets = isOficial
+  // Oficial e estimado com sheets[]: mesma fórmula Σ (área × €/m²). Sem sheets: N × derivado.
+  const pricedSheets = hasSheets
     ? priceChapasSheetsEur(chapasReal.sheets)
     : { totalEur: 0, sheetCount: 0 };
   const wasteM2 = hasSheets ? chapasReal.totalWasteMm2 / 1_000_000 : 0;
@@ -372,14 +373,16 @@ export function computeFinanceiroUnificado(
     if (!id) continue;
     pesoByPieceId.set(id, pieceWeightKg(item, materials));
   }
+  const nChapasParaCusto =
+    chapasReal.totalSheets > 0 ? chapasReal.totalSheets : 0;
   const avancados = computeCustosAvancadosFinanceiras({
     cutlist,
-    chapasCount: isOficial ? chapasReal.totalSheets : 0,
+    chapasCount: nChapasParaCusto,
     chapasModeReal: isOficial,
     pesoTotalKg,
     pesoByPieceId,
     custoChapaRealDerived: derivedChapa.custoChapaReal,
-    precoChapasSheetsEur: isOficial ? pricedSheets.totalEur : undefined,
+    precoChapasSheetsEur: hasSheets ? pricedSheets.totalEur : undefined,
   });
   if (avancados.suppressPieceMaterial) {
     for (const k of FINANCEIRO_PIECE_MATERIAL_KEYS) {
@@ -394,10 +397,11 @@ export function computeFinanceiroUnificado(
 
   const chapasNestingWarnings: string[] = [];
   if (!isOficial && chapasReal.mode === "estimado") {
+    const eur = avancados.precoChapasReais;
     chapasNestingWarnings.push(
-      hasSheets
-        ? `chapasMode=estimado (N=${chapasReal.totalSheets} fast): chapasReais€=0 — aguarda TCN/PRO oficial`
-        : `chapasMode=estimado (N≈${chapasReal.totalSheets}): chapasReais€=0 — nesting fast sem sheets[]`
+      eur > 0
+        ? `chapasMode=estimado (N=${chapasReal.totalSheets}): Painéis≈${eur} € preliminar — aguarda TCN/PRO oficial`
+        : `chapasMode=estimado (N≈${chapasReal.totalSheets}): chapasReais€=0 — fallback Painéis por peça`
     );
   }
   if (chapasReal.diagnostics.length > 0) {
@@ -514,7 +518,7 @@ export function computeFinanceiroUnificado(
     pesoTotalKg,
     areaTotalMontadoM3,
     chapas: {
-      count: hasSheets ? chapasReal.totalSheets : chapasEstimadas,
+      count: chapasReal.totalSheets > 0 ? chapasReal.totalSheets : chapasEstimadas,
       mode: isOficial ? "oficial_pro" : "estimado",
       diagnostics: chapasReal.diagnostics.length > 0 ? chapasReal.diagnostics : undefined,
     },
@@ -538,10 +542,10 @@ export function computeFinanceiroUnificado(
     custosAvancadosWarnings,
     materialCostMode: avancados.materialCostMode,
     chapasReaisMeta: {
-      countMonetizado: isOficial ? chapasReal.totalSheets : 0,
-      // Média efectiva €/chapa (só meta UI); € oficial = pricedSheets.totalEur via avancados.
+      countMonetizado: avancados.precoChapasReais > 0 ? nChapasParaCusto : 0,
+      // Média efectiva €/chapa (só meta UI); € = pricedSheets.totalEur ou N×derivado via avancados.
       custoChapaDerived:
-        isOficial && pricedSheets.sheetCount > 0
+        hasSheets && pricedSheets.sheetCount > 0 && avancados.precoChapasReais > 0
           ? Math.round((pricedSheets.totalEur / pricedSheets.sheetCount) * 100) / 100
           : derivedChapa.custoChapaReal,
       nestingMode: isOficial ? "oficial_pro" : "estimado",

@@ -33,7 +33,7 @@ describe("CAIXA 1201 — precos de mercado", () => {
     expect(costa).toBeCloseTo(0.6 * 0.7 * 20, 2);
   });
 
-  it("snapshot financeiro dentro das faixas de mercado", () => {
+  it("snapshot financeiro: madeira = Σ sheets estimado (N×€ documentado)", () => {
     const doorH = 700;
     const leftDoor: DoorLayer = {
       id: "d-left",
@@ -90,7 +90,6 @@ describe("CAIXA 1201 — precos de mercado", () => {
     const madeira = (Number(c.paineis) || 0) + (Number(c.chapasReais) || 0);
     const total = Number(snap.totalProjeto) || Number(snap.subtotalComAdmin) || 0;
 
-    // Diagnostico embutido na mensagem de falha
     const diag = JSON.stringify({
       paineis: c.paineis,
       chapasReais: c.chapasReais,
@@ -102,40 +101,51 @@ describe("CAIXA 1201 — precos de mercado", () => {
       operacoes: c.operacoes,
       operacoesAvancadas: c.operacoesAvancadas,
       desperdicio: c.desperdicio,
-      montagem: c.montagem ?? (snap as { adminMontagem?: number }).adminMontagem,
+      montagem: c.montagem,
       adm: c.adm,
       subtotal: snap.subtotal,
       subtotalComAdmin: snap.subtotalComAdmin,
       totalProjeto: snap.totalProjeto,
       materialCostMode: snap.materialCostMode,
+      chapasMode: snap.chapas.mode,
+      chapasCount: snap.chapas.count,
+      countMonetizado: snap.chapasReaisMeta?.countMonetizado,
+      custoChapaDerived: snap.chapasReaisMeta?.custoChapaDerived,
       ops: snap.operacoesBreakdown,
     });
 
-    // Madeira única: chapas reais OU fallback Painéis (nunca ambos; remates/portas = 0).
-    expect(madeira, diag).toBeGreaterThan(40);
+    // --- Madeira preliminar (Estimado) ---
+    // Nesting fast deste módulo → N=2 sheets (19mm carcaça/portas + 10mm costa).
+    // Painéis = Σ (área_chapa × €/m²) via priceChapasSheetsEur = 295.60 €
+    // (equivale a média meta 147.80 €/chapa × 2; sem factor de segurança).
+    // Official TCN/PRO, quando existir, substitui este preliminar com o mesmo motor.
+    expect(snap.materialCostMode, diag).toBe("por_chapas_reais");
+    expect(snap.chapas.mode, diag).toBe("estimado");
+    expect(snap.chapas.count, diag).toBe(2);
+    expect(snap.chapasReaisMeta?.countMonetizado, diag).toBe(2);
+    expect(c.paineis, diag).toBe(0);
+    expect(c.chapasReais, diag).toBeCloseTo(295.6, 2);
+    expect(madeira, diag).toBeCloseTo(295.6, 2);
+    expect(snap.chapasReaisMeta?.custoChapaDerived, diag).toBeCloseTo(147.8, 2);
+
+    // Remates/Portas: madeira nas chapas — linha = 0
     expect(c.remates, diag).toBe(0);
     expect(c.portas, diag).toBe(0);
-    if ((Number(c.chapasReais) || 0) > 0) {
-      expect(c.paineis, diag).toBe(0);
-    }
+
     expect(c.orla, diag).toBeGreaterThan(0.5);
-    // Orla industrial completa (não só portas) — faixa alargada pós-restauro regras oficiais.
     expect(c.orla, diag).toBeLessThan(40);
-    // Ferragens unificadas (catálogo B + fallback A)
     expect(c.ferragens, diag).toBeGreaterThan(7);
     expect(c.ferragens, diag).toBeLessThan(30);
-    // CNC/Drill a 50% das tarifas anteriores (~2–12)
     expect(c.operacoes, diag).toBeGreaterThan(2);
     expect(c.operacoes, diag).toBeLessThan(12);
     expect(c.operacoesAvancadas ?? 0, diag).toBeLessThan(3);
-    // Desperdício activo (SSOT pricing.json / orcamentosDefaultsFromCentral)
     expect(c.desperdicio, diag).toBeGreaterThan(0);
-    // ADM 5% (não 10%)
     expect(c.adm, diag).toBeGreaterThan(0);
     expect(c.adm / Math.max(1e-6, snap.subtotal), diag).toBeCloseTo(0.05, 2);
 
-    // Chapas reais + IVA: total pode superar o antigo teto por-peça (~360).
-    expect(total, diag).toBeGreaterThan(90);
-    expect(total, diag).toBeLessThan(650);
+    // Total documentado deste caso (IVA 23% sobre subtotal materiais):
+    // subtotal≈331.22 + ADM≈16.56 + montagem≈7.34 + IVA≈76.18 ≈ 431.30
+    expect(total, diag).toBeCloseTo(431.3, 0);
+    expect(snap.ivaPct, diag).toBe(23);
   });
 });

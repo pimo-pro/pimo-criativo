@@ -127,14 +127,14 @@ function rateioByWeight(
 }
 
 /**
- * Calcula chapas reais / MO / logística e rateios por peça.
- * `por_chapas_reais` ? suppressPieceMaterial (anti double-count).
+ * Calcula chapas (oficial ou estimado preliminar) / MO / logística e rateios por peça.
+ * `por_chapas_reais` + € de chapas → suppressPieceMaterial (anti double-count).
  */
 export function computeCustosAvancadosFinanceiras(input: {
   cutlist: CutListItemComPreco[];
-  /** Nº chapas reais (computeChapasReal.totalSheets). 0 se estimado. */
+  /** Nº chapas (oficial ou estimado). 0 → sem monetização por chapas. */
   chapasCount: number;
-  /** true se nesting real produziu sheets. */
+  /** true se nesting oficial TCN/PRO (afeta só warnings; € usa N/sheets igualmente). */
   chapasModeReal: boolean;
   pesoTotalKg: number;
   /** Peso por pieceId (mesma base do Unificado). */
@@ -166,8 +166,8 @@ export function computeCustosAvancadosFinanceiras(input: {
   const wantsChapasReais = tarifas.materialCostMode === "por_chapas_reais";
 
   // --- Chapas reais ---
-  // Suppress de madeira por peça só quando há € de chapas reais (anti double-count).
-  // Sem nesting Real / sem €/chapa → fallback Painéis por peça (avisos).
+  // Suppress quando há € de chapas (oficial TCN/PRO OU estimado preliminar).
+  // Sem N e sem €/chapa → fallback Painéis por peça (avisos).
   let precoChapasReais = 0;
   const custoChapa =
     typeof input.custoChapaRealDerived === "number" && Number.isFinite(input.custoChapaRealDerived)
@@ -178,18 +178,30 @@ export function computeCustosAvancadosFinanceiras(input: {
       ? Math.max(0, input.precoChapasSheetsEur)
       : 0;
   if (wantsChapasReais) {
-    if (!input.chapasModeReal || !(chapasCount > 0)) {
+    if (sheetsEur > 0) {
+      // Σ sheets × €/m² — oficial ou nesting fast estimado (sem desconto artificial).
+      precoChapasReais = round2(sheetsEur);
+      if (!input.chapasModeReal) {
+        warnings.push(
+          `estimado preliminar: Σ sheets × €/m² = ${precoChapasReais} € (pode diferir do TCN/PRO)`
+        );
+      }
+    } else if (chapasCount > 0 && custoChapa > 0) {
+      // N × €/chapa derivado — oficial sem sheetsEur, ou estimado por área/N.
+      precoChapasReais = round2(chapasCount * custoChapa);
+      if (!input.chapasModeReal) {
+        warnings.push(
+          `estimado preliminar: N=${chapasCount} × €/chapa=${custoChapa} (pode diferir do TCN/PRO)`
+        );
+      }
+    } else if (!(chapasCount > 0)) {
       warnings.push(
         "materialCostMode=por_chapas_reais sem chapas reais → chapasReais=0; fallback Painéis por peça"
       );
-    } else if (sheetsEur > 0) {
-      precoChapasReais = round2(sheetsEur);
-    } else if (!(custoChapa > 0)) {
+    } else {
       warnings.push(
         "custoChapaReal derivado=0 (sem €/m² ou área chapa) → chapasReais=0; fallback Painéis por peça"
       );
-    } else {
-      precoChapasReais = round2(chapasCount * custoChapa);
     }
   }
   const suppressPieceMaterial = precoChapasReais > 0;

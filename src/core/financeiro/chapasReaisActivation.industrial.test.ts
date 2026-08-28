@@ -183,43 +183,49 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     setIndustrialSettingsReadOverride(null);
   });
 
-  it("cutlist mono: nesting real → Σ sheets exacto + suppress Painéis", () => {
+  it("cutlist mono: nesting → Σ sheets (oficial ou estimado) + suppress Painéis", () => {
     enableChapasReaisMode();
     const cutlist = cutlistNestableMono();
     const chapas = computeChapasReal(cutlist, "5D-mono", [{ id: "box-syn" }]);
     const derived = deriveCustoChapaReal({ cutlist });
     expect(derived.custoChapaReal).toBeGreaterThan(0);
+    const hasSheets = chapas.sheets.length > 0;
     const priced = priceChapasSheetsEur(chapas.sheets);
+    const isOficial = chapas.mode === "oficial_pro" && hasSheets;
 
     const avancados = computeCustosAvancadosFinanceiras({
       cutlist,
-      chapasCount: chapas.mode === "oficial_pro" ? chapas.totalSheets : 0,
-      chapasModeReal: chapas.mode === "oficial_pro" && chapas.sheets.length > 0,
+      chapasCount: chapas.totalSheets > 0 ? chapas.totalSheets : 0,
+      chapasModeReal: isOficial,
       pesoTotalKg: 20,
       custoChapaRealDerived: derived.custoChapaReal,
-      precoChapasSheetsEur:
-        chapas.mode === "oficial_pro" && chapas.sheets.length > 0
-          ? priced.totalEur
-          : undefined,
+      precoChapasSheetsEur: hasSheets ? priced.totalEur : undefined,
     });
 
     expect(FINANCEIRO_PIECE_MATERIAL_KEYS).not.toContain("gavetas");
 
-    if (chapas.mode === "oficial_pro" && chapas.sheets.length > 0) {
+    if (hasSheets || (chapas.totalSheets > 0 && derived.custoChapaReal > 0)) {
       expect(avancados.suppressPieceMaterial).toBe(true);
       expect(chapas.totalSheets).toBeGreaterThan(0);
-      expect(avancados.precoChapasReais).toBe(priced.totalEur);
+      if (hasSheets) {
+        expect(avancados.precoChapasReais).toBe(priced.totalEur);
+      } else {
+        expect(avancados.precoChapasReais).toBe(
+          Math.round(chapas.totalSheets * derived.custoChapaReal * 100) / 100
+        );
+      }
       assertNoMaterialDoubleCount({
         pieceMaterialSum: 0,
         chapasReais: avancados.precoChapasReais,
       });
-      // Informativo: Nº de grupos material+espessura alinhado ao TCN (não unifica engines).
       const groups = groupCutlistItemsByMaterialAndThickness(
         cutlist as CutlistItemForPieces[]
       );
       expect(groups.size).toBe(1);
-      const materialsInSheets = new Set(chapas.sheets.map((s) => s.material));
-      expect(materialsInSheets.size).toBeGreaterThanOrEqual(1);
+      if (hasSheets) {
+        const materialsInSheets = new Set(chapas.sheets.map((s) => s.material));
+        expect(materialsInSheets.size).toBeGreaterThanOrEqual(1);
+      }
     } else {
       expect(avancados.precoChapasReais).toBe(0);
       expect(avancados.suppressPieceMaterial).toBe(false);
@@ -227,7 +233,7 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
     }
   });
 
-  it("cutlist multi-espessura: grupos 19+10 separados; € só com mode=oficial_pro", () => {
+  it("cutlist multi-espessura: grupos 19+10; € com sheets ou N×derivado", () => {
     enableChapasReaisMode();
     const cutlist = cutlistMultiEspessura();
     const groups = groupCutlistItemsByMaterialAndThickness(
@@ -237,32 +243,33 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
 
     const chapas = computeChapasReal(cutlist, "5D-multi", [{ id: "box-syn" }]);
     const derived = deriveCustoChapaReal({ cutlist });
+    const hasSheets = chapas.sheets.length > 0;
     const priced = priceChapasSheetsEur(chapas.sheets);
+    const isOficial = chapas.mode === "oficial_pro" && hasSheets;
     const avancados = computeCustosAvancadosFinanceiras({
       cutlist,
-      chapasCount: chapas.mode === "oficial_pro" ? chapas.totalSheets : 0,
-      chapasModeReal: chapas.mode === "oficial_pro" && chapas.sheets.length > 0,
+      chapasCount: chapas.totalSheets > 0 ? chapas.totalSheets : 0,
+      chapasModeReal: isOficial,
       pesoTotalKg: 25,
       custoChapaRealDerived: derived.custoChapaReal,
-      precoChapasSheetsEur:
-        chapas.mode === "oficial_pro" && chapas.sheets.length > 0
-          ? priced.totalEur
-          : undefined,
+      precoChapasSheetsEur: hasSheets ? priced.totalEur : undefined,
     });
 
-    if (chapas.mode === "oficial_pro") {
+    if (hasSheets || (chapas.totalSheets > 0 && derived.custoChapaReal > 0)) {
       expect(avancados.suppressPieceMaterial).toBe(true);
-      expect(avancados.precoChapasReais).toBe(priced.totalEur);
       expect(avancados.precoChapasReais).toBeGreaterThan(0);
-      expect(chapas.sheets.some((s) => s.espessuraMm === 19)).toBe(true);
-      expect(chapas.sheets.some((s) => s.espessuraMm === 10)).toBe(true);
+      if (hasSheets) {
+        expect(avancados.precoChapasReais).toBe(priced.totalEur);
+        expect(chapas.sheets.some((s) => s.espessuraMm === 19)).toBe(true);
+        expect(chapas.sheets.some((s) => s.espessuraMm === 10)).toBe(true);
+      }
     } else {
       expect(avancados.precoChapasReais).toBe(0);
       expect(avancados.suppressPieceMaterial).toBe(false);
     }
   });
 
-  it("Unificado por_chapas_reais: chapas reais ou fallback Painéis; Remates=0", () => {
+  it("Unificado por_chapas_reais: chapas (oficial ou estimado) ou fallback Painéis; Remates=0", () => {
     enableChapasReaisMode();
     const snap = computeFinanceiroUnificado({
       boxes: [boxMonoMaterial()],
@@ -279,31 +286,37 @@ describe("Fase 5D — activação Chapas Reais (industrial)", () => {
 
     const labels = financeiroCustoRows(snap).map((r) => r.label);
 
-    if (snap.chapas.mode === "oficial_pro" && (snap.chapasReaisMeta?.countMonetizado ?? 0) > 0) {
+    if ((snap.chapasReaisMeta?.countMonetizado ?? 0) > 0) {
       expect(snap.custosEffective.paineis).toBe(0);
       expect(labels).toContain("Painéis");
       const n = snap.chapasReaisMeta!.countMonetizado;
       const avgMeta = snap.chapasReaisMeta!.custoChapaDerived;
       expect(n).toBeGreaterThan(0);
       expect(avgMeta).toBeGreaterThan(0);
-      // € oficial = Σ exacto; meta.avg é só UI (n×avg pode divergir por arredondamento).
       expect(avgMeta).toBe(
         Math.round((snap.custosEffective.chapasReais / n) * 100) / 100
       );
       expect(snap.custosEffective.chapasReais).toBeGreaterThan(0);
-      // UI não lista «Chapas reais» — valor continua em custosEffective.
       expect(labels.some((l) => l.startsWith("Chapas reais"))).toBe(false);
       assertNoMaterialDoubleCount({
         pieceMaterialSum: snap.custosEffective.paineis,
         chapasReais: snap.custosEffective.chapasReais,
       });
+      if (snap.chapas.mode === "estimado") {
+        expect(
+          (snap.custosAvancadosWarnings ?? []).some((w) => w.includes("estimado"))
+        ).toBe(true);
+      }
     } else {
       expect(snap.custosEffective.chapasReais).toBe(0);
-      // Fallback: madeira em Painéis por peça (sem double-count com chapas).
       expect(snap.custosEffective.paineis).toBeGreaterThanOrEqual(0);
       expect(
         (snap.custosAvancadosWarnings ?? []).some(
-          (w) => w.includes("estimado") || w.includes("sem chapas") || w.includes("derivado") || w.includes("fallback")
+          (w) =>
+            w.includes("estimado") ||
+            w.includes("sem chapas") ||
+            w.includes("derivado") ||
+            w.includes("fallback")
         )
       ).toBe(true);
     }

@@ -342,17 +342,19 @@ export function buildFinanceiroPecasRows(
     pesoTotalKg += w;
   }
   const derivedChapa = deriveCustoChapaReal({ cutlist });
-  const pricedSheets = isOficial
+  const pricedSheets = hasSheets
     ? priceChapasSheetsEur(chapasReal.sheets)
     : { totalEur: 0, sheetCount: 0 };
+  const nChapasParaCusto =
+    chapasReal.totalSheets > 0 ? chapasReal.totalSheets : 0;
   const avancados = computeCustosAvancadosFinanceiras({
     cutlist,
-    chapasCount: isOficial ? chapasReal.totalSheets : 0,
+    chapasCount: nChapasParaCusto,
     chapasModeReal: isOficial,
     pesoTotalKg,
     pesoByPieceId,
     custoChapaRealDerived: derivedChapa.custoChapaReal,
-    precoChapasSheetsEur: isOficial ? pricedSheets.totalEur : undefined,
+    precoChapasSheetsEur: hasSheets ? pricedSheets.totalEur : undefined,
   });
   const opsAvancadas = computeOperacoesIndustriaisAvancadas(cutlist);
   const pieceMaterialKeySet = new Set<string>(FINANCEIRO_PIECE_MATERIAL_KEYS);

@@ -247,4 +247,50 @@ describe("computeCustosAvancadosFinanceiras (P3.9 F3c)", () => {
     expect(r.suppressPieceMaterial).toBe(false);
     expect(r.warnings.some((w) => w.includes("sem chapas reais"))).toBe(true);
   });
+
+  it("estimado + N + €/chapa → monetiza + suppress (sem desconto artificial)", () => {
+    const r = computeCustosAvancadosFinanceiras({
+      cutlist: [piece({ id: "a", w: 1000, h: 1000 }), piece({ id: "b", w: 800, h: 600 })],
+      chapasCount: 19,
+      chapasModeReal: false,
+      pesoTotalKg: 120,
+      // MDF branco 31 €/m² × chapa 2800×2070 → 179.68 €/chapa
+      custoChapaRealDerived: 179.68,
+      tarifas: {
+        materialCostMode: "por_chapas_reais",
+        enableMaoDeObra: false,
+        enableLogistica: false,
+      },
+    });
+    // 19 × 179.68 = 3413.92 (valor directo, sem factor 0.9)
+    expect(r.precoChapasReais).toBe(3413.92);
+    expect(r.suppressPieceMaterial).toBe(true);
+    expect(sumMap(r.chapasByPieceId)).toBe(3413.92);
+    expect(r.warnings.some((w) => w.includes("estimado preliminar") && w.includes("N=19"))).toBe(
+      true
+    );
+    assertNoMaterialDoubleCount({
+      pieceMaterialSum: 0,
+      chapasReais: r.precoChapasReais,
+    });
+  });
+
+  it("estimado + precoChapasSheetsEur → Σ sheets tem prioridade sobre N × derivado", () => {
+    const r = computeCustosAvancadosFinanceiras({
+      cutlist: [piece({ id: "a" })],
+      chapasCount: 2,
+      chapasModeReal: false,
+      pesoTotalKg: 10,
+      custoChapaRealDerived: 179.68,
+      precoChapasSheetsEur: 350.5,
+      tarifas: {
+        materialCostMode: "por_chapas_reais",
+        enableMaoDeObra: false,
+        enableLogistica: false,
+      },
+    });
+    expect(r.precoChapasReais).toBe(350.5);
+    expect(r.suppressPieceMaterial).toBe(true);
+    expect(r.warnings.some((w) => w.includes("Σ sheets"))).toBe(true);
+  });
 });
