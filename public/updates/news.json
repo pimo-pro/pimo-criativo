@@ -1,15 +1,225 @@
 {
-  "updatedAt": "2026-08-24T10:07:22.794Z",
+  "updatedAt": "2026-08-28T10:35:26.622Z",
   "news": [
+    {
+      "version": "v6.0828.1135",
+      "title": "fix(financeiro): monetizar Painéis em modo Estimado (por_chapas_reais)",
+      "description": "fix(financeiro): monetizar Painéis em modo Estimado (por_chapas_reais)",
+      "publishedAt": "2026-08-28T10:35:26.111Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "664976b1"
+    },
+    {
+      "version": "v6.0828.1006",
+      "title": "chore: ignorar artefactos temporários de diagnóstico (_tmp_*, auditoria)",
+      "description": "chore: ignorar artefactos temporários de diagnóstico (_tmp_*, auditoria)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-28T09:45:25+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "9513712"
+    },
+    {
+      "version": "v6.0828.0923",
+      "title": "feat: health check dos proxies de email (endpoint dedicado + workflow horário + página admin)",
+      "description": "feat: health check dos proxies de email (endpoint dedicado + workflow horário + página admin)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-28T09:22:08+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "1822d76"
+    },
+    {
+      "version": "v6.0828.0827",
+      "title": "fix: quotes e final-report carregam server-env.local.php (PIMO_INTERNAL_API_SECRET)",
+      "description": "fix: quotes e final-report carregam server-env.local.php (PIMO_INTERNAL_API_SECRET)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-28T08:25:28+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "81157be"
+    },
+    {
+      "version": "v6.0827.2028",
+      "title": "fix(PROJETOS): gate de login + Bearer nas thumbnails (Phase 1 ACL)",
+      "description": "fix(PROJETOS): gate de login + Bearer nas thumbnails (Phase 1 ACL)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T20:27:00+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "744bae9"
+    },
+    {
+      "version": "v6.0827.1925",
+      "title": "fix: proxy PHP para /send-final-report (remove secret do bundle Vite)",
+      "description": "fix: proxy PHP para /send-final-report (remove secret do bundle Vite)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T19:18:12+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "e5d6a18"
+    },
+    {
+      "version": "v6.0827.1729",
+      "title": "feat(relatorio-final): Passo B/F4 — congelar todas as linhas do Financeiro no productionRelease",
+      "description": "feat(relatorio-final): Passo B/F4 — congelar todas as linhas do Financeiro no productionRelease\n\nNo «Gerar arquivo completo», grava custosEffective do Unificado (Gavetas, Orla, Operações, Desperdício, Serragem, Mão de obra, Logística, Ops avançadas, ADM, Montagem, Portes) após toast+yield; custosOrigem sinaliza oficial vs estimado_fallback.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T17:28:51+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "1936591"
+    },
+    {
+      "version": "v6.0827.1645",
+      "title": "fix(financeiro): Passo A — priceChapasSheetsEur SSOT partilhado (ADMIN/peças/Relatório)",
+      "description": "fix(financeiro): Passo A — priceChapasSheetsEur SSOT partilhado (ADMIN/peças/Relatório)\n\nCorrige subconto de materiais múltiplos em Custos ADMIN alinhando ao Relatório Final; média €/chapa fica só em meta UI.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T16:45:05+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "9cf1612"
+    },
+    {
+      "version": "v6.0827.1538",
+      "title": "fix(api): preservar productionRelease no PHP que o deploy publica",
+      "description": "fix(api): preservar productionRelease no PHP que o deploy publica\n\nO pipeline copia hostinger/api/projects (nao public_html).\nEspelho do merge defensivo ja aplicado a projectReport.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T15:38:16+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "e2bb292"
+    },
+    {
+      "version": "v6.0827.1503",
+      "title": "fix(relatorio-final): persistir productionRelease (P1+P2+P3)",
+      "description": "fix(relatorio-final): persistir productionRelease (P1+P2+P3)\n\nP1: PHP preserva settings.productionRelease como projectReport.\nP2: espera curta (<=3s) antes do redirect + outbox/retry.\nP3: matching de chaves slug <-> pimo-id no outbox/leitura.\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T15:03:13+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "072854d"
+    },
+    {
+      "version": "v6.0827.1410",
+      "title": "feat(relatorio-final): SSOT productionRelease F0+F1+F2 (ultima geracao TCN)",
+      "description": "feat(relatorio-final): SSOT productionRelease F0+F1+F2 (ultima geracao TCN)\n\nF0: persiste settings.productionRelease no fim de Gerar arquivo completo\ncom fire-and-forget + outbox (ZIP/redirect nunca esperam pela rede).\nF1: Relatorio deixa de recalcular Unificado live; le o release (ou vazio)\ncom aviso de total parcial (so Paineis+Ferragens ate F4).\nF2: accordion Paineis/Ferragens e sugestoes TAMPO a partir do release,\nsem computeChapasReal nem remates live.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T14:09:42+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "847e659"
+    },
+    {
+      "version": "v6.0827.1038",
+      "title": "feat(relatorio-final): Fases 0-4 provenance + suite Fase 5 (flag default false)",
+      "description": "feat(relatorio-final): Fases 0-4 provenance + suite Fase 5 (flag default false)\n\nSSOT+manual no Relatorio: provenance, R1 sync, matching estavel Paineis, lineOverrides conscientes e sugestoes TAMPO. Suite Fase 5 incluida. reportFinanceiroProvenance permanece false ate override localStorage.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T10:38:04+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "fd9aa79"
+    },
+    {
+      "version": "v6.0827.0852",
+      "title": "ci: backup FTP — nao falhar no ls|head (broken pipe)",
+      "description": "ci: backup FTP — nao falhar no ls|head (broken pipe)\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-27T08:50:39+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "4382823"
+    },
+    {
+      "version": "v6.0826.2226",
+      "title": "ci: backup FTP nao falhar se users.json ausente",
+      "description": "ci: backup FTP nao falhar se users.json ausente\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T22:23:54+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "14b4d57"
+    },
+    {
+      "version": "v6.0826.1626",
+      "title": "feat(auth): separar accountCategory de role no registo",
+      "description": "feat(auth): separar accountCategory de role no registo\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T16:19:00+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "44940fd"
+    },
+    {
+      "version": "v6.0826.1656",
+      "title": "feat(auth): separar accountCategory de role no registo",
+      "description": "feat(auth): separar accountCategory de role no registo\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T16:19:00+01:00",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "44940fd"
+    },
+    {
+      "version": "v6.0826.1533",
+      "title": "fix(auth): carregar PIMO_JWT_SECRET de env server-only fora da webroot",
+      "description": "fix(auth): carregar PIMO_JWT_SECRET de env server-only fora da webroot\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T15:32:13+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "8ea4b82"
+    },
+    {
+      "version": "v6.0826.1449",
+      "title": "fix(auth): adicionar rewrite em falta para auth/register",
+      "description": "fix(auth): adicionar rewrite em falta para auth/register\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T14:47:33+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "b14f795"
+    },
+    {
+      "version": "v6.0826.1224",
+      "title": "fix(lint): prefixar args não usados em tipos chapas/financeiro",
+      "description": "fix(lint): prefixar args não usados em tipos chapas/financeiro\n\nLimpeza no-unused-vars sem alterar lógica de contagem nem dependency arrays.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T12:04:00+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "9082645"
+    },
+    {
+      "version": "v6.0826.1240",
+      "title": "fix(lint): prefixar args não usados em tipos chapas/financeiro",
+      "description": "fix(lint): prefixar args não usados em tipos chapas/financeiro\n\nLimpeza no-unused-vars sem alterar lógica de contagem nem dependency arrays.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-26T12:04:00+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "9082645"
+    },
+    {
+      "version": "v6.0825.1155",
+      "title": "fix(build): prefixar boxName nao usado em a1CutlistAdapter (TS6133)",
+      "description": "fix(build): prefixar boxName nao usado em a1CutlistAdapter (TS6133)\n\nParametro ficou orfao apos Passo 3.6a (naming); bloqueava tsc no CI de deploy.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-08-25T11:55:39+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "7404c89"
+    },
     {
       "version": "v6.0824.1107",
       "title": "chore: remover residual test_output_v1.tcn",
       "description": "chore: remover residual test_output_v1.tcn",
-      "publishedAt": "2026-08-24T10:07:22.625Z",
+      "publishedAt": "2026-08-24T11:09:21+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "25e4b5fd"
+      "commit": "b9d56a3"
     },
     {
       "version": "v6.0824.1042",
