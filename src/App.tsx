@@ -45,6 +45,7 @@ import ManageRolesPage from "./pages/admin/ManageRolesPage";
 import ManagePermissionsPage from "./pages/admin/ManagePermissionsPage";
 import GlobalSettingsAdminPage from "./pages/admin/GlobalSettingsAdminPage";
 import DeployInfoPage from "./pages/admin/DeployInfoPage";
+import EmailStatusPage from "./pages/admin/EmailStatusPage";
 import { canAccessAdminPanel, canOpenProjectsShowroom, hasFullAccess } from "./auth/rbac";
 import { useAuth } from "./auth/useAuth";
 import Card from "./components/ui/Card";
@@ -561,6 +562,14 @@ export default function App() {
               element={
                 <PermissionRoute check={canAccessAdminPanel}>
                   <DeployInfoPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="/admin/system/email-status"
+              element={
+                <PermissionRoute check={hasFullAccess}>
+                  <EmailStatusPage />
                 </PermissionRoute>
               }
             />

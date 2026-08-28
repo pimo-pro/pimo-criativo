@@ -1,0 +1,74 @@
+name: Email Health Check
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: email-health-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  email-health:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://pimo.pro
+      PIMO_EMAIL_HEALTH_SECRET: ${{ secrets.PIMO_EMAIL_HEALTH_SECRET }}
+    steps:
+      - name: L1 — GET /api/quotes (esperado 405 JSON)
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/quotes-body.json -w "%{http_code}" \
+            "${BASE_URL}/api/quotes/index.php")
+          echo "HTTP $code"
+          cat /tmp/quotes-body.json
+          echo
+          test "$code" = "405"
+          python3 -c "import json; d=json.load(open('/tmp/quotes-body.json')); assert d.get('success') is False; assert 'error' in d"
+
+      - name: L1 — GET /api/final-report (esperado 405 JSON)
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/fr-body.json -w "%{http_code}" \
+            "${BASE_URL}/api/final-report/index.php")
+          echo "HTTP $code"
+          cat /tmp/fr-body.json
+          echo
+          test "$code" = "405"
+          python3 -c "import json; d=json.load(open('/tmp/fr-body.json')); assert d.get('success') is False; assert 'error' in d"
+
+      - name: L2 — GET /api/email-health (secret CI)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${PIMO_EMAIL_HEALTH_SECRET:-}" ]; then
+            echo "Secret PIMO_EMAIL_HEALTH_SECRET em falta no repositório GitHub."
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/health-body.json -w "%{http_code}" \
+            -H "X-Pimo-Email-Health-Secret: ${PIMO_EMAIL_HEALTH_SECRET}" \
+            "${BASE_URL}/api/email-health/index.php")
+          echo "HTTP $code"
+          cat /tmp/health-body.json
+          echo
+          if [ "$code" != "200" ]; then
+            echo "Health check falhou (esperado HTTP 200)."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open("/tmp/health-body.json"))
+          if d.get("ok") is not True:
+              print("ok != true", d)
+              sys.exit(1)
+          if d.get("internalSecretConfigured") is not True:
+              print("internalSecretConfigured != true", d)
+              sys.exit(1)
+          print("email-health OK")
+          PY

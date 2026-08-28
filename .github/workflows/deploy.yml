@@ -105,6 +105,7 @@ jobs:
           EOF
           # Phase 0: NÃO injectar PIMO_INTERNAL_API_SECRET / VITE_INTERNAL_API_SECRET no bundle.
           # Configurar PIMO_INTERNAL_API_SECRET no Hostinger (PHP) para /api/quotes e /api/final-report.
+          # Health check horário: PIMO_EMAIL_HEALTH_SECRET no Hostinger + GitHub Secret (workflow email-health-check).
 
       - name: Build
         run: npm run build

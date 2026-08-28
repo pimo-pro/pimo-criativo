@@ -25,6 +25,7 @@ import GestaoMateriaisPage from "./admin/materials/GestaoMateriaisPage";
 import FinanceiroAdminSettings from "./admin/FinanceiroAdminSettings";
 import OrcamentosAdminSettings from "./admin/OrcamentosAdminSettings";
 import DeployInfoPage from "./admin/DeployInfoPage";
+import EmailStatusPage from "./admin/EmailStatusPage";
 import { useAuth } from "../auth/useAuth";
 import { hasFullAccess } from "../auth/rbac";
 
@@ -56,6 +57,7 @@ type AdminTab =
   | "Orçamentos"
   | "Financeiro (ADM / Montagem / Portes)"
   | "Deploy Info"
+  | "Estado do email"
   | "icons";
 
 type AdminMenuEntry =
@@ -110,6 +112,7 @@ const adminMenu: AdminMenuEntry[] = [
   },
   { type: "item", id: "Orçamentos", label: "Orçamentos", adminOnly: true },
   { type: "item", id: "Deploy Info", label: "Deploy Info", adminOnly: true },
+  { type: "item", id: "Estado do email", label: "Estado do email", adminOnly: true },
   { type: "item", id: "icons", label: "Biblioteca de Ícones" },
 ];
 
@@ -139,6 +142,7 @@ const menuIconByTab: Partial<Record<AdminTab, Parameters<typeof Icon>[0]["name"]
   "Temas (Aparência)": "adminTools",
   Orçamentos: "adminTools",
   "Deploy Info": "adminLab",
+  "Estado do email": "adminLab",
   icons: "projects",
 };
 
@@ -326,6 +330,14 @@ export default function AdminPanel() {
           ) : active === "Deploy Info" ? (
             canSeeAdminOnlyMenus ? (
               <DeployInfoPage />
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                Acesso restrito a administradores.
+              </div>
+            )
+          ) : active === "Estado do email" ? (
+            canSeeAdminOnlyMenus ? (
+              <EmailStatusPage />
             ) : (
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                 Acesso restrito a administradores.

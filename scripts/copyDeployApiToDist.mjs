@@ -72,6 +72,7 @@ const srcUserSettings = path.join(root, "api", "user-settings", "index.php");
 const srcGlobalConfig = path.join(root, "api", "global-config", "index.php");
 const srcQuotes = path.join(root, "api", "quotes", "index.php");
 const srcFinalReport = path.join(root, "api", "final-report", "index.php");
+const srcEmailHealth = path.join(root, "api", "email-health", "index.php");
 
 if (!fs.existsSync(srcAuth) || !fs.existsSync(srcUsers)) {
   console.warn("[copyDeployApiToDist] api/auth ou api/users em falta — nada a copiar.");
@@ -96,6 +97,9 @@ if (fs.existsSync(srcQuotes)) {
 }
 if (fs.existsSync(srcFinalReport)) {
   copyFile(srcFinalReport, path.join(dist, "api", "_impl", "final-report", "index.php"));
+}
+if (fs.existsSync(srcEmailHealth)) {
+  copyFile(srcEmailHealth, path.join(dist, "api", "_impl", "email-health", "index.php"));
 }
 
 const gitkeep = path.join(root, "api", "data", ".gitkeep");
@@ -137,6 +141,11 @@ define('PIMO_FINAL_REPORT_ROUTER', true);
 require_once __DIR__ . '/../_impl/final-report/index.php';
 `;
 
+const emailHealthStub = `<?php
+define('PIMO_EMAIL_HEALTH_ROUTER', true);
+require_once __DIR__ . '/../_impl/email-health/index.php';
+`;
+
 ensureDir(path.join(dist, "api", "auth"));
 ensureDir(path.join(dist, "api", "users"));
 fs.writeFileSync(path.join(dist, "api", "auth", "index.php"), authStub, "utf8");
@@ -157,12 +166,17 @@ if (fs.existsSync(srcFinalReport)) {
   ensureDir(path.join(dist, "api", "final-report"));
   fs.writeFileSync(path.join(dist, "api", "final-report", "index.php"), finalReportStub, "utf8");
 }
+if (fs.existsSync(srcEmailHealth)) {
+  ensureDir(path.join(dist, "api", "email-health"));
+  fs.writeFileSync(path.join(dist, "api", "email-health", "index.php"), emailHealthStub, "utf8");
+}
 
 const extras = [];
 if (fs.existsSync(srcUserSettings)) extras.push("user-settings");
 if (fs.existsSync(srcGlobalConfig)) extras.push("global-config");
 if (fs.existsSync(srcQuotes)) extras.push("quotes");
 if (fs.existsSync(srcFinalReport)) extras.push("final-report");
+if (fs.existsSync(srcEmailHealth)) extras.push("email-health");
 const projectsCopied = copyProjectsApiToDist();
 if (projectsCopied) extras.push("projects");
 
