@@ -84,6 +84,8 @@ copyFile(srcUsers, path.join(dist, "api", "_impl", "users", "index.php"));
 
 const srcProjectShares = path.join(root, "api", "project-shares", "index.php");
 const srcProjectSharesStore = path.join(root, "api", "authz", "projectSharesStore.php");
+const srcInviteCodes = path.join(root, "api", "invite-codes", "index.php");
+const srcInviteCodesStore = path.join(root, "api", "authz", "inviteCodesStore.php");
 const srcAuthz = path.join(root, "api", "authz", "resourceAccess.php");
 const srcMailClient = path.join(root, "api", "mail", "mailClient.php");
 if (fs.existsSync(srcAuthz)) {
@@ -92,11 +94,17 @@ if (fs.existsSync(srcAuthz)) {
 if (fs.existsSync(srcProjectSharesStore)) {
   copyFile(srcProjectSharesStore, path.join(dist, "api", "_impl", "authz", "projectSharesStore.php"));
 }
+if (fs.existsSync(srcInviteCodesStore)) {
+  copyFile(srcInviteCodesStore, path.join(dist, "api", "_impl", "authz", "inviteCodesStore.php"));
+}
 if (fs.existsSync(srcMailClient)) {
   copyFile(srcMailClient, path.join(dist, "api", "_impl", "mail", "mailClient.php"));
 }
 if (fs.existsSync(srcProjectShares)) {
   copyFile(srcProjectShares, path.join(dist, "api", "_impl", "project-shares", "index.php"));
+}
+if (fs.existsSync(srcInviteCodes)) {
+  copyFile(srcInviteCodes, path.join(dist, "api", "_impl", "invite-codes", "index.php"));
 }
 if (fs.existsSync(srcUserSettings)) {
   copyFile(srcUserSettings, path.join(dist, "api", "_impl", "user-settings", "index.php"));
@@ -163,6 +171,11 @@ define('PIMO_PROJECT_SHARES_ROUTER', true);
 require_once __DIR__ . '/../_impl/project-shares/index.php';
 `;
 
+const inviteCodesStub = `<?php
+define('PIMO_INVITE_CODES_ROUTER', true);
+require_once __DIR__ . '/../_impl/invite-codes/index.php';
+`;
+
 ensureDir(path.join(dist, "api", "auth"));
 ensureDir(path.join(dist, "api", "users"));
 fs.writeFileSync(path.join(dist, "api", "auth", "index.php"), authStub, "utf8");
@@ -191,6 +204,10 @@ if (fs.existsSync(srcProjectShares)) {
   ensureDir(path.join(dist, "api", "project-shares"));
   fs.writeFileSync(path.join(dist, "api", "project-shares", "index.php"), projectSharesStub, "utf8");
 }
+if (fs.existsSync(srcInviteCodes)) {
+  ensureDir(path.join(dist, "api", "invite-codes"));
+  fs.writeFileSync(path.join(dist, "api", "invite-codes", "index.php"), inviteCodesStub, "utf8");
+}
 
 const extras = [];
 if (fs.existsSync(srcUserSettings)) extras.push("user-settings");
@@ -199,6 +216,7 @@ if (fs.existsSync(srcQuotes)) extras.push("quotes");
 if (fs.existsSync(srcFinalReport)) extras.push("final-report");
 if (fs.existsSync(srcEmailHealth)) extras.push("email-health");
 if (fs.existsSync(srcProjectShares)) extras.push("project-shares");
+if (fs.existsSync(srcInviteCodes)) extras.push("invite-codes");
 const projectsCopied = copyProjectsApiToDist();
 if (projectsCopied) extras.push("projects");
 

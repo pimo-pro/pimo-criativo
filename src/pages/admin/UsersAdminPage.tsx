@@ -9,6 +9,7 @@ import {
 import UserApproveModal from "../../components/admin/users/UserApproveModal";
 import UserDeleteConfirm from "../../components/admin/users/UserDeleteConfirm";
 import UserFormModal from "../../components/admin/users/UserFormModal";
+import InviteCodesAdminSection from "../../components/admin/users/InviteCodesAdminSection";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
@@ -113,7 +114,7 @@ export default function UsersAdminPage() {
     <PageContainer>
       <PageHeader
         title="Gestão de utilizadores"
-        subtitle="Aprovação manual de contas, CRUD e partilha de projectos (sem e-mails nesta fase)."
+        subtitle="Aprovação manual de contas, códigos de convite, CRUD e partilha de projectos."
       />
 
       <Card>
@@ -167,6 +168,11 @@ export default function UsersAdminPage() {
             </div>
           )}
         </Section>
+
+        <InviteCodesAdminSection
+          onError={(msg) => showToast(msg, "error")}
+          onSuccess={(msg) => showToast(msg, "info")}
+        />
 
         <Section title="Filtro">
           <Input

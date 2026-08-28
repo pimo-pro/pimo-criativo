@@ -5,14 +5,13 @@ import {
   isAccountPending,
   isEmailVerifiedForLogin,
   resolveEffectiveRole,
+  userMustConfirmEmail,
   userRequiresEmailVerification,
 } from "./accountEffectiveRole";
 
 describe("accountEffectiveRole", () => {
   it("pending usa visitor como role efectivo", () => {
-    expect(
-      resolveEffectiveRole({ role: "pro", accountStatus: "pending" })
-    ).toBe("visitor");
+    expect(resolveEffectiveRole({ role: "pro", accountStatus: "pending" })).toBe("visitor");
   });
 
   it("approved mantém role real", () => {
@@ -27,11 +26,57 @@ describe("accountEffectiveRole", () => {
     expect(isAccountApproved({})).toBe(true);
   });
 
-  it("verificação de email só para pending", () => {
-    expect(userRequiresEmailVerification({ accountStatus: "pending" })).toBe(true);
-    expect(userRequiresEmailVerification({ accountStatus: "approved" })).toBe(false);
-    expect(isEmailVerifiedForLogin({ accountStatus: "approved" })).toBe(true);
-    expect(isEmailVerifiedForLogin({ accountStatus: "pending", emailVerified: false })).toBe(false);
-    expect(isEmailVerifiedForLogin({ accountStatus: "pending", emailVerified: true })).toBe(true);
+  it("visitor orgânico não exige confirmação de email", () => {
+    expect(userMustConfirmEmail({ accountCategory: "visitor" })).toBe(false);
+    expect(userRequiresEmailVerification({ accountCategory: "visitor", emailVerified: false })).toBe(
+      false
+    );
+    expect(isEmailVerifiedForLogin({ accountCategory: "visitor", emailVerified: false })).toBe(true);
+  });
+
+  it("pending / não-visitor exigem email até verificar", () => {
+    expect(userMustConfirmEmail({ accountStatus: "pending", accountCategory: "fabricante" })).toBe(
+      true
+    );
+    expect(
+      userRequiresEmailVerification({
+        accountStatus: "pending",
+        accountCategory: "fabricante",
+        emailVerified: false,
+      })
+    ).toBe(true);
+    expect(
+      isEmailVerifiedForLogin({
+        accountStatus: "pending",
+        accountCategory: "fabricante",
+        emailVerified: true,
+      })
+    ).toBe(true);
+  });
+
+  it("approved via convite exige email até verificar", () => {
+    expect(
+      userMustConfirmEmail({
+        accountStatus: "approved",
+        accountCategory: "visitor",
+        invitedViaCodeId: "abc",
+      })
+    ).toBe(true);
+    expect(
+      userRequiresEmailVerification({
+        accountStatus: "approved",
+        accountCategory: "visitor",
+        invitedViaCodeId: "abc",
+        emailVerified: false,
+      })
+    ).toBe(true);
+    expect(
+      isEmailVerifiedForLogin({
+        accountStatus: "approved",
+        invitedViaCodeId: "abc",
+        accountCategory: "fabricante",
+        emailVerified: true,
+      })
+    ).toBe(true);
   });
 });

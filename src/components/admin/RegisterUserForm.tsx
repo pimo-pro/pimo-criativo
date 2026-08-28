@@ -5,7 +5,6 @@ import FormGroup from "../ui/FormGroup";
 import Input from "../ui/Input";
 import Section from "../ui/Section";
 import "../ui/ui.css";
-import { resolveInviteCode, type InviteCode } from "./inviteCodesMock";
 
 /** Categoria de negócio (independente da role RBAC). */
 export type AccountCategory =
@@ -33,12 +32,6 @@ export function mapAccountCategoryToPublicRole(
   return category === "visitor" ? "visitor" : "pro";
 }
 
-const INVITE_CLIENT_TYPE_TO_CATEGORY: Record<string, AccountCategory> = {
-  Visitante: "visitor",
-  Designer: "designer_arquiteto",
-  Fábrica: "fabricante",
-};
-
 export type RegisterFormValues = {
   nome: string;
   sobrenome: string;
@@ -60,7 +53,6 @@ export type RegisterFormValues = {
 type Props = {
   submitLabel: string;
   onSubmit: (_values: RegisterFormValues) => Promise<void> | void;
-  inviteCodes: InviteCode[];
   initialValues?: Partial<RegisterFormValues>;
   compact?: boolean;
 };
@@ -213,7 +205,6 @@ function prepareAddressAutocomplete(_value: string): void {
 export default function RegisterUserForm({
   submitLabel,
   onSubmit,
-  inviteCodes,
   initialValues,
   compact = false,
 }: Props) {
@@ -229,7 +220,6 @@ export default function RegisterUserForm({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const usernameEdited = Boolean(initialValues?.username);
-  const [invitePermissions, setInvitePermissions] = useState<string[]>([]);
 
   const fiscalLabel = useMemo(() => getFiscalLabel(values.pais), [values.pais]);
 
@@ -262,39 +252,6 @@ export default function RegisterUserForm({
         telefone: `${prefix} ${sanitizedPhone}`.trim(),
       };
     });
-  };
-
-  const handleInviteCodeCheck = () => {
-    if (!values.codigoConvite.trim()) {
-      setStatusMessage(null);
-      setInvitePermissions([]);
-      return;
-    }
-
-    const result = resolveInviteCode(values.codigoConvite, inviteCodes);
-    if (!result.valid || !result.inviteCode) {
-      setStatusMessage(result.message ?? "Código de convite inválido");
-      setInvitePermissions([]);
-      return;
-    }
-
-    setValues((current) => ({
-      ...current,
-      accountCategory:
-        (result.inviteCode?.clientType
-          ? INVITE_CLIENT_TYPE_TO_CATEGORY[result.inviteCode.clientType]
-          : undefined) ?? current.accountCategory,
-    }));
-    setInvitePermissions(result.inviteCode.permissions);
-    setStatusMessage("Código de convite válido. Preferências aplicadas.");
-  };
-
-  const handleInviteCodeBlur = () => {
-    if (values.codigoConvite.trim()) {
-      handleInviteCodeCheck();
-      return;
-    }
-    setInvitePermissions([]);
   };
 
   const validate = (): Record<string, string> => {
@@ -494,20 +451,11 @@ export default function RegisterUserForm({
             label="Código de convite"
             value={values.codigoConvite}
             onChange={(event) => updateValue("codigoConvite", event.target.value)}
-            onBlur={handleInviteCodeBlur}
+            placeholder="Opcional — validado no servidor"
           />
         </div>
 
         {errors.captchaOk ? <span className="ui-input__error">{errors.captchaOk}</span> : null}
-        {invitePermissions.length > 0 ? (
-          <div className="ui-inline-list">
-            {invitePermissions.map((permission) => (
-              <span key={permission} className="ui-badge">
-                {permission}
-              </span>
-            ))}
-          </div>
-        ) : null}
 
         <input
           type="text"
@@ -520,7 +468,7 @@ export default function RegisterUserForm({
         />
 
         <div className="ui-register-submit">
-          {statusMessage ? <p className="ui-text-muted">{statusMessage}</p> : null}
+          {statusMessage ? <p className="ui-text-danger">{statusMessage}</p> : null}
           <Button type="submit" variant="primary" disabled={submitting}>
             {submitting ? "Enviando..." : submitLabel}
           </Button>

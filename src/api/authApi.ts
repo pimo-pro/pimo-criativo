@@ -72,23 +72,31 @@ export type RegisterAccountPayload = {
   password: string;
   role: PublicRegisterRole;
   accountCategory: "visitor" | "designer_arquiteto" | "lojista" | "fabricante";
+  inviteCode?: string;
 };
 
 export type RegisterAccountResponse = {
   status: "ok";
   user: AuthUserPayload;
   requiresEmailVerification?: boolean;
+  inviteCodeApplied?: boolean;
+  inviteCodeWarning?: string | null;
 };
 
 export async function createAccountRemote(payload: RegisterAccountPayload): Promise<RegisterAccountResponse> {
   try {
-    const { data } = await apiClient.post<RegisterAccountResponse>("/auth/register", {
+    const body: Record<string, string> = {
       username: payload.username.trim(),
       email: payload.email.trim().toLowerCase(),
       password: payload.password,
       role: payload.role,
       accountCategory: payload.accountCategory,
-    });
+    };
+    const invite = (payload.inviteCode ?? "").trim();
+    if (invite) {
+      body.inviteCode = invite;
+    }
+    const { data } = await apiClient.post<RegisterAccountResponse>("/auth/register", body);
     if (!data || data.status !== "ok" || !data.user?.id) {
       throw new Error("Resposta inválida do servidor");
     }
@@ -96,6 +104,8 @@ export async function createAccountRemote(payload: RegisterAccountPayload): Prom
       status: "ok",
       user: data.user,
       requiresEmailVerification: data.requiresEmailVerification === true,
+      inviteCodeApplied: data.inviteCodeApplied === true,
+      inviteCodeWarning: data.inviteCodeWarning ?? null,
     };
   } catch (error) {
     throw new Error(parseApiError(error));

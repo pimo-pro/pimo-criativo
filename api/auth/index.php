@@ -258,6 +258,8 @@ function pimo_user_public(array $user): array
         'createdAt' => (string) ($user['createdAt'] ?? ''),
         'approvedAt' => isset($user['approvedAt']) ? (string) $user['approvedAt'] : null,
         'approvedBy' => isset($user['approvedBy']) ? (string) $user['approvedBy'] : null,
+        'invitedViaCodeId' => isset($user['invitedViaCodeId']) ? (string) $user['invitedViaCodeId'] : null,
+        'invitedViaCode' => isset($user['invitedViaCode']) ? (string) $user['invitedViaCode'] : null,
         'emailVerified' => pimo_user_email_verified($user),
         'requiresEmailVerification' => pimo_user_requires_email_verification($user),
     ];
@@ -280,15 +282,30 @@ function pimo_auth_load_mail_client(): void
     }
 }
 
-/** Verificação de email só bloqueia contas pending (não-visitor). */
+/**
+ * Contas que devem confirmar email antes do login.
+ * Visitor orgânico (sem convite): não exige.
+ * Pending, não-visitor, ou approved via convite: exige até emailVerified.
+ */
+function pimo_user_must_confirm_email(array $user): bool
+{
+    $category = strtolower(trim((string) ($user['accountCategory'] ?? '')));
+    $invited = trim((string) ($user['invitedViaCodeId'] ?? '')) !== '';
+    if ($category === 'visitor' && !$invited) {
+        return false;
+    }
+    return true;
+}
+
 function pimo_user_requires_email_verification(array $user): bool
 {
-    return pimo_user_account_status($user) === 'pending';
+    return pimo_user_must_confirm_email($user)
+        && ($user['emailVerified'] ?? false) !== true;
 }
 
 function pimo_user_email_verified(array $user): bool
 {
-    if (!pimo_user_requires_email_verification($user)) {
+    if (!pimo_user_must_confirm_email($user)) {
         return true;
     }
     return ($user['emailVerified'] ?? false) === true;
@@ -477,6 +494,26 @@ function pimo_auth_handle_register(): void
         return;
     }
     $isVisitorCategory = $accountCategory === 'visitor';
+
+    $inviteStorePath = __DIR__ . '/../authz/inviteCodesStore.php';
+    if (is_file($inviteStorePath)) {
+        require_once $inviteStorePath;
+    }
+    $inviteRaw = trim((string) ($body['inviteCode'] ?? ''));
+    $inviteResult = ['applied' => false, 'invite' => null, 'warning' => null];
+    if ($inviteRaw !== '' && function_exists('pimo_invite_try_consume')) {
+        $inviteResult = pimo_invite_try_consume($inviteRaw);
+    }
+    $inviteApplied = ($inviteResult['applied'] ?? false) === true;
+    $invite = $inviteApplied && is_array($inviteResult['invite'] ?? null) ? $inviteResult['invite'] : null;
+    $inviteRole = $inviteApplied ? strtolower(trim((string) ($invite['role'] ?? ''))) : '';
+    if ($inviteApplied && !in_array($inviteRole, PIMO_INVITE_ROLES, true)) {
+        $inviteApplied = false;
+        $invite = null;
+        $inviteResult['applied'] = false;
+        $inviteResult['warning'] = PIMO_INVITE_INVALID_MESSAGE;
+    }
+
     $id = bin2hex(random_bytes(16));
     $newUser = [
         'id' => $id,
@@ -489,7 +526,18 @@ function pimo_auth_handle_register(): void
         'requestedRole' => $isVisitorCategory ? null : 'pro',
         'createdAt' => gmdate('c'),
     ];
-    if ($isVisitorCategory) {
+
+    if ($inviteApplied && $invite !== null) {
+        $newUser['role'] = $inviteRole;
+        $newUser['accountStatus'] = 'approved';
+        $newUser['requestedRole'] = $inviteRole;
+        $newUser['approvedAt'] = gmdate('c');
+        $newUser['approvedBy'] = 'invite:' . (string) ($invite['id'] ?? '');
+        $newUser['invitedViaCodeId'] = (string) ($invite['id'] ?? '');
+        $newUser['invitedViaCode'] = (string) ($invite['code'] ?? '');
+        $newUser['emailVerified'] = false;
+        $newUser['emailVerificationToken'] = bin2hex(random_bytes(32));
+    } elseif ($isVisitorCategory) {
         $newUser['approvedAt'] = gmdate('c');
         $newUser['emailVerified'] = true;
     } else {
@@ -509,15 +557,20 @@ function pimo_auth_handle_register(): void
     }
 
     pimo_auth_load_mail_client();
-    if (!$isVisitorCategory) {
+    $needsVerify = pimo_user_must_confirm_email($newUser) && ($newUser['emailVerified'] ?? false) !== true;
+    if ($needsVerify) {
         $tokenForMail = (string) ($newUser['emailVerificationToken'] ?? '');
         pimo_mail_send_account_verification($newUser, $tokenForMail);
+    }
+    if (!$inviteApplied && !$isVisitorCategory) {
         pimo_mail_send_admin_pending_account($newUser);
     }
 
     pimo_json_response([
         'status' => 'ok',
-        'requiresEmailVerification' => !$isVisitorCategory,
+        'requiresEmailVerification' => $needsVerify,
+        'inviteCodeApplied' => $inviteApplied,
+        'inviteCodeWarning' => $inviteResult['warning'] ?? null,
         'user' => pimo_user_public($newUser),
     ], 201);
 }

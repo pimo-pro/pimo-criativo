@@ -6,15 +6,16 @@ import RegisterUserForm, {
   mapAccountCategoryToPublicRole,
   type RegisterFormValues,
 } from "../components/admin/RegisterUserForm";
-import { initialInviteCodes } from "../components/admin/inviteCodesMock";
 import Card from "../components/ui/Card";
 import PageHeader from "../components/ui/PageHeader";
 import PageContainer from "../components/ui/PageContainer";
+import { useToast } from "../context/ToastContext";
 import "../components/ui/ui.css";
 
 export default function RegisterPage() {
   const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   if (isAuthenticated()) {
     return <Navigate to="/dashboard" replace />;
@@ -27,12 +28,21 @@ export default function RegisterPage() {
       password: values.senha,
       role: mapAccountCategoryToPublicRole(values.accountCategory),
       accountCategory: values.accountCategory,
+      inviteCode: values.codigoConvite.trim() || undefined,
     });
+
+    if (result.inviteCodeWarning) {
+      showToast(result.inviteCodeWarning, "warning");
+    }
 
     if (result.requiresEmailVerification) {
       navigate("/register/check-email", {
         replace: true,
-        state: { email: values.email.trim() },
+        state: {
+          email: values.email.trim(),
+          inviteCodeApplied: result.inviteCodeApplied === true,
+          inviteCodeWarning: result.inviteCodeWarning ?? null,
+        },
       });
       return;
     }
@@ -55,14 +65,10 @@ export default function RegisterPage() {
 
         <PageHeader
           title="Registrar"
-          subtitle="Visitor: acesso imediato. Designer/Lojista/Fabricante: confirmação de email e aprovação manual."
+          subtitle="Visitor: acesso imediato. Designer/Lojista/Fabricante: confirmação de email e aprovação manual — ou código de convite para plano imediato após confirmar o email."
         />
 
-        <RegisterUserForm
-          submitLabel="Criar conta"
-          onSubmit={handleSubmit}
-          inviteCodes={initialInviteCodes}
-        />
+        <RegisterUserForm submitLabel="Criar conta" onSubmit={handleSubmit} />
       </Card>
     </PageContainer>
   );
