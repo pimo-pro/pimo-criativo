@@ -1,0 +1,85 @@
+# One-shot: extrai só o token de verificação de um email (sem passwordHash).
+# Não altera users.json. workflow_dispatch apenas.
+
+name: Extract Email Verification Token
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_email:
+        description: "Email exacto da conta de teste"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Extract token
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          TARGET_EMAIL: ${{ inputs.target_email }}
+        run: |
+          set -euo pipefail
+          REMOTE=""
+          for cand in api/_impl/data/users.json api/data/users.json; do
+            rm -f /tmp/users.probe.json
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set net:timeout 20;
+              set net:max-retries 1;
+              set ftp:passive-mode true;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get ${cand} -o /tmp/users.probe.json;
+              bye
+            " >/tmp/get-probe.log 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 && -s /tmp/users.probe.json ]]; then
+              REMOTE="$cand"
+              mv /tmp/users.probe.json /tmp/users.json
+              echo "FOUND=${cand}"
+              break
+            fi
+          done
+          if [[ -z "${REMOTE}" || ! -s /tmp/users.json ]]; then
+            echo "::error::users.json não encontrado"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, sys
+          email = os.environ["TARGET_EMAIL"].strip().lower()
+          with open("/tmp/users.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+          matches = [u for u in data if isinstance(u, dict) and str(u.get("email", "")).strip().lower() == email]
+          if len(matches) != 1:
+              print(f"::error::matches={len(matches)}")
+              sys.exit(2)
+          u = matches[0]
+          token = u.get("emailVerificationToken")
+          print("SAFE=" + json.dumps({
+              "id": u.get("id"),
+              "email": u.get("email"),
+              "accountStatus": u.get("accountStatus"),
+              "emailVerified": u.get("emailVerified"),
+              "hasToken": bool(token),
+              "tokenLen": len(str(token or "")),
+          }, ensure_ascii=False, separators=(",", ":")))
+          if not token:
+              print("TOKEN_MISSING=1")
+              sys.exit(3)
+          # Token necessário para o teste E2E; não é password.
+          print("TOKEN=" + str(token))
+          PY
