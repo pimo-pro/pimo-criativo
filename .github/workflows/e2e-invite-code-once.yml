@@ -1,0 +1,333 @@
+# One-shot E2E: cria código de convite (store admin), regista, verifica email, confirma single-use.
+# Não imprime secrets nem passwordHash. Remover após o teste.
+
+name: E2E Invite Code Once
+
+on:
+  workflow_dispatch:
+    inputs:
+      invite_code:
+        description: "Código single-use a criar (maiúsculas)"
+        required: true
+        type: string
+      role:
+        description: "Role do convite"
+        required: true
+        type: choice
+        options:
+          - pro
+          - ultra
+          - ultra+
+        default: pro
+      target_email:
+        description: "Email da conta nova"
+        required: true
+        type: string
+      password:
+        description: "Password da conta nova"
+        required: true
+        type: string
+        default: "TestInvite2026!"
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install lftp + jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp jq
+
+      - name: Create invite + register + verify + assert
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          INVITE_CODE: ${{ inputs.invite_code }}
+          INVITE_ROLE: ${{ inputs.role }}
+          TARGET_EMAIL: ${{ inputs.target_email }}
+          TARGET_PASSWORD: ${{ inputs.password }}
+        run: |
+          set -euo pipefail
+
+          ftp_get() {
+            local remote="$1"
+            local out="$2"
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:timeout 30;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get ${remote} -o ${out};
+              bye
+            "
+          }
+
+          ftp_put() {
+            local localf="$1"
+            local remote="$2"
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:timeout 30;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              put ${localf} -o ${remote};
+              bye
+            "
+          }
+
+          # --- localize data dir (invite-codes + users) ---
+          INVITE_REMOTE=""
+          for cand in api/_impl/data/invite-codes.json api/data/invite-codes.json; do
+            rm -f /tmp/invite.probe.json
+            set +e
+            ftp_get "$cand" /tmp/invite.probe.json >/dev/null 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 && -s /tmp/invite.probe.json ]]; then
+              INVITE_REMOTE="$cand"
+              mv /tmp/invite.probe.json /tmp/invite-codes.json
+              echo "FOUND_INVITE=${cand}"
+              break
+            fi
+          done
+
+          USERS_REMOTE=""
+          for cand in api/_impl/data/users.json api/data/users.json; do
+            rm -f /tmp/users.probe.json
+            set +e
+            ftp_get "$cand" /tmp/users.probe.json >/dev/null 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 0 && -s /tmp/users.probe.json ]]; then
+              USERS_REMOTE="$cand"
+              echo "FOUND_USERS=${cand}"
+              break
+            fi
+          done
+          if [[ -z "${USERS_REMOTE}" ]]; then
+            echo "::error::users.json não encontrado"
+            exit 1
+          fi
+
+          DATA_DIR="$(dirname "${USERS_REMOTE}")"
+          if [[ -z "${INVITE_REMOTE}" ]]; then
+            INVITE_REMOTE="${DATA_DIR}/invite-codes.json"
+            echo "[]" > /tmp/invite-codes.json
+            echo "SEED_INVITE_NEW=${INVITE_REMOTE}"
+          fi
+
+          TS="$(date -u +%Y%m%dT%H%M%SZ)"
+          CODE="$(echo "${INVITE_CODE}" | tr '[:lower:]' '[:upper:]' | tr -d '[:space:]')"
+          ROLE="${INVITE_ROLE}"
+          EMAIL="$(echo "${TARGET_EMAIL}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          PASS="${TARGET_PASSWORD}"
+          UNAME="inv$(date +%s | tail -c 8)"
+
+          export CODE ROLE EMAIL PASS UNAME TS
+          python3 <<'PY'
+          import json, os, uuid
+          from datetime import datetime, timezone
+
+          code = os.environ["CODE"]
+          role = os.environ["ROLE"]
+          path = "/tmp/invite-codes.json"
+          with open(path, "r", encoding="utf-8") as f:
+              raw = f.read().strip() or "[]"
+              codes = json.loads(raw)
+          if not isinstance(codes, list):
+              codes = []
+          # remove same code leftovers from prior e2e
+          codes = [c for c in codes if str(c.get("code", "")).upper() != code]
+          invite_id = uuid.uuid4().hex
+          now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+          codes.append({
+              "id": invite_id,
+              "code": code,
+              "role": role,
+              "usageMode": "single",
+              "usageLimit": 1,
+              "usedCount": 0,
+              "active": True,
+              "createdAt": now,
+              "createdBy": "e2e-admin",
+              "disabledAt": None,
+              "disabledBy": None,
+              "lastUsedAt": None,
+          })
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(codes, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          print("INVITE_CREATED=" + json.dumps({
+              "id": invite_id,
+              "code": code,
+              "role": role,
+              "usageMode": "single",
+              "active": True,
+              "usedCount": 0,
+          }, ensure_ascii=False, separators=(",", ":")))
+          open("/tmp/invite_id.txt", "w").write(invite_id)
+          PY
+
+          ftp_put /tmp/invite-codes.json "${INVITE_REMOTE}"
+          echo "INVITE_UPLOADED=${INVITE_REMOTE}"
+
+          # --- register via production API (rewrite path) ---
+          REG_BODY=$(jq -n \
+            --arg u "$UNAME" \
+            --arg e "$EMAIL" \
+            --arg p "$PASS" \
+            --arg c "$CODE" \
+            '{username:$u,email:$e,password:$p,accountCategory:"fabricante",inviteCode:$c}')
+          echo "$REG_BODY" > /tmp/reg.json
+          set +e
+          REG_HTTP=$(curl -sS -o /tmp/reg-out.json -w "%{http_code}" \
+            -X POST "https://pimo.pro/auth/register" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/reg.json)
+          set -e
+          echo "REGISTER_HTTP=${REG_HTTP}"
+          python3 - <<'PY'
+          import json, sys
+          data = json.load(open("/tmp/reg-out.json", encoding="utf-8"))
+          safe = {
+              "status": data.get("status"),
+              "requiresEmailVerification": data.get("requiresEmailVerification"),
+              "inviteCodeApplied": data.get("inviteCodeApplied"),
+              "inviteCodeWarning": data.get("inviteCodeWarning"),
+              "user": {
+                  "email": (data.get("user") or {}).get("email"),
+                  "role": (data.get("user") or {}).get("role"),
+                  "accountStatus": (data.get("user") or {}).get("accountStatus"),
+                  "emailVerified": (data.get("user") or {}).get("emailVerified"),
+              },
+          }
+          print("REGISTER_SAFE=" + json.dumps(safe, ensure_ascii=False, separators=(",", ":")))
+          ok = (
+              data.get("status") == "ok"
+              and data.get("inviteCodeApplied") is True
+              and data.get("requiresEmailVerification") is True
+              and (data.get("user") or {}).get("accountStatus") == "approved"
+              and (data.get("user") or {}).get("role") == __import__("os").environ["ROLE"]
+              and (data.get("user") or {}).get("emailVerified") in (False, None)
+          )
+          if not ok:
+              print("::error::registo com convite não passou nas asserções")
+              sys.exit(2)
+          PY
+
+          # --- login before verify must fail ---
+          LOGIN_BODY=$(jq -n --arg e "$EMAIL" --arg p "$PASS" '{email:$e,password:$p}')
+          echo "$LOGIN_BODY" > /tmp/login.json
+          set +e
+          LOGIN1_HTTP=$(curl -sS -o /tmp/login1.json -w "%{http_code}" \
+            -X POST "https://pimo.pro/auth/login" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/login.json)
+          set -e
+          echo "LOGIN_PRE_VERIFY_HTTP=${LOGIN1_HTTP}"
+          python3 - <<'PY'
+          import json, sys
+          data = json.load(open("/tmp/login1.json", encoding="utf-8"))
+          print("LOGIN_PRE_SAFE=" + json.dumps({
+              "status": data.get("status"),
+              "message": data.get("message"),
+              "code": data.get("code"),
+          }, ensure_ascii=False, separators=(",", ":")))
+          # deve bloquear por email não verificado
+          if data.get("status") == "ok":
+              print("::error::login pré-verify não deveria ter sucesso")
+              sys.exit(3)
+          PY
+
+          # --- extract verification token from users.json ---
+          ftp_get "${USERS_REMOTE}" /tmp/users.json
+          python3 - <<'PY'
+          import json, os, sys
+          email = os.environ["EMAIL"].lower()
+          users = json.load(open("/tmp/users.json", encoding="utf-8"))
+          u = next((x for x in users if str(x.get("email","")).lower() == email), None)
+          if not u:
+              print("::error::user não encontrado após registo")
+              sys.exit(4)
+          token = u.get("emailVerificationToken") or ""
+          if not token:
+              print("::error::emailVerificationToken em falta")
+              sys.exit(5)
+          open("/tmp/verify_token.txt", "w").write(token)
+          print("USER_AFTER_REG=" + json.dumps({
+              "role": u.get("role"),
+              "accountStatus": u.get("accountStatus"),
+              "emailVerified": u.get("emailVerified"),
+              "hasToken": True,
+              "invitedViaCode": u.get("invitedViaCode"),
+          }, ensure_ascii=False, separators=(",", ":")))
+          PY
+          TOKEN="$(cat /tmp/verify_token.txt)"
+
+          set +e
+          VERIFY_HTTP=$(curl -sS -o /tmp/verify.json -w "%{http_code}" \
+            "https://pimo.pro/auth/verify-email?token=${TOKEN}")
+          set -e
+          echo "VERIFY_HTTP=${VERIFY_HTTP}"
+          python3 - <<'PY'
+          import json
+          data = json.load(open("/tmp/verify.json", encoding="utf-8"))
+          print("VERIFY_SAFE=" + json.dumps({
+              "status": data.get("status"),
+              "message": data.get("message"),
+          }, ensure_ascii=False, separators=(",", ":")))
+          if data.get("status") != "ok":
+              raise SystemExit(6)
+          PY
+
+          set +e
+          LOGIN2_HTTP=$(curl -sS -o /tmp/login2.json -w "%{http_code}" \
+            -X POST "https://pimo.pro/auth/login" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/login.json)
+          set -e
+          echo "LOGIN_POST_VERIFY_HTTP=${LOGIN2_HTTP}"
+          python3 - <<'PY'
+          import json, os, sys
+          data = json.load(open("/tmp/login2.json", encoding="utf-8"))
+          user = data.get("user") or {}
+          print("LOGIN_POST_SAFE=" + json.dumps({
+              "status": data.get("status"),
+              "role": user.get("role"),
+              "accountStatus": user.get("accountStatus"),
+              "emailVerified": user.get("emailVerified"),
+              "hasToken": bool(data.get("token")),
+          }, ensure_ascii=False, separators=(",", ":")))
+          if data.get("status") != "ok" or user.get("role") != os.environ["ROLE"] or user.get("accountStatus") != "approved":
+              print("::error::login pós-verify falhou asserções")
+              sys.exit(7)
+          PY
+
+          # --- invite single-use deactivated ---
+          ftp_get "${INVITE_REMOTE}" /tmp/invite-after.json
+          python3 - <<'PY'
+          import json, os, sys
+          code = os.environ["CODE"]
+          codes = json.load(open("/tmp/invite-after.json", encoding="utf-8"))
+          inv = next((c for c in codes if str(c.get("code","")).upper() == code), None)
+          if not inv:
+              print("::error::código não encontrado após uso")
+              sys.exit(8)
+          safe = {
+              "code": inv.get("code"),
+              "active": inv.get("active"),
+              "usedCount": inv.get("usedCount"),
+              "usageMode": inv.get("usageMode"),
+              "role": inv.get("role"),
+          }
+          print("INVITE_AFTER=" + json.dumps(safe, ensure_ascii=False, separators=(",", ":")))
+          if inv.get("active") is not False or int(inv.get("usedCount") or 0) < 1:
+              print("::error::single-use deveria estar inactive com usedCount>=1")
+              sys.exit(9)
+          print("E2E_INVITE_OK=1")
+          PY
