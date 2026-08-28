@@ -189,6 +189,13 @@ function pimo_users_router(): void
             }
             pimo_save_users($users);
             $updated = pimo_find_user_by_id($users, $id);
+            if ($updated !== null && isset($body['accountStatus'], $body['role'])) {
+                $approvedRole = strtolower(trim((string) $body['role']));
+                if (in_array($approvedRole, PIMO_APPROVABLE_ROLES, true)) {
+                    pimo_auth_load_mail_client();
+                    pimo_mail_send_account_approved($updated);
+                }
+            }
             pimo_json_response(['status' => 'ok', 'user' => pimo_users_public($updated ?? [])]);
             return;
         }

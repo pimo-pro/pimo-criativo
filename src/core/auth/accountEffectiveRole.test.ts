@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   isAccountApproved,
   isAccountPending,
+  isEmailVerifiedForLogin,
   resolveEffectiveRole,
+  userRequiresEmailVerification,
 } from "./accountEffectiveRole";
 
 describe("accountEffectiveRole", () => {
@@ -23,5 +25,13 @@ describe("accountEffectiveRole", () => {
     expect(isAccountApproved({ accountStatus: "pending" })).toBe(false);
     expect(isAccountApproved({ accountStatus: "approved" })).toBe(true);
     expect(isAccountApproved({})).toBe(true);
+  });
+
+  it("verificação de email só para pending", () => {
+    expect(userRequiresEmailVerification({ accountStatus: "pending" })).toBe(true);
+    expect(userRequiresEmailVerification({ accountStatus: "approved" })).toBe(false);
+    expect(isEmailVerifiedForLogin({ accountStatus: "approved" })).toBe(true);
+    expect(isEmailVerifiedForLogin({ accountStatus: "pending", emailVerified: false })).toBe(false);
+    expect(isEmailVerifiedForLogin({ accountStatus: "pending", emailVerified: true })).toBe(true);
   });
 });

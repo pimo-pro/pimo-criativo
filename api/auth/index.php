@@ -258,6 +258,8 @@ function pimo_user_public(array $user): array
         'createdAt' => (string) ($user['createdAt'] ?? ''),
         'approvedAt' => isset($user['approvedAt']) ? (string) $user['approvedAt'] : null,
         'approvedBy' => isset($user['approvedBy']) ? (string) $user['approvedBy'] : null,
+        'emailVerified' => pimo_user_email_verified($user),
+        'requiresEmailVerification' => pimo_user_requires_email_verification($user),
     ];
 }
 
@@ -265,6 +267,46 @@ function pimo_user_public(array $user): array
 function pimo_effective_permissions_for_user(array $user): array
 {
     return pimo_effective_permissions(pimo_user_effective_role($user));
+}
+
+function pimo_auth_load_mail_client(): void
+{
+    if (defined('PIMO_MAIL_CLIENT_LOADED')) {
+        return;
+    }
+    $path = __DIR__ . '/../mail/mailClient.php';
+    if (is_file($path)) {
+        require_once $path;
+    }
+}
+
+/** Verificação de email só bloqueia contas pending (não-visitor). */
+function pimo_user_requires_email_verification(array $user): bool
+{
+    return pimo_user_account_status($user) === 'pending';
+}
+
+function pimo_user_email_verified(array $user): bool
+{
+    if (!pimo_user_requires_email_verification($user)) {
+        return true;
+    }
+    return ($user['emailVerified'] ?? false) === true;
+}
+
+/** @param list<array<string,mixed>> $users */
+function pimo_find_user_by_verification_token(array $users, string $token): ?array
+{
+    $needle = trim($token);
+    if ($needle === '') {
+        return null;
+    }
+    foreach ($users as $u) {
+        if (($u['emailVerificationToken'] ?? '') === $needle) {
+            return $u;
+        }
+    }
+    return null;
 }
 
 /**
@@ -449,6 +491,11 @@ function pimo_auth_handle_register(): void
     ];
     if ($isVisitorCategory) {
         $newUser['approvedAt'] = gmdate('c');
+        $newUser['emailVerified'] = true;
+    } else {
+        $verificationToken = bin2hex(random_bytes(32));
+        $newUser['emailVerified'] = false;
+        $newUser['emailVerificationToken'] = $verificationToken;
     }
     $users[] = $newUser;
     pimo_save_users($users);
@@ -460,8 +507,17 @@ function pimo_auth_handle_register(): void
         pimo_json_response(['status' => 'error', 'message' => 'Falha ao criar ficheiro de preferências'], 500);
         return;
     }
+
+    pimo_auth_load_mail_client();
+    if (!$isVisitorCategory) {
+        $tokenForMail = (string) ($newUser['emailVerificationToken'] ?? '');
+        pimo_mail_send_account_verification($newUser, $tokenForMail);
+        pimo_mail_send_admin_pending_account($newUser);
+    }
+
     pimo_json_response([
         'status' => 'ok',
+        'requiresEmailVerification' => !$isVisitorCategory,
         'user' => pimo_user_public($newUser),
     ], 201);
 }
@@ -512,6 +568,14 @@ function pimo_auth_handle_login(): void
     $user = pimo_find_user_by_email($users, $email);
     if ($user === null || empty($user['passwordHash']) || !password_verify($password, (string) $user['passwordHash'])) {
         pimo_json_response(['status' => 'error', 'message' => 'Credenciais inválidas'], 401);
+        return;
+    }
+    if (!pimo_user_email_verified($user)) {
+        pimo_json_response([
+            'status' => 'error',
+            'message' => 'Confirme o seu e-mail antes de continuar — verifique a sua caixa de entrada.',
+            'code' => 'email_not_verified',
+        ], 403);
         return;
     }
     $secret = pimo_require_jwt_secret();
@@ -619,6 +683,36 @@ function pimo_auth_handle_me(): void
     ]);
 }
 
+function pimo_auth_handle_verify_email(): void
+{
+    $token = isset($_GET['token']) ? trim((string) $_GET['token']) : '';
+    if ($token === '') {
+        pimo_json_response(['status' => 'error', 'message' => 'Token em falta'], 400);
+        return;
+    }
+    $users = pimo_load_users();
+    $foundIndex = null;
+    foreach ($users as $i => $u) {
+        if (($u['emailVerificationToken'] ?? '') === $token) {
+            $foundIndex = $i;
+            break;
+        }
+    }
+    if ($foundIndex === null) {
+        pimo_json_response(['status' => 'error', 'message' => 'Link inválido ou já utilizado'], 404);
+        return;
+    }
+    $users[$foundIndex]['emailVerified'] = true;
+    unset($users[$foundIndex]['emailVerificationToken']);
+    $users[$foundIndex]['emailVerifiedAt'] = gmdate('c');
+    pimo_save_users($users);
+    pimo_json_response([
+        'status' => 'ok',
+        'message' => 'Email confirmado. Já pode fazer login.',
+        'user' => pimo_user_public($users[$foundIndex]),
+    ]);
+}
+
 function pimo_auth_router(): void
 {
     pimo_cors();
@@ -632,6 +726,7 @@ function pimo_auth_router(): void
     $endsRegister = str_ends_with($path, '/auth/register');
     $endsLogin = str_ends_with($path, '/auth/login');
     $endsDevLocal = str_ends_with($path, '/auth/dev-local');
+    $endsVerifyEmail = str_ends_with($path, '/auth/verify-email') || str_contains($path, '/verify-email');
     $isMe = $path === '/me' || str_ends_with($path, '/me');
     $postToAuthScript = $method === 'POST'
         && str_contains($path, 'api/auth')
@@ -646,6 +741,10 @@ function pimo_auth_router(): void
         }
         if ($method === 'POST' && $endsRegister) {
             pimo_auth_handle_register();
+            return;
+        }
+        if ($method === 'GET' && $endsVerifyEmail) {
+            pimo_auth_handle_verify_email();
             return;
         }
         if ($method === 'POST' && ($endsLogin || $postToAuthScript)) {

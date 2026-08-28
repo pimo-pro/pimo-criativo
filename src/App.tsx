@@ -39,6 +39,8 @@ import ProjectsPage from "./pages/ProjectsPage";
 import ProjectsViewerPage from "./pages/ProjectsViewerPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import RegisterPage from "./pages/RegisterPage";
+import RegisterCheckEmailPage from "./pages/RegisterCheckEmailPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import UsersAdminPage from "./pages/admin/UsersAdminPage";
 import ProjectSharesAdminPage from "./pages/admin/ProjectSharesAdminPage";
@@ -475,6 +477,8 @@ export default function App() {
             }
           />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register/check-email" element={<RegisterCheckEmailPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path={PIPRO_MODELS_PUBLIC_PATH}

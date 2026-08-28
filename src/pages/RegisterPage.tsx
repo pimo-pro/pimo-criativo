@@ -21,19 +21,24 @@ export default function RegisterPage() {
   }
 
   const handleSubmit = async (values: RegisterFormValues) => {
-    await createAccountRemote({
+    const result = await createAccountRemote({
       username: values.username.trim(),
       email: values.email.trim(),
       password: values.senha,
       role: mapAccountCategoryToPublicRole(values.accountCategory),
       accountCategory: values.accountCategory,
     });
+
+    if (result.requiresEmailVerification) {
+      navigate("/register/check-email", {
+        replace: true,
+        state: { email: values.email.trim() },
+      });
+      return;
+    }
+
     await login(values.email.trim(), values.senha);
-    const isPending = values.accountCategory !== "visitor";
-    navigate("/dashboard", {
-      replace: true,
-      state: isPending ? { pendingApproval: true } : undefined,
-    });
+    navigate("/dashboard", { replace: true });
   };
 
   return (
@@ -50,7 +55,7 @@ export default function RegisterPage() {
 
         <PageHeader
           title="Registrar"
-          subtitle="Crie o seu acesso. Contas Designer/Lojista/Fabricante ficam pendentes até aprovação manual (acesso Visitor entretanto)."
+          subtitle="Visitor: acesso imediato. Designer/Lojista/Fabricante: confirmação de email e aprovação manual."
         />
 
         <RegisterUserForm

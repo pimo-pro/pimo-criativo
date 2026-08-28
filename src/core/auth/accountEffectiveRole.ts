@@ -26,3 +26,18 @@ export function isAccountPending(user: { accountStatus?: AccountStatus }): boole
 export function isAccountApproved(user: { accountStatus?: AccountStatus }): boolean {
   return user.accountStatus !== "pending";
 }
+
+/** Só contas pending (não-visitor) exigem confirmação de email antes do login. */
+export function userRequiresEmailVerification(user: { accountStatus?: AccountStatus }): boolean {
+  return user.accountStatus === "pending";
+}
+
+export function isEmailVerifiedForLogin(user: {
+  accountStatus?: AccountStatus;
+  emailVerified?: boolean;
+}): boolean {
+  if (!userRequiresEmailVerification(user)) {
+    return true;
+  }
+  return user.emailVerified === true;
+}

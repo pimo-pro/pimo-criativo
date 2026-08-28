@@ -85,11 +85,15 @@ copyFile(srcUsers, path.join(dist, "api", "_impl", "users", "index.php"));
 const srcProjectShares = path.join(root, "api", "project-shares", "index.php");
 const srcProjectSharesStore = path.join(root, "api", "authz", "projectSharesStore.php");
 const srcAuthz = path.join(root, "api", "authz", "resourceAccess.php");
+const srcMailClient = path.join(root, "api", "mail", "mailClient.php");
 if (fs.existsSync(srcAuthz)) {
   copyFile(srcAuthz, path.join(dist, "api", "_impl", "authz", "resourceAccess.php"));
 }
 if (fs.existsSync(srcProjectSharesStore)) {
   copyFile(srcProjectSharesStore, path.join(dist, "api", "_impl", "authz", "projectSharesStore.php"));
+}
+if (fs.existsSync(srcMailClient)) {
+  copyFile(srcMailClient, path.join(dist, "api", "_impl", "mail", "mailClient.php"));
 }
 if (fs.existsSync(srcProjectShares)) {
   copyFile(srcProjectShares, path.join(dist, "api", "_impl", "project-shares", "index.php"));

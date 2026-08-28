@@ -36,11 +36,19 @@ function toStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+export const EMAIL_NOT_VERIFIED_MESSAGE =
+  "Confirme o seu e-mail antes de continuar — verifique a sua caixa de entrada.";
+
 function parseApiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const message = (error.response?.data as { message?: string } | undefined)?.message;
+    const payload = error.response?.data as { message?: string; code?: string } | undefined;
+    if (payload?.code === "email_not_verified") {
+      return EMAIL_NOT_VERIFIED_MESSAGE;
+    }
+    const message = payload?.message;
     if (message) return message;
     if (error.response?.status === 401) return "Não autenticado";
+    if (error.response?.status === 403) return "Acesso negado";
     if (error.response?.status === 400) return "Dados inválidos";
     if (error.response?.status === 409) return "Conflito (email ou username duplicado)";
   }
@@ -69,6 +77,7 @@ export type RegisterAccountPayload = {
 export type RegisterAccountResponse = {
   status: "ok";
   user: AuthUserPayload;
+  requiresEmailVerification?: boolean;
 };
 
 export async function createAccountRemote(payload: RegisterAccountPayload): Promise<RegisterAccountResponse> {
@@ -83,7 +92,11 @@ export async function createAccountRemote(payload: RegisterAccountPayload): Prom
     if (!data || data.status !== "ok" || !data.user?.id) {
       throw new Error("Resposta inválida do servidor");
     }
-    return data;
+    return {
+      status: "ok",
+      user: data.user,
+      requiresEmailVerification: data.requiresEmailVerification === true,
+    };
   } catch (error) {
     throw new Error(parseApiError(error));
   }
@@ -125,6 +138,25 @@ export async function getMe(): Promise<MeResponse> {
   try {
     const { data } = await apiClient.get<MeApiPayload>("/me");
     return normalizeMeResponse(data);
+  } catch (error) {
+    throw new Error(parseApiError(error));
+  }
+}
+
+export type VerifyEmailResponse = {
+  status: "ok";
+  message: string;
+};
+
+export async function verifyEmailRemote(token: string): Promise<VerifyEmailResponse> {
+  try {
+    const { data } = await apiClient.get<VerifyEmailResponse>("/auth/verify-email", {
+      params: { token },
+    });
+    if (!data || data.status !== "ok") {
+      throw new Error("Resposta inválida do servidor");
+    }
+    return data;
   } catch (error) {
     throw new Error(parseApiError(error));
   }
