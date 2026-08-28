@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-28T14:52:55.351Z",
+      "author": "pimo-pro",
+      "commitMessage": "feat(auth-email): verificação de email, notificação admin e email de aprovação",
+      "version": "v6.0828.1552"
+    },
+    {
       "publishedAt": "2026-08-28T13:09:44.048Z",
       "author": "pimo-pro",
       "commitMessage": "fix(ferragens-totais): SSOT nome comercial/técnico e regras industriais",
