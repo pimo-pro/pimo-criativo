@@ -5,6 +5,7 @@
   # Auth API — tem de vir ANTES do fallback SPA (senão /me e /auth/login vão para index.html)
   RewriteRule ^auth/login$ api/auth/index.php [L]
   RewriteRule ^auth/register$ api/auth/index.php [L]
+  RewriteRule ^auth/verify-email$ api/auth/index.php [L]
   RewriteRule ^me$ api/auth/index.php [L]
   RewriteRule ^users$ api/users/index.php [L]
 
