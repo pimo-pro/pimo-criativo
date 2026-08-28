@@ -8,6 +8,7 @@
   RewriteRule ^auth/verify-email$ api/auth/index.php [L]
   RewriteRule ^me$ api/auth/index.php [L]
   RewriteRule ^users$ api/users/index.php [L]
+  RewriteRule ^project-shares$ api/project-shares/index.php [L]
 
   # GET /config/global → ficheiro estático (evita 404 do bloco /config/ abaixo)
   RewriteRule ^config/global$ config/global.json [L]
