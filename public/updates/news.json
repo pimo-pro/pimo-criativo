@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-28T14:52:56.379Z",
+  "updatedAt": "2026-08-28T15:11:24.384Z",
   "news": [
+    {
+      "version": "v6.0828.1611",
+      "title": "fix(auth): rewrite Apache para GET /auth/verify-email",
+      "description": "fix(auth): rewrite Apache para GET /auth/verify-email",
+      "publishedAt": "2026-08-28T15:11:24.203Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "69a6f276"
+    },
     {
       "version": "v6.0828.1552",
       "title": "feat(auth-email): verificação de email, notificação admin e email de aprovação",
       "description": "feat(auth-email): verificação de email, notificação admin e email de aprovação",
-      "publishedAt": "2026-08-28T14:52:56.186Z",
+      "publishedAt": "2026-08-28T15:54:54+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
-      "commit": "f44e807b"
+      "commit": "4bc4ce0"
     },
     {
       "version": "v6.0828.1409",

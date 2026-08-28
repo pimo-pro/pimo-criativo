@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-28T15:11:23.593Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(auth): rewrite Apache para GET /auth/verify-email",
+      "version": "v6.0828.1611"
+    },
+    {
       "publishedAt": "2026-08-28T14:52:55.351Z",
       "author": "pimo-pro",
       "commitMessage": "feat(auth-email): verificação de email, notificação admin e email de aprovação",
