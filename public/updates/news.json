@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-28T10:35:26.622Z",
+  "updatedAt": "2026-08-28T13:09:44.908Z",
   "news": [
+    {
+      "version": "v6.0828.1409",
+      "title": "fix(ferragens-totais): SSOT nome comercial/técnico e regras industriais",
+      "description": "fix(ferragens-totais): SSOT nome comercial/técnico e regras industriais",
+      "publishedAt": "2026-08-28T13:09:44.728Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "b93d6852"
+    },
     {
       "version": "v6.0828.1135",
       "title": "fix(financeiro): monetizar Painéis em modo Estimado (por_chapas_reais)",
       "description": "fix(financeiro): monetizar Painéis em modo Estimado (por_chapas_reais)",
-      "publishedAt": "2026-08-28T10:35:26.111Z",
+      "publishedAt": "2026-08-28T11:37:36+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "664976b1"
+      "commit": "479cb70"
     },
     {
       "version": "v6.0828.1006",
