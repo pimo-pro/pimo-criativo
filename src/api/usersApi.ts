@@ -1,8 +1,9 @@
 import axios from "axios";
 
 import { apiClient } from "./apiClient";
+import type { AuthUserAccountFields } from "../core/auth/accountEffectiveRole";
 
-export type RemoteUserPublic = {
+export type RemoteUserPublic = AuthUserAccountFields & {
   id: string;
   email: string;
   username: string;
@@ -22,6 +23,17 @@ export type UpdateUserPayload = {
   email?: string;
   password?: string;
   role?: string;
+  accountStatus?: "approved";
+};
+
+export type ApproveUserPayload = {
+  accountStatus: "approved";
+  role: "pro" | "ultra" | "ultra+";
+};
+
+export type RejectUserPayload = {
+  accountStatus: "approved";
+  role: "visitor";
 };
 
 function parseUsersError(error: unknown): string {
@@ -74,6 +86,17 @@ export async function updateUserRemote(id: string, payload: UpdateUserPayload): 
   } catch (error) {
     throw new Error(parseUsersError(error));
   }
+}
+
+export async function approveUserRemote(
+  id: string,
+  role: ApproveUserPayload["role"]
+): Promise<RemoteUserPublic> {
+  return updateUserRemote(id, { accountStatus: "approved", role });
+}
+
+export async function rejectUserRemote(id: string): Promise<RemoteUserPublic> {
+  return updateUserRemote(id, { accountStatus: "approved", role: "visitor" });
 }
 
 export async function deleteUserRemote(id: string): Promise<void> {

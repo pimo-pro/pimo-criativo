@@ -1,6 +1,8 @@
 import { createContext } from "react";
 
-export type AuthUser = {
+import type { AuthUserAccountFields } from "../core/auth/accountEffectiveRole";
+
+export type AuthUser = AuthUserAccountFields & {
   id: string;
   username: string;
   role: string;

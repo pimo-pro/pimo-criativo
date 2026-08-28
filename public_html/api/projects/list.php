@@ -118,8 +118,8 @@ foreach ($byId as $entry) {
         continue;
     }
 
-    if ($scope === "mine" && $ownerId !== "") {
-        if (($data["ownerId"] ?? "") !== $ownerId) {
+    if ($scope === "mine") {
+        if (!pimo_authz_list_includes_project($authUser, $data)) {
             continue;
         }
     }

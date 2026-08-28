@@ -16,12 +16,19 @@ export function hasFullAccess(hasPermission: (permission: string) => boolean): b
   return hasPermission(PERMISSIONS.ADMIN_FULL_ACCESS);
 }
 
-/** Listagem remota com scope=all (ver todos os projetos do sistema / fábrica). */
+/** Listagem remota com scope=all (só admin — ver todos os projectos). */
 export function canViewAllProjects(hasPermission: (permission: string) => boolean): boolean {
+  return hasFullAccess(hasPermission) || hasPermission(PERMISSIONS.PROJECT_VIEW_ALL);
+}
+
+/** Ultra+ e partilhas usam scope=mine expandido no servidor — não scope=all. */
+export function canViewExpandedProjectList(
+  hasPermission: (permission: string) => boolean,
+  effectiveRole?: string
+): boolean {
   return (
-    hasFullAccess(hasPermission) ||
-    hasPermission(PERMISSIONS.PROJECT_VIEW_ALL) ||
-    hasPermission(PERMISSIONS.PROJECT_VIEW_FACTORY)
+    canViewAllProjects(hasPermission) ||
+    effectiveRole === "ultra+"
   );
 }
 
@@ -30,8 +37,7 @@ export function canViewOwnProjects(hasPermission: (permission: string) => boolea
   return (
     hasFullAccess(hasPermission) ||
     hasPermission(PERMISSIONS.PROJECT_VIEW_SELF) ||
-    hasPermission(PERMISSIONS.PROJECT_VIEW_ALL) ||
-    hasPermission(PERMISSIONS.PROJECT_VIEW_FACTORY)
+    hasPermission(PERMISSIONS.PROJECT_VIEW_ALL)
   );
 }
 
@@ -71,7 +77,7 @@ export function canManageUsers(hasPermission: (permission: string) => boolean): 
   return canAccessAdminPanel(hasPermission);
 }
 
-/** Showroom multi-projeto — mesmo critério que listagem global. */
+/** Showroom multi-projeto — admin (scope=all). */
 export function canOpenProjectsShowroom(hasPermission: (permission: string) => boolean): boolean {
   return canViewAllProjects(hasPermission);
 }

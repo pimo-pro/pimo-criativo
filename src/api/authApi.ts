@@ -1,36 +1,33 @@
 import axios from "axios";
 
 import { apiClient } from "./apiClient";
+import type { AccountStatus } from "../core/auth/accountEffectiveRole";
+
+export type AuthUserPayload = {
+  id: string;
+  username: string;
+  role: string;
+  effectiveRole?: string;
+  accountStatus?: AccountStatus;
+  requestedRole?: string | null;
+  accountCategory?: string | null;
+  permissions?: string[];
+};
 
 export type LoginResponse = {
   status: "ok";
   token: string;
-  user: {
-    id: string;
-    username: string;
-    role: string;
-  };
+  user: AuthUserPayload;
 };
 
 export type MeResponse = {
   status: "ok";
-  user: {
-    id: string;
-    username: string;
-    role: string;
-    permissions: string[];
-  };
+  user: AuthUserPayload & { permissions: string[] };
 };
 
-/** Payload bruto do PHP: `permissions` no root; `user` sem permissões aninhadas. */
 type MeApiPayload = {
   status?: string;
-  user?: {
-    id?: string;
-    username?: string;
-    role?: string;
-    permissions?: unknown;
-  };
+  user?: AuthUserPayload & { permissions?: unknown };
   permissions?: unknown;
 };
 
@@ -65,28 +62,15 @@ export type RegisterAccountPayload = {
   username: string;
   email: string;
   password: string;
-  /** Apenas visitor ou pro; o servidor rejeita qualquer outro (força visitor). */
   role: PublicRegisterRole;
-  /** Categoria de negócio (independente da role). */
   accountCategory: "visitor" | "designer_arquiteto" | "lojista" | "fabricante";
 };
 
-/** Resposta POST /auth/register (público, sem JWT). */
 export type RegisterAccountResponse = {
   status: "ok";
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-    accountCategory?: string;
-  };
+  user: AuthUserPayload;
 };
 
-/**
- * Registo público — role só `visitor` ou `pro` (validado no servidor); user-settings vazio.
- * Após sucesso, o cliente deve chamar `login()` para sessão + `/me` + pipeline de settings.
- */
 export async function createAccountRemote(payload: RegisterAccountPayload): Promise<RegisterAccountResponse> {
   try {
     const { data } = await apiClient.post<RegisterAccountResponse>("/auth/register", {
@@ -105,10 +89,6 @@ export async function createAccountRemote(payload: RegisterAccountPayload): Prom
   }
 }
 
-/**
- * Alinha o contrato PHP (`permissions` no root) com o modelo do cliente (`user.permissions`).
- * Prioridade: root `permissions` (oficial no backend), depois `user.permissions` se algum proxy aninhar.
- */
 function normalizeMeResponse(data: MeApiPayload | undefined | null): MeResponse {
   const u = data?.user;
   const fromRoot = toStringArray(data?.permissions);
@@ -120,8 +100,24 @@ function normalizeMeResponse(data: MeApiPayload | undefined | null): MeResponse 
       id: typeof u?.id === "string" ? u.id : "",
       username: typeof u?.username === "string" ? u.username : "",
       role: typeof u?.role === "string" ? u.role : "",
+      effectiveRole: typeof u?.effectiveRole === "string" ? u.effectiveRole : u?.role,
+      accountStatus: u?.accountStatus === "pending" ? "pending" : "approved",
+      requestedRole: u?.requestedRole ?? null,
+      accountCategory: u?.accountCategory ?? null,
       permissions,
     },
+  };
+}
+
+export function mapAuthUserFromApi(user: AuthUserPayload & { permissions?: string[] }) {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    effectiveRole: user.effectiveRole ?? user.role,
+    accountStatus: user.accountStatus === "pending" ? ("pending" as const) : ("approved" as const),
+    requestedRole: user.requestedRole ?? null,
+    accountCategory: user.accountCategory ?? null,
   };
 }
 

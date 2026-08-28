@@ -8,15 +8,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../auth/index.php';
 
+const PIMO_APPROVABLE_ROLES = ['pro', 'ultra', 'ultra+'];
+
 function pimo_users_public(array $u): array
 {
-    return [
-        'id' => (string) ($u['id'] ?? ''),
-        'email' => (string) ($u['email'] ?? ''),
-        'username' => (string) ($u['username'] ?? ''),
-        'role' => (string) ($u['role'] ?? 'visitor'),
-        'createdAt' => (string) ($u['createdAt'] ?? ''),
-    ];
+    return pimo_user_public($u);
 }
 
 /** JWT válido + permissão efectiva `admin.full_access` (alinhado com RBAC no cliente). */
@@ -35,15 +31,46 @@ function pimo_users_require_full_access(): ?array
     if ($user === null) {
         return null;
     }
-    $role = (string) ($user['role'] ?? 'visitor');
-    $perms = pimo_effective_permissions($role);
-    if ($role === 'admin') {
+    $perms = pimo_effective_permissions_for_user($user);
+    if (pimo_user_effective_role($user) === 'admin') {
         $perms = array_values(array_unique([...$perms, 'admin.full_access']));
     }
     if (!in_array('admin.full_access', $perms, true)) {
         return null;
     }
     return $user;
+}
+
+function pimo_users_apply_account_resolution(array &$target, array $body, array $admin): ?string
+{
+    if (!isset($body['accountStatus'])) {
+        return null;
+    }
+    $status = strtolower(trim((string) $body['accountStatus']));
+    if ($status !== 'approved') {
+        return 'accountStatus inválido (use approved)';
+    }
+
+    if (isset($body['role'])) {
+        $role = strtolower(trim((string) $body['role']));
+        if ($role === 'visitor') {
+            $target['role'] = 'visitor';
+            $target['accountStatus'] = 'approved';
+            $target['approvedAt'] = gmdate('c');
+            $target['approvedBy'] = (string) ($admin['id'] ?? '');
+            return null;
+        }
+        if (!in_array($role, PIMO_APPROVABLE_ROLES, true)) {
+            return 'role inválida para aprovação (pro, ultra, ultra+)';
+        }
+        $target['role'] = $role;
+        $target['accountStatus'] = 'approved';
+        $target['approvedAt'] = gmdate('c');
+        $target['approvedBy'] = (string) ($admin['id'] ?? '');
+        return null;
+    }
+
+    return 'role obrigatória ao aprovar conta';
 }
 
 function pimo_users_router(): void
@@ -100,7 +127,10 @@ function pimo_users_router(): void
                 'username' => $username,
                 'passwordHash' => password_hash($password, PASSWORD_DEFAULT),
                 'role' => $role !== '' ? $role : 'visitor',
+                'accountStatus' => 'approved',
                 'createdAt' => gmdate('c'),
+                'approvedAt' => gmdate('c'),
+                'approvedBy' => (string) ($admin['id'] ?? ''),
             ];
             $users[] = $newUser;
             pimo_save_users($users);
@@ -125,7 +155,14 @@ function pimo_users_router(): void
                     continue;
                 }
                 $found = true;
-                if (isset($body['email'])) {
+
+                $resolutionError = pimo_users_apply_account_resolution($users[$i], $body, $admin);
+                if ($resolutionError !== null) {
+                    pimo_json_response(['status' => 'error', 'message' => $resolutionError], 400);
+                    return;
+                }
+
+                if (isset($body['email']) && !isset($body['accountStatus'])) {
                     $ne = strtolower(trim((string) $body['email']));
                     if ($ne !== '' && $ne !== strtolower((string) $u['email'])) {
                         if (pimo_find_user_by_email($users, $ne) !== null) {
@@ -135,10 +172,10 @@ function pimo_users_router(): void
                         $users[$i]['email'] = $ne;
                     }
                 }
-                if (isset($body['username'])) {
+                if (isset($body['username']) && !isset($body['accountStatus'])) {
                     $users[$i]['username'] = trim((string) $body['username']);
                 }
-                if (isset($body['role'])) {
+                if (isset($body['role']) && !isset($body['accountStatus'])) {
                     $users[$i]['role'] = trim((string) $body['role']);
                 }
                 if (!empty($body['password'])) {

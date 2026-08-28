@@ -41,6 +41,7 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import UsersAdminPage from "./pages/admin/UsersAdminPage";
+import ProjectSharesAdminPage from "./pages/admin/ProjectSharesAdminPage";
 import ManageRolesPage from "./pages/admin/ManageRolesPage";
 import ManagePermissionsPage from "./pages/admin/ManagePermissionsPage";
 import GlobalSettingsAdminPage from "./pages/admin/GlobalSettingsAdminPage";
@@ -522,6 +523,14 @@ export default function App() {
               element={
                 <PermissionRoute check={hasFullAccess}>
                   <UsersAdminPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="/admin/project-shares"
+              element={
+                <PermissionRoute check={hasFullAccess}>
+                  <ProjectSharesAdminPage />
                 </PermissionRoute>
               }
             />

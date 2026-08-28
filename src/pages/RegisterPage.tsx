@@ -29,7 +29,11 @@ export default function RegisterPage() {
       accountCategory: values.accountCategory,
     });
     await login(values.email.trim(), values.senha);
-    navigate("/dashboard", { replace: true });
+    const isPending = values.accountCategory !== "visitor";
+    navigate("/dashboard", {
+      replace: true,
+      state: isPending ? { pendingApproval: true } : undefined,
+    });
   };
 
   return (
@@ -44,7 +48,10 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <PageHeader title="Registrar" subtitle="Crie seu acesso e configure seu perfil inicial." />
+        <PageHeader
+          title="Registrar"
+          subtitle="Crie o seu acesso. Contas Designer/Lojista/Fabricante ficam pendentes até aprovação manual (acesso Visitor entretanto)."
+        />
 
         <RegisterUserForm
           submitLabel="Criar conta"

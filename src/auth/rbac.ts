@@ -14,6 +14,7 @@ export {
   canRenameProject,
   canSendProjectToProduction,
   canViewAllProjects,
+  canViewExpandedProjectList,
   canViewOwnProjects,
   hasEffectivePermission,
   hasFullAccess,

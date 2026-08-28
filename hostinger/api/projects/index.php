@@ -567,7 +567,7 @@ if ($method === "POST" && $action === "") {
 function build_projects_list(
     array $entries,
     string $scope,
-    string $ownerId,
+    array $authUser,
     string $thumbsDir,
     bool $namedOnly = false
 ): array {
@@ -583,8 +583,8 @@ function build_projects_list(
         if ($pid === "") {
             continue;
         }
-        if ($scope === "mine" && $ownerId !== "") {
-            if (($data["ownerId"] ?? "") !== $ownerId) {
+        if ($scope === "mine") {
+            if (!pimo_authz_list_includes_project($authUser, $data)) {
                 continue;
             }
         }
@@ -782,7 +782,7 @@ if ($method === "GET" && $action === "projetos") {
         $ownerId = (string) $pimoAuthUser["id"];
     }
     $entries = list_project_entries($dataDir);
-    $projects = build_projects_list($entries, $scope, $ownerId, $thumbsDir, true);
+    $projects = build_projects_list($entries, $scope, $pimoAuthUser, $thumbsDir, true);
 
     respond_json([
         "status" => "ok",
@@ -806,7 +806,7 @@ if ($method === "GET" && $action === "") {
             $ownerId = (string) $pimoAuthUser["id"];
         }
         $entries = list_project_entries($dataDir);
-        $projects = build_projects_list($entries, $scope, $ownerId, $thumbsDir, false);
+        $projects = build_projects_list($entries, $scope, $pimoAuthUser, $thumbsDir, false);
 
         respond_json([
             "status" => "ok",

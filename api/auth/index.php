@@ -211,6 +211,62 @@ function pimo_save_users(array $users): void
     );
 }
 
+/** Retrocompat: contas antigas sem accountStatus tratam-se como aprovadas. */
+function pimo_user_account_status(array $user): string
+{
+    $status = strtolower(trim((string) ($user['accountStatus'] ?? 'approved')));
+    return $status === 'pending' ? 'pending' : 'approved';
+}
+
+/** Role efectivo para RBAC — pending usa sempre visitor até aprovação manual. */
+function pimo_user_effective_role(array $user): string
+{
+    if (pimo_user_account_status($user) === 'pending') {
+        return 'visitor';
+    }
+    $role = strtolower(trim((string) ($user['role'] ?? 'visitor')));
+    return $role !== '' ? $role : 'visitor';
+}
+
+/** ID do admin da plataforma (primeiro user com role admin). */
+function pimo_find_platform_admin_id(): ?string
+{
+    foreach (pimo_load_users() as $user) {
+        if (strtolower(trim((string) ($user['role'] ?? ''))) === 'admin') {
+            $id = trim((string) ($user['id'] ?? ''));
+            if ($id !== '') {
+                return $id;
+            }
+        }
+    }
+    return null;
+}
+
+/** @param array<string,mixed> $user */
+function pimo_user_public(array $user): array
+{
+    $effectiveRole = pimo_user_effective_role($user);
+    return [
+        'id' => (string) ($user['id'] ?? ''),
+        'email' => (string) ($user['email'] ?? ''),
+        'username' => (string) ($user['username'] ?? ''),
+        'role' => (string) ($user['role'] ?? 'visitor'),
+        'effectiveRole' => $effectiveRole,
+        'accountStatus' => pimo_user_account_status($user),
+        'requestedRole' => isset($user['requestedRole']) ? (string) $user['requestedRole'] : null,
+        'accountCategory' => isset($user['accountCategory']) ? (string) $user['accountCategory'] : null,
+        'createdAt' => (string) ($user['createdAt'] ?? ''),
+        'approvedAt' => isset($user['approvedAt']) ? (string) $user['approvedAt'] : null,
+        'approvedBy' => isset($user['approvedBy']) ? (string) $user['approvedBy'] : null,
+    ];
+}
+
+/** @return list<string> */
+function pimo_effective_permissions_for_user(array $user): array
+{
+    return pimo_effective_permissions(pimo_user_effective_role($user));
+}
+
 /**
  * Seed admin conhecido — APENAS local/development.
  * Staging/production/preview: nunca cria admin@pimo.local / admin123.
@@ -378,17 +434,22 @@ function pimo_auth_handle_register(): void
         pimo_json_response(['status' => 'error', 'message' => 'accountCategory inválido'], 400);
         return;
     }
-    $role = pimo_register_normalize_public_role($body['role'] ?? null);
+    $isVisitorCategory = $accountCategory === 'visitor';
     $id = bin2hex(random_bytes(16));
     $newUser = [
         'id' => $id,
         'email' => $email,
         'username' => $username,
         'passwordHash' => password_hash($password, PASSWORD_DEFAULT),
-        'role' => $role,
+        'role' => 'visitor',
         'accountCategory' => $accountCategory,
+        'accountStatus' => $isVisitorCategory ? 'approved' : 'pending',
+        'requestedRole' => $isVisitorCategory ? null : 'pro',
         'createdAt' => gmdate('c'),
     ];
+    if ($isVisitorCategory) {
+        $newUser['approvedAt'] = gmdate('c');
+    }
     $users[] = $newUser;
     pimo_save_users($users);
     try {
@@ -401,13 +462,7 @@ function pimo_auth_handle_register(): void
     }
     pimo_json_response([
         'status' => 'ok',
-        'user' => [
-            'id' => $id,
-            'username' => $username,
-            'email' => $email,
-            'role' => $role,
-            'accountCategory' => $accountCategory,
-        ],
+        'user' => pimo_user_public($newUser),
     ], 201);
 }
 
@@ -462,12 +517,21 @@ function pimo_auth_handle_login(): void
     $secret = pimo_require_jwt_secret();
     $id = (string) $user['id'];
     $username = (string) ($user['username'] ?? $user['email']);
-    $role = (string) ($user['role'] ?? 'visitor');
+    $effectiveRole = pimo_user_effective_role($user);
+    $perms = pimo_effective_permissions_for_user($user);
+    if (pimo_user_effective_role($user) === 'admin') {
+        $perms = array_values(array_unique([...$perms, 'admin.full_access']));
+    }
     $token = pimo_jwt_encode(['sub' => $id, 'email' => $user['email']], $secret);
     pimo_json_response([
         'status' => 'ok',
         'token' => $token,
-        'user' => ['id' => $id, 'username' => $username, 'role' => $role],
+        'user' => [
+            ...pimo_user_public($user),
+            'username' => $username,
+            'role' => $effectiveRole,
+            'permissions' => $perms,
+        ],
     ]);
 }
 
@@ -539,19 +603,19 @@ function pimo_auth_handle_me(): void
         pimo_json_response(['status' => 'error', 'message' => 'Utilizador não encontrado'], 401);
         return;
     }
-    $role = (string) ($user['role'] ?? 'visitor');
-    $perms = pimo_effective_permissions($role);
-    if ($role === 'admin') {
+    $effectiveRole = pimo_user_effective_role($user);
+    $perms = pimo_effective_permissions_for_user($user);
+    if ($effectiveRole === 'admin') {
         $perms = array_values(array_unique([...$perms, 'admin.full_access']));
     }
     pimo_json_response([
         'status' => 'ok',
         'user' => [
-            'id' => (string) $user['id'],
+            ...pimo_user_public($user),
             'username' => (string) ($user['username'] ?? $user['email']),
-            'role' => $role,
+            'role' => $effectiveRole,
+            'permissions' => $perms,
         ],
-        'permissions' => $perms,
     ]);
 }
 

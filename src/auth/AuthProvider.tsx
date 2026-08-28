@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { getMe, login as loginApi } from "../api/authApi";
+import { getMe, login as loginApi, mapAuthUserFromApi } from "../api/authApi";
 import { setApiToken } from "../api/apiClient";
 import {
   clearLocalAuthSession,
@@ -115,23 +115,12 @@ export function AuthProvider({ children }: Props) {
     if (!me?.user?.id) throw new Error("Resposta inválida do servidor");
 
     setToken(loginResult.token);
-    setUser({
-      id: me.user.id,
-      username: me.user.username,
-      role: me.user.role,
-    });
+    setUser(mapAuthUserFromApi(me.user));
     setPermissions(Array.isArray(me.user.permissions) ? me.user.permissions : []);
     setLocalDevSessionActive(false);
 
     localStorage.setItem(STORAGE_TOKEN, loginResult.token);
-    localStorage.setItem(
-      STORAGE_USER,
-      JSON.stringify({
-        id: me.user.id,
-        username: me.user.username,
-        role: me.user.role,
-      })
-    );
+    localStorage.setItem(STORAGE_USER, JSON.stringify(mapAuthUserFromApi(me.user)));
     localStorage.setItem(
       STORAGE_PERMISSIONS,
       JSON.stringify(Array.isArray(me.user.permissions) ? me.user.permissions : [])

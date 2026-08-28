@@ -4,6 +4,7 @@ import {
   authzCanMutateProject,
   authzCanSendToProduction,
   authzCanViewProject,
+  authzListIncludesProject,
   type AuthzUser,
 } from "./projectsAuthzRules";
 import { canUseRemoteProjectsApi, getRemoteApiBearerToken } from "./remoteApiAuth";
@@ -90,6 +91,61 @@ describe("Phase 1 — Projects authz / IDOR", () => {
     expect(authzCanSendToProduction(ultra)).toBe(true);
     expect(authzCanSendToProduction(userA())).toBe(false);
     expect(authzCanSendToProduction(admin())).toBe(true);
+  });
+
+  it("pending não cria projectos", () => {
+    const pending: AuthzUser = {
+      id: "p1",
+      username: "Pend",
+      role: "pro",
+      accountStatus: "pending",
+      permissions: ["project.edit.self", "project.view.self"],
+    };
+    expect(authzCanMutateProject(pending, null)).toBe(false);
+  });
+
+  it("ultra+ vê projectos do admin da plataforma (scope mine expandido)", () => {
+    const ultraPlus: AuthzUser = {
+      id: "up1",
+      username: "UltraPlus",
+      role: "ultra+",
+      effectiveRole: "ultra+",
+      accountStatus: "approved",
+      permissions: ["project.edit.self", "project.view.factory"],
+    };
+    const adminProject = { id: "proj-admin", ownerId: "admin-1" };
+    const ctx = { platformAdminId: "admin-1", sharedProjectIds: new Set<string>() };
+    expect(authzListIncludesProject(ultraPlus, adminProject, ctx)).toBe(true);
+    expect(authzCanViewProject(ultraPlus, adminProject, ctx)).toBe(true);
+    expect(authzCanMutateProject(ultraPlus, adminProject, ctx)).toBe(true);
+  });
+
+  it("partilha dá acesso ver+editar a projecto alheio", () => {
+    const sharedUser: AuthzUser = {
+      id: "user-c",
+      username: "Carol",
+      role: "pro",
+      accountStatus: "approved",
+      permissions: ["project.edit.self", "project.view.self"],
+    };
+    const project = { id: "shared-1", ownerId: "user-b" };
+    const ctx = { sharedProjectIds: new Set(["shared-1"]) };
+    expect(authzListIncludesProject(sharedUser, project, ctx)).toBe(true);
+    expect(authzCanMutateProject(sharedUser, project, ctx)).toBe(true);
+  });
+
+  it("ultra+ pending não acede projectos do admin", () => {
+    const pendingUltraPlus: AuthzUser = {
+      id: "up-pending",
+      username: "UPend",
+      role: "ultra+",
+      effectiveRole: "visitor",
+      accountStatus: "pending",
+      permissions: ["project.view.self"],
+    };
+    const adminProject = { id: "proj-admin", ownerId: "admin-1" };
+    const ctx = { platformAdminId: "admin-1" };
+    expect(authzListIncludesProject(pendingUltraPlus, adminProject, ctx)).toBe(false);
   });
 });
 

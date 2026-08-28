@@ -7,39 +7,85 @@ export type AuthzUser = {
   id: string;
   username: string;
   role: string;
+  effectiveRole?: string;
+  accountStatus?: "approved" | "pending";
   permissions: string[];
+};
+
+export type AuthzContext = {
+  sharedProjectIds?: Set<string>;
+  platformAdminId?: string | null;
 };
 
 export function authzHas(user: AuthzUser, permission: string): boolean {
   return user.permissions.includes(permission);
 }
 
-export function authzIsPlatformAdmin(user: AuthzUser): boolean {
-  return authzHas(user, "admin.full_access") || user.role === "admin";
+export function authzEffectiveRole(user: AuthzUser): string {
+  if (user.accountStatus === "pending") {
+    return "visitor";
+  }
+  return user.effectiveRole ?? user.role;
 }
 
+export function authzIsPlatformAdmin(user: AuthzUser): boolean {
+  return authzHas(user, "admin.full_access") || authzEffectiveRole(user) === "admin";
+}
+
+/** Listagem scope=all — só admin / project.view.all (não ultra+). */
 export function authzCanViewAllProjects(user: AuthzUser): boolean {
   return authzHas(user, "project.view.all") || authzIsPlatformAdmin(user);
 }
 
-export function authzCanViewProject(
+function authzUltraPlusAdminProjectAccess(
   user: AuthzUser,
-  project: { ownerId?: string }
+  projectOwnerId: string,
+  ctx: AuthzContext
+): boolean {
+  if (authzEffectiveRole(user) !== "ultra+") return false;
+  if (user.accountStatus === "pending") return false;
+  const adminId = ctx.platformAdminId ?? null;
+  return Boolean(adminId && projectOwnerId === adminId);
+}
+
+function authzHasShare(_user: AuthzUser, projectId: string, ctx: AuthzContext): boolean {
+  if (!projectId || !ctx.sharedProjectIds?.size) return false;
+  return ctx.sharedProjectIds.has(projectId);
+}
+
+export function authzListIncludesProject(
+  user: AuthzUser,
+  project: { id?: string; ownerId?: string },
+  ctx: AuthzContext = {}
 ): boolean {
   if (authzCanViewAllProjects(user)) return true;
   const ownerId = project.ownerId ?? "";
-  return ownerId !== "" && ownerId === user.id;
+  const projectId = project.id?.trim() ?? "";
+  if (ownerId !== "" && ownerId === user.id) return true;
+  if (projectId && authzHasShare(user, projectId, ctx)) return true;
+  if (ownerId !== "" && authzUltraPlusAdminProjectAccess(user, ownerId, ctx)) return true;
+  return false;
+}
+
+export function authzCanViewProject(
+  user: AuthzUser,
+  project: { id?: string; ownerId?: string },
+  ctx: AuthzContext = {}
+): boolean {
+  return authzListIncludesProject(user, project, ctx);
 }
 
 export function authzCanMutateProject(
   user: AuthzUser,
-  existingProject: { ownerId?: string } | null
+  existingProject: { id?: string; ownerId?: string } | null,
+  ctx: AuthzContext = {}
 ): boolean {
   if (authzIsPlatformAdmin(user)) return true;
   if (!authzHas(user, "project.edit.self")) return false;
-  if (existingProject === null) return true;
-  const ownerId = existingProject.ownerId ?? "";
-  return ownerId !== "" && ownerId === user.id;
+  if (existingProject === null) {
+    return user.accountStatus !== "pending";
+  }
+  return authzCanViewProject(user, existingProject, ctx);
 }
 
 export function authzBindProjectOwner(

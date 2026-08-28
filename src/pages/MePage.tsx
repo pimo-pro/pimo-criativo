@@ -52,7 +52,16 @@ export default function MePage() {
         <Section title="Dados do utilizador">
           <p>ID: {data.user.id}</p>
           <p>Username: {data.user.username}</p>
-          <p>Role: {data.user.role}</p>
+          <p>Role efectivo: {data.user.effectiveRole ?? data.user.role}</p>
+          {data.user.accountStatus === "pending" ? (
+            <p style={{ color: "var(--ui-color-warning, #b45309)", marginTop: 8 }}>
+              Conta pendente de aprovação
+              {data.user.requestedRole ? ` (pedido: ${data.user.requestedRole})` : ""}.
+              Enquanto aguarda, tem acesso de Visitor.
+            </p>
+          ) : (
+            <p>Estado da conta: {data.user.accountStatus ?? "approved"}</p>
+          )}
         </Section>
         <Section title="Permissions">
           <ul>
@@ -64,9 +73,14 @@ export default function MePage() {
         {full || adminPanel ? (
           <Section title="Área administrativa">
             {full ? (
-              <p style={{ marginTop: 0, fontSize: 13 }}>
-                <Link to="/admin/users">Gestão de utilizadores (API online)</Link>
-              </p>
+              <>
+                <p style={{ marginTop: 0, fontSize: 13 }}>
+                  <Link to="/admin/users">Gestão de utilizadores (API online)</Link>
+                </p>
+                <p style={{ marginTop: 0, fontSize: 13 }}>
+                  <Link to="/admin/project-shares">Partilhas de projectos</Link>
+                </p>
+              </>
             ) : null}
             {adminPanel ? (
               <p style={{ marginTop: 0, fontSize: 13 }}>
