@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-28T15:11:24.384Z",
+  "updatedAt": "2026-08-28T15:43:40.727Z",
   "news": [
+    {
+      "version": "v6.0828.1643",
+      "title": "fix(auth): rewrite Apache para GET/POST /project-shares",
+      "description": "fix(auth): rewrite Apache para GET/POST /project-shares",
+      "publishedAt": "2026-08-28T15:43:40.555Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "35d3fd62"
+    },
     {
       "version": "v6.0828.1611",
       "title": "fix(auth): rewrite Apache para GET /auth/verify-email",
       "description": "fix(auth): rewrite Apache para GET /auth/verify-email",
-      "publishedAt": "2026-08-28T15:11:24.203Z",
+      "publishedAt": "2026-08-28T16:13:17+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "69a6f276"
+      "commit": "f9cafd4"
     },
     {
       "version": "v6.0828.1552",
