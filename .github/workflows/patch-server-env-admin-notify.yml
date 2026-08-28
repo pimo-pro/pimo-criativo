@@ -1,0 +1,111 @@
+# One-shot: adiciona PIMO_ADMIN_NOTIFY_EMAIL em pimo-private/server-env.local.php (Hostinger).
+# Não imprime secrets. workflow_dispatch apenas.
+
+name: Patch Server Env Admin Notify Email
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: "Valor de PIMO_ADMIN_NOTIFY_EMAIL"
+        required: true
+        type: string
+        default: "shecivara@gmail.com"
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Patch pimo-private/server-env.local.php
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
+        run: |
+          set -euo pipefail
+          LOCAL="/tmp/server-env.local.php"
+          CANDIDATES=(
+            "../pimo-private/server-env.local.php"
+            "pimo-private/server-env.local.php"
+            "/pimo-private/server-env.local.php"
+          )
+          FOUND=""
+          for REMOTE in "${CANDIDATES[@]}"; do
+            set +e
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:passive-mode true;
+              set net:timeout 60;
+              open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+              get \"${REMOTE}\" -o \"${LOCAL}\";
+              bye
+            "
+            RC=$?
+            set -e
+            if [ "$RC" -eq 0 ] && [ -s "${LOCAL}" ]; then
+              FOUND="${REMOTE}"
+              echo "Found server-env at: ${REMOTE}"
+              break
+            fi
+            rm -f "${LOCAL}"
+          done
+          if [ -z "${FOUND}" ]; then
+            echo "::error::server-env.local.php não encontrado nos caminhos candidatos"
+            exit 1
+          fi
+          TS="$(date -u +%Y%m%dT%H%M%SZ)"
+          BAK="${FOUND}.bak-${TS}"
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            put \"${LOCAL}\" -o \"${BAK}\";
+            bye
+          "
+          echo "Backup criado: ${BAK}"
+          python3 - <<'PY'
+          import os, re, sys
+          path = "/tmp/server-env.local.php"
+          email = os.environ["ADMIN_EMAIL"].strip()
+          if not email or "@" not in email:
+              print("::error::admin_email inválido")
+              sys.exit(1)
+          raw = open(path, "r", encoding="utf-8").read()
+          line = f"putenv('PIMO_ADMIN_NOTIFY_EMAIL={email}');"
+          if re.search(r"PIMO_ADMIN_NOTIFY_EMAIL", raw):
+              new = re.sub(
+                  r"putenv\s*\(\s*['\"]PIMO_ADMIN_NOTIFY_EMAIL=[^'\"]*['\"]\s*\)\s*;",
+                  line,
+                  raw,
+                  count=1,
+              )
+              if new == raw:
+                  new = re.sub(
+                      r"(['\"]PIMO_ADMIN_NOTIFY_EMAIL['\"]\s*=>\s*)['\"][^'\"]*['\"]",
+                      rf"\1'{email}'",
+                      raw,
+                      count=1,
+                  )
+          else:
+              new = raw.rstrip() + "\n" + line + "\n"
+          open(path, "w", encoding="utf-8").write(new)
+          print("PIMO_ADMIN_NOTIFY_EMAIL configurado (valor não impresso)")
+          PY
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_HOST};
+            put \"${LOCAL}\" -o \"${FOUND}\";
+            bye
+          "
+          echo "PATCH_OK=1"
