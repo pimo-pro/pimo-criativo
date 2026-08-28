@@ -2,6 +2,25 @@
 declare(strict_types=1);
 
 /**
+ * Hostinger Shared: carrega env SERVER-ONLY se o ficheiro existir.
+ * Mesmo padrão que api/auth/index.php (quotes em _impl/quotes = irmão de _impl/auth).
+ */
+(function (): void {
+    $candidates = [
+        // Prod (lib em public_html/api/_impl/quotes): ../../../../ = /files/
+        __DIR__ . '/../../../../pimo-private/server-env.local.php',
+        // Fallback local / data ao lado da lib (api/data ou api/_impl/data)
+        __DIR__ . '/../data/server-env.local.php',
+    ];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            require_once $path;
+            return;
+        }
+    }
+})();
+
+/**
  * Proxy server-side para o serviço de email de orçamentos.
  * O secret NÃO vai para o bundle Vite — vive em PIMO_INTERNAL_API_SECRET (Hostinger).
  *
