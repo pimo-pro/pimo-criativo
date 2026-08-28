@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-08-28T16:14:58.993Z",
+      "author": "pimo-pro",
+      "commitMessage": "feat(auth): códigos de convite admin com aprovação imediata e verificação de email",
+      "version": "v6.0828.1714"
+    },
+    {
       "publishedAt": "2026-08-28T15:43:39.495Z",
       "author": "pimo-pro",
       "commitMessage": "fix(auth): rewrite Apache para GET/POST /project-shares",

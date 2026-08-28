@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-28T15:43:40.727Z",
+  "updatedAt": "2026-08-28T16:14:59.779Z",
   "news": [
+    {
+      "version": "v6.0828.1714",
+      "title": "feat(auth): códigos de convite admin com aprovação imediata e verificação de email",
+      "description": "feat(auth): códigos de convite admin com aprovação imediata e verificação de email",
+      "publishedAt": "2026-08-28T16:14:59.609Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "7e50b2f3"
+    },
     {
       "version": "v6.0828.1643",
       "title": "fix(auth): rewrite Apache para GET/POST /project-shares",
       "description": "fix(auth): rewrite Apache para GET/POST /project-shares",
-      "publishedAt": "2026-08-28T15:43:40.555Z",
+      "publishedAt": "2026-08-28T16:45:27+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "35d3fd62"
+      "commit": "9271e99"
     },
     {
       "version": "v6.0828.1611",
