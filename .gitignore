@@ -65,3 +65,9 @@ scripts/armario_*.tcn
 
 # Cache local CLI Supabase — não versionar
 supabase/.temp/
+
+# Artefactos locais de agentes / diagnóstico (não versionar)
+_tmp_*/
+AUDITORIA_TECNICA_INTEGRAL.md
+scripts/_tmp_*.mjs
+
