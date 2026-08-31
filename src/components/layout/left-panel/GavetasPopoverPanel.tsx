@@ -301,7 +301,7 @@ export default function GavetasPopoverPanel({
                     {resolveDrawerDisplayName(item, index)}
                   </span>
                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    {Math.round(item.width)}ï¿½{Math.round(item.height)} mm
+                    {Math.round(item.width)}×{Math.round(item.height)} mm
                     {item.metadata?.frontHeightMm != null &&
                     item.metadata.frontHeightMm > 0 &&
                     Math.round(item.metadata.frontHeightMm) !==

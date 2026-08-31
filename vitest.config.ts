@@ -18,5 +18,8 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
     environment: "node",
     globals: false,
+    // Default de 5s é insuficiente: há testes de pipeline industrial completo e
+    // varrimentos de toda a árvore src/ que excedem 5s sob execução paralela.
+    testTimeout: 30_000,
   },
 });

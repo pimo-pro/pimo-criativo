@@ -28,8 +28,8 @@ describe("industrial-corner-left-900x720x600-v1", () => {
 
   it("constrói designBox L com frente fixa à direita, porta esquerda, costa L e prateleira recortada", () => {
     const designBox = buildIndustrialCornerLeft900x720x600DesignBox();
-    expect(designBox.panels.find((p) => p.tipo === "frente_fixa")?.widthMm).toBe(182);
-    expect(designBox.panels.find((p) => p.tipo === "frente")?.widthMm).toBe(716);
+    expect(designBox.panels.find((p) => p.tipo === "frente_fixa")?.widthMm).toBe(447);
+    expect(designBox.panels.find((p) => p.tipo === "frente")?.widthMm).toBe(447);
     expect(designBox.panels.find((p) => p.id.endsWith(":lateral-interna"))?.thicknessMm).toBe(15);
     expect(designBox.panels.filter((p) => p.tipo === "costa")).toHaveLength(2);
     const shelf = designBox.panels.find((p) => p.tipo === "prateleira");

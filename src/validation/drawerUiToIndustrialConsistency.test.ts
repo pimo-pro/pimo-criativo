@@ -49,7 +49,8 @@ describe("Certificação — consistência UI → Industrial", () => {
     const box = minimalBoxWithDrawers(layers);
     const cutlist = cutlistComPrecoFromBox(box, defaultRulesConfig);
     const lat = cutlist.find((p) => p.tipo === "gaveta_lat_esq");
-    expect(lat?.drillHoles?.some((h) => h.holeType === "corredica")).toBe(true);
+    // Peças da gaveta não levam furação de corrediça: apenas cavilhas + rasgo inferior.
+    expect(lat?.drillHoles?.some((h) => h.holeType === "corredica") ?? false).toBe(false);
 
     const rules = lat?.metadata as { drawerRules?: { slideType?: string } } | undefined;
     const drilling = buildPanelDrillingResult(

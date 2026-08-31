@@ -20,7 +20,9 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Desligada em favor da versão typescript-eslint: a regra base do JS não
+      // entende assinaturas de tipos e acusa nomes de parâmetros em `type Props`.
+      'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },

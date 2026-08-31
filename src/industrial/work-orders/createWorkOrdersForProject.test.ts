@@ -58,6 +58,9 @@ describe('createWorkOrdersForProject', () => {
       projectId: 'proj-1',
       projectName: 'Cozinha Teste',
       pieces: [samplePiece('piece-1')],
+      cutlist: [],
+      cutListItems: [],
+      boxNameById: {},
     });
 
     let callIndex = 0;
@@ -88,6 +91,9 @@ describe('createWorkOrdersForProject', () => {
       projectId: 'proj-2',
       projectName: 'Armário',
       pieces: [samplePiece('p1'), samplePiece('p2')],
+      cutlist: [],
+      cutListItems: [],
+      boxNameById: {},
     });
 
     const drafts: Array<{ station: string; tasks: unknown[] }> = [];

@@ -16,6 +16,7 @@ import {
   INDUSTRIAL_DRAWER_SINGLE_600_MODULE_ID,
   INDUSTRIAL_DRAWER_SINGLE_600_MODULE_NOME,
 } from "./modules/industrialDrawerSingleConstants";
+import { MODULE_SLIDE_EDGE_SETBACK_MM } from "../drawers/drilling/drawerSlideDrillingCatalog";
 
 const project = { projectName: "TEST_DRAWER_SINGLE", boxes: [], rules: defaultRulesConfig };
 
@@ -46,11 +47,20 @@ describe("industrial-drawer-single-600x720x500-v1", () => {
     }
 
     const lateralLe = designBox.panels.find((p) => p.id.endsWith(":lateral-le"))!;
-    expect(lateralLe.drillHoles.some((h) => h.holeTypeId === "corredica")).toBe(true);
+    expect(lateralLe.drillHoles.some((h) => h.holeTypeId.startsWith("corredica"))).toBe(true);
+    // Quadro V6: primeiro furo de corrediça a 38 mm da frente do painel.
+    expect(
+      lateralLe.drillHoles.some(
+        (h) =>
+          h.holeTypeId.startsWith("corredica") &&
+          Math.abs(h.xMm - MODULE_SLIDE_EDGE_SETBACK_MM) < 1
+      )
+    ).toBe(true);
     expect(lateralLe.drillHoles.some((h) => h.holeTypeId === "cavilha_10x30")).toBe(true);
 
     const latGaveta = designBox.panels.find((p) => p.tipo === "gaveta_lat_esq")!;
-    expect(latGaveta.drillHoles.some((h) => h.holeTypeId === "corredica")).toBe(true);
+    // Peças da gaveta não levam furação de corrediça: apenas cavilhas + rasgo inferior.
+    expect(latGaveta.drillHoles.some((h) => h.holeTypeId.startsWith("corredica"))).toBe(false);
     expect(latGaveta.drillHoles.some((h) => h.holeTypeId === "cavilha_10x30")).toBe(true);
 
     expect(designBox.panels.reduce((s, p) => s + p.drillHoles.length, 0)).toBeGreaterThan(30);

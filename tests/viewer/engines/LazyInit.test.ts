@@ -74,26 +74,28 @@ describe("Lazy-init motores pesados (Z-01.2.9)", () => {
     expect(typeof ConversationalDesignerEngine.ensure).toBe("function");
   });
 
-  it("o constructor do ViewerCore não instancia motores pesados", () => {
+  it("o wiring de construção do ViewerCore não instancia motores pesados", () => {
+    // O constructor do ViewerCore delega em wireViewerCoreConstructorImpl, por isso
+    // é o wiring que tem de ser auditado — no constructor a asserção seria vácua.
     const source = readFileSync(
-      join(process.cwd(), "src/3d/viewer-engine/ViewerCore.ts"),
+      join(process.cwd(), "src/3d/viewer-engine/ViewerCoreConstructorOps.ts"),
       "utf8"
     );
-    const start = source.indexOf("constructor(container");
-    const end = source.indexOf("queueMicrotask(() => this.notifyViewerReady())");
+    const start = source.indexOf("export function wireViewerCoreConstructorImpl");
+    const end = source.indexOf("queueMicrotask(() => host.notifyViewerReady())");
     expect(start).toBeGreaterThan(0);
     expect(end).toBeGreaterThan(start);
-    const ctor = source.slice(start, end);
-    expect(ctor).not.toContain("new LightingEngine");
-    expect(ctor).not.toContain("new ComposerEngine");
-    expect(ctor).not.toContain("new BoxEngine");
-    expect(ctor).not.toContain("new ViewerRoomEngine");
-    expect(ctor).not.toContain("designerEngine.ensure");
-    expect(ctor).not.toContain("new ManufacturingReportEngine");
-    expect(ctor).not.toContain("new CostReportEngine");
-    expect(ctor).not.toContain("new ConversationalDesignerEngine");
-    expect(ctor).toContain("new LayoutEngine");
-    expect(ctor).toContain("new CameraEngine");
-    expect(ctor).toContain("new SelectionEngine");
+    const wiring = source.slice(start, end);
+    expect(wiring).not.toContain("new LightingEngine");
+    expect(wiring).not.toContain("new ComposerEngine");
+    expect(wiring).not.toContain("new BoxEngine");
+    expect(wiring).not.toContain("new ViewerRoomEngine");
+    expect(wiring).not.toContain("designerEngine.ensure");
+    expect(wiring).not.toContain("new ManufacturingReportEngine");
+    expect(wiring).not.toContain("new CostReportEngine");
+    expect(wiring).not.toContain("new ConversationalDesignerEngine");
+    expect(wiring).toContain("new LayoutEngine");
+    expect(wiring).toContain("ensureViewerCameraEngine");
+    expect(wiring).toContain("createViewerSelectionEngine");
   });
 });

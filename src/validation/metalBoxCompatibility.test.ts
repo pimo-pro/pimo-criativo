@@ -4,7 +4,7 @@ import { settingsDefaults } from "../core/settings/settingsSchema";
 import { extractDrawerCutlistFromLayerItems } from "../services/drawerCutlistAdapter";
 
 describe("Drawer Rules — caixas metálicas", () => {
-  it("caixa metálica ignora laterais, fundo e traseira de madeira", () => {
+  it("caixa metálica remove laterais de madeira; fundo e traseira mantêm-se", () => {
     const settings = {
       ...settingsDefaults.gavetas,
       gavetaTipoCaixaMetalica: "Blum Legrabox" as const,
@@ -28,7 +28,12 @@ describe("Drawer Rules — caixas metálicas", () => {
 
     expect(layer.metalBoxType).toBe("Blum Legrabox");
     expect(layer.leftSideWidth).toBe(0);
-    expect(cutlist.map((item) => item.tipo)).toEqual(["gaveta_frente_int", "gaveta_frente_ext"]);
+    expect(cutlist.map((item) => item.tipo)).toEqual([
+      "gaveta_frente_int",
+      "gaveta_frente_ext",
+      "gaveta_fundo",
+      "gaveta_traseira",
+    ]);
     expect(cutlist[0].metadata?.drawerHardware).toBeTruthy();
   });
 

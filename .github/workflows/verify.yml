@@ -1,0 +1,54 @@
+name: Verify
+
+# Lint, typecheck e suite completa. Os passos correm sempre e o resultado de cada
+# um aparece no resumo, mesmo que falhem.
+#
+# `continue-on-error: true` mantém a verificacao nao-bloqueante enquanto a suite
+# nao esta verde. Quando estiver, remover essas linhas para tornar bloqueante.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Mesma versao do deploy.yml, para o CI validar o que o deploy constroi.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Typecheck
+        id: typecheck
+        continue-on-error: true
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Tests
+        id: tests
+        continue-on-error: true
+        run: npm run test
+
+      - name: Resumo
+        run: |
+          {
+            echo "| Passo | Resultado |"
+            echo "| --- | --- |"
+            echo "| Lint | ${{ steps.lint.outcome }} |"
+            echo "| Typecheck | ${{ steps.typecheck.outcome }} |"
+            echo "| Testes | ${{ steps.tests.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

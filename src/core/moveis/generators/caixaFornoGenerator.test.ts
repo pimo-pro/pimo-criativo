@@ -14,7 +14,10 @@ import { defaultRulesConfig, getNumDobradicas } from "../../rules/rulesConfig";
 import { convertWorkspaceToBox } from "../../../context/projectState";
 import type { PanelDrillHole, WorkspaceBox } from "../../types";
 import { buildViewerDrillMarkersByPanel } from "../../../modules/drilling/drillingAdapter";
-import { CORNER_FF_EDGE_DOWEL_DEPTH_MM } from "../../cornerCabinet/cornerFixedFrontDowels";
+import {
+  CORNER_FF_EDGE_DOWEL_DEPTH_MM,
+  CORNER_FF_FACE_DOWEL_DEPTH_MM,
+} from "../../cornerCabinet/cornerFixedFrontDowels";
 import { computeDoorVerticalGaps } from "../../doors/doorLayerGeometry";
 import { COSTA_FIXED_THICKNESS_MM } from "../../materials/materials.api";
 
@@ -327,9 +330,12 @@ describe("caixaFornoGenerator", () => {
     const latDir = items.find((i) => i.tipo === "lateral_direita");
     const latDirCavilhas = (latDir?.drillHoles ?? []).filter((h) => h.holeType === "cavilha");
     expect(latDirCavilhas.length).toBeGreaterThan(0);
-    for (const h of latDirCavilhas) {
-      expect(h.topDrillable).toBe(false);
-      expect(h.depth).toBe(CORNER_FF_EDGE_DOWEL_DEPTH_MM);
+    // Par de cavilha: borda no separador, face na lateral. A lateral também tem
+    // cavilhas de borda (ligação a cima/fundo), por isso isolamos as de face.
+    const latDirFaceCavilhas = latDirCavilhas.filter((h) => h.topDrillable === true);
+    expect(latDirFaceCavilhas.length).toBeGreaterThan(0);
+    for (const h of latDirFaceCavilhas) {
+      expect(h.depth).toBe(CORNER_FF_FACE_DOWEL_DEPTH_MM);
     }
     const viewerLatDirSepCavilhas = (markers.lateral_direita ?? []).filter((h) => h.tipo === "cavilha");
     expect(viewerLatDirSepCavilhas.length).toBeGreaterThan(0);

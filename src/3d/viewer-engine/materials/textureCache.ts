@@ -8,6 +8,11 @@ import * as THREE from "three";
 const cache = new Map<string, THREE.Texture>();
 let loader: THREE.TextureLoader | null = null;
 
+/** THREE.TextureLoader usa ImageLoader, que depende de `document`. */
+function canLoadTextures(): boolean {
+  return typeof document !== "undefined";
+}
+
 function getLoader(): THREE.TextureLoader {
   if (!loader) loader = new THREE.TextureLoader();
   return loader;
@@ -23,6 +28,7 @@ export function getCachedTexture(url: string): THREE.Texture | null {
   if (!key) return null;
   const existing = cache.get(key);
   if (existing) return existing;
+  if (!canLoadTextures()) return null;
   try {
     const texture = getLoader().load(key);
     texture.wrapS = THREE.RepeatWrapping;
@@ -43,6 +49,7 @@ export function loadTextureAsync(url: string): Promise<THREE.Texture | null> {
   if (!key) return Promise.resolve(null);
   const existing = cache.get(key);
   if (existing) return Promise.resolve(existing);
+  if (!canLoadTextures()) return Promise.resolve(null);
   return new Promise((resolve) => {
     getLoader().load(
       key,

@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import { buildDrawerSpecs, createDrawerObject } from "../3d/objects/DrawerFactory";
-import { getProfundidadeInternaUútilMm } from "../core/box/boxDepthHelpers";
+import { getProfundidadeInternaUtilMm } from "../core/box/boxDepthHelpers";
 import { resolveDrawerFrontFlushLayoutMm } from "../core/drawers/drawerViewerLayout";
 import { generateDrawerGroup, drawerGroupToLayerItems } from "../core/drawers";
 import { settingsDefaults } from "../core/settings/settingsSchema";
@@ -15,7 +15,7 @@ describe("diagnóstico Z frente gaveta (Viewer)", () => {
     const P_ext = 560;
     const frontT = 19;
     const folga = settingsDefaults.gavetas.gavetaRecuoProfundidadeCorredicaMm;
-    const P_uútil = getProfundidadeInternaUútilMm(
+    const P_util = getProfundidadeInternaUtilMm(
       {
         dimensoes: { profundidade: P_ext },
         espessura: frontT,
@@ -27,8 +27,8 @@ describe("diagnóstico Z frente gaveta (Viewer)", () => {
       10
     );
 
-    const flush = resolveDrawerFrontFlushLayoutMm(P_ext, P_uútil, frontT, folga);
-    const carcassFrontZ = P_uútil / 2;
+    const flush = resolveDrawerFrontFlushLayoutMm(P_ext, P_util, frontT, folga);
+    const carcassFrontZ = P_util / 2;
 
     const group = generateDrawerGroup({
       boxWidth: 600,
@@ -45,7 +45,7 @@ describe("diagnóstico Z frente gaveta (Viewer)", () => {
     const layers = drawerGroupToLayerItems(group);
     const layer = layers[0]!;
     const [spec] = buildDrawerSpecs(layers, {
-      profundidadeUútilM: P_uútil / 1000,
+      profundidadeUtilM: P_util / 1000,
       profundidadeExternaM: P_ext / 1000,
     });
 
@@ -75,7 +75,7 @@ describe("diagnóstico Z frente gaveta (Viewer)", () => {
       JSON.stringify(
         {
           P_ext,
-          P_uútil,
+          P_util,
           carcassFrontZ,
           flush: {
             frontOuterZ: flush.frontOuterZ,

@@ -120,11 +120,11 @@ describe("drawer front material — caminhos UI e contrato viewer", () => {
       expect(src).toContain("updateDrawerMaterial");
     });
 
-    it("ViewerCore.updateDrawerMaterial reconstrói como updateDoorMaterial", () => {
-      const src = readSrc("3d/viewer-engine/ViewerCore.ts");
+    it("updateDrawerMaterial reconstrói a gaveta como updateDoorMaterial", () => {
+      const src = readSrc("3d/viewer-engine/ViewerCoreMaterialOps.ts");
       expect(src).toContain("createDrawerObject(spec,");
       expect(src).toContain("getDrawerSpecFromGroup");
-      expect(src).toMatch(/updateDrawerMaterial[\s\S]*?createDrawerObject[\s\S]*?this\.requestRender\(\)/);
+      expect(src).toMatch(/updateDrawerMaterial[\s\S]*?createDrawerObject[\s\S]*?deps\.requestRender\(\)/);
     });
 
     it("HomeLeftPanelSelected liga onDrawerMaterialChange a updateDrawerMaterial", () => {
