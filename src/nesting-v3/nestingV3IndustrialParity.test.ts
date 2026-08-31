@@ -17,6 +17,7 @@ import {
 import { runNestingV3AutoLayout } from "./nestingV3Engine";
 import { v3PiecesToCutPieces } from "../core/cutlayout/integration/v3ToCutPieces";
 import { v3TopLeftToPhysicalBl } from "../core/cutlayout/integration/layoutCoordinateAdapter";
+import { inferV3RotationFromFootprint } from "../core/cutlayout/integration/cutLayoutResultToV3State";
 import type { V3Piece, V3Sheet } from "./nestingV3Types";
 import { DEFAULT_NESTING_V3_SETTINGS, type NestingV3Settings } from "./nestingV3Settings";
 
@@ -122,14 +123,21 @@ function buildLayoutOptions(sheet: SheetDefinition, settings: NestingV3Settings)
   };
 }
 
-function sheetSignature(result: CutLayoutResult): string[] {
+function sheetSignature(
+  result: CutLayoutResult,
+  pieceDimsByKey: Map<string, { widthMm: number; heightMm: number }>
+): string[] {
   return result.sheets.flatMap((sr, sheetIndex) =>
     sr.placements
-      .map((p) => ({
-        key: `${sheetIndex}|${p.partName}|${p.boxId}|${Math.round(p.x_mm * 100)}|${Math.round(p.y_mm * 100)}|${p.rotacao}`,
-        sortY: p.y_mm,
-        sortX: p.x_mm,
-      }))
+      .map((p) => {
+        const dims = pieceDimsByKey.get(`${p.partName}|${p.boxId}`);
+        const rot = dims ? inferV3RotationFromFootprint(p, dims) : p.rotacao;
+        return {
+          key: `${sheetIndex}|${p.partName}|${p.boxId}|${Math.round(p.x_mm * 100)}|${Math.round(p.y_mm * 100)}|${rot}`,
+          sortY: p.y_mm,
+          sortX: p.x_mm,
+        };
+      })
       .sort((a, b) => a.sortY - b.sortY || a.sortX - b.sortX)
       .map((x) => x.key)
   );
@@ -229,7 +237,10 @@ describe("Nesting V3 industrial parity (TEST_1 / SPM_FULL / MPM_DUAL)", () => {
         scenario!.cutPieces.length - direct.sheets.reduce((n, s) => n + s.placements.length, 0)
       );
 
-      const directSig = sheetSignature(direct).sort();
+      const pieceDimsByKey = new Map(
+        v3Pieces.map((p) => [`${p.name}|${p.sourceBoxId ?? p.id}`, { widthMm: p.widthMm, heightMm: p.heightMm }])
+      );
+      const directSig = sheetSignature(direct, pieceDimsByKey).sort();
       const v3PiecesById = new Map((v3Result.pieces ?? v3Pieces).map((p) => [p.id, p]));
       const v3Sig = v3Result.placements
         .map((pl) => {

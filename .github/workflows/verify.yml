@@ -1,10 +1,7 @@
 name: Verify
 
-# Lint, typecheck e suite completa. Os passos correm sempre e o resultado de cada
-# um aparece no resumo, mesmo que falhem.
-#
-# `continue-on-error: true` mantém a verificacao nao-bloqueante enquanto a suite
-# nao esta verde. Quando estiver, remover essas linhas para tornar bloqueante.
+# Lint, typecheck e suite completa — bloqueante (suite 100% verde desde Fase 1 fechada).
+# Qualquer falha em lint, tsc ou test falha o job e bloqueia merge/push checks.
 
 on:
   push:
@@ -30,20 +27,18 @@ jobs:
 
       - name: Lint
         id: lint
-        continue-on-error: true
         run: npm run lint
 
       - name: Typecheck
         id: typecheck
-        continue-on-error: true
         run: npx tsc -p tsconfig.app.json --noEmit
 
       - name: Tests
         id: tests
-        continue-on-error: true
         run: npm run test
 
       - name: Resumo
+        if: always()
         run: |
           {
             echo "| Passo | Resultado |"

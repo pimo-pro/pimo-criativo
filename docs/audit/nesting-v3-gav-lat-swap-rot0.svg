@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="597.5" viewBox="0 0 740 597.5">
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <text x="20" y="24" font-size="14" font-family="Segoe UI,sans-serif" font-weight="600">
+    Nesting V3 — pós-fix footprint→rotação (SPM_FULL)
+  </text>
+  <text x="20" y="42" font-size="11" font-family="Segoe UI,sans-serif" fill="#475569">
+    Verde=match · Vermelho=swapped+rot0 · Azul=outro · {"total":13,"match":13,"swapped_rot0":0,"swapped_with_rot":0,"other":0,"withOverflow":0}
+  </text>
+  <g transform="translate(20,55)">
+    <rect x="0" y="0" width="700" height="517.5" fill="#e2e8f0" stroke="#64748b"/>
+    <g>
+  <rect x="2.5" y="382.25" width="170.5" height="132.75"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="4.5" y="394.25" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">lat_esq match r0</text>
+</g>
+<g>
+  <rect x="174" y="382.25" width="170.5" height="132.75"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="176" y="394.25" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">lat_dir match r0</text>
+</g>
+<g>
+  <rect x="345.5" y="432" width="131.5" height="83"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="347.5" y="444" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">div match r0</text>
+</g>
+<g>
+  <rect x="478" y="335.5" width="149" height="179.5"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="480" y="347.5" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">gav_frent_ext match r90</text>
+</g>
+<g>
+  <rect x="166" y="241.25" width="131.5" height="140"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="168" y="253.25" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">sep match r90</text>
+</g>
+<g>
+  <rect x="166" y="107.5" width="150" height="132.75"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="168" y="119.5" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">top match r0</text>
+</g>
+<g>
+  <rect x="298.5" y="248.5" width="150" height="132.75"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="300.5" y="260.5" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">fun match r0</text>
+</g>
+<g>
+  <rect x="2.5" y="191.25" width="162.5" height="190"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="4.5" y="203.25" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">rem match r90</text>
+</g>
+<g>
+  <rect x="2.5" y="390" width="133.5" height="125"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="4.5" y="402" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">gav_fun match r0</text>
+</g>
+<g>
+  <rect x="2.5" y="239" width="180" height="150"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="4.5" y="251" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">cos match r0</text>
+</g>
+<g>
+  <rect x="2.5" y="392.5" width="158.25" height="122.5"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="4.5" y="404.5" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">gav_lat_esq match r90</text>
+</g>
+<g>
+  <rect x="161.75" y="392.5" width="158.25" height="122.5"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="163.75" y="404.5" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">gav_lat_dir match r90</text>
+</g>
+<g>
+  <rect x="2.5" y="262.5" width="152.5" height="129"
+    fill="rgba(34,197,94,0.35)" stroke="#334155" stroke-width="1.5"/>
+  <text x="4.5" y="274.5" font-size="9" font-family="Segoe UI,sans-serif" fill="#0f172a">gav_cost match r0</text>
+</g>
+  </g>
+</svg>

@@ -53,7 +53,8 @@ function expectLegacyAdminParity(
   expect(fin.margemGanho).toBeUndefined();
   expect(fin.subtotal).toBe(round2(snap.subtotal));
   expect(fin.ivaValor).toBe(round2(snap.ivaValor));
-  expect(fin.totalProjeto).toBe(round2(snap.totalProjeto));
+  // Unificado arredonda só no fim; o Relatório (finalize) arredonda parcelas → ±0.01 possível.
+  expect(Math.abs(fin.totalProjeto - round2(snap.totalProjeto))).toBeLessThanOrEqual(0.01);
 }
 
 describe("margemGanho legacy baseline (opção B)", () => {
@@ -79,11 +80,15 @@ describe("margemGanho legacy baseline (opção B)", () => {
     expectLegacyAdminParity(fin, snap);
   });
 
-  it("recalcFinanceiro após snapshot: totais legacy == ADMIN (sem margemGanho)", () => {
+  it("recalcFinanceiro após snapshot: totais legacy == relatório pós-finalize", () => {
     const project = projectFixture("margem-legacy-baseline-recalc", 2);
     const snap = computeFinanceiroUnificado(project);
     const base = snapshotToReportFinanceiro(snap);
     const fin = recalcFinanceiro(base);
+    expect(fin.margemGanho).toBeUndefined();
+    expect(fin.subtotal).toBe(base.subtotal);
+    expect(fin.ivaValor).toBe(base.ivaValor);
+    expect(fin.totalProjeto).toBe(base.totalProjeto);
     expectLegacyAdminParity(fin, snap);
   });
 
@@ -98,7 +103,7 @@ describe("margemGanho legacy baseline (opção B)", () => {
     ];
     for (const fin of paths) {
       expect(fin.ivaValor).toBe(round2(snap.ivaValor));
-      expect(fin.totalProjeto).toBe(round2(snap.totalProjeto));
+      expect(Math.abs(fin.totalProjeto - round2(snap.totalProjeto))).toBeLessThanOrEqual(0.01);
     }
   });
 });

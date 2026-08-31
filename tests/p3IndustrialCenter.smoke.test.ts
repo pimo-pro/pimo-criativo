@@ -120,8 +120,9 @@ describe("P3 Smoke — IndustrialCenter", () => {
     const qtyCenter = viaCenter.reduce((s, i) => s + i.quantidade, 0);
     const qtyFromPecasRows = pecas.reduce((s, r) => s + Number(r[3] ?? 0), 0);
     expect(qtyFromPecasRows).toBe(qtyCenter);
-    expect(summary[0]?.[0]?.toLowerCase()).toMatch(/pe/);
-    expect(Number(summary[0]?.[1])).toBe(qtyCenter);
+    const pecasRow = summary.find((r) => /peças/i.test(String(r[0] ?? "")));
+    expect(pecasRow).toBeTruthy();
+    expect(Number(pecasRow![1])).toBe(qtyCenter);
   });
 
   it("armazem via resolve ? classic (nao shell) mesmo com overrides", async () => {
