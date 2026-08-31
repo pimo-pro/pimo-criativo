@@ -620,7 +620,7 @@ export class ViewerPanelVisibility {
 
   /**
    * Contorno completo de caixa alinhado ao BoxGeometry local (12 arestas).
-   * Usado para gavetas, prateleiras finas e remates — dimensões reais do mesh,
+   * Usado para gavetas, prateleiras finas e remates BoxGeometry — dimensões reais do mesh,
    * sem constantes industriais de espessura de caixaria.
    */
   private static createBoxWireframeContourGeometry(
@@ -974,11 +974,22 @@ export class ViewerPanelVisibility {
     } else if (
       mesh.userData?.drawerPart != null ||
       mesh.userData?.shelfIndex != null ||
-      (mesh.name && (mesh.name.startsWith("shelf-") || mesh.name.startsWith("drawer-"))) ||
-      mesh.userData?.isRematePiece === true
+      (mesh.name && (mesh.name.startsWith("shelf-") || mesh.name.startsWith("drawer-")))
     ) {
       const size = this.getMeshBoundingSize(mesh);
       geometry = ViewerPanelVisibility.createBoxWireframeContourGeometry(size.x, size.y, size.z);
+    } else if (mesh.userData?.isRematePiece === true) {
+      // BoxGeometry (avista/completo/L): AABB exacto às 12 arestas.
+      // Geometria custom (TAMPO postforming/ângulo/recorte/união): contorno da malha real.
+      if (mesh.geometry instanceof THREE.BoxGeometry) {
+        const size = this.getMeshBoundingSize(mesh);
+        geometry = ViewerPanelVisibility.createBoxWireframeContourGeometry(size.x, size.y, size.z);
+      } else if (mesh.geometry) {
+        geometry = new THREE.EdgesGeometry(
+          mesh.geometry,
+          ViewerPanelVisibility.FALLBACK_EDGES_ANGLE_DEG
+        );
+      }
     } else if (mesh.geometry) {
       geometry = new THREE.EdgesGeometry(mesh.geometry, ViewerPanelVisibility.FALLBACK_EDGES_ANGLE_DEG);
     }

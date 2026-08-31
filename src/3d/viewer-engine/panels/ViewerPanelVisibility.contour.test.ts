@@ -83,7 +83,7 @@ describe("ViewerPanelVisibility — contorno preto da malha real", () => {
     overlay!.geometry.dispose();
   });
 
-  it("recorte fogão: contorno preto sem arestas internas do furo", () => {
+  it("recorte fogão: EdgesGeometry inclui arestas do furo (igual ao outline de selecção)", () => {
     const { vis, material } = makeVisibility(false);
     const base = createTampoPostformingGeometry(1.2, 0.63, 0.03);
     const carved = buildTampoGeometryWithCutouts(base, [
@@ -97,7 +97,7 @@ describe("ViewerPanelVisibility — contorno preto da malha real", () => {
 
     const overlay = findBlackOverlay(mesh);
     expect(overlay).toBeTruthy();
-    expect(overlay!.geometry.attributes.position.count).toBeGreaterThan(0);
+    expect(overlay!.geometry.attributes.position.count).toBeGreaterThan(24);
 
     const arr = overlay!.geometry.attributes.position.array as ArrayLike<number>;
     let insideHole = false;
@@ -106,10 +106,8 @@ describe("ViewerPanelVisibility — contorno preto da malha real", () => {
       const my = (arr[i + 1] + arr[i + 4]) / 2;
       if (Math.abs(mx) < 0.30 && Math.abs(my) < 0.26) insideHole = true;
     }
-    expect(insideHole).toBe(false);
-    expect(hasSlantedPlanEdge(overlay!.geometry) || overlay!.geometry.attributes.position.count >= 24).toBe(
-      true
-    );
+    // Consistente com SelectionOutlineController (EdgesGeometry na malha com CSG).
+    expect(insideHole).toBe(true);
 
     material.dispose();
     overlay!.geometry.dispose();
