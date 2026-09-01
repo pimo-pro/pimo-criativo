@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { HoleFaceKind, HoleType, HoleTypeId } from '@/core/drill/holeCatalog';
 import {
@@ -110,9 +110,13 @@ export function useDrillDesignWorkspace(
   const [customGrooves, setCustomGrooves] = useState<PimoDrillGroove[]>([]);
   const [selectedHoleId, setSelectedHoleId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const pieceSyncKey = `${piece.id}|${piece.lengthMm}|${piece.widthMm}|${piece.thicknessMm}`;
+  const [prevPieceSyncKey, setPrevPieceSyncKey] = useState(pieceSyncKey);
+
+  if (prevPieceSyncKey !== pieceSyncKey) {
+    setPrevPieceSyncKey(pieceSyncKey);
     setDesignBox((prev) => syncDesignBoxToPiece(prev, piece));
-  }, [piece.id, piece.lengthMm, piece.widthMm, piece.thicknessMm]);
+  }
 
   const primaryPanelId = useMemo(
     () => getDrillPrimaryPanelId(piece.id),
