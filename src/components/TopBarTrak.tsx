@@ -29,38 +29,41 @@ export default function TopBarTrak() {
   const { user, logout } = useAuth();
   const base = useMemo(() => resolveTrakPageLabel(pathname), [pathname]);
 
+  const [loadedWorkOrderId, setLoadedWorkOrderId] = useState<string | null>(null);
   const [orderStation, setOrderStation] = useState<IndustrialStation | undefined>();
-  const [pageLabel, setPageLabel] = useState(base.label);
-  const [projectSlug, setProjectSlug] = useState<string | undefined>(base.projectSlug);
+  const [fetchedProjectSlug, setFetchedProjectSlug] = useState<string | undefined>();
+
+  const orderDetailsReady = Boolean(base.workOrderId && loadedWorkOrderId === base.workOrderId);
+  const pageLabel = orderDetailsReady && orderStation ? orderPageLabel(orderStation) : base.label;
+  const projectSlug = orderDetailsReady && fetchedProjectSlug ? fetchedProjectSlug : base.projectSlug;
 
   useEffect(() => {
-    setPageLabel(base.label);
-    setOrderStation(undefined);
-    setProjectSlug(base.projectSlug);
-
     if (!base.workOrderId) return;
 
     let cancelled = false;
     void fetchWorkOrderDetail(base.workOrderId).then((detail) => {
       if (cancelled) return;
+
+      setLoadedWorkOrderId(base.workOrderId ?? null);
+
       const station = detail.order?.station;
-      if (isStation(station)) {
-        setOrderStation(station);
-        setPageLabel(orderPageLabel(station));
-      }
+      setOrderStation(isStation(station) ? station : undefined);
+
       const projectId = detail.order?.projectId;
       if (projectId) {
         const identity = resolveProjectIdentity(projectId);
         if (identity?.slug && !isInternalProjectId(identity.slug)) {
-          setProjectSlug(identity.slug);
+          setFetchedProjectSlug(identity.slug);
+          return;
         }
       }
+      setFetchedProjectSlug(undefined);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [base.label, base.workOrderId, base.projectSlug]);
+  }, [base.workOrderId]);
 
   const station = base.station ?? orderStation;
   const indicators = useTopBarTrakIndicators({
