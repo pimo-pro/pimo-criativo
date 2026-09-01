@@ -57,7 +57,10 @@ function alertToSupervisor(alert: RtoAlertPayload): SupervisorAlertItem {
 export function useIndustrialRealtime(options: UseIndustrialRealtimeOptions) {
   const { mode, station, onDataRefresh } = options;
   const onDataRefreshRef = useRef(onDataRefresh);
-  onDataRefreshRef.current = onDataRefresh;
+
+  useEffect(() => {
+    onDataRefreshRef.current = onDataRefresh;
+  }, [onDataRefresh]);
 
   const [connected, setConnected] = useState(false);
   const [realtimeAlerts, setRealtimeAlerts] = useState<SupervisorAlertItem[]>([]);
