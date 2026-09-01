@@ -9,11 +9,19 @@ import {
 import { getOrCreateIndustrialUser } from '@/industrial/persistence/users/getOrCreateIndustrialUser';
 
 import { PIECE_PERSISTENCE_TABLES } from '../tables';
+import {
+  industrialPersistBlocked,
+  industrialPersistRejected,
+  type IndustrialPersistResult,
+} from '../shared/industrialPersistResult';
 import { assertPieceId } from '../shared/validation';
 import type { PieceEventPayload } from '../shared/types';
 import { buildSystemEventInsertPayload } from './buildSystemEventInsertPayload';
 
-export async function logPieceEvent(pieceId: string, payload: PieceEventPayload) {
+export async function logPieceEvent(
+  pieceId: string,
+  payload: PieceEventPayload,
+): Promise<IndustrialPersistResult> {
   assertPieceId(pieceId);
   if (!payload.type) throw new Error('Tipo de evento inválido.');
 
@@ -30,7 +38,9 @@ export async function logPieceEvent(pieceId: string, payload: PieceEventPayload)
     console.warn(
       `[industrial] Evento "${payload.type}" não registado — work_order_id em falta ou inválido (peça ${pieceId}).`,
     );
-    return null;
+    return industrialPersistRejected(
+      `Evento "${payload.type}" não registado — work_order_id em falta ou inválido`,
+    );
   }
 
   const industrialUser = await getOrCreateIndustrialUser(payload.userId);
@@ -46,7 +56,9 @@ export async function logPieceEvent(pieceId: string, payload: PieceEventPayload)
     console.warn(
       `[industrial] Evento "${payload.type}" não registado — industrial_user_id inválido (peça ${pieceId}).`,
     );
-    return null;
+    return industrialPersistRejected(
+      `Evento "${payload.type}" não registado — industrial_user_id inválido`,
+    );
   }
 
   // Writes bloqueados em PROD via proxy supabase (writePolicy / client.ts).
@@ -57,8 +69,10 @@ export async function logPieceEvent(pieceId: string, payload: PieceEventPayload)
     .single();
 
   if (error) {
-    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') return null;
+    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') {
+      return industrialPersistBlocked();
+    }
     throw new Error(error.message);
   }
-  return data;
+  return { ok: true, data };
 }

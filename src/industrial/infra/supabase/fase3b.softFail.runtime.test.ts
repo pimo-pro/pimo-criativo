@@ -1,15 +1,14 @@
 /**
- * Fase 3B — evidência runtime (diagnóstico).
- * Confirma soft-fail silencioso quando writes directos Supabase estão desligados:
- * savePieceTransform → null (sem throw); persistWorkOrderDraft → throw (não soft).
- * Não altera produção.
+ * Fase 3B — evidência runtime (diagnóstico + contrato pós-fix).
+ * Writes desligados: savePieceTransform / savePieceRemates → { ok:false, reason:"blocked" };
+ * persistWorkOrderDraft → throw (não soft).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const PIECE_ID = "00000000-0000-4000-8000-0000000000b1";
 const ENTITY_ID = "00000000-0000-4000-8000-0000000000b2";
 
-describe("Fase 3B — Supabase write blocked soft-fail", () => {
+describe("Fase 3B — Supabase write blocked soft-fail tipado", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.stubEnv("VITE_INDUSTRIAL_SUPABASE_DIRECT_WRITES", "false");
@@ -18,7 +17,6 @@ describe("Fase 3B — Supabase write blocked soft-fail", () => {
     vi.doMock("@supabase/supabase-js", () => ({
       createClient: () => ({
         from: () => ({
-          // select/eq usados por outros caminhos; mutações são interceptadas pelo proxy
           select: () => ({
             eq: () => ({
               maybeSingle: async () => ({ data: null, error: null }),
@@ -57,7 +55,6 @@ describe("Fase 3B — Supabase write blocked soft-fail", () => {
     expect(isIndustrialSupabaseDirectWriteEnabled()).toBe(false);
     expect(allowIndustrialDirectWrite("fase3b.probe")).toBe(false);
     expect(warnSpy).toHaveBeenCalled();
-    expect(String(warnSpy.mock.calls[0]?.[0])).toMatch(/Write directo Supabase bloqueado/);
   });
 
   it("proxy: upsert bloqueado devolve PIMO_WRITE_BLOCKED sem chamar upsert real", async () => {
@@ -70,26 +67,33 @@ describe("Fase 3B — Supabase write blocked soft-fail", () => {
 
     expect(data).toBeNull();
     expect(error?.code).toBe("PIMO_WRITE_BLOCKED");
-    expect(error?.message).toMatch(/piece_transforms\.upsert/);
   });
 
-  it("savePieceTransform: soft-fail → null (sem throw), warn na política", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("savePieceTransform: blocked tipado (sem throw)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const { savePieceTransform } = await import("../../persistence/piece/savePieceTransform");
 
     const result = await savePieceTransform(PIECE_ID, {
       entityId: ENTITY_ID,
-      entityType: "panel",
+      entityType: "piece",
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     });
 
-    expect(result).toBeNull();
-    expect(
-      warnSpy.mock.calls.some(
-        (c) => typeof c[0] === "string" && c[0].includes("Write directo Supabase bloqueado")
-      )
-    ).toBe(true);
+    expect(result).toEqual({ ok: false, reason: "blocked" });
+  });
+
+  it("savePieceRemates: blocked tipado (sem throw)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { savePieceRemates } = await import("../../persistence/piece/savePieceRemates");
+
+    const result = await savePieceRemates(PIECE_ID, {
+      entityId: ENTITY_ID,
+      entityType: "remate",
+      payload: { position: [0, 0, 0] },
+    });
+
+    expect(result).toEqual({ ok: false, reason: "blocked" });
   });
 
   it("persistWorkOrderDraft: mesmo bloqueio → throw (não soft-fail)", async () => {

@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
+import { useToast } from '@/context/ToastContext';
 import { updatePieceTransform, updatePieceRemates, logPieceEventAction } from '@/industrial/api/pieceActions';
+import { notifyUser } from '@/industrial/errors/industrialNotificationBridge';
+import { isIndustrialPersistBlocked } from '@/industrial/persistence/shared/industrialPersistResult';
 
 import type { EntityTransform, PieceSelectableType, PieceToolMode, PieceTransformMap } from '../types';
+
+const BLOCKED_PERSIST_MESSAGE =
+  'Gravação industrial bloqueada (writes Supabase desligados). A posição local não foi sincronizada.';
 
 const SNAP_STEP = 0.01;
 
@@ -53,6 +59,7 @@ export function usePieceTransform(
     onPersisted,
   } = options;
 
+  const { showToast } = useToast();
   const [transforms, setTransforms] = useState<PieceTransformMap>(initialTransforms);
   const [toolMode, setToolMode] = useState<PieceToolMode>('select');
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -62,20 +69,37 @@ export function usePieceTransform(
     setTransforms(initialTransforms);
   }, [initialTransforms, pieceId]);
 
+  const notifyPersistBlocked = useCallback(() => {
+    notifyUser(
+      {
+        source: 'trak',
+        severity: 'warning',
+        step: 'Persistência peça',
+        message: BLOCKED_PERSIST_MESSAGE,
+        pieceId,
+      },
+      { showToast },
+    );
+  }, [pieceId, showToast]);
+
   const persistTransform = useCallback(
     async (entityId: string, transform: EntityTransform, eventType: 'piece_moved' | 'piece_rotated') => {
       if (!pieceId || !selectedType) return;
       setPersisting(true);
       try {
-        await updatePieceTransform(pieceId, {
+        const transformResult = await updatePieceTransform(pieceId, {
           entityId,
           entityType: selectedType,
           position: transform.position,
           rotation: transform.rotation,
         });
+        if (!transformResult.ok) {
+          if (isIndustrialPersistBlocked(transformResult)) notifyPersistBlocked();
+          return;
+        }
 
         if (selectedType === 'remate' || selectedType === 'rodape') {
-          await updatePieceRemates(pieceId, {
+          const rematesResult = await updatePieceRemates(pieceId, {
             entity: {
               entityId,
               entityType: selectedType,
@@ -85,9 +109,13 @@ export function usePieceTransform(
               },
             },
           });
+          if (!rematesResult.ok) {
+            if (isIndustrialPersistBlocked(rematesResult)) notifyPersistBlocked();
+            return;
+          }
         }
 
-        await logPieceEventAction(pieceId, {
+        const eventResult = await logPieceEventAction(pieceId, {
           type: eventType,
           workOrderId,
           userId,
@@ -98,12 +126,16 @@ export function usePieceTransform(
             rotation: transform.rotation,
           },
         });
+        if (!eventResult.ok) {
+          if (isIndustrialPersistBlocked(eventResult)) notifyPersistBlocked();
+          return;
+        }
         onPersisted?.();
       } finally {
         setPersisting(false);
       }
     },
-    [onPersisted, pieceId, selectedType, userId, workOrderId],
+    [notifyPersistBlocked, onPersisted, pieceId, selectedType, userId, workOrderId],
   );
 
   const getTransform = useCallback(

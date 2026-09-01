@@ -106,12 +106,22 @@ Correcções de testes / UI / CI (ex.: corner left 447/447, mocks work orders, m
 - Zero uso observado de presets `industrial-corner-(left|right)-900x720x600-v1`
 - JSON por vezes incompletos → candidato a **Fase 3**
 
+## Achados críticos ainda abertos (Fase 3+)
+
+| ID | Item | Notas |
+|---|---|---|
+| F3-edges | `updatePieceEdgeSelection` / `savePieceEdges` | Mesmo padrão pré-fix B: `savePieceEdges` **throw** no `PIMO_WRITE_BLOCKED`; `usePieceInteraction` chama `onPersisted`/reload sem verificar resultado. Fora do âmbito do fix B (`persistTransform`); tratar após C/D/E. |
+| F3-C | Work orders duplicáveis | `woIdempotencyConfig.skipExistingStationOrders: false` — evidência em curso |
+| F3-D | Dimensões gaveta legado (`gavetaRecuoProfundidadeCorredicaMm`) | Consistência com Quadro V6 / X1=38 / `corredica_marca` |
+| F3-E | JSON de projecto incompletos (SSH) | Serialização / campos omitidos |
+
 ## Próximos passos
 
 1. ~~Fechar as falhas restantes → CI bloqueante~~ **FEITO**
-2. **Fase 3** — riscos de dados silenciosos (sync / Supabase soft-fail / WO duplicáveis / dimensões gaveta legado / JSON incompletos) — evidência código + runtime **antes** de qualquer correção
+2. **Fase 3** — A (sync) + B (soft-fail tipado / persistTransform) feitos; evidência **C** (WO duplicáveis) a seguir; depois D → E (e F3-edges)
 3. Fase 2 — docs / flags / arredondamento financeiro (produto)
 4. Fases 5–7 — limpeza, modularidade, placeholders industriais
+5. Follow-up **F3-edges** após C/D/E
 
 ## Regras de trabalho (mantidas)
 

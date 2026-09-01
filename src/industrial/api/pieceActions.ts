@@ -85,26 +85,26 @@ export async function updatePieceRemates(
     return savePieceRemates(pieceId, rematesPayload.entity);
   }
 
-  const results = [];
+  const results: unknown[] = [];
   for (const remate of rematesPayload.remates ?? []) {
-    results.push(
-      await savePieceRemates(pieceId, {
-        entityId: remate.id,
-        entityType: 'remate',
-        payload: remate as unknown as Record<string, unknown>,
-      }),
-    );
+    const saved = await savePieceRemates(pieceId, {
+      entityId: remate.id,
+      entityType: 'remate',
+      payload: remate as unknown as Record<string, unknown>,
+    });
+    if (!saved.ok) return saved;
+    results.push(saved.data);
   }
   for (const rodape of rematesPayload.rodapes ?? []) {
-    results.push(
-      await savePieceRemates(pieceId, {
-        entityId: rodape.id,
-        entityType: 'rodape',
-        payload: rodape as unknown as Record<string, unknown>,
-      }),
-    );
+    const saved = await savePieceRemates(pieceId, {
+      entityId: rodape.id,
+      entityType: 'rodape',
+      payload: rodape as unknown as Record<string, unknown>,
+    });
+    if (!saved.ok) return saved;
+    results.push(saved.data);
   }
-  return results;
+  return { ok: true as const, data: results };
 }
 
 export async function updatePieceEdgeSelection(pieceId: string, input: SavePieceEdgesInput) {

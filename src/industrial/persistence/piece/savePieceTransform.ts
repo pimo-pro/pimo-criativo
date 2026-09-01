@@ -1,6 +1,10 @@
 import { supabase } from '@/industrial/infra/db';
 
 import { PIECE_PERSISTENCE_TABLES } from '../tables';
+import {
+  industrialPersistBlocked,
+  type IndustrialPersistResult,
+} from '../shared/industrialPersistResult';
 import { assertEntityId, assertPieceId, isVec3, jsonToVec3, vec3ToJson } from '../shared/validation';
 import type { PieceTransformRecord } from '../shared/types';
 
@@ -11,7 +15,10 @@ export interface SavePieceTransformInput {
   rotation: [number, number, number];
 }
 
-export async function savePieceTransform(pieceId: string, payload: SavePieceTransformInput) {
+export async function savePieceTransform(
+  pieceId: string,
+  payload: SavePieceTransformInput,
+): Promise<IndustrialPersistResult> {
   assertPieceId(pieceId);
   assertEntityId(payload.entityId);
   if (!isVec3(payload.position) || !isVec3(payload.rotation)) {
@@ -36,10 +43,12 @@ export async function savePieceTransform(pieceId: string, payload: SavePieceTran
     .single();
 
   if (error) {
-    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') return null;
+    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') {
+      return industrialPersistBlocked();
+    }
     throw new Error(error.message);
   }
-  return data;
+  return { ok: true, data };
 }
 
 export async function loadPieceTransforms(pieceId: string): Promise<PieceTransformRecord[]> {

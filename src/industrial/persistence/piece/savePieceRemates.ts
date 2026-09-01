@@ -1,6 +1,10 @@
 import { supabase } from '@/industrial/infra/db';
 
 import { PIECE_PERSISTENCE_TABLES } from '../tables';
+import {
+  industrialPersistBlocked,
+  type IndustrialPersistResult,
+} from '../shared/industrialPersistResult';
 import { assertEntityId, assertPieceId } from '../shared/validation';
 import type { PieceRemateRecord } from '../shared/types';
 
@@ -10,7 +14,10 @@ export interface SavePieceRematesInput {
   payload: Record<string, unknown>;
 }
 
-export async function savePieceRemates(pieceId: string, input: SavePieceRematesInput) {
+export async function savePieceRemates(
+  pieceId: string,
+  input: SavePieceRematesInput,
+): Promise<IndustrialPersistResult> {
   assertPieceId(pieceId);
   assertEntityId(input.entityId);
   if (!input.payload || typeof input.payload !== 'object') {
@@ -32,8 +39,13 @@ export async function savePieceRemates(pieceId: string, input: SavePieceRematesI
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
-  return data;
+  if (error) {
+    if ((error as { code?: string }).code === 'PIMO_WRITE_BLOCKED') {
+      return industrialPersistBlocked();
+    }
+    throw new Error(error.message);
+  }
+  return { ok: true, data };
 }
 
 export async function loadPieceRemates(pieceId: string): Promise<PieceRemateRecord[]> {
