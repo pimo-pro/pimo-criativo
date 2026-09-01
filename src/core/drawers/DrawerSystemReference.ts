@@ -195,13 +195,14 @@ const GAVETA_SETTINGS_RULES: DrawerRuleEntry[] = [
   },
   {
     id: "runner-clearance",
-    label: "Recuo profundidade corrediça (mm)",
+    label: "Recuo profundidade corrediça — espaço de instalação (mm)",
     value: String(settingsDefaults.gavetas.gavetaRecuoProfundidadeCorredicaMm),
-    formula: "legado UI — NÃO entra no bodyDepth; SSOT: sideDepth = bodyDepth − 10",
-    sourceFile: "src/core/drawers/DrawerParametrics.ts",
-    status: "legacy",
+    formula:
+      "cascata: (1) P útil − clearance → pool seleção NL; (2) bodyDepth = NL escolhido; (3) sideDepth = bodyDepth − 10",
+    sourceFile: "src/core/drawers/DrawerGenerationService.ts",
+    status: "official",
     notes:
-      "P3.15: setting preservado no schema; profundidade industrial = sideDepth = bodyDepth − 10 (DRAWER_SIDE_DEPTH_SLIDE_CLEARANCE_MM).",
+      "Default 20 mm (frente externa; única variante hoje). NÃO reduz bodyDepth: em generateDrawerGroup subtrai-se da profundidade útil interna ANTES de resolveDrawerSlideLength (seleção do comprimento padrão da corrediça). Depois, DRAWER_SIDE_DEPTH_SLIDE_CLEARANCE_MM (10 mm) reduz só a profundidade das laterais face ao NL montado. Dois efeitos em cascata, não dupla contagem. Futuro: 50 mm para frente interna (fora de âmbito).",
   },
   {
     id: "tipo-corredica",
@@ -688,10 +689,10 @@ export const DRAWER_SYSTEM_INCONSISTENCIES: DrawerInconsistency[] = [
   {
     id: "runner-clearance-hardcoded",
     severity: "low",
-    title: "gavetaRecuoProfundidadeCorredicaMm é legado UI (não reduz bodyDepth)",
+    title: "gavetaRecuoProfundidadeCorredicaMm — cascata 20 mm + 10 mm (documentado Fase 3D)",
     description:
-      "P3.15: setting gavetaRecuoProfundidadeCorredicaMm (default 20) é legado UI. SSOT industrial: bodyDepth = nominalDepth; sideDepth = bodyDepth − 10. Não subtrair 20 do corpo.",
-    modernSource: "drawerSlideDepth.ts resolveDrawerSideDepthMm",
+      "Comportamento correcto em produção (generateDrawerGroup → cutlist). O setting (default 20 mm) reserva espaço de instalação na SELEÇÃO do NL (profundidade útil − clearance → resolveDrawerSlideLength); bodyDepth = nominalDepth (NL escolhido, não encolhe). Depois sideDepth = bodyDepth − DRAWER_SIDE_DEPTH_SLIDE_CLEARANCE_MM (10 mm) nas laterais. A documentação P3.15 anterior classificava o 20 mm como «legado UI» — actualizado em DrawerSystemReference.",
+    modernSource: "DrawerGenerationService.ts + drawerSlideDepth.ts resolveDrawerSideDepthMm",
     resolveInPhase: 6,
   },
   {
@@ -907,8 +908,10 @@ export const DRAWER_GEOMETRY_PHASE6 = {
   },
   runnerClearance: {
     setting: "settings.gavetas.gavetaRecuoProfundidadeCorredicaMm",
-    formula: "legado — não altera bodyDepth; SSOT: sideDepth = bodyDepth − 10",
+    formula:
+      "20 mm (frente ext.): util − clearance → seleção NL; bodyDepth = NL; sideDepth = bodyDepth − 10 mm — cascata, não dupla contagem",
     defaultMm: settingsDefaults.gavetas.gavetaRecuoProfundidadeCorredicaMm,
+    consumer: "DrawerGenerationService.generateDrawerGroup (seleção) + DrawerParametrics (sideDepth)",
   },
   uiOverrides: {
     module: "drawerParametricOverrides.ts",

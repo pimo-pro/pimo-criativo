@@ -112,13 +112,63 @@ Correcções de testes / UI / CI (ex.: corner left 447/447, mocks work orders, m
 |---|---|---|
 | F3-edges | `updatePieceEdgeSelection` / `savePieceEdges` | Mesmo padrão pré-fix B: `savePieceEdges` **throw** no `PIMO_WRITE_BLOCKED`; `usePieceInteraction` chama `onPersisted`/reload sem verificar resultado. Fora do âmbito do fix B (`persistTransform`); tratar após C/D/E. |
 | F3-C | Work orders duplicáveis | **Fechado (Fase 3C):** `skipExistingStationOrders: true`. Nunca esteve true antes (só warn desde 2026-06-23). |
-| F3-D | Dimensões gaveta legado (`gavetaRecuoProfundidadeCorredicaMm`) | Consistência com Quadro V6 / X1=38 / `corredica_marca` |
-| F3-E | JSON de projecto incompletos (SSH) | Serialização / campos omitidos |
+| F3-D | Clearance corrediça 20 mm vs laterais −10 mm | **Fechado (Fase 3D):** documentação SSOT desactualizada — comportamento `generateDrawerGroup` correcto (cascata seleção NL + sideDepth). Nota produto: catálogo código `[350…600]` vs fornecedor 250–550 — verificar fora do código. |
+| F3-E | JSON de projecto incompletos (SSH) | Evidência código abaixo — **sem fix ainda** |
 
-## Próximos passos
+## Fase 3D — fechado (documentação SSOT)
+
+- **Veredicto:** não é bug de produção; SSOT em `DrawerSystemReference.ts` estava desactualizado (20 mm classificado como «legado UI»).
+- **Comportamento confirmado:** cascata em `generateDrawerGroup` — 20 mm reduzem profundidade útil para **selecionar** NL; `bodyDepth = nominalDepth`; laterais `bodyDepth − 10 mm` (`DRAWER_SIDE_DEPTH_SLIDE_CLEARANCE_MM`). Dois efeitos, não dupla contagem.
+- **Alteração:** apenas texto SSOT (`runner-clearance`, `runner-clearance-hardcoded`, `DRAWER_GEOMETRY_PHASE6.runnerClearance`).
+- **Nota produto (fora do código):** `DRAWER_SLIDE_LENGTHS_MM` = `[350, 400, 450, 500, 550, 600]` — confirmar catálogo fornecedor vs 250–550 mencionado pelo utilizador.
+- **Regressão:** suite completa **409 ficheiros / 1970 testes OK** (1 skipped), após actualização SSOT.
+
+## Fase 3E — JSON incompletos (evidência código, em curso)
+
+**Observação SSH (já registada):** ficheiros em `api/projects/data/*.json` por vezes omitem dados → auditorias forenses/sync não são 100% conclusivas.
+
+### Formato no servidor
+
+| Camada | O quê |
+|---|---|
+| POST body | `PimoProjectData` (`projectsApi.remoteSaveProject` → `buildPimoProjectDataFromRequest`) |
+| Ficheiro PHP | Grava `$input` tal qual (`index.php` POST) — **não** envolve `SavedProjectRecord.snapshot` |
+| GET load | Se não há chave `snapshot`, reconstrói via `toRecordFromProjectData` a partir de `settings.projectState` |
+
+### Pontos de perda / denormalização (código)
+
+1. **`buildPimoProjectDataFromRequest`** (`projectsMappers.ts`):
+   - SSOT do estado = `settings.projectState` (cópia integral de `serializeState`).
+   - Campos top-level (`boxes`, `shelves`, `dividers`, `holes`, …) são **extractos** do `projectState`.
+   - `holes` = flatten de `cutList[].drillHoles` apenas — **não** espelha todo o modelo de furação.
+   - `boxes` = `workspaceBoxes ?? boxes` — possível divergência se só uma chave existir no JSON antigo.
+
+2. **Merge defensivo PHP** (`index.php` ~513–528): preserva só `settings.projectReport` e `settings.productionRelease` se o POST não os trouxer. Outras chaves em `settings.*` **não** têm merge equivalente.
+
+3. **Relatório / production release** (`projectReportStore.ts`, `productionReleasePersist.ts`): usam padrão GET completo → funde uma chave → POST, precisamente porque o save normal pode sobrescrever. Comentário explícito em `productionReleasePersist.ts`: «Não apaga settings.projectReport».
+
+4. **Nesting V3:** estado **não** persiste no JSON de projecto no servidor (já no handoff) — exportações antigas não reconstruíveis só por SSH.
+
+5. **Load cliente** (`useProjectIoActions.loadProjectSnapshot`): revive **só** `entry.snapshot.projectState`; top-level `PimoProjectData.boxes` / `holes` no ficheiro SSH **não** entram no restore se `settings.projectState` estiver incompleto ou ausente.
+
+### Hipóteses ordenadas (pendente amostra SSH)
+
+| # | Hipótese | Evidência |
+|---|---|---|
+| H1 | Saves antigos / parciais sem `settings.projectState` completo | Load depende de `settings.projectState`; top-level é legado |
+| H2 | Race: POST snapshot antes de merge de `productionRelease` / `projectReport` | PHP merge parcial + outbox (`PRODUCTION_RELEASE_OUTBOX_KEY`) |
+| H3 | Campos novos de `ProjectState` nunca serializados em projectos guardados antes da feature | `reviveState` tolera ausência; forense vê «incompleto» |
+| H4 | Sync A (Fase 3A) falhou silenciosamente no passado | Menos provável pós-fix; verificar `updatedAt` local vs remoto |
+
+### Próximo passo E (sem fix)
+
+1. Script ou amostra manual: 3–5 JSON reais SSH — presença de `settings.projectState`, `workspaceBoxes`, `industrialPieceEdits`, `settings.productionRelease`.
+2. Comparar com offline IDB do mesmo `id` (se existir no cliente).
+3. Só então propor fix mínimo (ex.: merge PHP alargado vs. deixar de duplicar top-level).
+
 
 1. ~~Fechar as falhas restantes → CI bloqueante~~ **FEITO**
-2. **Fase 3** — A+B feitos e no remoto; **C fechado** (`skipExistingStationOrders: true`); evidência **D** (clearance legado) pronta; depois E + F3-edges
+2. **Fase 3** — A+B+C+D fechados; **E** (JSON incompletos) em curso; depois F3-edges
 3. Fase 2 — docs / flags / arredondamento financeiro (produto)
 4. Fases 5–7 — limpeza, modularidade, placeholders industriais
 5. Follow-up **F3-edges** após C/D/E
