@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-09-01T15:38:34.860Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(types): narrowing TS em sync/persist para build de producao",
+      "version": "v6.0901.1638"
+    },
+    {
       "publishedAt": "2026-08-28T16:14:58.993Z",
       "author": "pimo-pro",
       "commitMessage": "feat(auth): códigos de convite admin com aprovação imediata e verificação de email",

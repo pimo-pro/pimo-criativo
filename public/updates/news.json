@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-08-28T16:14:59.779Z",
+  "updatedAt": "2026-09-01T15:38:44.837Z",
   "news": [
+    {
+      "version": "v6.0901.1638",
+      "title": "fix(types): narrowing TS em sync/persist para build de producao",
+      "description": "fix(types): narrowing TS em sync/persist para build de producao",
+      "publishedAt": "2026-09-01T15:38:44.469Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "2268df59"
+    },
     {
       "version": "v6.0828.1714",
       "title": "feat(auth): códigos de convite admin com aprovação imediata e verificação de email",
       "description": "feat(auth): códigos de convite admin com aprovação imediata e verificação de email",
-      "publishedAt": "2026-08-28T16:14:59.609Z",
+      "publishedAt": "2026-08-28T17:16:50+01:00",
       "type": "feature",
       "author": "pimo-pro",
       "icon": "feature",
-      "commit": "7e50b2f3"
+      "commit": "f453a99"
     },
     {
       "version": "v6.0828.1643",
