@@ -27,7 +27,17 @@ export default function OperatorCodeInput({ state }: Props) {
     [state],
   );
 
-  const scanner = useOperatorQrScanner({
+  const {
+    videoRef,
+    cameraActive,
+    usbCaptureActive,
+    error,
+    lastScan,
+    startCamera,
+    stopCamera,
+    startUsbCapture,
+    stopUsbCapture,
+  } = useOperatorQrScanner({
     enabled: scannerOpen,
     continuous: true,
     onScan: handleScan,
@@ -44,21 +54,21 @@ export default function OperatorCodeInput({ state }: Props) {
   };
 
   const toggleCamera = () => {
-    if (scanner.cameraActive) {
-      scanner.stopCamera();
+    if (cameraActive) {
+      stopCamera();
       setScannerOpen(false);
       return;
     }
     setScannerOpen(true);
-    void scanner.startCamera();
+    void startCamera();
   };
 
   const toggleUsb = () => {
-    if (scanner.usbCaptureActive) {
-      scanner.stopUsbCapture();
+    if (usbCaptureActive) {
+      stopUsbCapture();
       return;
     }
-    scanner.startUsbCapture();
+    startUsbCapture();
   };
 
   return (
@@ -105,16 +115,16 @@ export default function OperatorCodeInput({ state }: Props) {
             <button
               type="button"
               onClick={toggleCamera}
-              style={industrialBtnStyle(scanner.cameraActive)}
+              style={industrialBtnStyle(cameraActive)}
             >
-              {scanner.cameraActive ? 'Parar câmara' : 'Ler QR (câmara)'}
+              {cameraActive ? 'Parar câmara' : 'Ler QR (câmara)'}
             </button>
             <button
               type="button"
               onClick={toggleUsb}
-              style={industrialBtnStyle(scanner.usbCaptureActive)}
+              style={industrialBtnStyle(usbCaptureActive)}
             >
-              {scanner.usbCaptureActive ? 'USB activo' : 'Leitor USB'}
+              {usbCaptureActive ? 'USB activo' : 'Leitor USB'}
             </button>
           </div>
         </form>
@@ -140,14 +150,14 @@ export default function OperatorCodeInput({ state }: Props) {
             <button type="submit" disabled={state.loading} style={industrialActionBtnStyle}>
               {state.loading ? 'A carregar…' : 'Carregar lote'}
             </button>
-            <button type="button" onClick={toggleUsb} style={industrialBtnStyle(scanner.usbCaptureActive)}>
-              {scanner.usbCaptureActive ? 'USB activo' : 'Leitor USB'}
+            <button type="button" onClick={toggleUsb} style={industrialBtnStyle(usbCaptureActive)}>
+              {usbCaptureActive ? 'USB activo' : 'Leitor USB'}
             </button>
           </div>
         </form>
       )}
 
-      {scanner.cameraActive ? (
+      {cameraActive ? (
         <div
           style={{
             marginTop: 10,
@@ -159,7 +169,7 @@ export default function OperatorCodeInput({ state }: Props) {
           }}
         >
           <video
-            ref={scanner.videoRef}
+            ref={videoRef}
             muted
             playsInline
             style={{ width: '100%', display: 'block', background: '#000' }}
@@ -178,16 +188,16 @@ export default function OperatorCodeInput({ state }: Props) {
             }}
           >
             Leitura contínua activa
-            {scanner.lastScan ? ` · último: ${scanner.lastScan}` : ''}
+            {lastScan ? ` · último: ${lastScan}` : ''}
           </div>
         </div>
       ) : null}
 
-      {scanner.error ? (
-        <p style={{ margin: '8px 0 0', color: '#f87171', fontSize: 11 }}>{scanner.error}</p>
+      {error ? (
+        <p style={{ margin: '8px 0 0', color: '#f87171', fontSize: 11 }}>{error}</p>
       ) : null}
 
-      {scanner.usbCaptureActive ? (
+      {usbCaptureActive ? (
         <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: 11 }}>
           Leitor USB activo — escaneie códigos (terminam com Enter).
         </p>

@@ -132,7 +132,16 @@ export default function StationPanel({
 }: StationPanelProps) {
   const themeTone = useIndustrialTone();
   const [scannerOpen, setScannerOpen] = useState(false);
-  const scanner = useOperatorQrScanner({
+  const {
+    videoRef,
+    cameraActive,
+    usbCaptureActive,
+    error: scannerError,
+    startCamera,
+    stopCamera,
+    startUsbCapture,
+    stopUsbCapture,
+  } = useOperatorQrScanner({
     enabled: scannerOpen,
     continuous: true,
     onScan: (code) => {
@@ -170,22 +179,22 @@ export default function StationPanel({
   const scannerBtnStyle = isLight ? industrialBtnStyleLight : industrialBtnStyle;
 
   const toggleCamera = () => {
-    if (scanner.cameraActive) {
-      scanner.stopCamera();
+    if (cameraActive) {
+      stopCamera();
       setScannerOpen(false);
       return;
     }
     setScannerOpen(true);
-    void scanner.startCamera();
+    void startCamera();
   };
 
   const toggleUsb = () => {
-    if (scanner.usbCaptureActive) {
-      scanner.stopUsbCapture();
+    if (usbCaptureActive) {
+      stopUsbCapture();
       return;
     }
     setScannerOpen(true);
-    scanner.startUsbCapture();
+    startUsbCapture();
   };
 
   return (
@@ -273,14 +282,14 @@ export default function StationPanel({
           <button type="submit" style={{ ...industrialConfirmBtnStyle, background: '#334155', padding: '8px 12px' }}>
             Ler
           </button>
-          <button type="button" onClick={toggleCamera} style={scannerBtnStyle(scanner.cameraActive)}>
-            {scanner.cameraActive ? 'Parar câmara' : 'Ler QR (câmara)'}
+          <button type="button" onClick={toggleCamera} style={scannerBtnStyle(cameraActive)}>
+            {cameraActive ? 'Parar câmara' : 'Ler QR (câmara)'}
           </button>
-          <button type="button" onClick={toggleUsb} style={scannerBtnStyle(scanner.usbCaptureActive)}>
-            {scanner.usbCaptureActive ? 'USB activo' : 'Leitor USB'}
+          <button type="button" onClick={toggleUsb} style={scannerBtnStyle(usbCaptureActive)}>
+            {usbCaptureActive ? 'USB activo' : 'Leitor USB'}
           </button>
         </div>
-        {scanner.cameraActive ? (
+        {cameraActive ? (
           <div
             style={{
               borderRadius: 8,
@@ -290,15 +299,15 @@ export default function StationPanel({
             }}
           >
             <video
-              ref={scanner.videoRef}
+              ref={videoRef}
               muted
               playsInline
               style={{ width: '100%', display: 'block', background: '#000' }}
             />
           </div>
         ) : null}
-        {scanner.error ? (
-          <p style={{ margin: 0, fontSize: 11, color: '#f87171' }}>{scanner.error}</p>
+        {scannerError ? (
+          <p style={{ margin: 0, fontSize: 11, color: '#f87171' }}>{scannerError}</p>
         ) : null}
       </form>
 

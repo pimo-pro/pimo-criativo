@@ -39,7 +39,16 @@ export default function SupervisorFiltersPanel({ snapshot, state }: SupervisorFi
     setNqrInput('');
   };
 
-  const scanner = useOperatorQrScanner({
+  const {
+    videoRef,
+    cameraActive,
+    usbCaptureActive,
+    error: scannerError,
+    startCamera,
+    stopCamera,
+    startUsbCapture,
+    stopUsbCapture,
+  } = useOperatorQrScanner({
     enabled: scannerOpen,
     continuous: true,
     onScan: submitCode,
@@ -77,43 +86,43 @@ export default function SupervisorFiltersPanel({ snapshot, state }: SupervisorFi
             <button
               type="button"
               onClick={() => {
-                if (scanner.cameraActive) {
-                  scanner.stopCamera();
+                if (cameraActive) {
+                  stopCamera();
                   setScannerOpen(false);
                   return;
                 }
                 setScannerOpen(true);
-                void scanner.startCamera();
+                void startCamera();
               }}
-              style={industrialBtnStyle(scanner.cameraActive)}
+              style={industrialBtnStyle(cameraActive)}
             >
-              {scanner.cameraActive ? 'Parar câmara' : 'Câmara'}
+              {cameraActive ? 'Parar câmara' : 'Câmara'}
             </button>
             <button
               type="button"
               onClick={() => {
-                if (scanner.usbCaptureActive) {
-                  scanner.stopUsbCapture();
+                if (usbCaptureActive) {
+                  stopUsbCapture();
                   return;
                 }
                 setScannerOpen(true);
-                scanner.startUsbCapture();
+                startUsbCapture();
               }}
-              style={industrialBtnStyle(scanner.usbCaptureActive)}
+              style={industrialBtnStyle(usbCaptureActive)}
             >
-              {scanner.usbCaptureActive ? 'USB activo' : 'USB'}
+              {usbCaptureActive ? 'USB activo' : 'USB'}
             </button>
           </div>
         </form>
-        {scanner.cameraActive ? (
+        {cameraActive ? (
           <video
-            ref={scanner.videoRef}
+            ref={videoRef}
             muted
             playsInline
             style={{ width: '100%', display: 'block', background: '#000', borderRadius: 6, maxHeight: 140 }}
           />
         ) : null}
-        {scanner.error ? <p style={{ margin: 0, fontSize: 11, color: '#f87171' }}>{scanner.error}</p> : null}
+        {scannerError ? <p style={{ margin: 0, fontSize: 11, color: '#f87171' }}>{scannerError}</p> : null}
       </section>
       <section style={{ display: 'grid', gap: 6 }}>
         <h3 style={industrialSectionTitleStyle}>Projetos</h3>
