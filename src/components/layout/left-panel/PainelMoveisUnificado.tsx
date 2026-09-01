@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import {
-  useMemo, useState, useCallback, useRef, useEffect,
+  useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect,
 } from "react";
 import { createPortal } from "react-dom";
 import { Canvas } from "@react-three/fiber";
@@ -363,6 +363,12 @@ export default function PainelMoveisUnificado() {
   const [activeItem, setActiveItem] = useState<UnifiedModelItem | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [config, setConfig]         = useState<BoxConfig>(DEFAULT_CONFIG);
+  const [panelWidth, setPanelWidth] = useState(300);
+
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (el) setPanelWidth(el.getBoundingClientRect().right);
+  }, [activeItem]);
 
   const allItems = useMemo(() => buildUnifiedMoveis(), []);
 
@@ -412,11 +418,6 @@ export default function PainelMoveisUnificado() {
     }, 80);
     setActiveItem(null);
   }, [activeItem, config, actions]);
-
-  // Panel width for flyout positioning
-  const panelWidth = panelRef.current
-    ? panelRef.current.getBoundingClientRect().right
-    : 300;
 
   return (
     <>
