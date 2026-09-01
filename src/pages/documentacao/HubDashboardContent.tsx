@@ -353,30 +353,31 @@ function DonutChart({ slices }: { slices: DashboardSlice[] }) {
   const stroke = 18;
   const total = slices.reduce((a, b) => a + b.value, 0) || 1;
   const circ = 2 * Math.PI * r;
-  let offset = 0;
+  const arcs = slices.map((s, index) => {
+    const len = (s.value / total) * circ;
+    const strokeDashoffset = -slices
+      .slice(0, index)
+      .reduce((sum, prev) => sum + (prev.value / total) * circ, 0);
+    return { ...s, len, strokeDashoffset };
+  });
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <svg viewBox={`0 0 ${size} ${size}`} width={160} height={160} role="img">
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={stroke} />
-        {slices.map((s) => {
-          const len = (s.value / total) * circ;
-          const el = (
-            <circle
-              key={s.id}
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={stroke}
-              strokeDasharray={`${len} ${circ - len}`}
-              strokeDashoffset={-offset}
-              transform={`rotate(-90 ${cx} ${cy})`}
-            />
-          );
-          offset += len;
-          return el;
-        })}
+        {arcs.map(({ id, color, len, strokeDashoffset }) => (
+          <circle
+            key={id}
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth={stroke}
+            strokeDasharray={`${len} ${circ - len}`}
+            strokeDashoffset={strokeDashoffset}
+            transform={`rotate(-90 ${cx} ${cy})`}
+          />
+        ))}
         <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="14" fontWeight="700" fill={C.text}>
           {total}
         </text>
