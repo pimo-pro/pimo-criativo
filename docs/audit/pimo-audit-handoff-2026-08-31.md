@@ -172,16 +172,27 @@ Correcções de testes / UI / CI (ex.: corner left 447/447, mocks work orders, m
 |---|---|
 | Persistência sep/div + modelos gaveta | Separadores/divisores (`sep`/`div`) e novos modelos de gaveta — confirmar se `serializeState` / `buildPimoProjectDataFromRequest` / load preservam correctamente. Backlog; não bloqueia fecho de E. |
 
-## Deploy / CI (urgente — 2026-09-01)
+## Deploy / CI — ciclo 2026-09-01 **FECHADO**
 
-| Workflow | Trigger | Estado |
+| Item | Estado |
+|---|---|
+| **Produção live** | **`v6.0901.1638`** — commit **`d4373571`** ([Actions #33527408474](https://github.com/pimo-pro/pimo-criativo/actions/runs/33527408474) success) |
+| Fix TS build (Fase 3A/3B) | `2268df59` — narrowing unions; deploy desbloqueado |
+| `verify.yml` | Push main continua a falhar no **Lint** (105 erros pré-existentes); não bloqueia deploy |
+| `deploy.yml` | Só tag `v*` via `npm run publish` — **não** dispara em push main |
+
+Correções de hoje (sync 3A, Supabase 3B, WO 3C, nesting V3, F3D doc, TS fix) **live** desde 2026-09-01 ~16:46 UTC.
+
+### Flakiness suite (2026-09-01 — 2 corridas completas)
+
+| Corrida | Falhas | Ficheiros |
 |---|---|---|
-| `verify.yml` | **push main + PR** | Últimos 5 runs **falharam no Lint** (105 erros ESLint pré-existentes; typecheck/testes skipped) |
-| `deploy.yml` | **só tag `v*`** (via `npm run publish`) | **Não dispara em push main.** Último deploy OK: **v6.0828.1714** (2026-08-28). Produção live = commit `f453a995` |
+| 1 | 4 timeouts | `drawerFrontCapMaterialDiagnostics`, `drawerFrontMaterialDiagnostics`, `drawerFrontMaterial`, `fase3b.softFail` (persistWorkOrderDraft) |
+| 2 | **0** | — |
 
-Commits de hoje (sync, Supabase, WO, nesting, F3D doc) estão em `main` mas **não estão live** até correr `npm run publish`.
+**Conclusão:** não é conjunto fixo de 3 — **varia com carga paralela** (corrida 2 verde). Investigar serialização/isolamento numa fase dedicada; não aumentar timeout ainda.
 
-### Achado de processo CI (verify.yml — não bloqueante agora)
+### Achado de processo CI (verify.yml — proposta futura)
 
 O `verify.yml` corre Lint → Typecheck → Tests **em sequência com fail-fast**: se Lint falha, TSC e testes **nunca correm**. Resultado: 5 pushes seguidos com Lint vermelho (105 erros pré-existentes) **mascararam** um erro real de build TS (Fase 3A/3B) sem qualquer sinal no Actions.
 
