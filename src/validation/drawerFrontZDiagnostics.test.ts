@@ -70,7 +70,7 @@ describe("diagnóstico Z frente gaveta (Viewer)", () => {
     const frontOuterWorldMm = (frontWorldZ + frontT / 2000) * 1000;
     const frontInnerWorldMm = (frontWorldZ - frontT / 2000) * 1000;
 
-    // eslint-disable-next-line no-console
+     
     console.log(
       JSON.stringify(
         {

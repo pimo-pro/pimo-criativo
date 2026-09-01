@@ -76,7 +76,7 @@ export function dimensionsEqual(a: { width: number; height: number; depth: numbe
   return Math.abs(a.width - b.width) < 1e-9 && Math.abs(a.height - b.height) < 1e-9 && Math.abs(a.depth - b.depth) < 1e-9;
 }
 
-const LATERAL_PANEL_NAMES = ["left", "right"] as const;
+type LateralPanelName = "left" | "right";
 
 function disposePanelGeometry(panel: THREE.Mesh): void {
   panel.traverse((child) => {
@@ -102,7 +102,7 @@ function dedupeStructuralPanel(group: THREE.Group, panelName: string): THREE.Mes
 
 function applyLateralPanelLayout(
   panel: THREE.Mesh,
-  panelName: (typeof LATERAL_PANEL_NAMES)[number],
+  panelName: LateralPanelName,
   spec: { size: readonly [number, number, number]; pos: readonly [number, number, number] },
   panelFactory: BoxUpdaterDeps["panelFactory"]
 ): void {
@@ -116,7 +116,7 @@ function applyLateralPanelLayout(
 
 function ensureLateralPanel(
   group: THREE.Group,
-  panelName: (typeof LATERAL_PANEL_NAMES)[number],
+  panelName: LateralPanelName,
   spec: { size: readonly [number, number, number]; pos: readonly [number, number, number] },
   mat: THREE.Material,
   deps: BoxUpdaterDeps

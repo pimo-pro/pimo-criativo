@@ -19,8 +19,6 @@ export default function HubAdicionadosContent() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     loadHubWhatsNew("adicionados")
       .then((list) => {
         if (!cancelled) setEntries(list);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import UnifiedPopover from "../../ui/UnifiedPopover";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
@@ -53,15 +53,16 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
   void materialsPicker;
   const { viewerApi } = usePimoViewerContext();
   const [activePanelId, setActivePanelId] = useState<string | null>(null);
+  const [activePanelBoxId, setActivePanelBoxId] = useState(selectedBox?.id);
+  if (selectedBox?.id !== activePanelBoxId) {
+    setActivePanelBoxId(selectedBox?.id);
+    setActivePanelId(null);
+  }
 
   const isPanelOpen = (panelId: string) => activePanelId === panelId;
   const setPanelOpen = (panelId: string, open: boolean) => {
     setActivePanelId(open ? panelId : null);
   };
-
-  useEffect(() => {
-    setActivePanelId(null);
-  }, [selectedBox?.id]);
 
   const profundidadeLeitura = useMemo(
     () => (selectedBox ? computeBoxProfundidadeLeituraMm(selectedBox, project.rules) : null),

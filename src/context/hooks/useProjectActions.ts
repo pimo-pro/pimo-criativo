@@ -173,34 +173,33 @@ export function useProjectActions(params: UseProjectActionsParams): ProjectActio
   }, [exportActions, updateProject]);
 
   return useMemo(() => {
-    const actions = Object.assign(
-      {} as ProjectActions,
-      coreActions,
-      historyActions,
-      projectIoActions,
-      layerActions,
-      divSepActions,
-      boxCrudActions,
-      boxTransformActions,
-      rulesActions,
-      viewerUiActions,
-      internalMeasurementActions,
-      designActions,
-      roomActions,
-      orlaActions,
-      observacoesActions,
-      industrialPieceEditsActions,
-      industrialDocumentOverridesActions,
-      drawerPresetActions,
-      remateActions,
-      cornerOrientationActions,
-      hematiActions,
-      rodapeActions,
-      autoRoomFillActions,
-      selectionTransformActions,
-      groupActions,
-      measurementAnchorActions
-    );
+    const actions = {
+      ...coreActions,
+      ...historyActions,
+      ...projectIoActions,
+      ...layerActions,
+      ...divSepActions,
+      ...boxCrudActions,
+      ...boxTransformActions,
+      ...rulesActions,
+      ...viewerUiActions,
+      ...internalMeasurementActions,
+      ...designActions,
+      ...roomActions,
+      ...orlaActions,
+      ...observacoesActions,
+      ...industrialPieceEditsActions,
+      ...industrialDocumentOverridesActions,
+      ...drawerPresetActions,
+      ...remateActions,
+      ...cornerOrientationActions,
+      ...hematiActions,
+      ...rodapeActions,
+      ...autoRoomFillActions,
+      ...selectionTransformActions,
+      ...groupActions,
+      ...measurementAnchorActions,
+    } as ProjectActions;
 
     // @PIMO-KEEP — Runtime validation
     if (import.meta.env.DEV) {
@@ -325,7 +324,7 @@ export function useProjectActions(params: UseProjectActionsParams): ProjectActio
       ];
 
       requiredActions.forEach((key) => {
-        if (typeof (actions as Record<string, unknown>)[key] !== "function") {
+        if (typeof (actions as unknown as Record<string, unknown>)[key] !== "function") {
           console.error(
             `[PIMO] actions.${key} is not a function — runtime crash expected when called from UI`
           );
@@ -339,6 +338,7 @@ export function useProjectActions(params: UseProjectActionsParams): ProjectActio
     historyActions,
     projectIoActions,
     layerActions,
+    divSepActions,
     boxCrudActions,
     boxTransformActions,
     rulesActions,

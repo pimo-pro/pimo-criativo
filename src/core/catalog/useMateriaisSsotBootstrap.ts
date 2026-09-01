@@ -12,14 +12,15 @@ export function useMateriaisSsotBootstrap(enabled = true): {
   status: "idle" | "loading" | "ok" | "error";
   result: MateriaisSsotApplyResult | null;
 } {
-  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">(() =>
+    enabled ? "loading" : "idle",
+  );
   const [result, setResult] = useState<MateriaisSsotApplyResult | null>(null);
   const started = useRef(false);
 
   useEffect(() => {
     if (!enabled || started.current) return;
     started.current = true;
-    setStatus("loading");
     void applyMateriaisSsotFromPublicUrl()
       .then((res) => {
         setResult(res);

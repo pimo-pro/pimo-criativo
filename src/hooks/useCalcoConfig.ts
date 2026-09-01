@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   loadCalcoConfig,
   saveCalcoConfig,
@@ -12,10 +12,6 @@ export function useCalcoConfig() {
   const reload = useCallback(() => {
     setConfigState(loadCalcoConfig());
   }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
 
   const setConfig = useCallback((next: CalcoConfig | ((prev: CalcoConfig) => CalcoConfig)) => {
     setConfigState((prev) => {

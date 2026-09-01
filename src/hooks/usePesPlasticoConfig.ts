@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   loadPesPlasticoConfig,
   savePesPlasticoConfig,
@@ -12,10 +12,6 @@ export function usePesPlasticoConfig() {
   const reload = useCallback(() => {
     setConfigState(loadPesPlasticoConfig());
   }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
 
   const setConfig = useCallback((next: PesPlasticoConfig | ((prev: PesPlasticoConfig) => PesPlasticoConfig)) => {
     setConfigState((prev) => {

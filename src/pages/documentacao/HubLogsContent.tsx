@@ -34,8 +34,6 @@ export default function HubLogsContent() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     loadHubWhatsNew("logs")
       .then((list) => {
         if (!cancelled) setEntries(list);

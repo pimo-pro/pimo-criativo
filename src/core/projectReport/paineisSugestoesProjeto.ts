@@ -64,7 +64,7 @@ export function isCutlistNomeSugestaoSegura(nome: string): boolean {
   if (/\b(mm|cm|m²|m2|eur|€)\b/i.test(s)) return false;
   if (/\d{3,}/.test(s)) return false; // códigos/IDs numéricos longos
   // Preferir token industrial: letras/underscore, opcionalmente um sufixo curto
-  if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9_\-]{0,27}$/.test(s)) return false;
+  if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9_-]{0,27}$/.test(s)) return false;
   // Evitar nomes que são só material genérico em minúsculas com espaços (já cobertos)
   return true;
 }

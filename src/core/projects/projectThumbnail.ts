@@ -19,7 +19,8 @@ export function coerceSafeProjectThumbName(projectName: string): string | null {
   let name = String(projectName ?? "").trim();
   if (!name) return null;
   name = name.replace(/\.\./g, "");
-  name = name.replace(/[\/\\<>:"|?*\x00]+/g, "_").replace(/^[.\s_]+|[.\s_]+$/g, "");
+  name = name.split("\0").join("_");
+  name = name.replace(/[/\\<>:"|?*]+/g, "_").replace(/^[.\s_]+|[.\s_]+$/g, "");
   if (!name) return null;
   if (name.length > 160) name = name.slice(0, 160).trim();
   return name || null;
@@ -99,26 +100,25 @@ export async function fetchAuthenticatedThumbnailBlobUrl(
  * Hook B1: preferir thumbnailDataUrl; senão fetch com Bearer → blob URL.
  * Placeholder (null) em falha pontual — sem erros ruidosos.
  */
+type ThumbnailBlobState = {
+  projectName: string;
+  cacheKey: string | undefined;
+  url: string | null;
+};
+
 export function useAuthenticatedProjectThumbnailSrc(
   projectName: string,
   thumbnailDataUrl?: string | null,
   cacheKey?: string
 ): string | null {
   const syncSrc = resolveProjectThumbnailSrc(projectName, thumbnailDataUrl, cacheKey);
-  const [blobSrc, setBlobSrc] = useState<string | null>(null);
+  const [blobState, setBlobState] = useState<ThumbnailBlobState | null>(null);
 
   useEffect(() => {
+    if (syncSrc || !canUseRemoteProjectsApi()) return;
+
     let cancelled = false;
     let createdUrl: string | null = null;
-
-    if (syncSrc) {
-      setBlobSrc(null);
-      return;
-    }
-    if (!canUseRemoteProjectsApi()) {
-      setBlobSrc(null);
-      return;
-    }
 
     void fetchAuthenticatedThumbnailBlobUrl(projectName, cacheKey).then((url) => {
       if (cancelled) {
@@ -126,7 +126,7 @@ export function useAuthenticatedProjectThumbnailSrc(
         return;
       }
       createdUrl = url;
-      setBlobSrc(url);
+      setBlobState({ projectName, cacheKey, url });
     });
 
     return () => {
@@ -134,6 +134,13 @@ export function useAuthenticatedProjectThumbnailSrc(
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
   }, [projectName, thumbnailDataUrl, cacheKey, syncSrc]);
+
+  const blobSrc =
+    blobState &&
+    blobState.projectName === projectName &&
+    blobState.cacheKey === cacheKey
+      ? blobState.url
+      : null;
 
   return syncSrc ?? blobSrc;
 }

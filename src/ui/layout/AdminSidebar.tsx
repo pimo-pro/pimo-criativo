@@ -11,6 +11,7 @@ export type AdminSidebarItem = {
   path: string;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const industrialAdminSidebarItems: readonly AdminSidebarItem[] = [
   {
     label: "Industrial Models",

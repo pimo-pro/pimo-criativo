@@ -7,7 +7,6 @@ import {
 } from "../core/cnc/industrialNestingGroup";
 import { cutlistComPrecoFromBox } from "../core/manufacturing/cutlistFromBoxes";
 import { defaultRulesConfig } from "../core/rules/rulesConfig";
-import { isDrawerPieceTipo } from "../services/drawerCutlistAdapter";
 import {
   buildDrawerScenario,
   minimalBoxWithDrawers,

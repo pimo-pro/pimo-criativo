@@ -11,7 +11,6 @@ import {
   lRemateCornerToCenterMm,
   lSecondaryMountSlot,
   normalizeLRemateGroupToCima,
-  normalizeLRemateTransformPatch,
   REMATE_L_CIMA_INT_ROTATION,
   resolveLRemateCompositeLeadId,
   resolveLRemateGroupCouplingLeadId,

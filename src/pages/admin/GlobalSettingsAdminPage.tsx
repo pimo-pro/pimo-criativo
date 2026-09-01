@@ -31,6 +31,7 @@ function formatDocumentFromRemote(remote: {
 /**
  * Valida o texto do textarea como documento compatível com GET /config/global + `validateGlobalSettings`.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function validateGlobalSettingsJsonText(text: string): { valid: boolean; errors: string[] } {
   let parsed: unknown;
   try {

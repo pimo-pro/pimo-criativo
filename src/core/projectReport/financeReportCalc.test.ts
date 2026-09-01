@@ -114,7 +114,6 @@ describe("financeReportCalc", () => {
   });
 
   it("P3.26: detalhe de chapas em Painéis não sobrescreve total SSOT", () => {
-    const fin = ensureFinanceiroShape(null, { paineis: 2874.88 });
     const lined = recalcLinha({
       key: "paineis",
       label: "Painéis",

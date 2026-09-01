@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Panel from "../ui/Panel";
 import { useSettings } from "../../context/SettingsContext";
 import type { SettingsSchema } from "../../core/settings/settingsSchema";
@@ -134,10 +134,11 @@ export default function DrawerRulesAdminPage() {
   const feedback = useAdminFeedback();
   const { settings, updateSettings, validate } = useSettings();
   const [draft, setDraft] = useState<DrawerSettings>(settings.gavetas);
-
-  useEffect(() => {
+  const [syncedGavetas, setSyncedGavetas] = useState(settings.gavetas);
+  if (settings.gavetas !== syncedGavetas) {
+    setSyncedGavetas(settings.gavetas);
     setDraft(settings.gavetas);
-  }, [settings.gavetas]);
+  }
 
   const updateDrawerRules = (patch: Partial<DrawerSettings>) => {
     setDraft((prev) => ({ ...prev, ...patch }));

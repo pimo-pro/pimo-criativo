@@ -10,6 +10,7 @@ export type PiproModelCardProps = {
   onEdit?: (modelId: string) => void;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function summarizePiproModel(model: PiproModelRecord) {
   const pieceCount = model.pieces.length;
   const holeCount = model.pieces.reduce((n, p) => n + (p.drillHoles?.length ?? 0), 0);

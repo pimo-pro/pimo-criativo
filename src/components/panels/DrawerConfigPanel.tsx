@@ -106,6 +106,7 @@ function buildDrawerConfigPatch(
   };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getDrawerStatusBadges(drawer: DrawerLayerItem): string[] {
   const badges: string[] = [];
   const type = drawer.type ?? drawer.drawerType ?? "normal";

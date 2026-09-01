@@ -6,7 +6,10 @@ export function normalizeIndustrialCode(raw: string): string {
   if (!code) return '';
 
   // Leitores USB frequentemente enviam prefixo/sufixo de controle.
-  code = code.replace(/[\x00-\x1F\x7F]/g, '').trim();
+  code = [...code].filter((ch) => {
+    const c = ch.charCodeAt(0);
+    return c > 31 && c !== 127;
+  }).join('').trim();
 
   // Remover aspas ou brackets acidentais.
   if (

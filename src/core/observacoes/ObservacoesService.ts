@@ -31,7 +31,19 @@ export const MAX_LABEL_OBSERVATIONS_V5 = 3;
 const LEGACY_META_OBS_KEYS = ["observacoes", "observacao", "obs"] as const;
 
 const HTML_TAG_RE = /<[^>]*>/g;
-const CONTROL_CHARS_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+function stripObservacaoControlChars(value: string): string {
+  let out = "";
+  for (const ch of value) {
+    const code = ch.charCodeAt(0);
+    if (code === 9 || code === 10 || code === 13) {
+      out += ch;
+      continue;
+    }
+    if (code >= 32 && code !== 127) out += ch;
+  }
+  return out;
+}
 
 export function panelIdFromCutListItem(item: CutListItem): string {
   const meta = item.metadata?.panelId;
@@ -48,11 +60,10 @@ export function panelIdFromCutListItem(item: CutListItem): string {
  * - limita comprimento
  */
 export function sanitizeObservationText(value: string): string {
-  let text = value
+  let text = stripObservacaoControlChars(value)
     .replace(/\r\n/g, " ")
     .replace(/[\r\n\t\v\f]/g, " ")
     .replace(HTML_TAG_RE, "")
-    .replace(CONTROL_CHARS_RE, "")
     .replace(/\s+/g, " ")
     .trim();
   if (!text) return "";

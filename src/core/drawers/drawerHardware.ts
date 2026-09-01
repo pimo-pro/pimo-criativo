@@ -141,7 +141,7 @@ export function buildHardwarePartialFromDraft(
   current?: DrawerLayerItem
 ): Partial<DrawerLayerItem> {
   const settings = getSettings().gavetas;
-  let metalBoxType = draft.metalBoxType;
+  const metalBoxType = draft.metalBoxType;
   let slideType = draft.slideType;
   let bodyHeight: number | undefined;
   let metalBoxProfileId = draft.metalBoxProfileId;

@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
 import { applyThemeVariables } from "../theme/theme";
@@ -124,34 +125,32 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function subscribeToSystemTheme(onStoreChange: () => void) {
+  const mq = window.matchMedia("(prefers-color-scheme: light)");
+  mq.addEventListener("change", onStoreChange);
+  return () => mq.removeEventListener("change", onStoreChange);
+}
+
+function getSystemThemeSnapshot(): ThemeId {
+  return resolveThemePreference("system");
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<ThemePreference>(readStoredThemePreference);
-  const [theme, setThemeState] = useState<ThemeId>(() =>
-    resolveThemePreference(readStoredThemePreference())
+  const systemTheme = useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemThemeSnapshot,
+    (): ThemeId => "dark"
   );
+  const theme: ThemeId =
+    preference === "system" ? systemTheme : (preference as ThemeId);
 
   useEffect(() => {
-    const resolved = resolveThemePreference(preference);
-    setThemeState(resolved);
-    applyThemeToDocument(resolved);
+    applyThemeToDocument(theme);
     applyThemeVariables();
-    persistResolvedTheme(resolved);
+    persistResolvedTheme(theme);
     persistPreference(preference);
-  }, [preference]);
-
-  useEffect(() => {
-    if (preference !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: light)");
-    const onChange = () => {
-      const resolved = resolveThemePreference("system");
-      setThemeState(resolved);
-      applyThemeToDocument(resolved);
-      applyThemeVariables();
-      persistResolvedTheme(resolved);
-    };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [preference]);
+  }, [theme, preference]);
 
   const setTheme = useCallback((next: ThemeId) => {
     setPreferenceState(next);

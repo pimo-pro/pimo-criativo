@@ -270,7 +270,7 @@ export function useCutlistData() {
     let totalGavetasQty = 0;
     let totalFerragensQty = 0;
     let custoTotalPaineis = 0;
-    let custoTotalPortas = 0;
+    const custoTotalPortas = 0;
     let custoTotalGavetas = 0;
     let custoTotalFerragens = 0;
     const allPaineis: PainelRow[] = [];

@@ -17,8 +17,6 @@ export default function HubRemovidosContent() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     loadRemovedRegistry()
       .then((list) => {
         if (!cancelled) setEntries(list);

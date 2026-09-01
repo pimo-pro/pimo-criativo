@@ -1,6 +1,6 @@
 // Modal de captação de dados do cliente antes de "Salvar e pedir orçamento".
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { ModalPortal } from "../ui/ModalPortal";
 
 export type QuoteRequestFieldsInput = {
@@ -54,14 +54,9 @@ export default function QuoteRequestModal({
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof QuoteRequestFieldsInput, string>>>({});
 
-  // Utilizador autenticado: preencher nome em background sempre que o modal abre.
-  useEffect(() => {
-    if (open && isAuthenticated) {
-      setCustomerName(authenticatedUserName.trim());
-    }
-  }, [open, isAuthenticated, authenticatedUserName]);
-
   if (!open) return null;
+
+  const resolvedCustomerName = isAuthenticated ? authenticatedUserName.trim() : customerName;
 
   const handleCancel = () => {
     if (isSubmitting) return;
@@ -76,7 +71,9 @@ export default function QuoteRequestModal({
   const handleConfirm = () => {
     if (isSubmitting) return;
     const nextErrors: Partial<Record<keyof QuoteRequestFieldsInput, string>> = {};
-    if (!isAuthenticated && !customerName.trim()) nextErrors.customerName = "Indique o nome do cliente.";
+    if (!isAuthenticated && !resolvedCustomerName.trim()) {
+      nextErrors.customerName = "Indique o nome do cliente.";
+    }
     if (!customerEmail.trim()) {
       nextErrors.customerEmail = "Indique o email do cliente.";
     } else if (!EMAIL_REGEX.test(customerEmail.trim())) {
@@ -88,7 +85,7 @@ export default function QuoteRequestModal({
     if (Object.keys(nextErrors).length > 0) return;
 
     onConfirm({
-      customerName: customerName.trim(),
+      customerName: resolvedCustomerName.trim(),
       customerEmail: customerEmail.trim(),
       customerPhone: customerPhone.trim(),
       notes: notes.trim(),

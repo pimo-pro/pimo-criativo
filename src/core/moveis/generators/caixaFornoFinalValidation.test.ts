@@ -205,7 +205,7 @@ describe("Validação final — Caixa Forno + sistema de caixas", () => {
 
   it("Espessura 15 mm — separadores e posições recalculam", () => {
     const cfg15 = createCaixaForno({ espessura: 15 });
-    const seps = buildCaixaFornoSeparadores(cfg15);
+    const _seps = buildCaixaFornoSeparadores(cfg15);
     const layout15 = computeCaixaFornoLayout(cfg15);
     expect(layout15.upperStartMm).toBe(900 + 15 + 600 + 15 + 400);
     const cut15 = cutlistComPrecoFromBox(toBox(cfg15), defaultRulesConfig, "mdf_branco");

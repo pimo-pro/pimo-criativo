@@ -334,7 +334,7 @@ export function commitMaterialSync(
   withLoading = true
 ): { next: ProjectState; sync: MaterialSyncResult } {
   if (import.meta.env.DEV && (target.kind === "drawer" || target.kind === "drawerLayerItem")) {
-    // eslint-disable-next-line no-console
+     
     console.warn(
       `[DRAWER-FRONT-MAT ${performance.now().toFixed(2)}ms] commitMaterialSync`,
       {

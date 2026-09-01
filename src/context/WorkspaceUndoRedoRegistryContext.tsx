@@ -52,6 +52,7 @@ export function WorkspaceUndoRedoRegistryProvider({ children }: { children: Reac
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWorkspaceUndoRedoRegistry(): RegistryContextValue {
   const ctx = useContext(WorkspaceUndoRedoRegistryContext);
   if (!ctx) {
@@ -61,6 +62,7 @@ export function useWorkspaceUndoRedoRegistry(): RegistryContextValue {
 }
 
 /** Mesmo contexto, sem erro fora do provider (Header partilhado entre LegacyApp e rotas sem registry). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWorkspaceUndoRedoRegistryOptional(): RegistryContextValue | null {
   return useContext(WorkspaceUndoRedoRegistryContext);
 }

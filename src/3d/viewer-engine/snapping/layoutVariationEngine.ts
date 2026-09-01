@@ -76,11 +76,12 @@ function mutatePlan(
     case "moreSymmetry":
       mirrorPlacementsAroundCenter(out);
       break;
-    case "moreDepth":
+    case "moreDepth": {
       const nudge = getVariationRules().moreDepthNudgeMm;
       for (const m of out.moveBoxes) nudgeTowardRoomCenter(m.placement, nudge);
       for (const c of out.cloneBoxes) nudgeTowardRoomCenter(c.placement, nudge);
       break;
+    }
   }
 
   void baseId;

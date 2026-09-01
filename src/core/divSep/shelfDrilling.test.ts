@@ -2,7 +2,7 @@ import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { divSepRulesStore } from "../../admin/rules/divSepRules/rulesStore";
 import { DIV_SEP_RULES_DEFAULTS } from "../../admin/rules/divSepRules/rulesDefaults";
 import { defaultRulesConfig } from "../rules/rulesConfig";
-import { getDivSepInternalDims, resolveDivisorDimensions } from "./dimensions";
+import { getDivSepInternalDims } from "./dimensions";
 import { resolveSeparadorBottomY } from "./coupling";
 import {
   boxUsesDivShelfMode,

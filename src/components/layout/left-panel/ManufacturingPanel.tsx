@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Panel from "../../ui/Panel";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import type { ManufacturingUiReport } from "../../../3d/viewer-engine/snapping/manufacturingTypes";
@@ -11,32 +11,44 @@ const SEVERITY_COLOR: Record<string, string> = {
 
 export function ManufacturingPanel() {
   const { viewerApi } = usePimoViewerContext();
-  const [report, setReport] = useState<ManufacturingUiReport | null>(null);
-  const [textReport, setTextReport] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-
-  const refresh = useCallback(() => {
-    const ui = viewerApi?.manufacturing?.getReport?.();
-    if (ui) setReport(ui);
-  }, [viewerApi]);
-
-  useEffect(() => {
-    if (!viewerApi?.manufacturing) return;
+  const viewerKey = viewerApi?.manufacturing ? "ready" : "none";
+  const autoReport = useMemo(() => {
+    if (!viewerApi?.manufacturing) return null;
     const ui = viewerApi.manufacturing.generateReport();
-    setReport({
+    return {
       score: ui.score,
       readyForProduction: ui.readyForProduction,
       summary: ui.summary,
       conflicts: ui.conflicts,
       suggestions: ui.suggestions,
       scannedAt: ui.scannedAt,
-    });
+    };
   }, [viewerApi]);
+  const [pinnedReport, setPinnedReport] = useState<{
+    key: string;
+    report: ManufacturingUiReport;
+  } | null>(null);
+  const report =
+    pinnedReport?.key === viewerKey ? pinnedReport.report : autoReport;
+  const [textReport, setTextReport] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const pinReport = useCallback(
+    (next: ManufacturingUiReport) => {
+      setPinnedReport({ key: viewerKey, report: next });
+    },
+    [viewerKey]
+  );
+
+  const refresh = useCallback(() => {
+    const ui = viewerApi?.manufacturing?.getReport?.();
+    if (ui) pinReport(ui);
+  }, [viewerApi, pinReport]);
 
   const onScan = () => {
     const full = viewerApi?.manufacturing?.generateReport?.();
     if (!full) return;
-    setReport({
+    pinReport({
       score: full.score,
       readyForProduction: full.readyForProduction,
       summary: full.summary,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Button from "@/components/ui/Button";
 import type { ProjetosFocusLevel } from "@/app/PROJETOS/ProjetosShowroomPanel";
@@ -134,16 +134,19 @@ const toggleBtnStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useShowroomExplodeDefaults(focusLevel: ProjetosFocusLevel) {
   const [boxExplode, setBoxExplode] = useState(false);
   const [boxIntensity, setBoxIntensity] = useState(0.45);
   const [pieceExplode, setPieceExplode] = useState(false);
   const [pieceIntensity, setPieceIntensity] = useState(0.35);
+  const [focusSnapshot, setFocusSnapshot] = useState(focusLevel);
 
-  useEffect(() => {
+  if (focusLevel !== focusSnapshot) {
+    setFocusSnapshot(focusLevel);
     if (focusLevel === "piece") setBoxExplode(false);
     if (focusLevel === "project") setPieceExplode(false);
-  }, [focusLevel]);
+  }
 
   return {
     boxExplode,

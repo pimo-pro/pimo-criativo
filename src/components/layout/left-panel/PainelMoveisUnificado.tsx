@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+ 
 import {
   useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect,
 } from "react";

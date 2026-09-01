@@ -7,7 +7,7 @@ import {
 
 export type ViewerCoreCameraOpsDeps = {
   cameraManager: {
-    camera: any;
+    camera: THREE.PerspectiveCamera;
     setTarget: (x: number, y: number, z: number) => void;
     getTarget: () => THREE.Vector3;
   };

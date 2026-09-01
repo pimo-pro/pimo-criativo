@@ -143,6 +143,7 @@ export function BottomInfoProvider({ children }: { children: React.ReactNode }) 
   return <BottomInfoContext.Provider value={value}>{children}</BottomInfoContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBottomInfo() {
   const ctx = useContext(BottomInfoContext);
   if (!ctx) throw new Error("useBottomInfo must be used within BottomInfoProvider");

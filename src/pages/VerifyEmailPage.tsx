@@ -11,21 +11,20 @@ import "../components/ui/ui.css";
 export default function VerifyEmailPage() {
   const [params] = useSearchParams();
   const token = (params.get("token") ?? "").trim();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const hasToken = token.length > 0;
+  const [loading, setLoading] = useState(hasToken);
+  const [error, setError] = useState<string | null>(
+    hasToken ? null : "Link inválido (token em falta).",
+  );
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      setError("Link inválido (token em falta).");
-      setLoading(false);
-      return;
-    }
+    if (!hasToken) return;
     verifyEmailRemote(token)
       .then((res) => setMessage(res.message))
       .catch((e) => setError(e instanceof Error ? e.message : "Falha ao confirmar email"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [hasToken, token]);
 
   return (
     <PageContainer>

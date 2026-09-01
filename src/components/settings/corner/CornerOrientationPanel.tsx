@@ -16,6 +16,7 @@ const OPTIONS: { id: CornerOrientation; label: string }[] = [
   { id: "esquerda", label: "Esquerda" },
 ];
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function isCornerOrientationPanelVisible(box: Pick<WorkspaceBox, "baseCabinetId">): boolean {
   return isCornerDireitaInferiorV2Model(box.baseCabinetId);
 }

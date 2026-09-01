@@ -62,7 +62,7 @@ describe("diagnóstico matéria frente gaveta", () => {
       },
     };
 
-    // eslint-disable-next-line no-console
+     
     console.log(JSON.stringify(report, null, 2));
 
     expect(report.drawerItem.resolvedExplicit).toBe("carvalho");

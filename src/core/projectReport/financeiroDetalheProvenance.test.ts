@@ -15,7 +15,6 @@ import {
   paineisStableMatchKey,
   previewFinanceiroProvenanceMigration,
   softMatchKey,
-  sumDetalheTotals,
 } from "./financeiroDetalheProvenance";
 import type { ReportFinanceiroDetalhe } from "./types";
 

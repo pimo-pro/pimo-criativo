@@ -48,7 +48,7 @@ export default function CalcoSettingsPanel() {
       },
     ];
     setFerragens((prev) => {
-      let next = [...prev];
+      const next = [...prev];
       for (const entry of entries) {
         const idx = next.findIndex((f) => f.id === entry.id);
         if (idx >= 0) next[idx] = { ...next[idx], ...entry };

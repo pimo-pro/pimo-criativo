@@ -3,7 +3,7 @@
  * Grava defaults globais (localStorage) e, se houver projeto aberto, no ProjectState.
  */
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AdminPageHeader,
   adminLabelStyle,
@@ -44,23 +44,23 @@ export default function FinanceiroAdminSettings() {
   const { showToast } = useToast();
   const { project, actions } = useProject();
   const { updateSettings } = useSettings();
-  const [draft, setDraft] = useState<FinanceiroAdminSettings>(() =>
-    normalizeFinanceiroAdminSettings(
-      project?.financeiroAdminSettings ??
-        getSettings().financeiroAdmin ??
-        loadGlobalFinanceiroAdminSettings()
-    )
-  );
-
-  useEffect(() => {
-    setDraft(
+  const externalDraft = useMemo(
+    () =>
       normalizeFinanceiroAdminSettings(
         project?.financeiroAdminSettings ??
           getSettings().financeiroAdmin ??
           loadGlobalFinanceiroAdminSettings()
-      )
-    );
-  }, [project?.financeiroAdminSettings]);
+      ),
+    [project?.financeiroAdminSettings]
+  );
+  const [draft, setDraft] = useState<FinanceiroAdminSettings>(externalDraft);
+  const [syncedFinanceiroSettings, setSyncedFinanceiroSettings] = useState(
+    project?.financeiroAdminSettings
+  );
+  if (project?.financeiroAdminSettings !== syncedFinanceiroSettings) {
+    setSyncedFinanceiroSettings(project?.financeiroAdminSettings);
+    setDraft(externalDraft);
+  }
 
   const handleSave = () => {
     const next = normalizeFinanceiroAdminSettings(draft);

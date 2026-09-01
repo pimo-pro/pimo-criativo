@@ -24,7 +24,7 @@ import {
   getDefaultCncLayoutOptions,
   getSheetDefinitionFromSettings,
 } from "../src/core/cnc/cncPipeline";
-import { defaultRulesConfig } from "../src/core/rules/rulesConfig";
+
 import {
   buildDrawerOnlyBox,
   buildFullIndustrialScenario,

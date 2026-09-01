@@ -44,7 +44,7 @@ export function buildIndustrialDrawerSingle600x720x500DesignBox(
     MATERIAL
   );
 
-  let designBox = applyAllIndustrialDrawerSingleDrillingRules(box, layout);
+  const designBox = applyAllIndustrialDrawerSingleDrillingRules(box, layout);
 
   const blocking = getBlockingIssues(validateIndustrialDesignBox(designBox));
   if (blocking.length > 0) {

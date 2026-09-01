@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Panel from "../../ui/Panel";
 import { useProject } from "../../../context/useProject";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
@@ -8,18 +8,26 @@ export function CostEstimatorPanel() {
   const { project } = useProject();
   const { viewerApi } = usePimoViewerContext();
   const seedBoxId = project.selectedWorkspaceBoxId ?? project.workspaceBoxes[0]?.id ?? "";
-  const [report, setReport] = useState<CostUiSummary | null>(null);
+  const workspaceBoxCount = project.workspaceBoxes.length;
+  const reportSourceKey = `${seedBoxId}:${workspaceBoxCount}`;
+  const autoReport = useMemo(() => {
+    if (!viewerApi?.costEstimator || !seedBoxId) return null;
+    void workspaceBoxCount;
+    return viewerApi.costEstimator.summarizeForUI(seedBoxId);
+  }, [viewerApi, seedBoxId, workspaceBoxCount]);
+  const [pinnedReport, setPinnedReport] = useState<{
+    key: string;
+    report: CostUiSummary;
+  } | null>(null);
+  const report =
+    pinnedReport?.key === reportSourceKey ? pinnedReport.report : autoReport;
   const [textReport, setTextReport] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!viewerApi?.costEstimator || !seedBoxId) return;
-    setReport(viewerApi.costEstimator.summarizeForUI(seedBoxId));
-  }, [viewerApi, seedBoxId, project.workspaceBoxes]);
-
   const onRefresh = () => {
     if (!seedBoxId || !viewerApi?.costEstimator) return;
-    setReport(viewerApi.costEstimator.summarizeForUI(seedBoxId));
+    const next = viewerApi.costEstimator.summarizeForUI(seedBoxId);
+    setPinnedReport({ key: reportSourceKey, report: next });
     setStatus("Estimativa atualizada.");
   };
 
@@ -39,7 +47,7 @@ export function CostEstimatorPanel() {
     if (!seedBoxId || !viewerApi?.costEstimator) return;
     const full = viewerApi.costEstimator.generateCostReport(seedBoxId);
     setTextReport(full.textReport);
-    setReport(full);
+    setPinnedReport({ key: reportSourceKey, report: full });
     setStatus("Relatório de custo gerado.");
   };
 

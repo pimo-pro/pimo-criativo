@@ -770,7 +770,7 @@ export function createDrawerObject(
   const frontLocalX = Number.isFinite(spec.frontPosX) ? (spec.frontPosX as number) : 0;
   const frontLocalZ = 0;
   let woodSideLayout: DrawerViewerWoodSideLayoutMm | null = null;
-  let frontLocalY = Number.isFinite(spec.frontPosY) ? (spec.frontPosY as number) : 0;
+  const frontLocalY = Number.isFinite(spec.frontPosY) ? (spec.frontPosY as number) : 0;
 
   if (
     resolveDrawerSideRenderMode(spec) === "wood" &&

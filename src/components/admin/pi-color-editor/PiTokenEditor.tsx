@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   setPiTokenOverride,
   type ThemeMode,
@@ -37,10 +37,12 @@ export default function PiTokenEditor({
   const hasOverride = source?.layer === "userOverrides";
 
   const [draft, setDraft] = useState(effective ?? "");
-
-  useEffect(() => {
+  const [draftSourceKey, setDraftSourceKey] = useState(`${mode}:${token}:${effective ?? ""}`);
+  const nextDraftSourceKey = `${mode}:${token}:${effective ?? ""}`;
+  if (nextDraftSourceKey !== draftSourceKey) {
+    setDraftSourceKey(nextDraftSourceKey);
     setDraft(effective ?? "");
-  }, [token, mode, effective]);
+  }
 
   if (!token) {
     return (

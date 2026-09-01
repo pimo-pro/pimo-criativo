@@ -204,15 +204,14 @@ export function useIndustrialDesignWorkspace({
     panelIdMapRef.current = realIdMap;
 
     const existing = viewerApi.getIndustrialDesignBox?.();
-    if (existing?.id === boxId) {
-      setDesignBox(existing);
-      viewerApi.setIndustrialDesignBox?.(existing, boxId);
-    } else {
-      setDesignBox(templateDesignBox);
-      viewerApi.setIndustrialDesignBox?.(templateDesignBox, boxId);
-    }
+    const nextDesignBox = existing?.id === boxId ? existing : templateDesignBox;
+    viewerApi.setIndustrialDesignBox?.(nextDesignBox, boxId);
 
-    setValidationIssues(viewerApi.getIndustrialDesignValidationIssues?.() ?? []);
+    queueMicrotask(() => {
+      setDesignBox(nextDesignBox);
+      setValidationIssues(viewerApi.getIndustrialDesignValidationIssues?.() ?? []);
+      setSelectedPanelId(viewerApi.getIndustrialDesignSelectedPanelId?.() ?? null);
+    });
 
     viewerApi.setOnIndustrialDesignPanelSelected?.((panelId) => {
       setSelectedPanelId(panelId);
@@ -227,8 +226,6 @@ export function useIndustrialDesignWorkspace({
     viewerApi.setOnIndustrialDesignValidationChanged?.((issues) => {
       setValidationIssues(issues);
     });
-
-    setSelectedPanelId(viewerApi.getIndustrialDesignSelectedPanelId?.() ?? null);
 
     return () => {
       if (!viewerApi) return;

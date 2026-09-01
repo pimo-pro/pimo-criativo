@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import Panel from "../../ui/Panel";
 import { useSettings } from "../../../context/SettingsContext";
@@ -34,13 +34,14 @@ export default function OrlaRulesSettingsPanel() {
   const [savedRules, setSavedRules] = useState<OrlaVisualRulesMap>(() =>
     resolveEffectiveOrlaVisualRules(settings.orlaRules)
   );
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [syncedOrlaRules, setSyncedOrlaRules] = useState(settings.orlaRules);
+  if (settings.orlaRules !== syncedOrlaRules) {
     const effective = resolveEffectiveOrlaVisualRules(settings.orlaRules);
+    setSyncedOrlaRules(settings.orlaRules);
     setDraft(effective);
     setSavedRules(effective);
-  }, [settings.orlaRules]);
+  }
+  const [message, setMessage] = useState<string | null>(null);
 
   const isDirty = useMemo(() => !rulesEqual(draft, savedRules), [draft, savedRules]);
 

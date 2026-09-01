@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars -- declaração de tipos; nomes de parâmetros são apenas documentação */
+ 
 /**
  * Ponte de compatibilidade para `window.viewerCore` (Z-01.2.6).
  *

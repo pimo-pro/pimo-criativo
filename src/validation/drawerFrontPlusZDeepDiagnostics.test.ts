@@ -61,7 +61,7 @@ function reportFaces(mesh: THREE.Mesh, label: string) {
     faceWithNormalMinusZ: faces.find((f) => f.normal.z < -0.5)?.faceIndex ?? null,
     faces,
   };
-  // eslint-disable-next-line no-console
+   
   console.log(JSON.stringify(out, null, 2));
   return out;
 }
@@ -151,7 +151,7 @@ describe("diagnóstico profundo gav_frente +Z/?Z", () => {
       fromPlusZ: raycastFaceMaterial(frontMesh, 1),
       fromMinusZ: raycastFaceMaterial(frontMesh, -1),
     };
-    // eslint-disable-next-line no-console
+     
     console.log(JSON.stringify({ rayAfter }, null, 2));
 
     expect(before.faceWithNormalPlusZ).toBe(4);

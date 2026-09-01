@@ -40,7 +40,7 @@ function compactPlacementsOnSheet(
     .sort((a, b) => a.y - b.y || a.x - b.x || a.a - b.a || a.i - b.i)
     .map((x) => x.i);
 
-  let current = placements.map((p) => ({ ...p }));
+  const current = placements.map((p) => ({ ...p }));
 
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     let moved = false;

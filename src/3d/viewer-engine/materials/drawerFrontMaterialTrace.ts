@@ -33,7 +33,7 @@ export function traceDrawerFrontMaterial(
 ): void {
   if (!shouldTraceDrawerFrontMaterial()) return;
   const ts = typeof performance !== "undefined" ? performance.now().toFixed(2) : String(Date.now());
-  // eslint-disable-next-line no-console
+   
   console.warn(`[DRAWER-FRONT-MAT ${ts}ms] ${source}`, payload);
 }
 

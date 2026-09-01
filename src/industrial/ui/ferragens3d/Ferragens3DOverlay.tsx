@@ -97,16 +97,12 @@ export default function Ferragens3DOverlay({ open, onClose }: Ferragens3DOverlay
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open || catalog.length === 0) return;
-    if (!catalog.some((e) => e.id === selectedId)) {
-      setSelectedId(catalog[0].id);
-    }
-  }, [open, catalog, selectedId]);
-
   if (!open) return null;
 
-  const selected = catalog.find((e) => e.id === selectedId) ?? catalog[0];
+  const resolvedSelectedId = catalog.some((e) => e.id === selectedId)
+    ? selectedId
+    : (catalog[0]?.id ?? '');
+  const selected = catalog.find((e) => e.id === resolvedSelectedId) ?? catalog[0];
 
   return (
     <div
@@ -181,7 +177,7 @@ export default function Ferragens3DOverlay({ open, onClose }: Ferragens3DOverlay
                 type="button"
                 onClick={() => setSelectedId(entry.id)}
                 style={{
-                  ...industrialBtnStyle(entry.id === selected?.id),
+                  ...industrialBtnStyle(entry.id === resolvedSelectedId),
                   width: '100%',
                   textAlign: 'left',
                   fontSize: 11,

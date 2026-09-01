@@ -100,7 +100,7 @@ describe.each([
 ] as const)("interlock gaveta T=$espessura (golden)", ({ espessura, center }) => {
   const LAT = { largura: 500, altura: 150, espessura };
   const COSTA = { largura: 468, altura: 127, espessura }; // lat ? 23
-  const FRENTE = { largura: 598, altura: 150, espessura };
+  const _FRENTE = { largura: 598, altura: 150, espessura };
 
   it("lateral: 2 face Depth13 + 2 aresta Depth30 + 2 rasgos", () => {
     const esq = computeDrawerLateralStructuralHoles({ ...LAT, side: "esq" });

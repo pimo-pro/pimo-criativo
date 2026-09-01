@@ -546,6 +546,6 @@ export function useRemateActions(ctx: ProjectActionsExecutionContext): RemateAct
         return newId;
       },
     }),
-    [updateProject]
+    [updateProject, projectRef]
   );
 }

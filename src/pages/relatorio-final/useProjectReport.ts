@@ -197,7 +197,7 @@ export function useProjectReport(projectKey: string | undefined) {
         const official = Number(prev.financeiro.officialSnapshot?.[key]) || 0;
         if (moneyEq(nextValue, official)) nextValue = null;
       }
-      let withOverride = setReportLineOverride(prev.financeiro, key, nextValue);
+      const withOverride = setReportLineOverride(prev.financeiro, key, nextValue);
       let nextReport: ProjectReport = {
         ...prev,
         financeiro: withOverride,

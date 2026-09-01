@@ -101,7 +101,7 @@ export async function importTrakSnapshot(projectId: string): Promise<TrakImportS
     let montStart = "";
     let montEnd = "";
     let horasProd = 0;
-    let horasMont = 0;
+    let _horasMont = 0;
 
     const bumpDate = (cur: string, iso: string | undefined, mode: "min" | "max") => {
       const next = toDateInput(iso);
@@ -117,7 +117,7 @@ export async function importTrakSnapshot(projectId: string): Promise<TrakImportS
         if (montagem) {
           montStart = bumpDate(montStart, task.startedAt ?? order.createdAt, "min");
           montEnd = bumpDate(montEnd, task.completedAt ?? order.updatedAt, "max");
-          horasMont += hoursBetween(task.startedAt, task.completedAt);
+          _horasMont += hoursBetween(task.startedAt, task.completedAt);
         } else {
           prodStart = bumpDate(prodStart, task.startedAt ?? order.createdAt, "min");
           prodEnd = bumpDate(prodEnd, task.completedAt ?? order.updatedAt, "max");

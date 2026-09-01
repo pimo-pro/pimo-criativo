@@ -15,7 +15,6 @@ import { convertWorkspaceToBox } from "../../../context/projectState";
 import type { PanelDrillHole, WorkspaceBox } from "../../types";
 import { buildViewerDrillMarkersByPanel } from "../../../modules/drilling/drillingAdapter";
 import {
-  CORNER_FF_EDGE_DOWEL_DEPTH_MM,
   CORNER_FF_FACE_DOWEL_DEPTH_MM,
 } from "../../cornerCabinet/cornerFixedFrontDowels";
 import { computeDoorVerticalGaps } from "../../doors/doorLayerGeometry";

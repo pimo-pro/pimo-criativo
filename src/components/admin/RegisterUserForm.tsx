@@ -7,12 +7,14 @@ import Section from "../ui/Section";
 import "../ui/ui.css";
 
 /** Categoria de negócio (independente da role RBAC). */
+// eslint-disable-next-line react-refresh/only-export-components
 export type AccountCategory =
   | "visitor"
   | "designer_arquiteto"
   | "lojista"
   | "fabricante";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ACCOUNT_CATEGORY_OPTIONS: readonly {
   value: AccountCategory;
   label: string;
@@ -24,8 +26,10 @@ export const ACCOUNT_CATEGORY_OPTIONS: readonly {
 ];
 
 /** Role pública enviada ao servidor — mesmo contrato de sempre (visitor|pro). */
+// eslint-disable-next-line react-refresh/only-export-components
 export type RegisterPublicRole = "visitor" | "pro";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function mapAccountCategoryToPublicRole(
   category: AccountCategory
 ): RegisterPublicRole {

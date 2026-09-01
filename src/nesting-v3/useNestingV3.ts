@@ -45,10 +45,20 @@ function stateFromV3Pieces(pieces: V3Piece[]): NestingV3State {
   };
 }
 
-let _pieceIdCounter = 1;
-function nextPieceId() { return `v3p-${_pieceIdCounter++}`; }
+function buildPiecesFromCutPieces(initialCutPieces: CutPiece[]): V3Piece[] {
+  const pieces: V3Piece[] = [];
+  let idx = 0;
+  for (const cp of initialCutPieces) {
+    const qty = cp.quantidade ?? 1;
+    for (let q = 0; q < qty; q++) pieces.push(cutPieceToV3(cp, idx++));
+  }
+  return pieces;
+}
 
 // ── Converter CutPiece → V3Piece ──────────────────────────────────────────────
+
+let _pieceIdCounter = 1;
+function nextPieceId() { return `v3p-${_pieceIdCounter++}`; }
 
 export function cutPieceToV3(
   cp: CutPiece,
@@ -97,15 +107,7 @@ export function useNestingV3(initialCutPieces: CutPiece[] = []) {
   const [state, setState] = useState<NestingV3State>(() => {
     const base = makeDefaultState();
     if (initialCutPieces.length === 0) return base;
-    const pieces: V3Piece[] = [];
-    let idx = 0;
-    for (const cp of initialCutPieces) {
-      const qty = cp.quantidade ?? 1;
-      for (let q = 0; q < qty; q++) {
-        pieces.push(cutPieceToV3(cp, idx++));
-      }
-    }
-    return { ...stateFromV3Pieces(pieces) };
+    return { ...stateFromV3Pieces(buildPiecesFromCutPieces(initialCutPieces)) };
   });
 
   const [dragState, setDragState] = useState<V3DragState | null>(null);
@@ -129,13 +131,8 @@ export function useNestingV3(initialCutPieces: CutPiece[] = []) {
 
   useEffect(() => {
     if (initialCutPieces.length === 0) return;
-    const pieces: V3Piece[] = [];
-    let idx = 0;
-    for (const cp of initialCutPieces) {
-      const qty = cp.quantidade ?? 1;
-      for (let q = 0; q < qty; q++) pieces.push(cutPieceToV3(cp, idx++));
-    }
-    loadPieces(pieces);
+    const pieces = buildPiecesFromCutPieces(initialCutPieces);
+    queueMicrotask(() => loadPieces(pieces));
   }, [initialCutPieces, loadPieces]);
 
   // ── Auto-layout ─────────────────────────────────────────────────────────────
@@ -144,7 +141,7 @@ export function useNestingV3(initialCutPieces: CutPiece[] = []) {
     setState((prev) => {
       const result = runNestingV3AutoLayout(prev.pieces, prev.sheets, prev.settings);
       const template = prev.sheets[0] ?? defaultSheetFromSettings(prev.settings);
-      let newSheets = result.sheets ?? [...prev.sheets];
+      const newSheets = result.sheets ?? [...prev.sheets];
       if (!result.sheets) {
         while (newSheets.length < result.sheetsUsed) {
           newSheets.push(cloneDefaultSheet(newSheets.length, template));

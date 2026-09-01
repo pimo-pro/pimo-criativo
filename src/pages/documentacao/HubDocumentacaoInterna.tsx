@@ -59,10 +59,14 @@ export default function HubDocumentacaoInterna({
 }: HubDocumentacaoInternaProps) {
   const startSection = resolveStartSection(embedded, defaultSection, initialSection);
   const [active, setActive] = useState<HubSectionId>(startSection);
+  const [syncedStartSection, setSyncedStartSection] = useState(startSection);
+  if (embedded && startSection !== syncedStartSection) {
+    setSyncedStartSection(startSection);
+    setActive(startSection);
+  }
 
   useEffect(() => {
     if (embedded) {
-      setActive(startSection);
       const next = `#${startSection}`;
       if (window.location.hash !== next) {
         window.history.replaceState(null, "", `${window.location.pathname}${next}`);
@@ -70,17 +74,23 @@ export default function HubDocumentacaoInterna({
       return;
     }
     const fromHash = parseHubSectionHash(window.location.hash);
-    if (fromHash) {
-      setActive(fromHash);
-      return;
-    }
-    // Sem hash: Documentação atual é a secção inicial oficial.
-    setActive(DEFAULT_HUB_SECTION);
-    const next = `#${DEFAULT_HUB_SECTION}`;
-    if (window.location.hash !== next) {
-      window.history.replaceState(null, "", `${window.location.pathname}${next}`);
+    if (!fromHash) {
+      const next = `#${DEFAULT_HUB_SECTION}`;
+      if (window.location.hash !== next) {
+        window.history.replaceState(null, "", `${window.location.pathname}${next}`);
+      }
     }
   }, [embedded, startSection]);
+
+  useEffect(() => {
+    if (embedded) return;
+    const onHashChange = () => {
+      const fromHash = parseHubSectionHash(window.location.hash);
+      if (fromHash) setActive(fromHash);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [embedded]);
 
   const selectSection = useCallback((id: HubSectionId) => {
     setActive(id);

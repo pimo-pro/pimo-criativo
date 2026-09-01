@@ -135,9 +135,9 @@ export function applyAutoRoomFillPlan(
     Number(material?.espessura ?? prev.material.espessura ?? HEMATI_DEFAULT_THICKNESS_MM) || 19;
 
   let workspaceBoxes = [...prev.workspaceBoxes];
-  let remates = [...(prev.remates ?? [])];
+  const remates = [...(prev.remates ?? [])];
   let hematis = [...(prev.hematis ?? [])];
-  let rodapes = [...(prev.rodapes ?? [])];
+  const rodapes = [...(prev.rodapes ?? [])];
   let room = prev.room;
 
   const createdBoxIds: string[] = [];

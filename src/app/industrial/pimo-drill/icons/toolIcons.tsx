@@ -91,6 +91,7 @@ export function PathIcon(props: IconProps) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const TOOL_ICONS: Record<PimoDrillToolId, (props: IconProps) => ReactNode> = {
   '2d': View2DIcon,
   '3d': View3DIcon,

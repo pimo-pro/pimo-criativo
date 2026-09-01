@@ -4,7 +4,7 @@ import { buildBoxGroup, updateBoxGroup } from "../3d/objects/BoxBuilder";
 
 const THICKNESS_M = 0.019;
 
-function lateralPositions(width: number, height: number) {
+function lateralPositions(width: number, _height: number) {
   return {
     leftX: -width / 2 + THICKNESS_M / 2,
     rightX: width / 2 - THICKNESS_M / 2,

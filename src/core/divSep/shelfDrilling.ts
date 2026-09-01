@@ -121,7 +121,7 @@ export function boxHasDivisorAboveSep(
     separadoresCuttingShelfSide(box, shelfSide).map((s) => s.id)
   );
   return (box.divisores ?? []).some((div) => {
-    if (!Boolean(div.linkedSeparadorId) || resolvePosicaoRelativaAoSep(div) !== "cima") {
+    if (!div.linkedSeparadorId || resolvePosicaoRelativaAoSep(div) !== "cima") {
       return false;
     }
     if (!shelfSide) return true;

@@ -24,7 +24,6 @@ import {
   buildDrawerOnlyBox,
   buildFullIndustrialScenario,
   FULL_INDUSTRIAL_BOX_ID,
-  FULL_INDUSTRIAL_BOX_NOME,
   inferIndustrialPieceKind,
 } from "./industrialPipelineTestHelpers";
 

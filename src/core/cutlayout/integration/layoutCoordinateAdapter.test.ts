@@ -5,7 +5,6 @@ import {
   cutPlacementToV3Placement,
   v3PlacementToCutPlacement,
   physicalBlToV3TopLeft,
-  v3TopLeftToPhysicalBl,
   solverUsableToPhysicalBl,
   physicalBlToSolverUsable,
   coordinatesWithinTolerance,

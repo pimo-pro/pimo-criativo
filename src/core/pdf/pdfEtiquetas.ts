@@ -863,7 +863,7 @@ async function renderEtiquetaPageV5(
   }
   const codeV5Display = resolveEtiquetaDisplayCodeV5(item, qrCtx, piecesPerSheet, etiquetaNumber - 1);
 
-  let secondaryQrCode: string | null = null;
+  const secondaryQrCode: string | null = null;
   let bottomStripCode = codeV5Display;
 
   switch (qrPolicy) {

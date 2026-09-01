@@ -225,7 +225,7 @@ export class ViewerPanelVisibility {
           node.userData.materialPresetId = materialPresetId;
         }
         if (import.meta.env.DEV && drawerPart === "front") {
-          // eslint-disable-next-line no-console
+           
           console.warn(
             `[DRAWER-FRONT-MAT ${performance.now().toFixed(2)}ms] applyPanelIdsToBox.drawer-front`,
             {
@@ -252,7 +252,7 @@ export class ViewerPanelVisibility {
           node.name.startsWith("drawer-front-")
         ) {
           if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
+             
             console.warn(
               `[DRAWER-FRONT-MAT ${performance.now().toFixed(2)}ms] applyPanelIdsToBox.BLOCKED_carcass_front`,
               { boxId, name: node.name, panelType: panelTypeRaw, materialPresetId }

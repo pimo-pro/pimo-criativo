@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { reportInput, reportLabel } from "../reportStyles";
 import { R } from "../uiLabels";
@@ -21,16 +21,20 @@ export default function EnviarRelatorioEmailModal({
 }: Props) {
   const [recipientEmail, setRecipientEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  useEffect(() => {
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setRecipientEmail("");
       setError(null);
     }
-  }, [open]);
+  }
 
   const handleClose = () => {
     if (isSubmitting) return;
+    setRecipientEmail("");
+    setError(null);
     onCancel();
   };
 

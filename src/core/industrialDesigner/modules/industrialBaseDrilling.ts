@@ -106,7 +106,7 @@ function applyShelfTechnicalHolesOnLateral(
   const zonaUtil = Math.max(0, lateral.heightMm - margemTopo - margemBase);
   if (zonaUtil <= 0) return box;
 
-  let numFuros = clamp(Math.ceil(zonaUtil / 32), minFuros, maxFuros);
+  const numFuros = clamp(Math.ceil(zonaUtil / 32), minFuros, maxFuros);
   const step = numFuros > 1 ? zonaUtil / (numFuros - 1) : zonaUtil;
 
   const isEsquerda = isLeftLateral(lateral);

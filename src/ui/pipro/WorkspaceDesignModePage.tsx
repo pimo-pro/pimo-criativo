@@ -50,7 +50,7 @@ export function WorkspaceDesignModePage() {
         engineEnabled: true,
       });
     }
-    refresh();
+    queueMicrotask(() => refresh());
   }, [editId, workspace]);
 
   const panel = workspace.getIndustrialPanelData();

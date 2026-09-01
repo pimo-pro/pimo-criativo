@@ -397,7 +397,7 @@ function addPieceDetailPage(
     pageNum
   );
 
-  let y = 24;
+  const y = 24;
 
   // ── Technical drawing area ────────────────────────────────────────────────
   const DRAW_AREA_H = 120;
