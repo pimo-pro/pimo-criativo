@@ -8,6 +8,7 @@ import {
   userMustConfirmEmail,
   userRequiresEmailVerification,
 } from "./accountEffectiveRole";
+import { PLATFORM_ADMIN_EMAIL } from "./platformAdmin";
 
 describe("accountEffectiveRole", () => {
   it("pending usa visitor como role efectivo", () => {
@@ -78,5 +79,78 @@ describe("accountEffectiveRole", () => {
         emailVerified: true,
       })
     ).toBe(true);
+  });
+
+  describe("exceções admin e legadas", () => {
+    it("admin sem accountCategory nunca exige confirmação", () => {
+      expect(
+        userMustConfirmEmail({ role: "admin", email: "admin@example.com", emailVerified: false })
+      ).toBe(false);
+      expect(
+        isEmailVerifiedForLogin({ role: "admin", email: "admin@example.com", emailVerified: false })
+      ).toBe(true);
+    });
+
+    it("admin com accountCategory corrompido nunca exige confirmação", () => {
+      expect(
+        userMustConfirmEmail({
+          role: "admin",
+          accountCategory: "fabricante",
+          emailVerified: false,
+        })
+      ).toBe(false);
+    });
+
+    it("email hardcoded admin exclui mesmo com role corrompido", () => {
+      expect(
+        userMustConfirmEmail({
+          role: "visitor",
+          email: PLATFORM_ADMIN_EMAIL,
+          accountCategory: "fabricante",
+          emailVerified: false,
+        })
+      ).toBe(false);
+      expect(
+        isEmailVerifiedForLogin({
+          role: "",
+          email: "SheCivara@Gmail.com",
+          emailVerified: false,
+        })
+      ).toBe(true);
+    });
+
+    it("conta legada aprovada sem accountCategory não exige confirmação", () => {
+      expect(
+        userMustConfirmEmail({ role: "pro", accountStatus: "approved", emailVerified: false })
+      ).toBe(false);
+      expect(isEmailVerifiedForLogin({ role: "ultra+", emailVerified: false })).toBe(true);
+    });
+
+    it("conta legada pending sem accountCategory continua a exigir confirmação", () => {
+      expect(userMustConfirmEmail({ accountStatus: "pending", emailVerified: false })).toBe(true);
+    });
+  });
+
+  describe("confirmação única (Regra 2)", () => {
+    it("utilizador já verificado nunca volta a exigir confirmação após mudança de role/categoria", () => {
+      const verifiedUser = {
+        emailVerified: true as const,
+        accountStatus: "approved" as const,
+        accountCategory: "fabricante",
+        role: "pro",
+      };
+      expect(userMustConfirmEmail(verifiedUser)).toBe(false);
+      expect(userRequiresEmailVerification(verifiedUser)).toBe(false);
+      expect(isEmailVerifiedForLogin(verifiedUser)).toBe(true);
+
+      expect(
+        userMustConfirmEmail({
+          ...verifiedUser,
+          role: "ultra+",
+          accountCategory: "lojista",
+          invitedViaCodeId: "convite-antigo",
+        })
+      ).toBe(false);
+    });
   });
 });

@@ -1,3 +1,5 @@
+import { PLATFORM_ADMIN_EMAIL, PLATFORM_ADMIN_ROLE } from "./platformAdmin";
+
 export type AccountStatus = "approved" | "pending";
 
 export type AuthUserAccountFields = {
@@ -31,17 +33,34 @@ export function isAccountApproved(user: { accountStatus?: AccountStatus }): bool
 
 /**
  * Contas que devem confirmar email antes do login.
- * Visitor orgânico (sem convite): não.
- * Pending, não-visitor, ou approved via convite: sim.
+ * Excluídas: admin (role ou email), legadas aprovadas sem accountCategory,
+ * visitor orgânico, e contas já com emailVerified=true (confirmação única).
  */
 export function userMustConfirmEmail(user: {
+  role?: string;
+  email?: string;
   accountStatus?: AccountStatus;
   accountCategory?: string | null;
   invitedViaCodeId?: string | null;
+  emailVerified?: boolean;
 }): boolean {
+  const role = String(user.role ?? "").trim().toLowerCase();
+  if (role === PLATFORM_ADMIN_ROLE) {
+    return false;
+  }
+  const email = String(user.email ?? "").trim().toLowerCase();
+  if (email === PLATFORM_ADMIN_EMAIL.toLowerCase()) {
+    return false;
+  }
+  if (user.emailVerified === true) {
+    return false;
+  }
   const category = String(user.accountCategory ?? "").trim().toLowerCase();
   const invited = Boolean(user.invitedViaCodeId && String(user.invitedViaCodeId).trim());
   if (category === "visitor" && !invited) {
+    return false;
+  }
+  if (category === "" && user.accountStatus !== "pending") {
     return false;
   }
   return true;

@@ -282,16 +282,33 @@ function pimo_auth_load_mail_client(): void
     }
 }
 
+/** E-mail admin plataforma — exceção hardcoded (redundante com role admin). */
+const PIMO_PLATFORM_ADMIN_EMAIL = 'shecivara@gmail.com';
+
 /**
  * Contas que devem confirmar email antes do login.
- * Visitor orgânico (sem convite): não exige.
- * Pending, não-visitor, ou approved via convite: exige até emailVerified.
+ * Excluídas: admin (role ou email), legadas aprovadas sem accountCategory,
+ * visitor orgânico, e contas já com emailVerified=true (confirmação única).
  */
 function pimo_user_must_confirm_email(array $user): bool
 {
+    $role = strtolower(trim((string) ($user['role'] ?? '')));
+    if ($role === 'admin') {
+        return false;
+    }
+    $email = strtolower(trim((string) ($user['email'] ?? '')));
+    if ($email === strtolower(PIMO_PLATFORM_ADMIN_EMAIL)) {
+        return false;
+    }
+    if (($user['emailVerified'] ?? false) === true) {
+        return false;
+    }
     $category = strtolower(trim((string) ($user['accountCategory'] ?? '')));
     $invited = trim((string) ($user['invitedViaCodeId'] ?? '')) !== '';
     if ($category === 'visitor' && !$invited) {
+        return false;
+    }
+    if ($category === '' && pimo_user_account_status($user) === 'approved') {
         return false;
     }
     return true;
