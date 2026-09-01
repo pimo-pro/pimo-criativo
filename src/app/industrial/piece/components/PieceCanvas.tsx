@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { Edges, OrbitControls, PerspectiveCamera, TransformControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
@@ -150,8 +150,6 @@ function SceneGizmo({
   onCommit: (matrix: THREE.Matrix4) => void;
   onDragging: (dragging: boolean) => void;
 }) {
-  const controls = useThree((state) => state.controls);
-
   if (!target) return null;
 
   return (
@@ -163,11 +161,6 @@ function SceneGizmo({
       onMouseUp={() => {
         onDragging(false);
         onCommit(target.matrix.clone());
-      }}
-      onChange={() => {
-        if (controls && 'enabled' in controls) {
-          (controls as OrbitControlsImpl).enabled = false;
-        }
       }}
     />
   );
