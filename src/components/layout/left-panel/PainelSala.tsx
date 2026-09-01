@@ -121,6 +121,8 @@ export function PainelSala() {
   const displayLayoutType: KitchenLayoutType | "auto" =
     layoutOverride !== "auto" ? layoutOverride : detectedLayout?.detectedType ?? "I";
 
+  const [autoFillMessage, setAutoFillMessage] = useState<string | null>(null);
+
   useEffect(() => {
     const text = project.autoFill?.detailedSummary ?? project.autoFill?.summary;
     if (text) setAutoFillMessage(text);
@@ -132,7 +134,6 @@ export function PainelSala() {
   const [heightCm, setHeightCm] = useState(DEFAULT_ROOM_HEIGHT_CM);
   const [roomType, setRoomType] = useState<RoomType>("closed");
   const [roomVisibleState, setRoomVisibleState] = useState(true);
-  const [autoFillMessage, setAutoFillMessage] = useState<string | null>(null);
 
   const roomVisible = viewerApi?.getRoomVisible?.()  ?? roomVisibleState;
   const locked      = viewerApi?.getRoomLocked?.()   ?? false;
