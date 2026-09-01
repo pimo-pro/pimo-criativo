@@ -12,38 +12,39 @@ type Props = {
 };
 
 export default function OperatorViewerPanel({ piece }: Props) {
-  const [snapshot, setSnapshot] = useState<SavedProjectRecord | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const projectId = piece?.projectId;
+
+  const [loadedSnapshot, setLoadedSnapshot] = useState<SavedProjectRecord | null>(null);
+  const [loadedForProjectId, setLoadedForProjectId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const snapshot = projectId && loadedForProjectId === projectId ? loadedSnapshot : null;
+  const error = projectId && loadedForProjectId === projectId ? fetchError : null;
+  const loading = Boolean(projectId && loadedForProjectId !== projectId);
 
   useEffect(() => {
-    if (!piece?.projectId) {
-      setSnapshot(null);
-      return;
-    }
+    if (!projectId) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
-    void loadProjectRecord(piece.projectId)
+    void loadProjectRecord(projectId)
       .then((record) => {
-        if (!cancelled) setSnapshot(record);
+        if (cancelled) return;
+        setLoadedForProjectId(projectId);
+        setLoadedSnapshot(record);
+        setFetchError(null);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Falha ao carregar projecto para viewer 3D.');
-          setSnapshot(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (cancelled) return;
+        setLoadedForProjectId(projectId);
+        setLoadedSnapshot(null);
+        setFetchError(err instanceof Error ? err.message : 'Falha ao carregar projecto para viewer 3D.');
       });
 
     return () => {
       cancelled = true;
     };
-  }, [piece?.projectId]);
+  }, [projectId]);
 
   if (!piece) {
     return (
