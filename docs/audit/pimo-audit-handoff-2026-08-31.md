@@ -111,14 +111,14 @@ Correcções de testes / UI / CI (ex.: corner left 447/447, mocks work orders, m
 | ID | Item | Notas |
 |---|---|---|
 | F3-edges | `updatePieceEdgeSelection` / `savePieceEdges` | Mesmo padrão pré-fix B: `savePieceEdges` **throw** no `PIMO_WRITE_BLOCKED`; `usePieceInteraction` chama `onPersisted`/reload sem verificar resultado. Fora do âmbito do fix B (`persistTransform`); tratar após C/D/E. |
-| F3-C | Work orders duplicáveis | `woIdempotencyConfig.skipExistingStationOrders: false` — evidência em curso |
+| F3-C | Work orders duplicáveis | **Fechado (Fase 3C):** `skipExistingStationOrders: true`. Nunca esteve true antes (só warn desde 2026-06-23). |
 | F3-D | Dimensões gaveta legado (`gavetaRecuoProfundidadeCorredicaMm`) | Consistência com Quadro V6 / X1=38 / `corredica_marca` |
 | F3-E | JSON de projecto incompletos (SSH) | Serialização / campos omitidos |
 
 ## Próximos passos
 
 1. ~~Fechar as falhas restantes → CI bloqueante~~ **FEITO**
-2. **Fase 3** — A (sync) + B (soft-fail tipado / persistTransform) feitos; evidência **C** (WO duplicáveis) a seguir; depois D → E (e F3-edges)
+2. **Fase 3** — A+B feitos e no remoto; **C fechado** (`skipExistingStationOrders: true`); evidência **D** (clearance legado) pronta; depois E + F3-edges
 3. Fase 2 — docs / flags / arredondamento financeiro (produto)
 4. Fases 5–7 — limpeza, modularidade, placeholders industriais
 5. Follow-up **F3-edges** após C/D/E

@@ -1,19 +1,20 @@
 /**
- * Idempotência na geração de WO — preparação Fase 4, documentado Fase 5.
+ * Idempotência na geração de WO.
  *
- * Comportamento actual preservado: `skipExistingStationOrders` desactivado.
- * `warnOnDuplicate` activo — só aviso em consola, sem alterar persistência.
+ * `skipExistingStationOrders` activo (Fase 3C): não cria nova WO se já existir
+ * ordem para (projectId, station); reutiliza a existente.
+ * `warnOnDuplicate` continua a registar aviso em consola.
  *
- * @see RELATORIO_FASE_4.md §4.4
- * @see docs/guides/industrial-supervisor-guide.md §3
- * @see docs/architecture/industrial-feature-flags.md
+ * Histórico: introduzido 2026-06-23 com skip=false para preservar o comportamento
+ * então vigente (só warn). Nunca esteve true em produção até Fase 3C.
+ * Docs referenciados (RELATORIO_FASE_4 / feature-flags) não estão no repo.
  */
 export const woIdempotencyConfig = {
   /**
    * Quando `true`, não cria nova WO se já existir ordem para (projectId, station).
    * Reutiliza a existente no resultado.
    */
-  skipExistingStationOrders: false,
+  skipExistingStationOrders: true,
 
   /**
    * Quando `true`, regista aviso em consola se duplicata seria criada.

@@ -1,8 +1,7 @@
 /**
- * Fase 3C — evidência runtime: work orders duplicáveis.
- * Com skipExistingStationOrders=false (produção), segunda geração na mesma
- * estação chama persistWorkOrderDraft outra vez apesar de já existir WO.
- * warnOnDuplicate só escreve console.warn.
+ * Fase 3C — evidência / contrato: skipExistingStationOrders=true (produção).
+ * 2.ª geração reutiliza WO existente; não chama persistWorkOrderDraft de novo.
+ * Caso skip=false documentado como anti-padrão (duplica).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,10 +19,9 @@ vi.mock("../persistence/work-orders/loadWorkOrders", () => ({
   loadWorkOrders: vi.fn(),
 }));
 
-// Config REAL de produção (não o mock do teste unitário que desliga warn).
 vi.mock("./woIdempotencyConfig", () => ({
   woIdempotencyConfig: {
-    skipExistingStationOrders: false,
+    skipExistingStationOrders: true,
     warnOnDuplicate: true,
   },
 }));
@@ -61,7 +59,7 @@ function fakeOrder(station: string, id: string) {
   };
 }
 
-describe("Fase 3C — WO duplicáveis (skipExistingStationOrders=false)", () => {
+describe("Fase 3C — WO idempotência (skipExistingStationOrders=true)", () => {
   beforeEach(() => {
     vi.mocked(resolveProjectCutlist).mockReset();
     vi.mocked(persistWorkOrderDraft).mockReset();
@@ -76,83 +74,74 @@ describe("Fase 3C — WO duplicáveis (skipExistingStationOrders=false)", () => 
     });
   });
 
-  it("2.ª geração: load encontra WO existente, avisa, mas volta a persistir (duplica)", async () => {
+  it("2.ª geração: reutiliza existentes, zero persists novos, avisa", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    // 1.ª geração — nenhuma ordem existente
     vi.mocked(loadWorkOrders).mockResolvedValue([]);
-    vi.mocked(persistWorkOrderDraft).mockImplementation(async (projectId, draft) =>
+    vi.mocked(persistWorkOrderDraft).mockImplementation(async (_projectId, draft) =>
       fakeOrder(draft.station, `wo-first-${draft.station}`),
     );
-
     const first = await createWorkOrdersForProject("proj-fase3c");
-    const firstPersistCalls = vi.mocked(persistWorkOrderDraft).mock.calls.length;
     expect(first.orders.length).toBeGreaterThan(0);
-    expect(firstPersistCalls).toBe(first.orders.length);
+    expect(persistWorkOrderDraft).toHaveBeenCalled();
 
-    // 2.ª geração — cada estação já tem ordem
     vi.mocked(persistWorkOrderDraft).mockClear();
     vi.mocked(loadWorkOrders).mockImplementation(async (filter) => {
       const station = filter?.station ?? "unknown";
       return [fakeOrder(String(station), `wo-existing-${station}`)];
     });
-    vi.mocked(persistWorkOrderDraft).mockImplementation(async (projectId, draft) =>
-      fakeOrder(draft.station, `wo-dup-${draft.station}`),
-    );
 
     const second = await createWorkOrdersForProject("proj-fase3c");
-    const secondPersistCalls = vi.mocked(persistWorkOrderDraft).mock.calls.length;
-
-    // Continua a criar — não reutiliza as existentes
-    expect(secondPersistCalls).toBe(second.orders.length);
-    expect(secondPersistCalls).toBeGreaterThan(0);
-    expect(second.orders.every((o) => o.id.startsWith("wo-dup-"))).toBe(true);
-
-    const dupWarns = warnSpy.mock.calls.filter(
-      (c) => typeof c[0] === "string" && c[0].includes("[WO] Ordem existente"),
-    );
-    expect(dupWarns.length).toBeGreaterThan(0);
+    expect(persistWorkOrderDraft).not.toHaveBeenCalled();
+    expect(second.orders.length).toBeGreaterThan(0);
+    expect(second.orders.every((o) => o.id.startsWith("wo-existing-"))).toBe(true);
+    expect(
+      warnSpy.mock.calls.some(
+        (c) => typeof c[0] === "string" && c[0].includes("[WO] Ordem existente"),
+      ),
+    ).toBe(true);
 
     warnSpy.mockRestore();
   });
+});
 
-  it("com skipExistingStationOrders=true (hipotético): não persistiria de novo", async () => {
-    // Documenta o comportamento desejado quando a flag for activada — via mock pontual.
+describe("Fase 3C — anti-padrão documentado (skip=false duplica)", () => {
+  it("com skipExistingStationOrders=false: 2.ª geração volta a persistir", async () => {
     vi.resetModules();
     vi.doMock("./woIdempotencyConfig", () => ({
       woIdempotencyConfig: {
-        skipExistingStationOrders: true,
+        skipExistingStationOrders: false,
         warnOnDuplicate: true,
       },
     }));
     vi.doMock("./resolveProjectCutlist", () => ({
       resolveProjectCutlist: vi.fn().mockReturnValue({
-        projectId: "proj-fase3c-skip",
-        projectName: "Skip",
+        projectId: "proj-fase3c-noskip",
+        projectName: "NoSkip",
         pieces: [samplePiece("piece-1")],
         cutlist: [],
         cutListItems: [],
         boxNameById: {},
       }),
     }));
-    const persist = vi.fn();
+    const persist = vi.fn(async (_projectId: string, draft: { station: string }) =>
+      fakeOrder(draft.station, `wo-dup-${draft.station}`),
+    );
     vi.doMock("../persistence/work-orders/persistWorkOrder", () => ({
       persistWorkOrderDraft: persist,
     }));
     vi.doMock("../persistence/work-orders/loadWorkOrders", () => ({
-      loadWorkOrders: vi.fn().mockResolvedValue([fakeOrder("nesting", "wo-keep-nesting")]),
+      loadWorkOrders: vi.fn().mockResolvedValue([fakeOrder("nesting", "wo-existing-nesting")]),
     }));
 
-    const { createWorkOrdersForProject: createWithSkip } = await import(
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { createWorkOrdersForProject: createNoSkip } = await import(
       "./createWorkOrdersForProject"
     );
-    // load devolve existing para todas as estações — com skip, zero persists
-    // Nota: load é chamado por estação; mock devolve sempre 1 existing.
-    const result = await createWithSkip("proj-fase3c-skip");
-    expect(persist).not.toHaveBeenCalled();
-    expect(result.orders.length).toBeGreaterThan(0);
-    expect(result.orders.every((o) => o.id.startsWith("wo-keep-"))).toBe(true);
-
+    const result = await createNoSkip("proj-fase3c-noskip");
+    expect(persist).toHaveBeenCalled();
+    expect(result.orders.every((o) => o.id.startsWith("wo-dup-"))).toBe(true);
+    warnSpy.mockRestore();
     vi.resetModules();
   });
 });
