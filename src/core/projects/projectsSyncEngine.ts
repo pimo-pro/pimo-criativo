@@ -309,15 +309,21 @@ export async function syncQueue(): Promise<void> {
           const request: SaveProjectRequest = project.remoteId
             ? { ...baseRequest, remoteProjectId: project.remoteId }
             : baseRequest;
-          const saved = await remoteSaveProject(request, projectsApiDeps);
-          if (!saved) {
-            console.warn("[SYNC] remoteSaveProject devolveu null — operação removida da fila sem retry", {
-              projectId: project.id,
-              ownerId: project.ownerId,
-            });
-            nextQueue.splice(index, 1);
-            continue;
+          const saveResult = await remoteSaveProject(request, projectsApiDeps);
+          if (!saveResult.ok) {
+            if (saveResult.reason === "disabled") {
+              // Sync remoto desactivado de propósito — não há destino; remove da fila (comportamento actual).
+              nextQueue.splice(index, 1);
+              continue;
+            }
+            // http_error | malformed_response → mesmo caminho que falha de rede (catch abaixo).
+            const msg =
+              saveResult.reason === "http_error"
+                ? `Falha HTTP ao guardar projeto (${saveResult.status})`
+                : "Resposta inválida ao guardar projeto";
+            throw new Error(msg);
           }
+          const saved = saveResult.meta;
           projects[projectIdx] = {
             ...project,
             remoteId: saved.id,

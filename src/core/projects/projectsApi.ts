@@ -37,6 +37,13 @@ export type ProjectsApiDeps = {
   nowIso: () => string;
 };
 
+/** Resultado tipado do POST save — evita tratar disabled / HTTP / malformado como o mesmo null. */
+export type RemoteSaveProjectResult =
+  | { ok: true; meta: SavedProjectMeta }
+  | { ok: false; reason: "disabled" }
+  | { ok: false; reason: "http_error"; status: number; detail?: unknown }
+  | { ok: false; reason: "malformed_response"; detail?: unknown };
+
 function metaFromSaveResponse(
   row: Record<string, unknown>,
   deps: ProjectsApiDeps
@@ -74,9 +81,9 @@ function metaFromSaveResponse(
 export async function remoteSaveProject(
   request: SaveProjectRequest,
   deps: ProjectsApiDeps
-): Promise<SavedProjectMeta | null> {
+): Promise<RemoteSaveProjectResult> {
   if (!canUseRemoteProjectsApi()) {
-    return null;
+    return { ok: false, reason: "disabled" };
   }
   const projectData = deps.buildPimoProjectDataFromRequest(request);
   const response = await fetch(buildProjectsUrl(), {
@@ -91,18 +98,24 @@ export async function remoteSaveProject(
   } | null;
   if (!response.ok) {
     console.warn("[SYNC] remoteSaveProject HTTP", response.status, payload?.message ?? payload);
-    return null;
+    return {
+      ok: false,
+      reason: "http_error",
+      status: response.status,
+      detail: payload?.message ?? payload,
+    };
   }
   const row = deps.asObject(payload?.project);
   if (!row) {
     console.warn("[SYNC] remoteSaveProject resposta sem project", payload);
-    return null;
+    return { ok: false, reason: "malformed_response", detail: payload };
   }
   const meta = metaFromSaveResponse(row, deps);
   if (!meta) {
     console.warn("[SYNC] remoteSaveProject project sem campos reconhecidos", Object.keys(row));
+    return { ok: false, reason: "malformed_response", detail: Object.keys(row) };
   }
-  return meta;
+  return { ok: true, meta };
 }
 
 function mapRemoteProjectRows(rows: unknown[], deps: ProjectsApiDeps): SavedProjectMeta[] {
