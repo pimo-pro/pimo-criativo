@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Edges, OrbitControls, PerspectiveCamera, TransformControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -186,7 +186,7 @@ function PieceCanvasScene({
   const orbitRef = useRef<OrbitControlsImpl>(null);
   const meshRefs = useRef<Record<string, THREE.Mesh | null>>({});
   const [dragging, setDragging] = useState(false);
-  const [selectedMesh, setSelectedMesh] = useState<THREE.Object3D | null>(null);
+  const [gizmoTarget, setGizmoTarget] = useState<{ id: string; mesh: THREE.Object3D } | null>(null);
 
   const resolved = useMemo(
     () =>
@@ -201,13 +201,8 @@ function PieceCanvasScene({
     [entities, transforms],
   );
 
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedMesh(null);
-      return;
-    }
-    setSelectedMesh(meshRefs.current[selectedId] ?? null);
-  }, [selectedId, resolved]);
+  const activeGizmoTarget =
+    selectedId && gizmoTarget?.id === selectedId ? gizmoTarget.mesh : null;
 
   return (
     <>
@@ -228,15 +223,17 @@ function PieceCanvasScene({
           selected={selectedId === entity.id}
           meshRef={(node) => {
             meshRefs.current[entity.id] = node;
-            if (selectedId === entity.id) setSelectedMesh(node);
+            if (selectedId === entity.id && node) {
+              setGizmoTarget({ id: entity.id, mesh: node });
+            }
           }}
           onSelect={() => onSelect(entity.id, entity.type)}
         />
       ))}
 
-      {selectedMesh && toolMode !== 'select' ? (
+      {activeGizmoTarget && toolMode !== 'select' ? (
         <SceneGizmo
-          target={selectedMesh}
+          target={activeGizmoTarget}
           mode={toolMode === 'move' ? 'translate' : 'rotate'}
           onCommit={(matrix) => {
             if (selectedId) onApplyMatrix(selectedId, matrix);
