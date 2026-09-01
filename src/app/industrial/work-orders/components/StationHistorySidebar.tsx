@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import { getWorkOrderPieceDisplay } from '@/industrial/work-orders/resolveWorkOrderPiece';
 import type { IndustrialWorkOrder, IndustrialWorkOrderTask } from '@/industrial/work-orders/types';
@@ -22,6 +22,23 @@ function taskProjectId(task: IndustrialWorkOrderTask, orders: IndustrialWorkOrde
   return orders.find((order) => order.id === task.workOrderId)?.projectId ?? '';
 }
 
+function HistorySection({
+  title,
+  titleStyle,
+  children,
+}: {
+  title: string;
+  titleStyle: CSSProperties;
+  children: ReactNode;
+}) {
+  return (
+    <section style={{ display: 'grid', gap: 6 }}>
+      <h3 style={titleStyle}>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export default function StationHistorySidebar({ tasks, orders, eventLog }: StationHistorySidebarProps) {
   ensureIndustrialInteractionStyles();
   const tone = useIndustrialTone();
@@ -30,13 +47,6 @@ export default function StationHistorySidebar({ tasks, orders, eventLog }: Stati
   const sectionTitleStyle = isLight ? industrialSectionTitleStyleLight : industrialSectionTitleStyle;
   const listItemStyle = isLight ? industrialListItemStyleLight : industrialListItemStyle;
   const completed = tasks.filter((t) => t.status === 'completed' || t.status === 'rejected');
-
-  const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-    <section style={{ display: 'grid', gap: 6 }}>
-      <h3 style={sectionTitleStyle}>{title}</h3>
-      {children}
-    </section>
-  );
 
   const renderTask = (task: IndustrialWorkOrderTask) => {
     const display = getWorkOrderPieceDisplay(task, taskProjectId(task, orders));
@@ -63,7 +73,7 @@ export default function StationHistorySidebar({ tasks, orders, eventLog }: Stati
         color: ui.text,
       }}
     >
-      <Section title="Tarefas activas">
+      <HistorySection title="Tarefas activas" titleStyle={sectionTitleStyle}>
         <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 4 }}>
           {tasks
             .filter((t) => t.status === 'pending' || t.status === 'in_progress')
@@ -77,9 +87,9 @@ export default function StationHistorySidebar({ tasks, orders, eventLog }: Stati
               </li>
             ))}
         </ul>
-      </Section>
+      </HistorySection>
 
-      <Section title="Concluídas / Rejeitadas">
+      <HistorySection title="Concluídas / Rejeitadas" titleStyle={sectionTitleStyle}>
         <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 4 }}>
           {completed.length === 0 ? (
             <li style={{ fontSize: 12, color: ui.muted }}>Sem histórico.</li>
@@ -95,9 +105,9 @@ export default function StationHistorySidebar({ tasks, orders, eventLog }: Stati
             ))
           )}
         </ul>
-      </Section>
+      </HistorySection>
 
-      <Section title="Eventos">
+      <HistorySection title="Eventos" titleStyle={sectionTitleStyle}>
         <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 4 }}>
           {eventLog.length === 0 ? (
             <li style={{ fontSize: 12, color: ui.muted }}>Sem eventos registados.</li>
@@ -116,7 +126,7 @@ export default function StationHistorySidebar({ tasks, orders, eventLog }: Stati
             ))
           )}
         </ul>
-      </Section>
+      </HistorySection>
     </aside>
   );
 }
