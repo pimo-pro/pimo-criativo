@@ -1,15 +1,35 @@
 {
-  "updatedAt": "2026-09-01T15:38:44.837Z",
+  "updatedAt": "2026-09-01T19:01:51.864Z",
   "news": [
+    {
+      "version": "v6.0901.2001",
+      "title": "fix(lint): CI verde — ESLint 0 erros (Blocos A–E)",
+      "description": "fix(lint): CI verde — ESLint 0 erros (Blocos A–E)",
+      "publishedAt": "2026-09-01T19:01:51.755Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "54375a75"
+    },
+    {
+      "version": "v6.0901.1932",
+      "title": "fix(lint): labels derivados em TopBarTrak",
+      "description": "fix(lint): labels derivados em TopBarTrak\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+      "publishedAt": "2026-09-01T19:30:20+01:00",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "4c3b867"
+    },
     {
       "version": "v6.0901.1638",
       "title": "fix(types): narrowing TS em sync/persist para build de producao",
       "description": "fix(types): narrowing TS em sync/persist para build de producao",
-      "publishedAt": "2026-09-01T15:38:44.469Z",
+      "publishedAt": "2026-09-01T16:42:35+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "2268df59"
+      "commit": "d437357"
     },
     {
       "version": "v6.0828.1714",

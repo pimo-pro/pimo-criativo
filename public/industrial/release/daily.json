@@ -1,4 +1,17 @@
 {
-  "date": "2026-07-14",
-  "entries": []
+  "date": "2026-09-01",
+  "entries": [
+    {
+      "publishedAt": "2026-09-01T18:32:51.324Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(lint): correcoes ESLint Fase 2/3 — hooks, refs, set-state-in-effect (15 commits)",
+      "version": "v6.0901.1932"
+    },
+    {
+      "publishedAt": "2026-09-01T15:38:34.860Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(types): narrowing TS em sync/persist para build de producao",
+      "version": "v6.0901.1638"
+    }
+  ]
 }
