@@ -162,9 +162,30 @@ Correcções de testes / UI / CI (ex.: corner left 447/447, mocks work orders, m
 
 ### Próximo passo E (sem fix)
 
-1. Script ou amostra manual: 3–5 JSON reais SSH — presença de `settings.projectState`, `workspaceBoxes`, `industrialPieceEdits`, `settings.productionRelease`.
-2. Comparar com offline IDB do mesmo `id` (se existir no cliente).
+1. ~~Amostra manual SSH (grep)~~ — **feito:** projectState/workspaceBoxes 5/5; productionRelease 2/5 (benigno); H1 sem evidência; H2 refutado via harness (`projectsProductionReleaseMerge.fase3e.runtime.test.ts`).
+2. Comparar com offline IDB do mesmo `id` (se existir no cliente) — opcional.
 3. Só então propor fix mínimo (ex.: merge PHP alargado vs. deixar de duplicar top-level).
+
+## Backlog desenvolvimento futuro (fora do escopo E)
+
+| Item | Notas |
+|---|---|
+| Persistência sep/div + modelos gaveta | Separadores/divisores (`sep`/`div`) e novos modelos de gaveta — confirmar se `serializeState` / `buildPimoProjectDataFromRequest` / load preservam correctamente. Backlog; não bloqueia fecho de E. |
+
+## Deploy / CI (urgente — 2026-09-01)
+
+| Workflow | Trigger | Estado |
+|---|---|---|
+| `verify.yml` | **push main + PR** | Últimos 5 runs **falharam no Lint** (105 erros ESLint pré-existentes; typecheck/testes skipped) |
+| `deploy.yml` | **só tag `v*`** (via `npm run publish`) | **Não dispara em push main.** Último deploy OK: **v6.0828.1714** (2026-08-28). Produção live = commit `f453a995` |
+
+Commits de hoje (sync, Supabase, WO, nesting, F3D doc) estão em `main` mas **não estão live** até correr `npm run publish`.
+
+### Achado de processo CI (verify.yml — não bloqueante agora)
+
+O `verify.yml` corre Lint → Typecheck → Tests **em sequência com fail-fast**: se Lint falha, TSC e testes **nunca correm**. Resultado: 5 pushes seguidos com Lint vermelho (105 erros pré-existentes) **mascararam** um erro real de build TS (Fase 3A/3B) sem qualquer sinal no Actions.
+
+**Proposta futura (registar, não implementar agora):** correr os 3 passos sempre (cada um reporta o seu resultado); passo final agrega e falha o job se qualquer um falhou — evita que um passo esconda outro.
 
 
 1. ~~Fechar as falhas restantes → CI bloqueante~~ **FEITO**

@@ -17,5 +17,5 @@ export function industrialPersistRejected(
 export function isIndustrialPersistBlocked(
   result: IndustrialPersistResult<unknown>,
 ): boolean {
-  return !result.ok && result.reason === "blocked";
+  return result.ok === false && result.reason === "blocked";
 }

@@ -310,33 +310,33 @@ export async function syncQueue(): Promise<void> {
             ? { ...baseRequest, remoteProjectId: project.remoteId }
             : baseRequest;
           const saveResult = await remoteSaveProject(request, projectsApiDeps);
-          if (!saveResult.ok) {
-            if (saveResult.reason === "disabled") {
-              // Sync remoto desactivado de propósito — não há destino; remove da fila (comportamento actual).
-              nextQueue.splice(index, 1);
-              continue;
-            }
-            // http_error | malformed_response → mesmo caminho que falha de rede (catch abaixo).
-            const msg =
-              saveResult.reason === "http_error"
-                ? `Falha HTTP ao guardar projeto (${saveResult.status})`
-                : "Resposta inválida ao guardar projeto";
-            throw new Error(msg);
+          if (saveResult.ok === true) {
+            const saved = saveResult.meta;
+            projects[projectIdx] = {
+              ...project,
+              remoteId: saved.id,
+              name: saved.name,
+              ownerId: saved.ownerId,
+              ownerName: saved.ownerName,
+              updatedAt: toIsoOrNow(saved.updatedAt),
+              thumbnailDataUrl: saved.thumbnailDataUrl ?? project.thumbnailDataUrl,
+              lastSyncedAt: nowIso(),
+              deleted: false,
+            };
+            nextQueue.splice(index, 1);
+            continue;
           }
-          const saved = saveResult.meta;
-          projects[projectIdx] = {
-            ...project,
-            remoteId: saved.id,
-            name: saved.name,
-            ownerId: saved.ownerId,
-            ownerName: saved.ownerName,
-            updatedAt: toIsoOrNow(saved.updatedAt),
-            thumbnailDataUrl: saved.thumbnailDataUrl ?? project.thumbnailDataUrl,
-            lastSyncedAt: nowIso(),
-            deleted: false,
-          };
-          nextQueue.splice(index, 1);
-          continue;
+          if (saveResult.reason === "disabled") {
+            // Sync remoto desactivado de propósito — não há destino; remove da fila (comportamento actual).
+            nextQueue.splice(index, 1);
+            continue;
+          }
+          // http_error | malformed_response → mesmo caminho que falha de rede (catch abaixo).
+          const msg =
+            saveResult.reason === "http_error"
+              ? `Falha HTTP ao guardar projeto (${saveResult.status})`
+              : "Resposta inválida ao guardar projeto";
+          throw new Error(msg);
         }
 
         if (entry.op === "rename") {
