@@ -36,51 +36,48 @@ function ProjetosHubLayoutContent({ children }: { children?: ReactNode }) {
     [boxSegment, pieceSegment]
   );
 
-  const [snapshot, setSnapshot] = useState<SavedProjectRecord | null>(() => {
+  const slugError = pageSlug ? null : "Projeto nao especificado na URL.";
+
+  const cachedSnapshot = useMemo(() => {
+    if (!pageSlug) return null;
     const cached = getProjetosSnapshot();
     return snapshotMatchesProject(cached, pageSlug) ? cached : null;
-  });
-  const [loading, setLoading] = useState(() => !snapshotMatchesProject(getProjetosSnapshot(), pageSlug));
+  }, [pageSlug]);
+
+  const [loadedSnapshot, setLoadedSnapshot] = useState<SavedProjectRecord | null>(null);
+  const [loadedForSlug, setLoadedForSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!pageSlug) {
-      setError("Projeto nao especificado na URL.");
-      setLoading(false);
-      return;
-    }
+  const snapshot = cachedSnapshot ?? (loadedForSlug === pageSlug ? loadedSnapshot : null);
+  const fetchError = loadedForSlug === pageSlug ? error : null;
+  const displayError = slugError ?? fetchError;
+  const displayLoading = Boolean(pageSlug && !cachedSnapshot && loadedForSlug !== pageSlug);
 
-    const cached = getProjetosSnapshot();
-    if (snapshotMatchesProject(cached, pageSlug)) {
-      setSnapshot(cached);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  useEffect(() => {
+    if (!pageSlug || cachedSnapshot) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     void loadProjectRecordByPageSlug(pageSlug).then((record) => {
       if (cancelled) return;
 
+      setLoadedForSlug(pageSlug);
+
       if (!record) {
-        setSnapshot(null);
-        setLoading(false);
+        setLoadedSnapshot(null);
         setError("Projeto nao encontrado.");
         return;
       }
 
       setProjetosSnapshot(record);
-      setSnapshot(record);
-      setLoading(false);
+      setLoadedSnapshot(record);
+      setError(null);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [pageSlug]);
+  }, [pageSlug, cachedSnapshot]);
 
   const resolvedFocus = useMemo(
     () => resolveProjetosFocusFromSegments(snapshot, boxSegment, pieceSegment),
@@ -104,11 +101,11 @@ function ProjetosHubLayoutContent({ children }: { children?: ReactNode }) {
           flexDirection: "column",
         }}
       >
-        {!loading && !error ? (
+        {!displayLoading && !displayError ? (
           <ProjetosElementSections snapshot={snapshot} />
         ) : (
           <div style={{ padding: 12, fontSize: 12, color: "#71717a" }}>
-            {loading ? "A carregar…" : error}
+            {displayLoading ? "A carregar…" : displayError}
           </div>
         )}
       </aside>
@@ -152,9 +149,9 @@ function ProjetosHubLayoutContent({ children }: { children?: ReactNode }) {
         </header>
         <main style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "row", overflow: "hidden" }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-            {loading && <div style={{ padding: 16 }}>A carregar projeto…</div>}
-            {!loading && error && <div style={{ padding: 16 }}>{error}</div>}
-            {!loading && !error && (
+            {displayLoading && <div style={{ padding: 16 }}>A carregar projeto…</div>}
+            {!displayLoading && displayError && <div style={{ padding: 16 }}>{displayError}</div>}
+            {!displayLoading && !displayError && (
               <ProjetosShowroomPanel
                 snapshot={snapshot}
                 focusLevel={focusLevel}
@@ -165,7 +162,7 @@ function ProjetosHubLayoutContent({ children }: { children?: ReactNode }) {
             )}
             {children}
           </div>
-          {!loading && !error ? (
+          {!displayLoading && !displayError ? (
             <ProjetosIndustrialPanel
               snapshot={snapshot}
               focusLevel={focusLevel}
