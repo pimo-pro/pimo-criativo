@@ -2,7 +2,7 @@
  * Hook: ProjectState —nico para páginas `/analise` (mesmo SSOT que o ZIP/editor).
  * Prefere industrialLiveProjectStore; senão carrega o record e publica no store.
  */
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { reviveState, serializeState } from "@/context/projectPersistence";
 import { applyResultados } from "@/context/projectState";
@@ -61,82 +61,80 @@ export function useIndustrialAnalysisProject(pageSlug: string | undefined): {
     () => 0
   );
 
-  const [record, setRecord] = useState<SavedProjectRecord | null>(() => {
+  const slugError = pageSlug ? null : "Projeto não especificado na URL.";
+
+  const cachedRecord = useMemo(() => {
+    if (!pageSlug) return null;
+    const cached = getProjetosSnapshot();
+    if (!snapshotMatchesProjetosPageSlug(cached, pageSlug)) return null;
+    return reviveFromRecord(cached) ? cached : null;
+  }, [pageSlug, liveRevision]);
+
+  const syncedRecord = useMemo(() => {
+    if (!pageSlug) return null;
+    const live = getIndustrialLiveProject();
+    if (!live || !liveProjectMatchesPageSlug(pageSlug, live.projectName)) return null;
     const cached = getProjetosSnapshot();
     return snapshotMatchesProjetosPageSlug(cached, pageSlug) ? cached : null;
-  });
-  const [loading, setLoading] = useState(() => {
-    if (getIndustrialLiveProjectMatchingSlug(pageSlug)) return false;
-    return !snapshotMatchesProjetosPageSlug(getProjetosSnapshot(), pageSlug);
-  });
-  const [error, setError] = useState<string | null>(null);
+  }, [pageSlug, liveRevision]);
+
+  const [loadedRecord, setLoadedRecord] = useState<SavedProjectRecord | null>(null);
+  const [loadedForSlug, setLoadedForSlug] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [overrideRecord, setOverrideRecord] = useState<SavedProjectRecord | null>(null);
+  const [overrideForSlug, setOverrideForSlug] = useState<string | null>(null);
+
+  const record =
+    (overrideForSlug === pageSlug ? overrideRecord : null) ??
+    syncedRecord ??
+    cachedRecord ??
+    (loadedForSlug === pageSlug ? loadedRecord : null);
+
+  const hasLive = Boolean(getIndustrialLiveProjectMatchingSlug(pageSlug));
+  const loading = Boolean(
+    pageSlug && !slugError && !hasLive && !cachedRecord && loadedForSlug !== pageSlug,
+  );
+  const error = slugError ?? (loadedForSlug === pageSlug ? fetchError : null);
 
   useEffect(() => {
-    if (!pageSlug) {
-      setError("Projeto não especificado na URL.");
-      setLoading(false);
-      return;
-    }
+    if (!cachedRecord) return;
+    const revived = reviveFromRecord(cachedRecord);
+    if (revived) publishIndustrialLiveProject(revived);
+  }, [cachedRecord]);
 
-    const live = getIndustrialLiveProjectMatchingSlug(pageSlug);
-    if (live) {
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cached = getProjetosSnapshot();
-    if (snapshotMatchesProjetosPageSlug(cached, pageSlug)) {
-      const revived = reviveFromRecord(cached);
-      if (revived) {
-        publishIndustrialLiveProject(revived);
-        setRecord(cached);
-        setLoading(false);
-        setError(null);
-        return;
-      }
-    }
+  useEffect(() => {
+    if (!pageSlug || cachedRecord || getIndustrialLiveProjectMatchingSlug(pageSlug)) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     void loadProjectRecordByPageSlug(pageSlug).then((loaded) => {
       if (cancelled) return;
+
+      setLoadedForSlug(pageSlug);
+
       if (!loaded) {
-        setRecord(null);
-        setLoading(false);
-        setError("Projeto não encontrado.");
+        setLoadedRecord(null);
+        setFetchError("Projeto não encontrado.");
         return;
       }
+
       const revived = reviveFromRecord(loaded);
       if (!revived) {
-        setRecord(null);
-        setLoading(false);
-        setError("Não foi possível ler o estado do projeto.");
+        setLoadedRecord(null);
+        setFetchError("Não foi possível ler o estado do projeto.");
         return;
       }
+
       publishIndustrialLiveProject(revived);
       setProjetosSnapshot(loaded);
-      setRecord(loaded);
-      setLoading(false);
+      setLoadedRecord(loaded);
+      setFetchError(null);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [pageSlug]);
-
-  // Re-sync record metadata when live store matches after external publish
-  useEffect(() => {
-    if (!pageSlug) return;
-    const live = getIndustrialLiveProject();
-    if (!live || !liveProjectMatchesPageSlug(pageSlug, live.projectName)) return;
-    const cached = getProjetosSnapshot();
-    if (snapshotMatchesProjetosPageSlug(cached, pageSlug)) {
-      setRecord(cached);
-    }
-  }, [pageSlug, liveRevision]);
+  }, [pageSlug, cachedRecord, liveRevision]);
 
   const projectState =
     getIndustrialLiveProjectMatchingSlug(pageSlug) ??
@@ -208,7 +206,8 @@ export function useIndustrialAnalysisProject(pageSlug: string | undefined): {
         publishIndustrialLiveProject(nextState);
       }
       setProjetosSnapshot(updated);
-      setRecord(updated);
+      setOverrideRecord(updated);
+      setOverrideForSlug(pageSlug ?? null);
       return updated;
     },
     [pageSlug, record, projectName]
