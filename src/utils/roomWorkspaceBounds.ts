@@ -1,8 +1,4 @@
 /**
- * Mantido como utilit�rio de bounds (consumidores ainda activos).
- * Mesh/UI da sala removidos em feature/sala-rebuild-opensource.
- */
-/**
  * Limites da sala no plano do projeto (mm), sistema centrado (RoomManager / ViewerCore).
  * Interior da sala: X ∈ [-W/2, W/2], Z ∈ [-D/2, D/2]. O clamp em XZ usa meia-dimensão da caixa.
  */
