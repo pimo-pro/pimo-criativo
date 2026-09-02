@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-09-01T19:01:51.864Z",
+  "updatedAt": "2026-09-02T10:58:29.631Z",
   "news": [
+    {
+      "version": "v6.0902.1158",
+      "title": "fix(auth): exceções permanentes à verificação de email no login",
+      "description": "fix(auth): exceções permanentes à verificação de email no login",
+      "publishedAt": "2026-09-02T10:58:29.131Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "36ecb623"
+    },
     {
       "version": "v6.0901.2001",
       "title": "fix(lint): CI verde — ESLint 0 erros (Blocos A–E)",
       "description": "fix(lint): CI verde — ESLint 0 erros (Blocos A–E)",
-      "publishedAt": "2026-09-01T19:01:51.755Z",
+      "publishedAt": "2026-09-01T20:02:50+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "54375a75"
+      "commit": "4285c3d"
     },
     {
       "version": "v6.0901.1932",

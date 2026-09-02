@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-09-02T10:58:27.850Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(auth): exceções permanentes à verificação de email no login",
+      "version": "v6.0902.1158"
+    },
+    {
       "publishedAt": "2026-09-01T19:01:51.240Z",
       "author": "pimo-pro",
       "commitMessage": "fix(lint): CI verde — ESLint 0 erros (Blocos A–E)",
@@ -1194,12 +1200,6 @@
       "author": "pimo-pro",
       "commitMessage": "fix(remate-rodape-stability): corrigir build de publicacao (RemateProductType e tipos rodape)",
       "version": "v6.0714.2327"
-    },
-    {
-      "publishedAt": "2026-07-14T22:21:43.736Z",
-      "author": "pimo-pro",
-      "commitMessage": "release: versão completa — estabilidade remate/rodape",
-      "version": "v6.0714.2321"
     }
   ]
 }
