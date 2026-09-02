@@ -51,6 +51,7 @@ export interface IViewerEventEngine {
   getRoomBuilder(): {
     addDoorByIndex(_wallIndex: number, _config: DoorWindowConfig): string;
     addWindowByIndex(_wallIndex: number, _config: DoorWindowConfig): string;
+    toggleElementOpen?(_elementId: string, _animate?: boolean): boolean | null;
     getGroup(): THREE.Group;
   };
   setPlacementMode(_mode: "door" | "window" | null): void;

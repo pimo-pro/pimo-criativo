@@ -17,12 +17,14 @@ function disposeObject3D(obj: THREE.Object3D): void {
       const mat = (child as THREE.Mesh | THREE.Sprite).material;
       if (Array.isArray(mat)) {
         mat.forEach((m) => {
-          if (m.map) m.map.dispose();
+          const map = (m as THREE.MeshBasicMaterial).map;
+          if (map) map.dispose();
           m.dispose();
         });
       } else if (mat) {
-        if ((mat as THREE.SpriteMaterial).map) (mat as THREE.SpriteMaterial).map!.dispose();
-        (mat as THREE.Material).dispose();
+        const map = (mat as THREE.SpriteMaterial).map;
+        if (map) map.dispose();
+        mat.dispose();
       }
     }
   });

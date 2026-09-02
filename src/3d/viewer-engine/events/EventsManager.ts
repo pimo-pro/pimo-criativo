@@ -395,6 +395,13 @@ export class EventsManager {
 
   private handleCanvasDoubleClick(event: MouseEvent): void {
     if (event.button !== 0) return;
+    const roomHit = this.engine.getRoomElementAtPointer(event);
+    if (roomHit?.elementId) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.engine.getRoomBuilder().toggleElementOpen?.(roomHit.elementId);
+      return;
+    }
     const doorHit = this.engine.getDoorHitAtPointer(event);
     if (doorHit) {
       event.preventDefault();

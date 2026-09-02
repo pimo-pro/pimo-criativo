@@ -35,6 +35,7 @@ import {
   ensureRoomZones,
 } from "../../../3d/room/roomZones";
 import { autoZonesFromClosedLoops } from "../../../3d/room/roomAutoZones";
+import { getActiveViewerCore } from "../../../core/viewer/pimoViewerRuntime";
 
 const DEFAULT_OPENING = {
   door: { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 },
@@ -519,6 +520,18 @@ export function PainelSala() {
             </button>
             <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningV("top")}>
               Topo
+            </button>
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={() => {
+                const core = getActiveViewerCore() as {
+                  roomBuilder?: { toggleElementOpen?: (_id: string) => boolean | null };
+                } | null;
+                core?.roomBuilder?.toggleElementOpen?.(selectedOpening.id);
+              }}
+            >
+              Abrir / fechar (swing)
             </button>
           </div>
           {numField("Largura", selectedOpening.widthMm, (n) => patchOpening(selectedOpening.id, { widthMm: n }), {

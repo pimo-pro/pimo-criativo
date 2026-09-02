@@ -167,6 +167,15 @@ export class RoomBuilder {
     return true;
   }
 
+  /** Alterna abertura (swing/slide) — estado só em sessão (não persiste no SSOT). */
+  toggleElementOpen(elementId: string, animate = true): boolean | null {
+    const group = this.getElementById(elementId);
+    if (!group) return null;
+    const kind = group.userData?.elementType as "door" | "window" | undefined;
+    if (kind === "window") return WindowElement.toggleOpen(group, animate);
+    return DoorElement.toggleOpen(group, animate);
+  }
+
   clearRoom(disposeGeometries = false): void {
     for (const wall of this.getWallMeshes()) {
       const toRemove: THREE.Object3D[] = [];
