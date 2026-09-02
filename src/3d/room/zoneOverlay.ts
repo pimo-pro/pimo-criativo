@@ -1,20 +1,29 @@
 /**
- * pimo-room v4 — overlay visual de zonas (polígonos no piso).
+ * pimo-room v4 — overlay visual de zonas (polígonos no piso + cotas).
  * Adicionado ao grupo do RoomManager — sem alterar ViewerCore.ts.
  */
 import * as THREE from "three";
 import type { ProjectRoomZone } from "../viewer-engine/room/roomEngineTypes";
 import { polygonCentroidMm } from "./roomZones";
+import { createZoneDimensionSprite } from "./zoneDimensionLabels";
 
 const ZONE_COLORS = [0x3b82f6, 0x10b981, 0xf59e0b, 0x8b5cf6, 0xec4899];
 
 function disposeObject3D(obj: THREE.Object3D): void {
   obj.traverse((child) => {
-    if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
-      child.geometry?.dispose();
-      const mat = (child as THREE.Mesh).material;
-      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-      else if (mat) (mat as THREE.Material).dispose();
+    if (child instanceof THREE.Mesh || child instanceof THREE.Line || child instanceof THREE.Sprite) {
+      const geom = (child as THREE.Mesh).geometry;
+      geom?.dispose();
+      const mat = (child as THREE.Mesh | THREE.Sprite).material;
+      if (Array.isArray(mat)) {
+        mat.forEach((m) => {
+          if (m.map) m.map.dispose();
+          m.dispose();
+        });
+      } else if (mat) {
+        if ((mat as THREE.SpriteMaterial).map) (mat as THREE.SpriteMaterial).map!.dispose();
+        (mat as THREE.Material).dispose();
+      }
     }
   });
 }
@@ -44,7 +53,6 @@ export function rebuildZoneOverlayGroup(
     });
     shape.closePath();
     const geom = new THREE.ShapeGeometry(shape);
-    // Shape no plano XY → rodar para XZ
     geom.rotateX(-Math.PI / 2);
     const color = ZONE_COLORS[index % ZONE_COLORS.length];
     const mat = new THREE.MeshStandardMaterial({
@@ -87,6 +95,11 @@ export function rebuildZoneOverlayGroup(
     marker.name = `zone-centroid:${zone.id}`;
     marker.userData.isRoomZone = true;
     group.add(marker);
+
+    // Cota área / perímetro (billboard)
+    if (typeof document !== "undefined") {
+      group.add(createZoneDimensionSprite(zone));
+    }
   });
 
   return group;
