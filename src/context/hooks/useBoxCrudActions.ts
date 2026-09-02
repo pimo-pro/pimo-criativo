@@ -6,7 +6,6 @@ import { getSettings } from "../../core/settings/settingsService";
 import type { ProjectActions } from "../projectTypes";
 import { appendChangelog, buildBoxesFromWorkspace, getSelectedWorkspaceBox } from "../projectState";
 import {
-  getSpawnFromSelectedWall,
   getNextWorkspaceBoxId,
   isLowerCabinet,
   isUpperCabinet,
@@ -28,12 +27,6 @@ import {
   instantiateCustomIndustrialModelForWorkspaceBox,
   isIndustrialCatalogModelId,
 } from "../../core/industrialDesigner/customIndustrialModel";
-import { wallStore } from "../../stores/wallStore";
-import {
-  getFloorBoundsMmFromWalls,
-  getRoomGridSpawnMm,
-  hasPersistedRoomWalls,
-} from "../../utils/roomWorkspaceBounds";
 import type { AutoLayoutPlan } from "../../3d/viewer-engine/autoLayout/autoLayoutTypes";
 
 export type BoxCrudActions = Pick<
@@ -91,23 +84,8 @@ export function useBoxCrudActions(ctx: ProjectActionsExecutionContext): BoxCrudA
           const adjacentPlacement = selectedReference
             ? getAdjacentPlacementMm(selectedReference, dimensoes)
             : null;
-          const spawn = getSpawnFromSelectedWall(dimensoes);
-          const wallsState = wallStore.getState().walls;
-          const roomBounds = hasPersistedRoomWalls(wallsState) ? getFloorBoundsMmFromWalls(wallsState) : null;
-          const roomSpawn =
-            !adjacentPlacement && roomBounds
-              ? getRoomGridSpawnMm(
-                  prev.workspaceBoxes.length,
-                  dimensoes.largura,
-                  dimensoes.profundidade,
-                  roomBounds,
-                  0
-                )
-              : null;
           const posicaoX_mm =
             adjacentPlacement?.x_mm ??
-            roomSpawn?.x_mm ??
-            spawn?.posicaoX_mm ??
             rightmostX_m * 1000 + dimensoes.largura / 2;
           const feetHeightMm = 100;
           const newBox = createWorkspaceBox(
@@ -136,15 +114,8 @@ export function useBoxCrudActions(ctx: ProjectActionsExecutionContext): BoxCrudA
             }
           );
           newBox.manualPosition = true;
-          newBox.posicaoZ_mm = adjacentPlacement?.z_mm ?? roomSpawn?.z_mm ?? spawn?.posicaoZ_mm ?? 0;
+          newBox.posicaoZ_mm = adjacentPlacement?.z_mm ?? 0;
           newBox.posicaoY_mm = selectedReference?.posicaoY_mm ?? feetHeightMm + dimensoes.altura / 2;
-          if (roomSpawn) {
-            newBox.rotacaoY = roomSpawn.rotacaoY;
-            newBox.rotacaoY_90 = Math.round(Math.abs(roomSpawn.rotacaoY) / (Math.PI / 2)) % 2 === 1;
-          } else if (spawn) {
-            newBox.rotacaoY = spawn.rotacaoY;
-            newBox.rotacaoY_90 = Math.round(Math.abs(spawn.rotacaoY) / (Math.PI / 2)) % 2 === 1;
-          }
           if (defaultModel) newBox.baseCabinetId = defaultModel.id;
           const nextWorkspaceBoxes = [...prev.workspaceBoxes, newBox];
           const nextPrev = { ...prev, workspaceBoxes: nextWorkspaceBoxes };
@@ -200,28 +171,13 @@ export function useBoxCrudActions(ctx: ProjectActionsExecutionContext): BoxCrudA
           const adjacentPlacement = selectedReference
             ? getAdjacentPlacementMm(selectedReference, dimensoes)
             : null;
-          const spawn = getSpawnFromSelectedWall(dimensoes);
-          const wallsCatalog = wallStore.getState().walls;
-          const roomBoundsCatalog = hasPersistedRoomWalls(wallsCatalog) ? getFloorBoundsMmFromWalls(wallsCatalog) : null;
-          const roomSpawnCatalog =
-            !adjacentPlacement && roomBoundsCatalog
-              ? getRoomGridSpawnMm(
-                  prev.workspaceBoxes.length,
-                  dimensoes.largura,
-                  dimensoes.profundidade,
-                  roomBoundsCatalog,
-                  0
-                )
-              : null;
           const lowerBoxes = prev.workspaceBoxes.filter(isLowerCabinet);
           const upperBoxes = prev.workspaceBoxes.filter(isUpperCabinet);
 
           let posicaoX_mm =
             adjacentPlacement?.x_mm ??
-            roomSpawnCatalog?.x_mm ??
-            spawn?.posicaoX_mm ??
             rightmostX_m * 1000 + dimensoes.largura / 2;
-          const posicaoZ_mm = adjacentPlacement?.z_mm ?? roomSpawnCatalog?.z_mm ?? spawn?.posicaoZ_mm ?? 0;
+          const posicaoZ_mm = adjacentPlacement?.z_mm ?? 0;
           if (isUpperModel && !adjacentPlacement) {
             if (upperBoxes.length > 0) {
               const rightmostUpper = upperBoxes.reduce(
@@ -276,7 +232,7 @@ export function useBoxCrudActions(ctx: ProjectActionsExecutionContext): BoxCrudA
               );
               const upperBottomMm = lowerTopMm + UPPER_COUNTERTOP_MM + UPPER_STANDARD_GAP_MM;
               newBox.posicaoY_mm = upperBottomMm + dimensoes.altura / 2;
-              if (!spawn && !roomSpawnCatalog) {
+              {
                 const anchorLower = lowerBoxes.reduce(
                   (best, box) => (getBoxLeftMm(box) < getBoxLeftMm(best) ? box : best),
                   lowerBoxes[0]
@@ -298,13 +254,6 @@ export function useBoxCrudActions(ctx: ProjectActionsExecutionContext): BoxCrudA
           // Roupeiro T: unidades superiores devem ficar montadas a 2000mm do piso.
           if (isUpperModel && baseModel.id.includes("roupeiro-t-600")) {
             newBox.posicaoY_mm = 2000 + dimensoes.altura / 2;
-          }
-          if (roomSpawnCatalog) {
-            newBox.rotacaoY = roomSpawnCatalog.rotacaoY;
-            newBox.rotacaoY_90 = Math.round(Math.abs(roomSpawnCatalog.rotacaoY) / (Math.PI / 2)) % 2 === 1;
-          } else if (spawn) {
-            newBox.rotacaoY = spawn.rotacaoY;
-            newBox.rotacaoY_90 = Math.round(Math.abs(spawn.rotacaoY) / (Math.PI / 2)) % 2 === 1;
           }
           newBox.baseCabinetId = baseModel.id;
 
@@ -379,25 +328,10 @@ export function useBoxCrudActions(ctx: ProjectActionsExecutionContext): BoxCrudA
             const adjacentPlacement = selectedReference
               ? getAdjacentPlacementMm(selectedReference, dimensoes)
               : null;
-            const spawn = getSpawnFromSelectedWall(dimensoes);
-            const wallsCatalog = wallStore.getState().walls;
-            const roomBoundsCatalog = hasPersistedRoomWalls(wallsCatalog) ? getFloorBoundsMmFromWalls(wallsCatalog) : null;
-            const roomSpawnCatalog =
-              !adjacentPlacement && roomBoundsCatalog
-                ? getRoomGridSpawnMm(
-                    prev.workspaceBoxes.length,
-                    dimensoes.largura,
-                    dimensoes.profundidade,
-                    roomBoundsCatalog,
-                    0
-                  )
-                : null;
             const posicaoX_mm =
               adjacentPlacement?.x_mm ??
-              roomSpawnCatalog?.x_mm ??
-              spawn?.posicaoX_mm ??
               rightmostX_m * 1000 + dimensoes.largura / 2;
-            const posicaoZ_mm = adjacentPlacement?.z_mm ?? roomSpawnCatalog?.z_mm ?? spawn?.posicaoZ_mm ?? 0;
+            const posicaoZ_mm = adjacentPlacement?.z_mm ?? 0;
 
             const newBox = createWorkspaceBox(
               newBoxId,
