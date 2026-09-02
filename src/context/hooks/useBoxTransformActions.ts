@@ -1,16 +1,8 @@
 import { useMemo } from "react";
 import type { ProjectActions } from "../projectTypes";
-import { buildBoxesFromWorkspace, recomputeState } from "../projectState";
+import { recomputeState } from "../projectState";
 import { regenerateLayersForBox } from "../../services/boxLayersService";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
-import { wallStore } from "../../stores/wallStore";
-import {
-  clampBoxCenterXZMm,
-  getFloorBoundsMmFromWalls,
-  getInnerBoundsXZMm,
-  hasPersistedRoomWalls,
-  repositionOutsiderBoxesStackedFromCornerMm,
-} from "../../utils/roomWorkspaceBounds";
 import { commitMaterialSync, refreshViewerAfterMaterialSync } from "../../core/materials/materialSync";
 import { syncCaixaFornoOnDimensoesChange, isCaixaFornoBox } from "../../core/moveis/generators/caixaFornoGenerator";
 import { applyNoBackPanelState } from "../../core/box/backPanelFlags";
@@ -41,7 +33,7 @@ export type BoxTransformActions = Pick<
 >;
 
 export function useBoxTransformActions(ctx: ProjectActionsExecutionContext): BoxTransformActions {
-  const { updateProject, viewerSync } = ctx;
+  const { updateProject } = ctx;
 
   return useMemo(() => {
     const a = {} as BoxTransformActions;
@@ -115,9 +107,6 @@ export function useBoxTransformActions(ctx: ProjectActionsExecutionContext): Box
         (prev) => {
           const box = prev.workspaceBoxes.find((b) => b.id === boxId);
           if (box?.locked) return prev;
-          const walls = wallStore.getState().walls;
-          const collisionOn = viewerSync.getLockEnabled();
-          const floorBounds = hasPersistedRoomWalls(walls) ? getFloorBoundsMmFromWalls(walls) : null;
 
           const workspaceBoxes = prev.workspaceBoxes.map((boxItem) => {
             if (boxItem.id !== boxId) return boxItem;
@@ -140,22 +129,6 @@ export function useBoxTransformActions(ctx: ProjectActionsExecutionContext): Box
               next.feetOffsetFront = Math.max(0, partial.feetOffsetFront);
             }
 
-            if (floorBounds && collisionOn) {
-              const w = next.dimensoes?.largura ?? 0;
-              const d = next.dimensoes?.profundidade ?? 0;
-              const inner = getInnerBoundsXZMm(floorBounds, true);
-              const c = clampBoxCenterXZMm(
-                next.posicaoX_mm ?? 0,
-                next.posicaoZ_mm ?? 0,
-                w,
-                d,
-                next.rotacaoY ?? 0,
-                inner
-              );
-              next.posicaoX_mm = c.x_mm;
-              next.posicaoZ_mm = c.z_mm;
-            }
-
             return next;
           });
           return { ...prev, workspaceBoxes };
@@ -165,25 +138,7 @@ export function useBoxTransformActions(ctx: ProjectActionsExecutionContext): Box
     };
 
     a.repositionWorkspaceBoxesInsideRoom = () => {
-      updateProject(
-        (prev) => {
-          const walls = wallStore.getState().walls;
-          if (!hasPersistedRoomWalls(walls)) return prev;
-          const bounds = getFloorBoundsMmFromWalls(walls);
-          if (!bounds) return prev;
-          const workspaceBoxes = repositionOutsiderBoxesStackedFromCornerMm(prev.workspaceBoxes, bounds);
-          const moved = workspaceBoxes.some(
-            (b, i) =>
-              b.posicaoX_mm !== prev.workspaceBoxes[i]?.posicaoX_mm ||
-              b.posicaoZ_mm !== prev.workspaceBoxes[i]?.posicaoZ_mm
-          );
-          if (!moved) return prev;
-          const nextPrev = { ...prev, workspaceBoxes };
-          const boxes = buildBoxesFromWorkspace(nextPrev);
-          return recomputeState(prev, { workspaceBoxes, boxes }, true);
-        },
-        true
-      );
+      // No-op: clamp à sala antiga removido (feature/sala-rebuild-opensource).
     };
 
     a.setWorkspaceBoxNome = (boxId, nome) => {
@@ -475,5 +430,5 @@ export function useBoxTransformActions(ctx: ProjectActionsExecutionContext): Box
     };
 
     return a;
-  }, [updateProject, viewerSync]);
+  }, [updateProject]);
 }
