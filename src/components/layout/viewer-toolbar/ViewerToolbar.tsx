@@ -6,7 +6,6 @@
 import { useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import { useProject } from "../../../context/useProject";
 import { defaultState } from "../../../context/projectState";
-import { useWallStore } from "../../../stores/wallStore";
 import { useToast } from "../../../context/ToastContext";
 import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import { VIEWER_TOOLBAR_ITEMS } from "../../../constants/toolbarConfig";
@@ -80,8 +79,6 @@ export default function ViewerToolbar({ confirmNewOpen, setConfirmNewOpen }: Vie
     return () => unsub();
   }, [showToast]);
 
-  const wallCount = useWallStore((s) => s.walls.length);
-
   const viewerToolbarItems = useMemo(
     () =>
       VIEWER_TOOLBAR_ITEMS.filter(
@@ -111,9 +108,9 @@ export default function ViewerToolbar({ confirmNewOpen, setConfirmNewOpen }: Vie
   const projectHasNonDefaultState = useMemo(() => {
     if (project.workspaceBoxes.length > 0) return true;
     if ((project.projectName?.trim() || "") !== defaultState.projectName) return true;
-    if (wallCount >= 3) return true;
+    if (project.room) return true;
     return false;
-  }, [project.workspaceBoxes.length, project.projectName, wallCount]);
+  }, [project.workspaceBoxes.length, project.projectName, project.room]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
