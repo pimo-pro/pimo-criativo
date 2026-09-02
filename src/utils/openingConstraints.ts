@@ -1,5 +1,6 @@
 /**
  * Regras de limites e snapping para aberturas (portas/janelas) na parede.
+ * pimo-room v4 — controlos avançados de edição fina.
  */
 
 const SNAP_THRESHOLD_MM = 80;
@@ -12,6 +13,9 @@ export interface OpeningLike {
   floorOffsetMm: number;
   horizontalOffsetMm: number;
 }
+
+export type OpeningHorizontalAlign = "start" | "center" | "end";
+export type OpeningVerticalAlign = "floor" | "middle" | "top";
 
 /**
  * Regras rígidas: abertura nunca sai dos limites da parede, nunca abaixo do chão,
@@ -113,3 +117,81 @@ export function snapHorizontalOffset(
   }
   return horizontalOffsetMm;
 }
+
+/**
+ * Snapping vertical: piso (0), meio, topo (wallHeightMm - heightMm).
+ * Grid opcional em GRID_SNAP_MM.
+ */
+export function snapVerticalOffset(
+  floorOffsetMm: number,
+  heightMm: number,
+  wallHeightMm: number,
+  useGrid = true
+): number {
+  const floor = 0;
+  const middle = (wallHeightMm - heightMm) / 2;
+  const top = wallHeightMm - heightMm;
+  const points = [floor, middle, top];
+  for (const p of points) {
+    if (Math.abs(floorOffsetMm - p) <= SNAP_THRESHOLD_MM) return Math.max(0, p);
+  }
+  if (useGrid) {
+    const snapped = Math.round(floorOffsetMm / GRID_SNAP_MM) * GRID_SNAP_MM;
+    return Math.max(0, Math.min(Math.max(0, wallHeightMm - heightMm), snapped));
+  }
+  return floorOffsetMm;
+}
+
+export function alignOpeningHorizontal(
+  align: OpeningHorizontalAlign,
+  widthMm: number,
+  wallLengthMm: number
+): number {
+  if (align === "start") return 0;
+  if (align === "end") return Math.max(0, wallLengthMm - widthMm);
+  return Math.max(0, (wallLengthMm - widthMm) / 2);
+}
+
+export function alignOpeningVertical(
+  align: OpeningVerticalAlign,
+  heightMm: number,
+  wallHeightMm: number
+): number {
+  if (align === "floor") return 0;
+  if (align === "top") return Math.max(0, wallHeightMm - heightMm);
+  return Math.max(0, (wallHeightMm - heightMm) / 2);
+}
+
+/**
+ * Aplica clamp + snap (se activo) a uma abertura na parede.
+ */
+export function refineOpeningPlacement(
+  config: { widthMm: number; heightMm: number; floorOffsetMm: number; horizontalOffsetMm: number },
+  wallLengthMm: number,
+  wallHeightMm: number,
+  options?: { snap?: boolean; openingId?: string; openings?: OpeningLike[] }
+): { horizontalOffsetMm: number; floorOffsetMm: number } {
+  let next = { ...config };
+  if (options?.snap !== false) {
+    next.horizontalOffsetMm = snapHorizontalOffset(
+      next.horizontalOffsetMm,
+      next.widthMm,
+      wallLengthMm,
+      true
+    );
+    next.floorOffsetMm = snapVerticalOffset(next.floorOffsetMm, next.heightMm, wallHeightMm, true);
+  }
+  if (options?.openingId && options.openings) {
+    return clampOpeningNoOverlap(
+      next,
+      options.openingId,
+      options.openings,
+      wallLengthMm,
+      wallHeightMm
+    );
+  }
+  return clampOpeningToWall(next, wallLengthMm, wallHeightMm);
+}
+
+export const OPENING_SNAP_GRID_MM = GRID_SNAP_MM;
+export const OPENING_SNAP_THRESHOLD_MM = SNAP_THRESHOLD_MM;

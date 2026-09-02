@@ -301,7 +301,10 @@ export function pimoRoomGraphToProjectRoom(
   };
 }
 
+import { PIMO_ROOM_CHANGELOG } from "./pimoRoomVersion";
+
 export const PIMO_ROOM_MODULE = {
   name: "pimo-room",
   version: "4.0.0",
+  changelog: PIMO_ROOM_CHANGELOG,
 } as const;

@@ -21,6 +21,9 @@ export interface UiStoreState {
   /** Painel esquerdo: configurações da sala (pimo-room / Salão). */
   roomPanelOpen: boolean;
   setRoomPanelOpen: (_open: boolean) => void;
+  /** Snap de aberturas (grelha + âncoras início/centro/fim). */
+  roomOpeningSnapEnabled: boolean;
+  setRoomOpeningSnapEnabled: (_enabled: boolean) => void;
   /** Painel lateral da Workspace Industrial de Design (furos / validação). */
   industrialDesignPanelOpen: boolean;
   setIndustrialDesignPanelOpen: (_open: boolean) => void;
@@ -51,6 +54,7 @@ export const uiStore = createStore<UiStoreState>((set) => ({
   selectedObjects: [],
   photoModePanelOpen: false,
   roomPanelOpen: false,
+  roomOpeningSnapEnabled: true,
   industrialDesignPanelOpen: false,
   setPhotoModePanelOpen: (open) => {
     set((state) => {
@@ -62,6 +66,12 @@ export const uiStore = createStore<UiStoreState>((set) => ({
     set((state) => {
       if (state.roomPanelOpen === open) return state;
       return { ...state, roomPanelOpen: open, photoModePanelOpen: open ? false : state.photoModePanelOpen };
+    });
+  },
+  setRoomOpeningSnapEnabled: (enabled) => {
+    set((state) => {
+      if (state.roomOpeningSnapEnabled === enabled) return state;
+      return { ...state, roomOpeningSnapEnabled: enabled };
     });
   },
   setIndustrialDesignPanelOpen: (open) => {

@@ -20,6 +20,14 @@ import type {
   RoomOpeningKind,
 } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import { Icon } from "../../icons/Icon";
+import {
+  alignOpeningHorizontal,
+  alignOpeningVertical,
+  refineOpeningPlacement,
+  type OpeningHorizontalAlign,
+  type OpeningVerticalAlign,
+} from "../../../utils/openingConstraints";
+import { applyWallLengthToRoom } from "../../../3d/room/roomAdvancedEdit";
 
 const DEFAULT_OPENING = {
   door: { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 },
@@ -81,6 +89,8 @@ export function PainelSala() {
   const selectedObject = useUiStore((s) => s.selectedObject);
   const selectedWallId = useWallStore((s) => s.selectedWallId);
   const setRoomPanelOpen = useUiStore((s) => s.setRoomPanelOpen);
+  const snapEnabled = useUiStore((s) => s.roomOpeningSnapEnabled);
+  const setRoomOpeningSnapEnabled = useUiStore((s) => s.setRoomOpeningSnapEnabled);
 
   const [widthMm, setWidthMm] = useState<number>(ROOM_20_DEFAULTS.widthMm);
   const [depthMm, setDepthMm] = useState<number>(ROOM_20_DEFAULTS.depthMm);
@@ -162,21 +172,70 @@ export function PainelSala() {
 
   const patchOpening = (openingId: string, patch: Partial<ProjectRoomOpening>) => {
     if (!room) return;
+    const host =
+      room.walls.find((w) => w.id === (patch.wallId ?? room.openings.find((o) => o.id === openingId)?.wallId)) ??
+      null;
     patchRoom({
       openings: room.openings.map((opening) => {
         if (opening.id !== openingId) return opening;
-        const floorOffsetMm = patch.floorOffsetMm ?? patch.verticalOffsetMm ?? opening.floorOffsetMm;
-        const xPosMm = patch.xPosMm ?? patch.horizontalOffsetMm ?? opening.xPosMm;
-        return {
-          ...opening,
-          ...patch,
+        const merged = { ...opening, ...patch };
+        const floorOffsetMm = patch.floorOffsetMm ?? patch.verticalOffsetMm ?? merged.floorOffsetMm;
+        const xPosMm = patch.xPosMm ?? patch.horizontalOffsetMm ?? merged.xPosMm;
+        let next = {
+          ...merged,
           floorOffsetMm,
           verticalOffsetMm: floorOffsetMm,
           xPosMm,
           horizontalOffsetMm: xPosMm,
         };
+        if (host) {
+          const refined = refineOpeningPlacement(
+            {
+              widthMm: next.widthMm,
+              heightMm: next.heightMm,
+              floorOffsetMm: next.floorOffsetMm,
+              horizontalOffsetMm: next.horizontalOffsetMm,
+            },
+            host.widthMm || host.lengthMm,
+            host.heightMm,
+            {
+              snap: snapEnabled,
+              openingId,
+              openings: room.openings,
+            }
+          );
+          next = {
+            ...next,
+            horizontalOffsetMm: refined.horizontalOffsetMm,
+            xPosMm: refined.horizontalOffsetMm,
+            floorOffsetMm: refined.floorOffsetMm,
+            verticalOffsetMm: refined.floorOffsetMm,
+          };
+        }
+        return next;
       }),
     });
+  };
+
+  const alignSelectedOpeningH = (align: OpeningHorizontalAlign) => {
+    if (!selectedOpening || !room) return;
+    const host = room.walls.find((w) => w.id === selectedOpening.wallId);
+    if (!host) return;
+    const x = alignOpeningHorizontal(align, selectedOpening.widthMm, host.widthMm || host.lengthMm);
+    patchOpening(selectedOpening.id, { horizontalOffsetMm: x, xPosMm: x });
+  };
+
+  const alignSelectedOpeningV = (align: OpeningVerticalAlign) => {
+    if (!selectedOpening || !room) return;
+    const host = room.walls.find((w) => w.id === selectedOpening.wallId);
+    if (!host) return;
+    const y = alignOpeningVertical(align, selectedOpening.heightMm, host.heightMm);
+    patchOpening(selectedOpening.id, { floorOffsetMm: y, verticalOffsetMm: y });
+  };
+
+  const applyActiveWallLength = (lengthMm: number) => {
+    if (!room || !activeWall) return;
+    actions.setProjectRoom(applyWallLengthToRoom(room, activeWall.id, lengthMm));
   };
 
   const removeOpening = (openingId: string) => {
@@ -283,13 +342,17 @@ export function PainelSala() {
         <Panel title={`Aberturas — ${WALL_LABEL_TITLES[activeWall.label] ?? activeWall.label}`}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button type="button" className="button button-ghost" onClick={() => addOpening("door", "normal")}>
-              Porta
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon name="roomDoor" size={14} aria-hidden /> Porta
+              </span>
             </button>
             <button type="button" className="button button-ghost" onClick={() => addOpening("door", "correr")}>
               Porta correr
             </button>
             <button type="button" className="button button-ghost" onClick={() => addOpening("window", "normal")}>
-              Janela
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon name="roomWindow" size={14} aria-hidden /> Janela
+              </span>
             </button>
             <button type="button" className="button button-ghost" onClick={() => addOpening("window", "correr")}>
               Janela correr
@@ -321,8 +384,57 @@ export function PainelSala() {
         </Panel>
       ) : null}
 
+      {room && activeWall ? (
+        <Panel
+          title="Edição de parede"
+          titleHelpText="Ajusta o comprimento da parede seleccionada; paredes sul/norte definem a largura da sala e este/oeste a profundidade."
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Icon name="roomVertex" size={16} aria-hidden />
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              {WALL_LABEL_TITLES[activeWall.label] ?? activeWall.label}
+            </span>
+          </div>
+          {numField(
+            "Comprimento",
+            activeWall.widthMm || activeWall.lengthMm,
+            applyActiveWallLength,
+            { min: 500, suffix: "mm" }
+          )}
+        </Panel>
+      ) : null}
+
       {selectedOpening ? (
         <Panel title="Editar abertura">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: 8 }}>
+            <input
+              type="checkbox"
+              checked={snapEnabled}
+              onChange={(e) => setRoomOpeningSnapEnabled(e.target.checked)}
+            />
+            <Icon name="roomSnap" size={14} aria-hidden />
+            Snap de aberturas (grelha 50 mm)
+          </label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningH("start")}>
+              Início
+            </button>
+            <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningH("center")}>
+              Centro
+            </button>
+            <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningH("end")}>
+              Fim
+            </button>
+            <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningV("floor")}>
+              Piso
+            </button>
+            <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningV("middle")}>
+              Meio
+            </button>
+            <button type="button" className="button button-ghost" onClick={() => alignSelectedOpeningV("top")}>
+              Topo
+            </button>
+          </div>
           {numField("Largura", selectedOpening.widthMm, (n) => patchOpening(selectedOpening.id, { widthMm: n }), {
             min: 100,
             suffix: "mm",
