@@ -29,6 +29,11 @@ import {
   type OpeningVerticalAlign,
 } from "../../../utils/openingConstraints";
 import { applyWallLengthToRoom } from "../../../3d/room/roomAdvancedEdit";
+import {
+  computeZoneMetrics,
+  createMainZoneFromRoom,
+  ensureRoomZones,
+} from "../../../3d/room/roomZones";
 
 const DEFAULT_OPENING = {
   door: { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 },
@@ -351,6 +356,54 @@ export function PainelSala() {
             />
             Bloquear sala
           </label>
+        </Panel>
+      ) : null}
+
+      {room ? (
+        <Panel title="Zonas">
+          {!(room.zones && room.zones.length > 0) ? (
+            <button
+              type="button"
+              className="button button-ghost"
+              onClick={() => patchRoom(ensureRoomZones(room))}
+            >
+              Activar zona da sala (polígono + área)
+            </button>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+              {room.zones.map((zone) => {
+                const m = computeZoneMetrics(zone);
+                return (
+                  <li
+                    key={zone.id}
+                    style={{
+                      fontSize: 12,
+                      padding: "6px 8px",
+                      background: "var(--toolbar-pressed-bg, rgba(0,0,0,0.04))",
+                      borderRadius: 4,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{zone.name}</div>
+                    <div style={{ color: "var(--text-muted)" }}>
+                      Área {m.areaM2.toFixed(2)} m² · Perímetro {m.perimeterM.toFixed(2)} m
+                    </div>
+                    <div style={{ color: "var(--text-muted)" }}>{zone.polygonMm.length} vértices</div>
+                  </li>
+                );
+              })}
+              <button
+                type="button"
+                className="button button-ghost"
+                onClick={() => {
+                  const main = createMainZoneFromRoom(room);
+                  const others = (room.zones ?? []).filter((z) => z.id !== main.id);
+                  patchRoom({ zones: [main, ...others] });
+                }}
+              >
+                Realinhar zona principal ao footprint
+              </button>
+            </ul>
+          )}
         </Panel>
       ) : null}
 

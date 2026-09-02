@@ -14,6 +14,7 @@ import {
   type ProjectRoomUtility,
   type ProjectRoomUtilityType,
   type ProjectRoomWall,
+  type ProjectRoomZone,
   type RoomFloorMode,
   type RoomOpeningKind,
   type RoomWallLabel,
@@ -27,8 +28,9 @@ import {
   type RoomSnapshotUiState,
   type WallStoreRoomExtras,
 } from "./roomUnitConversion";
+import { normalizeZone, syncMainZoneToFootprint } from "../../room/roomZones";
 
-export type { ProjectRoomConfig, ProjectRoomOpening, ProjectRoomWall, RoomOpeningKind, RoomWallLabel };
+export type { ProjectRoomConfig, ProjectRoomOpening, ProjectRoomWall, ProjectRoomZone, RoomOpeningKind, RoomWallLabel };
 export { ROOM_20_DEFAULTS, WALL_LABELS, WALL_LABEL_TITLES };
 export type { RoomSnapshotUiState, WallStoreRoomExtras };
 export {
@@ -220,6 +222,10 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
   const utilities = Array.isArray(raw.utilities)
     ? raw.utilities.map((u) => normalizeUtility(u, walls)).filter((u): u is ProjectRoomUtility => Boolean(u))
     : [];
+  // zones é opt-in: ausente em snapshots legados; se presente, normaliza sem exigir.
+  const zones: ProjectRoomZone[] | undefined = Array.isArray(raw.zones)
+    ? raw.zones.map((z) => normalizeZone(z, { widthMm, depthMm, heightMm }))
+    : undefined;
   return {
     widthMm,
     depthMm,
@@ -233,6 +239,7 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
     walls,
     openings,
     utilities,
+    ...(zones && zones.length > 0 ? { zones } : {}),
   };
 }
 
@@ -254,7 +261,8 @@ export function applyProjectRoomDimensions(room: ProjectRoomConfig): ProjectRoom
       w.rotationDeg = wallRotationForLabel(w.label);
     }
   });
-  return normalizeProjectRoom(next) ?? next;
+  const normalized = normalizeProjectRoom(next) ?? next;
+  return normalized.zones?.length ? syncMainZoneToFootprint(normalized) : normalized;
 }
 
 export function applyProjectRoomToWallStore(room: ProjectRoomConfig): void {

@@ -12,6 +12,7 @@ import {
   applyRoomOpeningsFromWallStore,
   getRoomMeshFingerprintFromWallStore,
 } from "../../utils/roomMeshFromWallStore";
+import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 
 export function useViewerRoomSync(
   viewerApi: PimoViewerApi,
@@ -41,6 +42,7 @@ export function useViewerRoomSync(
         viewerApi.setRoomCeilingVisible?.(room.ceilingVisible && showCeiling);
         viewerApi.setRoomHiddenWalls?.(room.hiddenWalls ?? []);
         viewerApi.setRoomUtilities?.(room.utilities ?? []);
+        getActiveViewerCore()?.roomManager?.setZones?.(room.zones ?? null);
         if (room.visible !== false) viewerApi.showRoom?.();
         else viewerApi.hideRoom?.();
       }
@@ -55,8 +57,11 @@ export function useViewerRoomSync(
       viewerApi.setRoomCeilingVisible?.(room.ceilingVisible && showCeiling);
       viewerApi.setRoomHiddenWalls?.(room.hiddenWalls ?? []);
       viewerApi.setRoomUtilities?.(room.utilities ?? []);
+      getActiveViewerCore()?.roomManager?.setZones?.(room.zones ?? null);
       if (room.visible !== false) viewerApi.showRoom?.();
       else viewerApi.hideRoom?.();
+    } else {
+      getActiveViewerCore()?.roomManager?.clearZoneOverlay?.();
     }
   }, [viewerApi, roomMeshSyncToken, room, showCeiling]);
 }

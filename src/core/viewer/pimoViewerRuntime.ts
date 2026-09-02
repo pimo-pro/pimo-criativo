@@ -39,6 +39,8 @@ export type ViewerCoreRoomManagerRuntime = {
     isMainWall?: boolean;
   }) => unknown;
   updateCamera?: () => void;
+  setZones?: (_zones: unknown) => void;
+  clearZoneOverlay?: () => void;
 };
 
 /**

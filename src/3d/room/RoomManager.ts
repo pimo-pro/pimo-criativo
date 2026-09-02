@@ -15,6 +15,8 @@ import {
 import { computeDynamicRoomBounds } from "./roomDynamicBounds";
 import { applyDynamicMitersToWallMeshes } from "./wallMiters";
 import { buildWallBoxGeometry } from "./wallGeometryCsg";
+import { rebuildZoneOverlayGroup } from "./zoneOverlay";
+import type { ProjectRoomZone } from "../viewer-engine/room/roomEngineTypes";
 
 export type RoomBounds = {
   minX: number;
@@ -60,6 +62,7 @@ export class RoomManager {
   private _visible = true;
   private nextExtraWallId = 4;
   private viewer: IRoomManagerViewer;
+  private zoneOverlay: THREE.Group | null = null;
 
   constructor(viewer: IRoomManagerViewer) {
     this.viewer = viewer;
@@ -95,9 +98,25 @@ export class RoomManager {
     });
     this.wallsMain = [];
     this.wallsExtra = [];
+    this.clearZoneOverlay();
 
     this.group.clear();
     this.room = null;
+  }
+
+  /** Overlay de zonas polígono (opt-in). Não afecta autoRoomFill. */
+  setZones(zones: ProjectRoomZone[] | null | undefined): void {
+    this.zoneOverlay = rebuildZoneOverlayGroup(this.zoneOverlay, zones);
+    if (!this.zoneOverlay.parent && this.group) {
+      this.group.add(this.zoneOverlay);
+    }
+  }
+
+  clearZoneOverlay(): void {
+    if (!this.zoneOverlay) return;
+    this.group.remove(this.zoneOverlay);
+    rebuildZoneOverlayGroup(this.zoneOverlay, []);
+    this.zoneOverlay = null;
   }
 
   setDimensions(width: number, depth: number, height: number): void {

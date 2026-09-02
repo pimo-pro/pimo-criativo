@@ -164,21 +164,31 @@ export function projectRoomToPimoRoomGraph(room: ProjectRoomConfig): PimoRoomGra
 
   const halfW = mmToM(room.widthMm) / 2;
   const halfD = mmToM(room.depthMm) / 2;
-  const zones: PimoRoomZoneNode[] = [
-    {
-      id: "zone-room-main",
-      type: "zone",
-      name: "Sala",
-      polygon: [
-        [-halfW, -halfD],
-        [halfW, -halfD],
-        [halfW, halfD],
-        [-halfW, halfD],
-      ],
-      ceilingHeight: mmToM(room.heightMm),
-      spaceRole: "room",
-    },
-  ];
+  const zones: PimoRoomZoneNode[] =
+    room.zones && room.zones.length > 0
+      ? room.zones.map((z) => ({
+          id: z.id,
+          type: "zone" as const,
+          name: z.name,
+          polygon: z.polygonMm.map((p) => [mmToM(p.x), mmToM(p.z)] as const),
+          ceilingHeight: mmToM(z.ceilingHeightMm ?? room.heightMm),
+          spaceRole: z.spaceRole === "generic" ? ("generic" as const) : ("room" as const),
+        }))
+      : [
+          {
+            id: "zone-room-main",
+            type: "zone",
+            name: "Sala",
+            polygon: [
+              [-halfW, -halfD],
+              [halfW, -halfD],
+              [halfW, halfD],
+              [-halfW, halfD],
+            ],
+            ceilingHeight: mmToM(room.heightMm),
+            spaceRole: "room",
+          },
+        ];
 
   return { walls, doors, windows, zones };
 }
@@ -285,6 +295,17 @@ export function pimoRoomGraphToProjectRoom(
   for (const door of graph.doors) pushOpening(door, "door");
   for (const win of graph.windows) pushOpening(win, "window");
 
+  const zones =
+    graph.zones.length > 0
+      ? graph.zones.map((z) => ({
+          id: z.id,
+          name: z.name,
+          polygonMm: z.polygon.map((p) => ({ x: mToMm(p[0]), z: mToMm(p[1]) })),
+          ceilingHeightMm: mToMm(z.ceilingHeight),
+          spaceRole: z.spaceRole,
+        }))
+      : undefined;
+
   return {
     widthMm: base?.widthMm ?? widthMm,
     depthMm: base?.depthMm ?? depthMm,
@@ -298,6 +319,7 @@ export function pimoRoomGraphToProjectRoom(
     walls,
     openings,
     utilities: base?.utilities ?? [],
+    ...(zones ? { zones } : {}),
   };
 }
 
