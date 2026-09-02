@@ -34,6 +34,7 @@ import {
   createMainZoneFromRoom,
   ensureRoomZones,
 } from "../../../3d/room/roomZones";
+import { autoZonesFromClosedLoops } from "../../../3d/room/roomAutoZones";
 
 const DEFAULT_OPENING = {
   door: { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 },
@@ -362,13 +363,22 @@ export function PainelSala() {
       {room ? (
         <Panel title="Zonas">
           {!(room.zones && room.zones.length > 0) ? (
-            <button
-              type="button"
-              className="button button-ghost"
-              onClick={() => patchRoom(ensureRoomZones(room))}
-            >
-              Activar zona da sala (polígono + área)
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <button
+                type="button"
+                className="button button-ghost"
+                onClick={() => patchRoom(ensureRoomZones(room))}
+              >
+                Activar zona da sala (polígono + área)
+              </button>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => patchRoom({ zones: autoZonesFromClosedLoops(room) })}
+              >
+                Auto-zona por loops fechados
+              </button>
+            </div>
           ) : (
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
               {room.zones.map((zone) => {
@@ -401,6 +411,13 @@ export function PainelSala() {
                 }}
               >
                 Realinhar zona principal ao footprint
+              </button>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => patchRoom({ zones: autoZonesFromClosedLoops(room) })}
+              >
+                Auto-zona por loops fechados
               </button>
             </ul>
           )}
