@@ -83,6 +83,7 @@ export interface IViewerEventEngine {
   getRoomBoxWalls(): { id: number; mesh: THREE.Mesh }[];
   getWallGizmo(): {
     onPointerDown(_x: number, _y: number): boolean;
+    onPointerMove(_x: number, _y: number): void;
     onPointerUp(): void;
     detach(): void;
     attach(_wall: THREE.Mesh): void;

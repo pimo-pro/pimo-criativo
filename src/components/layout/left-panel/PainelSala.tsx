@@ -7,6 +7,7 @@ import { useProject } from "../../../context/useProject";
 import Panel from "../../ui/Panel";
 import { useUiStore, uiStore } from "../../../stores/uiStore";
 import { wallStore, useWallStore } from "../../../stores/wallStore";
+import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import {
   ROOM_20_DEFAULTS,
   WALL_LABEL_TITLES,
@@ -85,7 +86,9 @@ function makeOpening(
 
 export function PainelSala() {
   const { project, actions } = useProject();
+  const { viewerApi } = usePimoViewerContext();
   const room = project.room;
+  const wallEditMode = project.viewerSettings.wallEditMode === true;
   const selectedObject = useUiStore((s) => s.selectedObject);
   const selectedWallId = useWallStore((s) => s.selectedWallId);
   const setRoomPanelOpen = useUiStore((s) => s.setRoomPanelOpen);
@@ -291,6 +294,19 @@ export function PainelSala() {
 
       {room ? (
         <Panel title="Paredes">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: 8 }}>
+            <input
+              type="checkbox"
+              checked={wallEditMode}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                actions.setViewerSettings({ wallEditMode: enabled });
+                viewerApi?.setWallEditMode?.(enabled);
+              }}
+            />
+            <Icon name="roomVertex" size={14} aria-hidden />
+            Editar paredes no viewer (mover / rodar / vértices)
+          </label>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {room.walls.map((wall) => {
               const active = activeWall?.id === wall.id;

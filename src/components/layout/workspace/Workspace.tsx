@@ -4,6 +4,10 @@ import { useToast } from "../../../context/ToastContext";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
 import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
+import { applyWallViewerTransformToRoom } from "../../../3d/room/wallVertexEdit";
+import { wallStore } from "../../../stores/wallStore";
+import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
+import { getActiveViewerCore } from "../../../core/viewer/pimoViewerRuntime";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
@@ -157,6 +161,34 @@ export default function Workspace({
   });
   const [showKeyboardShortcutsHelp, setShowKeyboardShortcutsHelp] = useState(false);
   const [, setViewerMounted] = useState(false);
+
+  // Sync transforms do WallGizmo → project.room (SSOT mm).
+  useEffect(() => {
+    viewerApi.setOnWallTransform?.((wallIndex, position, rotationDeg) => {
+      const room = projectRef.current.room;
+      if (!room) return;
+      const mesh = getActiveViewerCore()?.roomManager?.wallsMain?.[wallIndex];
+      const lengthMm =
+        mesh && typeof (mesh as { userData?: { wallLengthMm?: number } }).userData?.wallLengthMm === "number"
+          ? (mesh as { userData: { wallLengthMm: number } }).userData.wallLengthMm
+          : room.walls[wallIndex]?.widthMm;
+      const next = applyWallViewerTransformToRoom(room, {
+        wallIndex,
+        positionM: position,
+        rotationDeg,
+        lengthMm,
+      });
+      actionsRef.current.setProjectRoom(next);
+      const label = WALL_INDEX_TO_LABEL[wallIndex];
+      if (label) {
+        const wall = next.walls.find((w) => w.label === label);
+        if (wall) wallStore.getState().selectWall(wall.id);
+      }
+    });
+    return () => {
+      viewerApi.setOnWallTransform?.(null);
+    };
+  }, [viewerApi]);
 
   // Montar ViewerCore via import dinâmico.
   // Runtime canónico: setActiveViewerCore. window.viewerCore fica só como ponte (HMR / dispose).
