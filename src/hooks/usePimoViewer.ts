@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useViewerBoxes } from "./viewer/useViewerBoxes";
+import { useViewerRoom } from "./viewer/useViewerRoom";
 import { useViewerCamera } from "./viewer/useViewerCamera";
 import { useViewerMaterials } from "./viewer/useViewerMaterials";
 import type { Viewer } from "../3d/core/Viewer";
@@ -131,11 +132,11 @@ const VIEWER_CORE_FACADE_METHODS = [
 ] as const;
 
 /**
- * Retorna uma API plana para o viewer (boxes, camera, materials, ruler).
- * Nota: API de sala fica nos stubs (sistema Sala em rebuild); sem useViewerRoom.
+ * Retorna uma API plana para o viewer (boxes, sala/pimo-room, camera, materials, ruler).
  */
 export function usePimoViewer() {
   const boxes = useViewerBoxes();
+  const room = useViewerRoom();
   const camera = useViewerCamera();
   const materials = useViewerMaterials();
   const viewerCore = getActiveViewerCore() ?? undefined;
@@ -149,6 +150,7 @@ export function usePimoViewer() {
         viewerRef,
         viewerReady: coreReady,
         ...boxes,
+        ...room,
         ...camera,
         ...materials,
         ...(coreReady && viewerCore
@@ -192,6 +194,6 @@ export function usePimoViewer() {
         manufacturing: coreReady ? viewerCore?.manufacturing : undefined,
         costEstimator: coreReady ? viewerCore?.costEstimator : undefined,
       }) as PimoViewerApi,
-    [boxes, camera, materials, viewerCore, coreReady]
+    [boxes, room, camera, materials, viewerCore, coreReady]
   );
 }

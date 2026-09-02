@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import { useToast } from "../../../context/ToastContext";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
+import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
@@ -77,6 +78,11 @@ export default function Workspace({
   const viewerApi = usePimoViewer();
   const viewerReady = isViewerApiReady(viewerApi);
   const { registerViewerApi } = usePimoViewerContext();
+  useViewerRoomSync(
+    viewerApi,
+    project.room,
+    project.viewerSettings?.showCeiling !== false
+  );
 
   const projectHasNonDefaultState = useMemo(() => {
     if (project.workspaceBoxes.length > 0) return true;

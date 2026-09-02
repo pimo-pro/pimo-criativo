@@ -1,6 +1,5 @@
 /**
- * pimo-room v4 — ViewerRoomEngine (fase 1: delegação de API; mesh nas fases 2–3).
- * Mantém a superfície importada pelo ViewerCore / engines.ts.
+ * pimo-room v4 — ViewerRoomEngine: delega create/remove/dims para o RoomManager.
  */
 import type { RoomConfig } from "../../room/types";
 
