@@ -1,6 +1,6 @@
 /**
- * ViewerRoomEngine (Z-01.2.7 C) — API 3D da sala sobre RoomManager.
- * `room/RoomEngine.ts` continua a ser o orquestrador Room 2.0 (wallStore); não duplicar.
+ * STUB — ViewerRoomEngine no-op (feature/sala-rebuild-opensource).
+ * Mantém API importada pelo ViewerCore / engines.ts.
  */
 import type { RoomConfig } from "../../room/types";
 
@@ -57,66 +57,58 @@ export class ViewerRoomEngine {
   }
 
   createRoomWithDimensions(
-    width: number,
-    depth: number,
-    height: number,
-    numWalls?: 3 | 4,
-    wallThicknessM?: number
+    _width: number,
+    _depth: number,
+    _height: number,
+    _numWalls?: 3 | 4,
+    _wallThicknessM?: number
   ): void {
-    this.getManager()?.createRoom?.(width, depth, height, numWalls ?? 4, wallThicknessM);
+    void _width;
+    void _depth;
+    void _height;
+    void _numWalls;
+    void _wallThicknessM;
   }
 
-  createRoomFromConfig(config: RoomConfig): boolean {
-    const dims = roomConfigToDimensions(config);
-    if (!dims) return false;
-    this.createRoomWithDimensions(dims.widthM, dims.depthM, dims.heightM, dims.numWalls);
-    return true;
-  }
-
-  removeRoom(): boolean {
-    const manager = this.getManager();
-    if (manager?.room) {
-      manager.removeRoom?.();
-      return true;
-    }
+  createRoomFromConfig(_config: RoomConfig): boolean {
+    void _config;
     return false;
   }
 
-  setRoomDimensions(width: number, depth: number, height: number): void {
-    this.getManager()?.setDimensions?.(width, depth, height);
+  removeRoom(): boolean {
+    this.getManager()?.removeRoom?.();
+    return true;
   }
 
-  addExtraWall(): void {
-    this.getManager()?.addExtraWall?.();
+  setRoomDimensions(_width: number, _depth: number, _height: number): void {
+    void _width;
+    void _depth;
+    void _height;
   }
 
-  setRoomLocked(locked: boolean): void {
-    this.getManager()?.setLocked?.(locked);
+  addExtraWall(): void {}
+
+  setRoomLocked(_locked: boolean): void {
+    void _locked;
   }
 
   getRoomExists(): boolean {
-    return Boolean(this.getManager()?.room);
+    return false;
   }
 
   getRoomLocked(): boolean {
-    return this.getManager()?.locked ?? false;
+    return false;
   }
 
   getRoomDimensions(): { width: number; depth: number; height: number } | null {
-    const room = this.getManager()?.room;
-    if (!room) return null;
-    return { width: room.width, depth: room.depth, height: room.height };
+    return null;
   }
 
-  hideRoom(): void {
-    this.getManager()?.hideRoom?.();
-  }
+  hideRoom(): void {}
 
-  showRoom(): void {
-    this.getManager()?.showRoom?.();
-  }
+  showRoom(): void {}
 
   getRoomVisible(): boolean {
-    return this.getManager()?.visible ?? false;
+    return false;
   }
 }

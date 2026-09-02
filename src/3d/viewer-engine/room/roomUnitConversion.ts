@@ -1,8 +1,6 @@
 /**
- * Conversão interna de unidades da sala (Z-03.3).
- * SSOT canónico: ProjectRoomConfig (mm).
- * Vistas derivadas: wallStore / roomSnapshot (cm), viewer (m).
- * Não expor API pública nova — consumidores continuam via RoomEngine.
+ * STUB — conversão mm/cm mínima (feature/sala-rebuild-opensource).
+ * Sem mesh 3D; mantém contratos de persistência / RoomEngine.
  */
 import type { Wall, WallOpening } from "../../../stores/wallStore";
 import type { RoomSnapshot } from "../../../context/projectTypes";
@@ -22,35 +20,28 @@ export const MM_PER_M = 1000;
 export function mmToCm(mm: number): number {
   return mm / MM_PER_CM;
 }
-
 export function cmToMm(cm: number): number {
   return cm * MM_PER_CM;
 }
-
 export function mmToM(mm: number): number {
   return mm / MM_PER_M;
 }
-
 export function mToMm(m: number): number {
   return m * MM_PER_M;
 }
 
-/** Footprint interior coerente com `getRoomDimensionsCm` (média das paredes opostas). */
-export function wallStoreFootprintMm(
-  walls: Wall[]
-): { widthMm: number; depthMm: number; heightMm: number } | null {
-  if (!walls || walls.length < 3) return null;
-  const w0 = walls[0]?.lengthCm ?? 0;
-  const w2 = walls[2]?.lengthCm ?? w0;
-  const w1 = walls[1]?.lengthCm ?? 0;
-  const w3 = walls[3]?.lengthCm ?? w1;
-  const widthMm = cmToMm((w0 + w2) / 2);
-  const depthMm = cmToMm((w1 + w3) / 2);
-  const heightMm = Math.max(
-    ...walls.map((w) => cmToMm(w.heightCm ?? 0)),
-    2600
-  );
-  return { widthMm, depthMm, heightMm };
+export function wallStoreFootprintMm(walls: Wall[]): {
+  widthMm: number;
+  depthMm: number;
+  heightMm: number;
+} | null {
+  const cm = wallStoreFootprintCm(walls);
+  if (!cm) return null;
+  return {
+    widthMm: cmToMm(cm.widthCm),
+    depthMm: cmToMm(cm.depthCm),
+    heightMm: cmToMm(cm.heightCm),
+  };
 }
 
 export function wallStoreFootprintCm(walls: Wall[]): {
@@ -58,118 +49,112 @@ export function wallStoreFootprintCm(walls: Wall[]): {
   depthCm: number;
   heightCm: number;
 } | null {
-  const fp = wallStoreFootprintMm(walls);
-  if (!fp) return null;
+  if (!walls || walls.length < 3) return null;
+  const w0 = walls[0]?.lengthCm ?? 0;
+  const w1 = walls[1]?.lengthCm ?? w0;
+  const w2 = walls[2]?.lengthCm ?? w0;
+  const w3 = walls[3]?.lengthCm ?? w1;
   return {
-    widthCm: mmToCm(fp.widthMm),
-    depthCm: mmToCm(fp.depthMm),
-    heightCm: mmToCm(fp.heightMm),
+    widthCm: Math.max(0, (w0 + w2) / 2),
+    depthCm: Math.max(0, (w1 + w3) / 2),
+    heightCm: Math.max(...walls.map((w) => w.heightCm || 0), 0),
   };
 }
 
-/** Vista derivada wallStore (cm) a partir do SSOT mm. */
 export function projectRoomToWallStoreWalls(room: ProjectRoomConfig): Wall[] {
-  return room.walls
-    .slice()
-    .sort((a, b) => WALL_LABEL_TO_INDEX[a.label] - WALL_LABEL_TO_INDEX[b.label])
-    .map((wall) => {
-      const openings: WallOpening[] = room.openings
-        .filter((o) => o.wallId === wall.id)
-        .map((o) => ({
-          id: o.id,
-          type: o.type,
-          kind: o.kind,
-          widthMm: o.widthMm,
-          heightMm: o.heightMm,
-          thicknessMm: o.thicknessMm,
-          floorOffsetMm: o.floorOffsetMm ?? o.verticalOffsetMm,
-          horizontalOffsetMm: o.xPosMm ?? o.horizontalOffsetMm,
-        }));
-      const widthMm = wall.widthMm ?? wall.lengthMm;
-      return {
-        id: wall.id,
-        lengthCm: mmToCm(widthMm),
-        heightCm: mmToCm(wall.heightMm),
-        thicknessCm: mmToCm(wall.thicknessMm),
-        color: "#d1d5db",
-        openings,
-        position: {
-          x: mmToCm(wall.position.x),
-          y: mmToCm(wall.position.y ?? wall.heightMm / 2),
-          z: mmToCm(wall.position.z),
-        },
-        rotation: wall.rotationDeg,
-      };
-    });
+  return (room.walls ?? []).map((wall) => {
+    const openings: WallOpening[] = (room.openings ?? [])
+      .filter((o) => o.wallId === wall.id)
+      .map((o) => ({
+        id: o.id,
+        type: o.type,
+        kind: o.kind,
+        widthMm: o.widthMm,
+        heightMm: o.heightMm,
+        thicknessMm: o.thicknessMm,
+        floorOffsetMm: o.floorOffsetMm,
+        horizontalOffsetMm: o.horizontalOffsetMm,
+      }));
+    return {
+      id: wall.id,
+      lengthCm: mmToCm(wall.widthMm || wall.lengthMm || 0),
+      heightCm: mmToCm(wall.heightMm || 0),
+      thicknessCm: mmToCm(wall.thicknessMm || 0),
+      color: "#d1d5db",
+      position: {
+        x: mmToCm(wall.position?.x ?? 0),
+        y: mmToCm(wall.position?.y ?? 0),
+        z: mmToCm(wall.position?.z ?? 0),
+      },
+      rotation: wall.rotationDeg ?? 0,
+      openings,
+    };
+  });
 }
 
-export type WallStoreRoomExtras = Partial<
-  Pick<ProjectRoomConfig, "locked" | "visible" | "floorMode" | "ceilingVisible" | "hiddenWalls" | "utilities">
->;
+export type WallStoreRoomExtras = Partial<{
+  selectedWallId: string | null;
+  mainWallIndex: number;
+  locked: boolean;
+  visible: boolean;
+  floorMode: ProjectRoomConfig["floorMode"];
+  ceilingVisible: boolean;
+  hiddenWalls: string[];
+  utilities: ProjectRoomConfig["utilities"];
+}>;
 
-const DEFAULT_DOOR_THICKNESS_MM = 40;
-const DEFAULT_WINDOW_THICKNESS_MM = 40;
-
-/** Reconstrói ProjectRoomConfig a partir de wallStore (cm). Requer ≥4 paredes canónicas. */
 export function wallStoreToProjectRoom(
   walls: Wall[],
   extras?: WallStoreRoomExtras
 ): ProjectRoomConfig | null {
   if (!walls || walls.length < 4) return null;
-  const sorted = [...walls];
-  const footprint = wallStoreFootprintMm(sorted);
+  const footprint = wallStoreFootprintMm(walls);
   if (!footprint) return null;
-  const { widthMm, depthMm, heightMm } = footprint;
-  const wallThicknessMm = cmToMm(sorted[0]?.thicknessCm ?? 20);
-  const projectWalls: ProjectRoomWall[] = sorted.map((wall, index) => ({
-    id: wall.id,
-    label: WALL_INDEX_TO_LABEL[index] ?? "extra",
-    widthMm: cmToMm(wall.lengthCm ?? 0),
-    lengthMm: cmToMm(wall.lengthCm ?? 0),
-    heightMm: cmToMm(wall.heightCm ?? 0),
-    thicknessMm: cmToMm(wall.thicknessCm ?? 20),
-    position: {
-      x: cmToMm(wall.position?.x ?? 0),
-      y: cmToMm(wall.position?.y ?? (wall.heightCm ?? 0) / 2),
-      z: cmToMm(wall.position?.z ?? 0),
-    },
-    rotationDeg: wall.rotation ?? 0,
-  }));
-  const openings: ProjectRoomOpening[] = [];
-  sorted.forEach((wall) => {
-    for (const o of wall.openings ?? []) {
-      openings.push({
-        id: o.id,
-        type: o.type,
-        kind: o.kind ?? "normal",
-        wallId: wall.id,
-        xPosMm: o.horizontalOffsetMm,
-        horizontalOffsetMm: o.horizontalOffsetMm,
-        widthMm: o.widthMm,
-        heightMm: o.heightMm,
-        thicknessMm:
-          o.thicknessMm ??
-          (o.type === "window" ? DEFAULT_WINDOW_THICKNESS_MM : DEFAULT_DOOR_THICKNESS_MM),
-        floorOffsetMm: o.floorOffsetMm,
-        verticalOffsetMm: o.floorOffsetMm,
-      });
-    }
+  const projectWalls: ProjectRoomWall[] = walls.slice(0, 4).map((wall, index) => {
+    const label = WALL_INDEX_TO_LABEL[index] ?? "extra";
+    return {
+      id: wall.id,
+      label,
+      widthMm: cmToMm(wall.lengthCm),
+      lengthMm: cmToMm(wall.lengthCm),
+      heightMm: cmToMm(wall.heightCm),
+      thicknessMm: cmToMm(wall.thicknessCm),
+      position: {
+        x: cmToMm(wall.position?.x ?? 0),
+        y: cmToMm(wall.position?.y ?? 0),
+        z: cmToMm(wall.position?.z ?? 0),
+      },
+      rotationDeg: wall.rotation ?? 0,
+    };
   });
+  const openings: ProjectRoomOpening[] = walls.flatMap((wall) =>
+    (wall.openings ?? []).map((o) => ({
+      id: o.id,
+      type: o.type,
+      kind: o.kind ?? "normal",
+      wallId: wall.id,
+      xPosMm: o.horizontalOffsetMm,
+      horizontalOffsetMm: o.horizontalOffsetMm,
+      widthMm: o.widthMm,
+      heightMm: o.heightMm,
+      thicknessMm: o.thicknessMm ?? 40,
+      floorOffsetMm: o.floorOffsetMm,
+      verticalOffsetMm: o.floorOffsetMm,
+    }))
+  );
   return {
-    widthMm,
-    depthMm,
-    heightMm,
-    wallThicknessMm,
-    locked: extras?.locked ?? false,
+    widthMm: footprint.widthMm,
+    depthMm: footprint.depthMm,
+    heightMm: footprint.heightMm,
+    wallThicknessMm: cmToMm(walls[0]?.thicknessCm ?? 20),
+    locked: extras?.locked === true,
     visible: extras?.visible !== false,
     floorMode: extras?.floorMode ?? "room",
     ceilingVisible: extras?.ceilingVisible !== false,
-    hiddenWalls: Array.isArray(extras?.hiddenWalls)
-      ? extras.hiddenWalls.filter((id) => projectWalls.some((wall) => wall.id === id))
-      : [],
+    hiddenWalls: extras?.hiddenWalls ?? [],
     walls: projectWalls,
     openings,
-    utilities: Array.isArray(extras?.utilities) ? extras.utilities : [],
+    utilities: extras?.utilities ?? [],
   };
 }
 
@@ -178,7 +163,6 @@ export type RoomSnapshotUiState = {
   mainWallIndex: number;
 };
 
-/** Vista derivada roomSnapshot (cm) a partir do SSOT mm. */
 export function projectRoomToRoomSnapshot(
   room: ProjectRoomConfig,
   ui: RoomSnapshotUiState
@@ -199,7 +183,6 @@ export function projectRoomToRoomSnapshot(
   };
 }
 
-/** Payload para `wallStore.loadRoomConfig` derivado do SSOT. */
 export function deriveWallStoreConfigFromProjectRoom(
   room: ProjectRoomConfig,
   ui?: Partial<RoomSnapshotUiState>
@@ -212,3 +195,5 @@ export function deriveWallStoreConfigFromProjectRoom(
       : walls[mainWallIndex]?.id ?? walls[0]?.id ?? null;
   return { walls, selectedWallId, mainWallIndex };
 }
+
+void WALL_LABEL_TO_INDEX;

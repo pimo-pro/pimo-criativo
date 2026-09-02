@@ -1,15 +1,14 @@
 /**
- * RoomEngine — orquestração Room 2.0 (fase básica).
- * Geometria visual apenas; sem impacto industrial.
+ * STUB — RoomEngine de dados (feature/sala-rebuild-opensource).
+ * Sem mesh 3D; mantém create/normalize/apply para persistência e autoRoomFill.
  */
 import { wallStore } from "../../../stores/wallStore";
-
-
+import type { Wall } from "../../../stores/wallStore";
+import { centeredWallPositionForLabel } from "../../../utils/roomCoordinates";
 import {
-  centeredWallPositionForLabel,
-  migrateProjectRoomToCenteredCoords,
-} from "../../../utils/roomCoordinates";
-import {
+  ROOM_20_DEFAULTS,
+  WALL_LABELS,
+  WALL_LABEL_TITLES,
   type ProjectRoomConfig,
   type ProjectRoomOpening,
   type ProjectRoomUtility,
@@ -17,106 +16,104 @@ import {
   type ProjectRoomWall,
   type RoomFloorMode,
   type RoomOpeningKind,
-  ROOM_20_DEFAULTS,
-  WALL_LABELS,
+  type RoomWallLabel,
 } from "./roomEngineTypes";
-import { deriveWallStoreConfigFromProjectRoom } from "./roomUnitConversion";
+import {
+  deriveWallStoreConfigFromProjectRoom,
+  projectRoomToRoomSnapshot,
+  wallStoreFootprintCm,
+  wallStoreFootprintMm,
+  wallStoreToProjectRoom,
+  type RoomSnapshotUiState,
+  type WallStoreRoomExtras,
+} from "./roomUnitConversion";
 
+export type { ProjectRoomConfig, ProjectRoomOpening, ProjectRoomWall, RoomOpeningKind, RoomWallLabel };
+export { ROOM_20_DEFAULTS, WALL_LABELS, WALL_LABEL_TITLES };
+export type { RoomSnapshotUiState, WallStoreRoomExtras };
 export {
-  ROOM_20_DEFAULTS,
-  WALL_LABELS,
-  WALL_LABEL_TITLES,
-  WALL_LABEL_TO_INDEX,
-  WALL_INDEX_TO_LABEL,
-} from "./roomEngineTypes";
-export type { ProjectRoomConfig, ProjectRoomOpening, ProjectRoomWall, RoomOpeningKind, RoomWallLabel } from "./roomEngineTypes";
+  projectRoomToRoomSnapshot,
+  wallStoreFootprintCm,
+  wallStoreFootprintMm,
+  wallStoreToProjectRoom,
+};
 
 export const PROJECT_ROOM_WALL_THICKNESS_MM = ROOM_20_DEFAULTS.wallThicknessMm;
 
-const DEFAULT_DOOR = { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 };
+const DEFAULT_DOOR = { widthMm: 800, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 };
 const DEFAULT_WINDOW = { widthMm: 1200, heightMm: 1200, thicknessMm: 40, floorOffsetMm: 900 };
-const DEFAULT_UTILITY_HEIGHT_MM: Record<ProjectRoomUtilityType, number> = {
-  ElectricalOutlet: 300,
-  WaterPoint: 550,
-  DrainPoint: 250,
-};
 
-function mkWallId(label: string): string {
-  return `room-wall-${label}`;
+function mkWallId(label: RoomWallLabel): string {
+  return `wall-${label}`;
+}
+function mkOpeningId(kind: string): string {
+  return `opening-${kind}`;
 }
 
-function mkOpeningId(type: string): string {
-  return `room-opening-${type}-${Date.now()}`;
+function wallRotationForLabel(label: RoomWallLabel): number {
+  switch (label) {
+    case "sul":
+      return 0;
+    case "este":
+      return 90;
+    case "norte":
+      return 180;
+    case "oeste":
+      return 270;
+    default:
+      return 0;
+  }
 }
 
-function wallRotationForLabel(label: ProjectRoomWall["label"]): number {
-  return label === "este" || label === "oeste" ? 90 : 0;
-}
-
-function normalizeOpeningKind(value: unknown): RoomOpeningKind {
-  return value === "correr" ? "correr" : "normal";
-}
-
-function normalizeFloorMode(value: unknown): RoomFloorMode {
-  return value === "full" || value === "hybrid" || value === "room"
-    ? value
-    : ROOM_20_DEFAULTS.floorMode;
-}
-
-function wallLengthById(walls: ProjectRoomWall[], wallId: string): number {
-  const wall = walls.find((w) => w.id === wallId);
-  return Math.max(100, wall?.lengthMm ?? wall?.widthMm ?? 100);
+function normalizeFloorMode(raw: unknown): RoomFloorMode {
+  return raw === "full" || raw === "hybrid" || raw === "room" ? raw : "room";
 }
 
 function normalizeOpening(raw: Partial<ProjectRoomOpening>, walls: ProjectRoomWall[]): ProjectRoomOpening {
+  const wallId =
+    raw.wallId && walls.some((w) => w.id === raw.wallId) ? raw.wallId : walls[0]?.id ?? "wall-sul";
+  const kind: RoomOpeningKind = raw.kind === "correr" ? "correr" : "normal";
   const type = raw.type === "window" ? "window" : "door";
-  const defaults = type === "window" ? DEFAULT_WINDOW : DEFAULT_DOOR;
-  const wallId = raw.wallId && walls.some((w) => w.id === raw.wallId)
-    ? raw.wallId
-    : walls[3]?.id ?? walls[0]?.id ?? mkWallId("sul");
-  const widthMm = Math.max(100, raw.widthMm ?? defaults.widthMm);
-  const heightMm = Math.max(100, raw.heightMm ?? defaults.heightMm);
-  const wallLengthMm = wallLengthById(walls, wallId);
-  const wallHeightMm = Math.max(100, walls.find((w) => w.id === wallId)?.heightMm ?? 100);
-  const xPosMm = Math.max(0, Math.min(wallLengthMm - widthMm, raw.xPosMm ?? raw.horizontalOffsetMm ?? 0));
-  const floorOffsetMm = Math.max(0, raw.floorOffsetMm ?? raw.verticalOffsetMm ?? defaults.floorOffsetMm);
-  const clampedFloorOffsetMm = Math.max(0, Math.min(wallHeightMm - heightMm, floorOffsetMm));
+  const widthMm = Math.max(100, raw.widthMm ?? (type === "door" ? DEFAULT_DOOR.widthMm : DEFAULT_WINDOW.widthMm));
+  const heightMm = Math.max(100, raw.heightMm ?? (type === "door" ? DEFAULT_DOOR.heightMm : DEFAULT_WINDOW.heightMm));
+  const floorOffsetMm = Math.max(0, raw.floorOffsetMm ?? raw.verticalOffsetMm ?? 0);
+  const xPosMm = Math.max(0, raw.xPosMm ?? raw.horizontalOffsetMm ?? 0);
   return {
-    id: raw.id ?? mkOpeningId(type),
+    id: raw.id?.trim() || mkOpeningId(type),
     type,
-    kind: normalizeOpeningKind(raw.kind),
+    kind,
     wallId,
     xPosMm,
     horizontalOffsetMm: xPosMm,
     widthMm,
     heightMm,
-    thicknessMm: Math.max(10, raw.thicknessMm ?? defaults.thicknessMm),
-    floorOffsetMm: clampedFloorOffsetMm,
-    verticalOffsetMm: clampedFloorOffsetMm,
+    thicknessMm: Math.max(10, raw.thicknessMm ?? 40),
+    floorOffsetMm,
+    verticalOffsetMm: floorOffsetMm,
   };
 }
 
-function normalizeUtility(raw: Partial<ProjectRoomUtility>, walls: ProjectRoomWall[]): ProjectRoomUtility | null {
+function normalizeUtility(
+  raw: Partial<ProjectRoomUtility>,
+  walls: ProjectRoomWall[]
+): ProjectRoomUtility | null {
   const type: ProjectRoomUtilityType =
     raw.type === "WaterPoint" || raw.type === "DrainPoint" || raw.type === "ElectricalOutlet"
       ? raw.type
       : "ElectricalOutlet";
-  const wallId = raw.wallId && walls.some((w) => w.id === raw.wallId)
-    ? raw.wallId
-    : walls[0]?.id;
+  const wallId = raw.wallId && walls.some((w) => w.id === raw.wallId) ? raw.wallId : walls[0]?.id;
   if (!wallId) return null;
-  const wallLengthMm = wallLengthById(walls, wallId);
-  const wallHeightMm = Math.max(100, walls.find((w) => w.id === wallId)?.heightMm ?? ROOM_20_DEFAULTS.heightMm);
+  const wallLengthMm = walls.find((w) => w.id === wallId)?.widthMm ?? ROOM_20_DEFAULTS.widthMm;
+  const wallHeightMm = walls.find((w) => w.id === wallId)?.heightMm ?? ROOM_20_DEFAULTS.heightMm;
   return {
-    id: raw.id?.trim() || `room-utility-${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: raw.id?.trim() || `room-utility-${type}`,
     type,
     wallId,
     positionAlongWall: Math.max(0, Math.min(wallLengthMm, raw.positionAlongWall ?? wallLengthMm / 2)),
-    heightMm: Math.max(0, Math.min(wallHeightMm, raw.heightMm ?? DEFAULT_UTILITY_HEIGHT_MM[type])),
+    heightMm: Math.max(0, Math.min(wallHeightMm, raw.heightMm ?? 300)),
   };
 }
 
-/** Configuração padrão: 4000×4000×2600 mm, espessura 200 mm, porta oeste, janela este. */
 export function createDefaultProjectRoom(): ProjectRoomConfig {
   const { widthMm, depthMm, heightMm, wallThicknessMm } = ROOM_20_DEFAULTS;
   const walls: ProjectRoomWall[] = WALL_LABELS.map((label) => ({
@@ -223,7 +220,7 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
   const utilities = Array.isArray(raw.utilities)
     ? raw.utilities.map((u) => normalizeUtility(u, walls)).filter((u): u is ProjectRoomUtility => Boolean(u))
     : [];
-  return migrateProjectRoomToCenteredCoords({
+  return {
     widthMm,
     depthMm,
     heightMm,
@@ -236,22 +233,8 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
     walls,
     openings,
     utilities,
-  });
+  };
 }
-
-export {
-  cmToMm,
-  deriveWallStoreConfigFromProjectRoom,
-  mmToCm,
-  mmToM,
-  mToMm,
-  projectRoomToRoomSnapshot,
-  projectRoomToWallStoreWalls,
-  wallStoreFootprintCm,
-  wallStoreFootprintMm,
-  wallStoreToProjectRoom,
-} from "./roomUnitConversion";
-export type { RoomSnapshotUiState, WallStoreRoomExtras } from "./roomUnitConversion";
 
 export function applyProjectRoomDimensions(room: ProjectRoomConfig): ProjectRoomConfig {
   const next = { ...room, walls: room.walls.map((w) => ({ ...w })) };
@@ -283,4 +266,9 @@ export function applyProjectRoomToWallStore(room: ProjectRoomConfig): void {
     mainWallIndex: ui.mainWallIndex,
   });
   wallStore.getState().loadRoomConfig(derived);
+}
+
+/** Helper tipado para consumidores que passam walls do store. */
+export function wallStoreWallsToProjectRoom(walls: Wall[], extras?: WallStoreRoomExtras): ProjectRoomConfig | null {
+  return wallStoreToProjectRoom(walls, extras);
 }
