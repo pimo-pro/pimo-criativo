@@ -1,9 +1,12 @@
 /**
- * STUB no-op — sistema Sala removido (feature/sala-rebuild-opensource).
- * Mantém a superfície importada pelo ViewerCore / ViewerCore*Ops.
+ * pimo-room v4 — RoomBuilder: portas/janelas + cutouts CSG nas paredes.
  */
 import * as THREE from "three";
 import type { DoorWindowConfig, RoomConfig } from "./types";
+import { DoorElement } from "./elements/DoorElement";
+import { WindowElement } from "./elements/WindowElement";
+import { placeOpeningGroupOnWall } from "./openingPlacement";
+import { refreshWallOpeningCutouts } from "./wallGeometryCsg";
 
 export type RoomElementEntry = {
   type: "door" | "window";
@@ -13,6 +16,21 @@ export type RoomElementEntry = {
   config: DoorWindowConfig;
 };
 
+function disposeOpeningObject(obj: THREE.Object3D): void {
+  obj.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.geometry?.dispose();
+      const mat = child.material;
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else if (mat) mat.dispose();
+    }
+  });
+}
+
+/**
+ * Constrói portas/janelas como filhos das meshes das paredes do RoomManager.
+ * Aplica cutouts CSG (`three-csg-ts`) na geometria da parede hospedeira.
+ */
 export class RoomBuilder {
   private readonly group = new THREE.Group();
   private readonly elements: RoomElementEntry[] = [];
@@ -35,8 +53,14 @@ export class RoomBuilder {
     return [...this.elements];
   }
 
-  getElementById(_elementId: string): THREE.Group | null {
-    void _elementId;
+  getElementById(elementId: string): THREE.Group | null {
+    for (const wall of this.getWallMeshes()) {
+      for (const ch of wall.children) {
+        if (ch instanceof THREE.Group && ch.userData?.elementId === elementId) {
+          return ch;
+        }
+      }
+    }
     return null;
   }
 
@@ -45,7 +69,6 @@ export class RoomBuilder {
   }
 
   createRoom(_config: RoomConfig): THREE.Group {
-    void _config;
     this.clearRoom(false);
     return this.group;
   }
@@ -59,47 +82,105 @@ export class RoomBuilder {
     void _visible;
   }
 
-  addDoorByIndex(_wallIndex: number, _config: DoorWindowConfig, _elementId?: string): string {
-    void _wallIndex;
-    void _config;
-    void _elementId;
-    return "";
+  addDoorByIndex(wallIndex: number, config: DoorWindowConfig, elementId?: string): string {
+    return this.addOpening(wallIndex, config, "door", elementId);
   }
 
-  addWindowByIndex(_wallIndex: number, _config: DoorWindowConfig, _elementId?: string): string {
-    void _wallIndex;
-    void _config;
-    void _elementId;
-    return "";
+  addWindowByIndex(wallIndex: number, config: DoorWindowConfig, elementId?: string): string {
+    return this.addOpening(wallIndex, config, "window", elementId);
   }
 
-  addDoor(_wallUuid: string, _config: DoorWindowConfig, _elementId?: string): string {
-    void _wallUuid;
-    void _config;
-    void _elementId;
-    return "";
+  private addOpening(
+    wallIndex: number,
+    config: DoorWindowConfig,
+    kind: "door" | "window",
+    elementId?: string
+  ): string {
+    const walls = this.getWallMeshes();
+    const wall = walls[wallIndex];
+    if (!wall) return "";
+    const id =
+      elementId?.trim() ||
+      `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    if (elementId) this.removeElement(elementId);
+    const cfg: DoorWindowConfig = { ...config };
+    const group =
+      kind === "door" ? DoorElement.create(cfg, id) : WindowElement.create(cfg, id);
+    placeOpeningGroupOnWall(group, wall, cfg);
+    wall.add(group);
+    refreshWallOpeningCutouts(wall);
+    this.elements.push({
+      type: kind,
+      wallId: wallIndex,
+      wallUuid: wall.uuid,
+      elementId: id,
+      config: { ...(group.userData.config as DoorWindowConfig) },
+    });
+    return id;
   }
 
-  addWindow(_wallUuid: string, _config: DoorWindowConfig, _elementId?: string): string {
-    void _wallUuid;
-    void _config;
-    void _elementId;
-    return "";
+  addDoor(wallUuid: string, config: DoorWindowConfig, elementId?: string): string {
+    const walls = this.getWallMeshes();
+    const idx = walls.findIndex((m) => m.uuid === wallUuid);
+    if (idx < 0) return "";
+    return this.addDoorByIndex(idx, config, elementId);
   }
 
-  updateElementConfig(_elementId: string, _config: DoorWindowConfig): boolean {
-    void _elementId;
-    void _config;
-    return false;
+  addWindow(wallUuid: string, config: DoorWindowConfig, elementId?: string): string {
+    const walls = this.getWallMeshes();
+    const idx = walls.findIndex((m) => m.uuid === wallUuid);
+    if (idx < 0) return "";
+    return this.addWindowByIndex(idx, config, elementId);
   }
 
-  removeElement(_elementId: string): boolean {
-    void _elementId;
-    return false;
+  updateElementConfig(elementId: string, config: DoorWindowConfig): boolean {
+    const group = this.getElementById(elementId);
+    if (!group || !(group.parent instanceof THREE.Mesh)) return false;
+    const wall = group.parent as THREE.Mesh;
+    const wallIndex = this.getWallMeshes().findIndex((m) => m === wall);
+    const kind = group.userData?.elementType as "door" | "window" | undefined;
+    const cfg: DoorWindowConfig = { ...config };
+    if (kind === "window") {
+      WindowElement.updateConfig(group, cfg);
+    } else {
+      DoorElement.updateConfig(group, cfg);
+    }
+    placeOpeningGroupOnWall(group, wall, cfg);
+    refreshWallOpeningCutouts(wall);
+    const entry = this.elements.find((e) => e.elementId === elementId);
+    if (entry) {
+      entry.config = { ...(group.userData.config as DoorWindowConfig) };
+      entry.wallId = wallIndex >= 0 ? wallIndex : entry.wallId;
+    }
+    return true;
   }
 
-  clearRoom(_disposeGeometries = false): void {
-    void _disposeGeometries;
+  removeElement(elementId: string): boolean {
+    const group = this.getElementById(elementId);
+    if (!group?.parent) return false;
+    const wall = group.parent instanceof THREE.Mesh ? group.parent : null;
+    group.parent.remove(group);
+    disposeOpeningObject(group);
+    const i = this.elements.findIndex((e) => e.elementId === elementId);
+    if (i >= 0) this.elements.splice(i, 1);
+    if (wall) refreshWallOpeningCutouts(wall);
+    return true;
+  }
+
+  clearRoom(disposeGeometries = false): void {
+    for (const wall of this.getWallMeshes()) {
+      const toRemove: THREE.Object3D[] = [];
+      for (const ch of wall.children) {
+        if (ch instanceof THREE.Group && typeof ch.userData?.elementId === "string") {
+          toRemove.push(ch);
+        }
+      }
+      for (const obj of toRemove) {
+        wall.remove(obj);
+        if (disposeGeometries) disposeOpeningObject(obj);
+      }
+      refreshWallOpeningCutouts(wall);
+    }
     this.elements.length = 0;
   }
 }
