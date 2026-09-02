@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import { LEFT_TOOLBAR_IDS } from "../left-toolbar/LeftToolbar";
-import { useWallStore } from "../../../stores/wallStore";
-import { hasPersistedRoomWalls } from "../../../utils/roomWorkspaceBounds";
-import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import PainelMoveisUnificado from "./PainelMoveisUnificado";
 import PainelModelosDaCaixa from "./PainelModelosDaCaixa";
 import { useUiStore } from "../../../stores/uiStore";
 import type { SavedProjectInfo } from "../../../context/projectTypes";
 import { InfoPanelContent } from "./InfoPanelContent";
 import { PlaceholderLeftPanel } from "./PlaceholderLeftPanel";
-import { PainelSala } from "./PainelSala";
 import { LeftPanelCalculadora } from "./LeftPanelCalculadora";
 import { HomeLeftPanelEmpty } from "./HomeLeftPanelEmpty";
 import { HomeLeftPanelSelected } from "./HomeLeftPanelSelected";
@@ -31,9 +27,6 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   const selectedBox = project.workspaceBoxes.find(
     (box) => box.id === project.selectedWorkspaceBoxId
   );
-  const { viewerApi } = usePimoViewerContext();
-  const walls = useWallStore((state) => state.walls);
-  const roomPresent = hasPersistedRoomWalls(walls) || (viewerApi?.getRoomExists?.() ?? false);
 
   const materialsPicker = useMaterialsForPicker();
   const [savedRecentProjects, setSavedRecentProjects] = useState<SavedProjectInfo[]>([]);
@@ -97,11 +90,10 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
 
   if (selectedObject.type === "wall" || selectedObject.type === "roomElement") {
     return (
-      <div className="left-panel-content">
-        <div className="left-panel-scroll">
-          <PainelSala />
-        </div>
-      </div>
+      <PlaceholderLeftPanel
+        title="Sala"
+        description="O planeador de sala está em reconstrução. Esta selecção ficará disponível na nova versão."
+      />
     );
   }
 
@@ -126,14 +118,12 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     return <LeftPanelCalculadora />;
   }
 
-  // Sala — usa PainelSala (wallStore) como painel principal de controlo
   if (resolvedTab === LEFT_TOOLBAR_IDS.SALA) {
     return (
-      <div className="left-panel-content">
-        <div className="left-panel-scroll">
-          <PainelSala />
-        </div>
-      </div>
+      <PlaceholderLeftPanel
+        title="Sala"
+        description="O planeador de sala está em reconstrução. Em breve estará disponível um sistema novo."
+      />
     );
   }
 
@@ -164,17 +154,7 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     );
   }
 
-  // HOME sem caixa selecionada — se sala presente, mostra definições da sala
   if (resolvedTab === LEFT_TOOLBAR_IDS.HOME && !selectedBox) {
-    if (roomPresent) {
-      return (
-        <div className="left-panel-content">
-          <div className="left-panel-scroll">
-            <PainelSala />
-          </div>
-        </div>
-      );
-    }
     return (
       <HomeLeftPanelEmpty
         loadingSavedRecent={loadingSavedRecent}
