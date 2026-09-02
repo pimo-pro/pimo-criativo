@@ -11,7 +11,6 @@ export type UseProjectBoxActionsDeps = {
   updateProject: (_updater: (_prev: import("../projectTypes").ProjectState) => import("../projectTypes").ProjectState, _trackHistory?: boolean) => void;
   recalcular: (_newState: Partial<import("../projectTypes").ProjectState>, _withLoading: boolean) => void;
   viewerSync: import("../projectTypes").ViewerSync;
-  getSpawnFromSelectedWall: (_dimensoes: { largura: number; profundidade: number; altura: number }) => { posicaoX_mm: number; posicaoZ_mm: number; rotacaoY: number } | null;
   getNextWorkspaceBoxId: (_workspaceBoxes: import("../../core/types").WorkspaceBox[], _preferredIndex?: number) => { id: string; index: number };
   createWorkspaceBox: typeof import("../projectState").createWorkspaceBox;
 };

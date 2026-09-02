@@ -10,14 +10,6 @@ export const UPPER_FLOOR_DEFAULT_MM = 1500;
 export const UPPER_STANDARD_GAP_MM = 680;
 export const UPPER_COUNTERTOP_MM = 0;
 
-/** Legacy: spawn por parede da sala antiga — desactivado (feature/sala-rebuild-opensource). */
-export function getSpawnFromSelectedWall(
-  _dimensoes: { largura: number; profundidade: number; altura: number }
-): { posicaoX_mm: number; posicaoZ_mm: number; rotacaoY: number } | null {
-  void _dimensoes;
-  return null;
-}
-
 export function isLowerCabinet(box: WorkspaceBox): boolean {
   return box.cabinetType === "lower" || (box.cabinetType == null && box.feetEnabled !== false);
 }
