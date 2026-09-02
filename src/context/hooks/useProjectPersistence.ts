@@ -5,8 +5,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { safeGetItem, safeSetItem } from "../../utils/storage";
-import { wallStore } from "../../stores/wallStore";
-import { applyProjectRoomToWallStore, normalizeProjectRoom, wallStoreToProjectRoom } from "../../3d/viewer-engine/room/RoomEngine";
+import { normalizeProjectRoom, wallStoreToProjectRoom } from "../../3d/viewer-engine/room/RoomEngine";
 import type { ProjectState, ProjectSnapshot, RoomSnapshot } from "../projectTypes";
 import { defaultState } from "../projectState";
 
@@ -16,7 +15,7 @@ const AUTO_SAVE_BASE_DEBOUNCE_MS = 1200;
 function isProjectCompletelyDefaultForPersistence(proj: ProjectState): boolean {
   if ((proj.workspaceBoxes?.length ?? 0) > 0) return false;
   if ((proj.projectName?.trim() || "") !== defaultState.projectName) return false;
-  if (wallStore.getState().walls.length >= 3) return false;
+  if (proj.room) return false;
   return true;
 }
 
@@ -113,26 +112,19 @@ export function useProjectPersistence(
         ? api.applyResultados({ ...restored, lastAutosaveTime: parsed.savedAt ?? restored.lastAutosaveTime ?? null })
         : { ...restored, lastAutosaveTime: parsed.savedAt ?? restored.lastAutosaveTime ?? null };
       if (next.room) {
-        applyProjectRoomToWallStore(next.room);
+        next = { ...next, room: normalizeProjectRoom(next.room) ?? next.room };
       } else if (roomSnapshot?.walls?.length) {
         const promoted = wallStoreToProjectRoom(roomSnapshot.walls);
         const normalized = promoted ? normalizeProjectRoom(promoted) : null;
         if (normalized) {
           next = { ...next, room: normalized };
-          applyProjectRoomToWallStore(normalized);
-        } else {
-          wallStore.getState().loadRoomConfig(roomSnapshot);
         }
       } else if (roomSnapshot === null) {
-        wallStore.getState().clearRoom();
+        next = { ...next, room: null };
       }
       setProject(next);
-    } else if (roomSnapshot !== undefined) {
-      if (roomSnapshot) {
-        wallStore.getState().loadRoomConfig(roomSnapshot);
-      } else {
-        wallStore.getState().clearRoom();
-      }
+    } else if (roomSnapshot !== undefined && roomSnapshot?.walls?.length) {
+      // Autosave sem projectState mas com roomSnapshot: sem SSOT de projecto, ignoramos o sidecar.
     }
     if (viewerSnapshot) {
       viewerSync.restoreViewerSnapshot(viewerSnapshot);
