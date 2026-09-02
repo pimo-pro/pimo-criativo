@@ -90,7 +90,7 @@ export function computeWallMiters(
     for (const end of ["start", "end"] as EndKind[]) {
       const p = endPoint(wall, end);
       // Agrupa por proximidade: procura chave existente dentro de tolerance
-      let key = pointKey(p, snap);
+      const key = pointKey(p, snap);
       let found: string | null = null;
       for (const [k, j] of junctions) {
         if (hypot2(j.point.x - p.x, j.point.z - p.z) <= tolerance) {

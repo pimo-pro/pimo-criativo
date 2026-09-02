@@ -2,7 +2,7 @@
  * pimo-room v4 — painel de configurações da sala (Salão).
  * Controlos em mm; tokens de tema existentes; sem referências externas.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import Panel from "../../ui/Panel";
 import { useUiStore, uiStore } from "../../../stores/uiStore";
@@ -91,6 +91,13 @@ function makeOpening(
   };
 }
 
+function roomDimsSyncKey(
+  room: { widthMm: number; depthMm: number; heightMm: number; wallThicknessMm: number } | null | undefined
+): string {
+  if (!room) return "none";
+  return `${room.widthMm}|${room.depthMm}|${room.heightMm}|${room.wallThicknessMm}`;
+}
+
 export function PainelSala() {
   const { project, actions } = useProject();
   const { viewerApi } = usePimoViewerContext();
@@ -102,18 +109,23 @@ export function PainelSala() {
   const snapEnabled = useUiStore((s) => s.roomOpeningSnapEnabled);
   const setRoomOpeningSnapEnabled = useUiStore((s) => s.setRoomOpeningSnapEnabled);
 
-  const [widthMm, setWidthMm] = useState<number>(ROOM_20_DEFAULTS.widthMm);
-  const [depthMm, setDepthMm] = useState<number>(ROOM_20_DEFAULTS.depthMm);
-  const [heightMm, setHeightMm] = useState<number>(ROOM_20_DEFAULTS.heightMm);
-  const [thicknessMm, setThicknessMm] = useState<number>(ROOM_20_DEFAULTS.wallThicknessMm);
+  const dimsKey = roomDimsSyncKey(room);
+  const [widthMm, setWidthMm] = useState<number>(room?.widthMm ?? ROOM_20_DEFAULTS.widthMm);
+  const [depthMm, setDepthMm] = useState<number>(room?.depthMm ?? ROOM_20_DEFAULTS.depthMm);
+  const [heightMm, setHeightMm] = useState<number>(room?.heightMm ?? ROOM_20_DEFAULTS.heightMm);
+  const [thicknessMm, setThicknessMm] = useState<number>(
+    room?.wallThicknessMm ?? ROOM_20_DEFAULTS.wallThicknessMm
+  );
+  const [syncedDimsKey, setSyncedDimsKey] = useState(dimsKey);
 
-  useEffect(() => {
-    if (!room) return;
-    setWidthMm(room.widthMm);
-    setDepthMm(room.depthMm);
-    setHeightMm(room.heightMm);
-    setThicknessMm(room.wallThicknessMm);
-  }, [room]);
+  // Sincroniza rascunho local com `room` sem useEffect (padrão React: ajustar state no render).
+  if (syncedDimsKey !== dimsKey) {
+    setSyncedDimsKey(dimsKey);
+    setWidthMm(room?.widthMm ?? ROOM_20_DEFAULTS.widthMm);
+    setDepthMm(room?.depthMm ?? ROOM_20_DEFAULTS.depthMm);
+    setHeightMm(room?.heightMm ?? ROOM_20_DEFAULTS.heightMm);
+    setThicknessMm(room?.wallThicknessMm ?? ROOM_20_DEFAULTS.wallThicknessMm);
+  }
 
   const activeWall = useMemo(() => {
     if (!room) return null;

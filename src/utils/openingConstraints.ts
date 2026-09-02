@@ -171,7 +171,7 @@ export function refineOpeningPlacement(
   wallHeightMm: number,
   options?: { snap?: boolean; openingId?: string; openings?: OpeningLike[] }
 ): { horizontalOffsetMm: number; floorOffsetMm: number } {
-  let next = { ...config };
+  const next = { ...config };
   if (options?.snap !== false) {
     next.horizontalOffsetMm = snapHorizontalOffset(
       next.horizontalOffsetMm,
