@@ -395,6 +395,13 @@ export class EventsManager {
 
   private handleCanvasDoubleClick(event: MouseEvent): void {
     if (event.button !== 0) return;
+    const roomHit = this.engine.getRoomElementAtPointer(event);
+    if (roomHit?.elementId) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.engine.getRoomBuilder().toggleElementOpen?.(roomHit.elementId);
+      return;
+    }
     const doorHit = this.engine.getDoorHitAtPointer(event);
     if (doorHit) {
       event.preventDefault();
@@ -444,6 +451,13 @@ export class EventsManager {
 
   private handleCanvasPointerMove(event: PointerEvent): void {
     const e = this.engine;
+    // WallGizmo arrasta no plano XZ; TransformControls trata o próprio pointer.
+    if (e.getWallGizmoDragging() && e.getWallGizmo()) {
+      const canvas = e.getCanvas();
+      const { x, y } = getPointerNdc(canvas, event);
+      e.getWallGizmo()!.onPointerMove(x, y);
+      return;
+    }
     if (this.isDraggingGizmo) return;
     if (this.isDraggingCamera) return;
     e.logTransformDiagnostic("pointerMove", {

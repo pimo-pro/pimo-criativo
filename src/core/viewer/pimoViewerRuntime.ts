@@ -39,16 +39,16 @@ export type ViewerCoreRoomManagerRuntime = {
     isMainWall?: boolean;
   }) => unknown;
   updateCamera?: () => void;
+  setZones?: (_zones: unknown) => void;
+  clearZoneOverlay?: () => void;
 };
 
-/**
- * Instância viva do ViewerCore.
- * Inclui a API pública e campos internos ainda usados por hooks/bridges
- * (ex.: `roomManager`, aliases vivos `setBoxSpacing`).
- */
 export type ViewerCoreRuntime = PimoViewerApi & {
   viewerReady?: boolean;
   roomManager?: ViewerCoreRoomManagerRuntime;
+  roomBuilder?: {
+    toggleElementOpen?: (_elementId: string, _animate?: boolean) => boolean | null;
+  };
   viewerState?: { getTransformControlsDragging?: () => boolean };
   setBoxSpacing?: (_spacing: number) => void;
   updateBoxSpacing?: (_spacing: number) => void;

@@ -1,6 +1,5 @@
 /**
- * ViewerRoomEngine (Z-01.2.7 C) — API 3D da sala sobre RoomManager.
- * `room/RoomEngine.ts` continua a ser o orquestrador Room 2.0 (wallStore); não duplicar.
+ * pimo-room v4 — ViewerRoomEngine: delega create/remove/dims para o RoomManager.
  */
 import type { RoomConfig } from "../../room/types";
 
@@ -63,7 +62,7 @@ export class ViewerRoomEngine {
     numWalls?: 3 | 4,
     wallThicknessM?: number
   ): void {
-    this.getManager()?.createRoom?.(width, depth, height, numWalls ?? 4, wallThicknessM);
+    this.getManager()?.createRoom?.(width, depth, height, numWalls, wallThicknessM);
   }
 
   createRoomFromConfig(config: RoomConfig): boolean {
@@ -74,12 +73,8 @@ export class ViewerRoomEngine {
   }
 
   removeRoom(): boolean {
-    const manager = this.getManager();
-    if (manager?.room) {
-      manager.removeRoom?.();
-      return true;
-    }
-    return false;
+    this.getManager()?.removeRoom?.();
+    return true;
   }
 
   setRoomDimensions(width: number, depth: number, height: number): void {
@@ -99,13 +94,11 @@ export class ViewerRoomEngine {
   }
 
   getRoomLocked(): boolean {
-    return this.getManager()?.locked ?? false;
+    return this.getManager()?.locked === true;
   }
 
   getRoomDimensions(): { width: number; depth: number; height: number } | null {
-    const room = this.getManager()?.room;
-    if (!room) return null;
-    return { width: room.width, depth: room.depth, height: room.height };
+    return this.getManager()?.room ?? null;
   }
 
   hideRoom(): void {
@@ -117,6 +110,6 @@ export class ViewerRoomEngine {
   }
 
   getRoomVisible(): boolean {
-    return this.getManager()?.visible ?? false;
+    return this.getManager()?.visible !== false;
   }
 }

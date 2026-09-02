@@ -366,3 +366,111 @@ export const IconIndustrialDesign: FC<IconProps> = ({
     <circle cx="12" cy="16" r="2" />
   </svg>
 );
+
+/** Íman / snap de aberturas na parede (pimo-room). */
+export const IconRoomSnap: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <path d="M7 8V6a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v8a3 3 0 0 0 6 0V9" />
+    <path d="M7 12v2a3 3 0 0 0 3 3h0" />
+    <path d="M3 12h4" />
+  </svg>
+);
+
+/** Porta esquemática (pimo-room). */
+export const IconRoomDoor: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <rect x="6" y="3" width="12" height="18" rx="1" />
+    <circle cx="15" cy="12" r="0.9" fill={color} stroke="none" />
+  </svg>
+);
+
+/** Janela esquemática (pimo-room). */
+export const IconRoomWindow: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <rect x="4" y="5" width="16" height="14" rx="1" />
+    <path d="M12 5v14" />
+    <path d="M4 12h16" />
+  </svg>
+);
+
+/** Vértice / comprimento de parede (pimo-room). */
+export const IconRoomVertex: FC<IconProps> = ({
+  size,
+  color = "currentColor",
+  className,
+  "aria-hidden": ariaHidden = true,
+  title,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={ariaHidden}
+  >
+    {title ? <title>{title}</title> : null}
+    <path d="M4 18h16" />
+    <circle cx="4" cy="18" r="2" />
+    <circle cx="20" cy="18" r="2" />
+    <path d="M4 18 12 6l8 12" />
+  </svg>
+);

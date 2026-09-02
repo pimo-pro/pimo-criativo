@@ -132,8 +132,7 @@ const VIEWER_CORE_FACADE_METHODS = [
 ] as const;
 
 /**
- * Retorna uma API plana para o viewer (boxes, room, camera, materials, ruler).
- * Métodos do ViewerCore só são expostos após `viewerReady === true`.
+ * Retorna uma API plana para o viewer (boxes, sala/pimo-room, camera, materials, ruler).
  */
 export function usePimoViewer() {
   const boxes = useViewerBoxes();

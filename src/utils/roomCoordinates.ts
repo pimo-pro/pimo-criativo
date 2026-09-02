@@ -1,6 +1,7 @@
 /**
  * Coordenadas canónicas da sala — sistema centrado (RoomManager / ViewerCore).
  * Origem no centro do footprint; X = largura, Z = profundidade, Y = altura.
+ * Módulo: pimo-room v4.
  */
 import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
 import type { RoomWallLabel } from "../3d/viewer-engine/room/roomEngineTypes";

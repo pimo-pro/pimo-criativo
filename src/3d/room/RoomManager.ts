@@ -1,3 +1,7 @@
+/**
+ * pimo-room v4 — RoomManager: sala única, paredes principais/extra, lock e visibilidade.
+ * Piso visual: ViewerCore.rebuildRoomFloorAndCeiling — não criar mesh de piso aqui.
+ */
 import * as THREE from "three";
 import { Room, DEFAULT_ROOM_WIDTH, DEFAULT_ROOM_DEPTH, DEFAULT_ROOM_HEIGHT } from "./Room";
 import type { RoomNumWalls } from "./WallFactory";
@@ -9,6 +13,10 @@ import {
   setWallThicknessM,
 } from "./WallFactory";
 import { computeDynamicRoomBounds } from "./roomDynamicBounds";
+import { applyDynamicMitersToWallMeshes } from "./wallMiters";
+import { buildWallBoxGeometry } from "./wallGeometryCsg";
+import { rebuildZoneOverlayGroup } from "./zoneOverlay";
+import type { ProjectRoomZone } from "../viewer-engine/room/roomEngineTypes";
 
 export type RoomBounds = {
   minX: number;
@@ -54,6 +62,7 @@ export class RoomManager {
   private _visible = true;
   private nextExtraWallId = 4;
   private viewer: IRoomManagerViewer;
+  private zoneOverlay: THREE.Group | null = null;
 
   constructor(viewer: IRoomManagerViewer) {
     this.viewer = viewer;
@@ -89,9 +98,25 @@ export class RoomManager {
     });
     this.wallsMain = [];
     this.wallsExtra = [];
+    this.clearZoneOverlay();
 
     this.group.clear();
     this.room = null;
+  }
+
+  /** Overlay de zonas polígono (opt-in). Não afecta autoRoomFill. */
+  setZones(zones: ProjectRoomZone[] | null | undefined): void {
+    this.zoneOverlay = rebuildZoneOverlayGroup(this.zoneOverlay, zones);
+    if (!this.zoneOverlay.parent && this.group) {
+      this.group.add(this.zoneOverlay);
+    }
+  }
+
+  clearZoneOverlay(): void {
+    if (!this.zoneOverlay) return;
+    this.group.remove(this.zoneOverlay);
+    rebuildZoneOverlayGroup(this.zoneOverlay, []);
+    this.zoneOverlay = null;
   }
 
   setDimensions(width: number, depth: number, height: number): void {
@@ -108,6 +133,7 @@ export class RoomManager {
     const wall = createExtraWall(id);
     this.wallsExtra.push(wall);
     this.group.add(wall);
+    this.refreshWallMiters();
     this.syncBoundsToViewer();
     return wall;
   }
@@ -123,8 +149,9 @@ export class RoomManager {
     const entry = this.getWallsForViewer().find((wall) => wall.id === config.id);
     const wall = entry?.mesh;
     if (!wall) return false;
+    const miters = (wall.userData.wallMiters as { startMiterRad?: number; endMiterRad?: number } | null) ?? undefined;
     wall.geometry.dispose();
-    wall.geometry = new THREE.BoxGeometry(config.lengthM, config.heightM, config.thicknessM);
+    wall.geometry = buildWallBoxGeometry(config.lengthM, config.heightM, config.thicknessM, miters);
     wall.position.set(
       config.position.x,
       config.position.y ?? config.heightM / 2,
@@ -134,6 +161,7 @@ export class RoomManager {
     wall.userData.wallLengthMm = config.lengthM * 1000;
     wall.userData.wallHeightMm = config.heightM * 1000;
     wall.userData.wallThicknessM = config.thicknessM;
+    this.refreshWallMiters();
     this.syncBoundsToViewer();
     return true;
   }
@@ -166,8 +194,16 @@ export class RoomManager {
     this.wallsExtra.push(wall);
     this.group.add(wall);
     this.nextExtraWallId = Math.max(this.nextExtraWallId, config.id + 1);
+    this.refreshWallMiters();
     this.syncBoundsToViewer();
     return wall;
+  }
+
+  /** Recalcula miters dinâmicos em todas as paredes (principais + extras). */
+  refreshWallMiters(): void {
+    const all = [...this.wallsMain, ...this.wallsExtra];
+    if (all.length === 0) return;
+    applyDynamicMitersToWallMeshes(all);
   }
 
   setLocked(flag: boolean): void {

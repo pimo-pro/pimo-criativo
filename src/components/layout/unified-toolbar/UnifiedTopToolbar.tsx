@@ -18,7 +18,6 @@ import CameraViewMenu from "../viewer-toolbar/CameraViewMenu";
 import { useUiStore, uiStore } from "../../../stores/uiStore";
 import { resolveLRemateCompositeLeadId } from "../../../core/remate/remateLGeometry";
 import DisplayMenuButton from "../topbar/DisplayMenuButton";
-import RoomIconButton from "../../viewer/toolbar/RoomIconButton";
 import WorkspaceToolbar from "../workspace/WorkspaceToolbar";
 import { isCadOnlyWorkspaceBox } from "../../../core/viewer/isCadOnlyWorkspaceBox";
 import { resolveEnabledViewerTools } from "./enabledViewerTools";
@@ -108,6 +107,8 @@ export default function UnifiedTopToolbar({
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
   const photoModePanelOpen = useUiStore((s) => s.photoModePanelOpen);
   const setPhotoModePanelOpen = useUiStore((s) => s.setPhotoModePanelOpen);
+  const roomPanelOpen = useUiStore((s) => s.roomPanelOpen);
+  const setRoomPanelOpen = useUiStore((s) => s.setRoomPanelOpen);
   const [visibilityMenuOpen, setVisibilityMenuOpen] = useState(false);
   const visibilityMenuRef = useRef<HTMLDivElement | null>(null);
   const actionsRef = useRef(actions);
@@ -205,11 +206,17 @@ export default function UnifiedTopToolbar({
     setVisibilityMenuOpen(false);
   };
 
+  const toggleRoomPanel = () => {
+    setRoomPanelOpen(!roomPanelOpen);
+    setVisibilityMenuOpen(false);
+  };
+
   const toggleVisibilityMenu = () => {
     setVisibilityMenuOpen((prev) => {
       const next = !prev;
       if (next) {
         setPhotoModePanelOpen(false);
+        setRoomPanelOpen(false);
       }
       return next;
     });
@@ -713,6 +720,25 @@ export default function UnifiedTopToolbar({
             <Icon name={cfgImagem.iconName} size={24} aria-hidden />
           </button>
         ) : null}
+        <button
+          type="button"
+          title="Salão — configurar sala"
+          aria-label="Salão — configurar sala"
+          aria-pressed={roomPanelOpen}
+          onClick={toggleRoomPanel}
+          style={{
+            ...unifiedBubbleStyle,
+            background: roomPanelOpen ? "var(--toolbar-pressed-bg)" : "transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (!roomPanelOpen) e.currentTarget.style.background = "var(--viewer-toolbar-hover-bg)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = roomPanelOpen ? "var(--toolbar-pressed-bg)" : "transparent";
+          }}
+        >
+          <Icon name="room" size={24} aria-hidden />
+        </button>
         {cfgResetCamera ? (
           <button
             type="button"
@@ -783,30 +809,6 @@ export default function UnifiedTopToolbar({
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
                   <input
                     type="checkbox"
-                    checked={project.viewerSettings.showCeiling}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      actions.setViewerSettings({ showCeiling: checked });
-                      viewerApi?.setRoomCeilingVisible?.(checked);
-                    }}
-                  />
-                  Mostrar teto da sala
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={project.viewerSettings.wallEditMode}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      actions.setViewerSettings({ wallEditMode: checked });
-                      viewerApi?.setWallEditMode?.(checked);
-                    }}
-                  />
-                  Modo edição de paredes
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                  <input
-                    type="checkbox"
                     checked={project.viewerSettings.enableReflections}
                     onChange={(e) => {
                       const checked = e.target.checked;
@@ -821,7 +823,6 @@ export default function UnifiedTopToolbar({
           )}
         </div>
         <WorkspaceToolbar />
-        <RoomIconButton />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>

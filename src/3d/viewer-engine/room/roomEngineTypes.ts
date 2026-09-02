@@ -1,4 +1,7 @@
-/** Tipos Room 2.0 — fase visual. Não alimenta cutlist, CNC ou produção. */
+/**
+ * Tipos da sala (contrato ProjectRoomConfig) — pimo-room v4.
+ * Fase visual / layout. Não alimenta cutlist, CNC ou produção.
+ */
 
 export type RoomWallLabel = "norte" | "sul" | "este" | "oeste" | "extra";
 export type RoomOpeningKind = "normal" | "correr";
@@ -51,6 +54,24 @@ export type ProjectRoomUtility = {
   heightMm: number;
 };
 
+/** Ponto 2D da zona no plano do piso (mm, SSOT). */
+export type ProjectRoomZonePoint = {
+  x: number;
+  z: number;
+};
+
+/**
+ * Zona / divisão (opt-in). Snapshots antigos sem `zones` continuam válidos.
+ * Polígono em mm no sistema centrado da sala.
+ */
+export type ProjectRoomZone = {
+  id: string;
+  name: string;
+  polygonMm: ProjectRoomZonePoint[];
+  ceilingHeightMm?: number;
+  spaceRole?: "generic" | "room";
+};
+
 export type ProjectRoomConfig = {
   widthMm: number;
   depthMm: number;
@@ -64,6 +85,8 @@ export type ProjectRoomConfig = {
   walls: ProjectRoomWall[];
   openings: ProjectRoomOpening[];
   utilities: ProjectRoomUtility[];
+  /** Opt-in: zonas polígono. Ausente em projetos legados. */
+  zones?: ProjectRoomZone[];
 };
 
 export const ROOM_20_DEFAULTS = {

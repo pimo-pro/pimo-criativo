@@ -1,3 +1,7 @@
+/**
+ * pimo-room v4 — geometria da sala no ViewerCore (WebGL / MeshStandardMaterial).
+ * Integração completa RoomManager ↔ React na fase 3.
+ */
 import * as THREE from "three";
 import type { ViewerBackgroundMode } from "../../context/projectTypes";
 import { snapHorizontalOffset } from "../../utils/openingConstraints";

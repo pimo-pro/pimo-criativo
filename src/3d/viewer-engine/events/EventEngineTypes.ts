@@ -51,6 +51,7 @@ export interface IViewerEventEngine {
   getRoomBuilder(): {
     addDoorByIndex(_wallIndex: number, _config: DoorWindowConfig): string;
     addWindowByIndex(_wallIndex: number, _config: DoorWindowConfig): string;
+    toggleElementOpen?(_elementId: string, _animate?: boolean): boolean | null;
     getGroup(): THREE.Group;
   };
   setPlacementMode(_mode: "door" | "window" | null): void;
@@ -83,6 +84,7 @@ export interface IViewerEventEngine {
   getRoomBoxWalls(): { id: number; mesh: THREE.Mesh }[];
   getWallGizmo(): {
     onPointerDown(_x: number, _y: number): boolean;
+    onPointerMove(_x: number, _y: number): void;
     onPointerUp(): void;
     detach(): void;
     attach(_wall: THREE.Mesh): void;

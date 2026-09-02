@@ -1,7 +1,6 @@
 /**
- * Hook especializado para sala e paredes no viewer.
- * Obtém a API de sala a partir do runtime canónico (`getActiveViewerCore`).
- * Z-03.4: delegação única via ViewerCore (D-09 resolvido).
+ * pimo-room v4 — hook de API de sala no viewer (createRoom, aberturas, lock, etc.).
+ * Obtém a API a partir do runtime canónico (`getActiveViewerCore`).
  */
 import { useMemo } from "react";
 import { isViewerCoreReady } from "../../core/viewer/viewerReadiness";
@@ -12,7 +11,7 @@ const NOOP_RETURN_FALSE = () => false;
 const NOOP_RETURN_EMPTY = () => "";
 const NOOP_RETURN_NULL = () => null;
 
-/** API NOOP com exatamente as mesmas chaves que a API real. Referência estável. */
+/** API NOOP com exactamente as mesmas chaves que a API real. Referência estável. */
 const ROOM_NOOP_API = {
   createRoom: NOOP,
   createRoomWithDimensions: NOOP,

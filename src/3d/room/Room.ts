@@ -1,6 +1,7 @@
 /**
- * Representa uma sala com dimensões em metros.
+ * Representa uma sala com dimensões em metros (pimo-room v4).
  * Usado pelo RoomManager para criar e posicionar paredes e piso.
+ * Por omissão a origem fica no canto; para sistema centrado use originX=-width/2.
  */
 export class Room {
   /** Largura (eixo X) em metros. */

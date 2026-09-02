@@ -1,6 +1,11 @@
+/**
+ * pimo-room v4 — fábrica de meshes de parede (MeshStandardMaterial / WebGL).
+ */
 import * as THREE from "three";
 import type { Room } from "./Room";
 import { getSceneMaterialConfig } from "../viewer-engine/materials";
+import { buildWallBoxGeometry } from "./wallGeometryCsg";
+import { applyDynamicMitersToWallMeshes } from "./wallMiters";
 
 let currentWallThicknessM = 0.2;
 
@@ -46,6 +51,7 @@ export type RoomNumWalls = 3 | 4;
  * Cria as paredes principais para uma sala.
  * numWalls === 4: front, right, back, left (sala fechada).
  * numWalls === 3: front, right, left (sala de estar / aberta, sem parede traseira).
+ * Miters: calculados dinamicamente nas junções (fallback 0 em extremos livres).
  */
 export function createMainWalls(room: Room, numWalls: RoomNumWalls = 4, wallThicknessM?: number): THREE.Mesh[] {
   const t = wallThicknessM ?? getWallThicknessM();
@@ -54,7 +60,7 @@ export function createMainWalls(room: Room, numWalls: RoomNumWalls = 4, wallThic
   const config = getSceneMaterialConfig();
   const wallMat = createWallMaterialFromConfig(config.wall, { opacity: 0.6 });
 
-  const front = new THREE.Mesh(new THREE.BoxGeometry(width, height, t), wallMat);
+  const front = new THREE.Mesh(buildWallBoxGeometry(width, height, t), wallMat);
   front.position.set(centerX, yCenter, minZ - t / 2);
   front.userData.wallId = 0;
   front.userData.wallNormal = new THREE.Vector3(0, 0, -1);
@@ -63,8 +69,10 @@ export function createMainWalls(room: Room, numWalls: RoomNumWalls = 4, wallThic
   front.userData.wallLengthMm = width * 1000;
   front.userData.wallHeightMm = height * 1000;
   front.userData.wallThicknessM = t;
+  front.castShadow = true;
+  front.receiveShadow = true;
 
-  const right = new THREE.Mesh(new THREE.BoxGeometry(depth, height, t), wallMat);
+  const right = new THREE.Mesh(buildWallBoxGeometry(depth, height, t), wallMat);
   right.rotation.y = Math.PI / 2;
   right.position.set(maxX + t / 2, yCenter, centerZ);
   right.userData.wallId = 1;
@@ -74,11 +82,13 @@ export function createMainWalls(room: Room, numWalls: RoomNumWalls = 4, wallThic
   right.userData.wallLengthMm = depth * 1000;
   right.userData.wallHeightMm = height * 1000;
   right.userData.wallThicknessM = t;
+  right.castShadow = true;
+  right.receiveShadow = true;
 
   const walls: THREE.Mesh[] = [front, right];
 
   if (numWalls >= 4) {
-    const back = new THREE.Mesh(new THREE.BoxGeometry(width, height, t), wallMat);
+    const back = new THREE.Mesh(buildWallBoxGeometry(width, height, t), wallMat);
     back.position.set(centerX, yCenter, maxZ + t / 2);
     back.userData.wallId = 2;
     back.userData.wallNormal = new THREE.Vector3(0, 0, 1);
@@ -87,10 +97,12 @@ export function createMainWalls(room: Room, numWalls: RoomNumWalls = 4, wallThic
     back.userData.wallLengthMm = width * 1000;
     back.userData.wallHeightMm = height * 1000;
     back.userData.wallThicknessM = t;
+    back.castShadow = true;
+    back.receiveShadow = true;
     walls.push(back);
   }
 
-  const left = new THREE.Mesh(new THREE.BoxGeometry(depth, height, t), wallMat);
+  const left = new THREE.Mesh(buildWallBoxGeometry(depth, height, t), wallMat);
   left.rotation.y = Math.PI / 2;
   left.position.set(minX - t / 2, yCenter, centerZ);
   left.userData.wallId = numWalls >= 4 ? 3 : 2;
@@ -100,8 +112,11 @@ export function createMainWalls(room: Room, numWalls: RoomNumWalls = 4, wallThic
   left.userData.wallLengthMm = depth * 1000;
   left.userData.wallHeightMm = height * 1000;
   left.userData.wallThicknessM = t;
+  left.castShadow = true;
+  left.receiveShadow = true;
   walls.push(left);
 
+  applyDynamicMitersToWallMeshes(walls);
   return walls;
 }
 
@@ -120,34 +135,40 @@ export function positionMainWalls(room: Room, walls: THREE.Mesh[]): void {
   const left = walls.length >= 4 ? walls[3] : walls[2];
 
   front.geometry.dispose();
-  front.geometry = new THREE.BoxGeometry(width, height, t);
+  front.geometry = buildWallBoxGeometry(width, height, t);
   front.position.set(centerX, yCenter, minZ - t / 2);
   front.rotation.y = 0;
-  (front.userData.wallLengthMm as number) = width * 1000;
-  (front.userData.wallHeightMm as number) = height * 1000;
+  front.userData.wallLengthMm = width * 1000;
+  front.userData.wallHeightMm = height * 1000;
+  front.userData.wallThicknessM = t;
 
   right.geometry.dispose();
-  right.geometry = new THREE.BoxGeometry(depth, height, t);
+  right.geometry = buildWallBoxGeometry(depth, height, t);
   right.rotation.y = Math.PI / 2;
   right.position.set(maxX + t / 2, yCenter, centerZ);
-  (right.userData.wallLengthMm as number) = depth * 1000;
-  (right.userData.wallHeightMm as number) = height * 1000;
+  right.userData.wallLengthMm = depth * 1000;
+  right.userData.wallHeightMm = height * 1000;
+  right.userData.wallThicknessM = t;
 
   if (back) {
     back.geometry.dispose();
-    back.geometry = new THREE.BoxGeometry(width, height, t);
+    back.geometry = buildWallBoxGeometry(width, height, t);
     back.position.set(centerX, yCenter, maxZ + t / 2);
     back.rotation.y = 0;
-    (back.userData.wallLengthMm as number) = width * 1000;
-    (back.userData.wallHeightMm as number) = height * 1000;
+    back.userData.wallLengthMm = width * 1000;
+    back.userData.wallHeightMm = height * 1000;
+    back.userData.wallThicknessM = t;
   }
 
   left.geometry.dispose();
-  left.geometry = new THREE.BoxGeometry(depth, height, t);
+  left.geometry = buildWallBoxGeometry(depth, height, t);
   left.rotation.y = Math.PI / 2;
   left.position.set(minX - t / 2, yCenter, centerZ);
-  (left.userData.wallLengthMm as number) = depth * 1000;
-  (left.userData.wallHeightMm as number) = height * 1000;
+  left.userData.wallLengthMm = depth * 1000;
+  left.userData.wallHeightMm = height * 1000;
+  left.userData.wallThicknessM = t;
+
+  applyDynamicMitersToWallMeshes(walls.filter(Boolean) as THREE.Mesh[]);
 }
 
 /**

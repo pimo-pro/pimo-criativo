@@ -1,8 +1,12 @@
+/**
+ * pimo-room v4 — RoomBuilder: portas/janelas + cutouts CSG nas paredes.
+ */
 import * as THREE from "three";
 import type { DoorWindowConfig, RoomConfig } from "./types";
 import { DoorElement } from "./elements/DoorElement";
 import { WindowElement } from "./elements/WindowElement";
 import { placeOpeningGroupOnWall } from "./openingPlacement";
+import { refreshWallOpeningCutouts } from "./wallGeometryCsg";
 
 export type RoomElementEntry = {
   type: "door" | "window";
@@ -25,7 +29,7 @@ function disposeOpeningObject(obj: THREE.Object3D): void {
 
 /**
  * Constrói portas/janelas como filhos das meshes das paredes do RoomManager.
- * O grupo próprio fica vazio mas permanece na cena para compatibilidade com highlight/raycast legado.
+ * Aplica cutouts CSG (`three-csg-ts`) na geometria da parede hospedeira.
  */
 export class RoomBuilder {
   private readonly group = new THREE.Group();
@@ -104,6 +108,7 @@ export class RoomBuilder {
       kind === "door" ? DoorElement.create(cfg, id) : WindowElement.create(cfg, id);
     placeOpeningGroupOnWall(group, wall, cfg);
     wall.add(group);
+    refreshWallOpeningCutouts(wall);
     this.elements.push({
       type: kind,
       wallId: wallIndex,
@@ -141,6 +146,7 @@ export class RoomBuilder {
       DoorElement.updateConfig(group, cfg);
     }
     placeOpeningGroupOnWall(group, wall, cfg);
+    refreshWallOpeningCutouts(wall);
     const entry = this.elements.find((e) => e.elementId === elementId);
     if (entry) {
       entry.config = { ...(group.userData.config as DoorWindowConfig) };
@@ -152,11 +158,22 @@ export class RoomBuilder {
   removeElement(elementId: string): boolean {
     const group = this.getElementById(elementId);
     if (!group?.parent) return false;
+    const wall = group.parent instanceof THREE.Mesh ? group.parent : null;
     group.parent.remove(group);
     disposeOpeningObject(group);
     const i = this.elements.findIndex((e) => e.elementId === elementId);
     if (i >= 0) this.elements.splice(i, 1);
+    if (wall) refreshWallOpeningCutouts(wall);
     return true;
+  }
+
+  /** Alterna abertura (swing/slide) — estado só em sessão (não persiste no SSOT). */
+  toggleElementOpen(elementId: string, animate = true): boolean | null {
+    const group = this.getElementById(elementId);
+    if (!group) return null;
+    const kind = group.userData?.elementType as "door" | "window" | undefined;
+    if (kind === "window") return WindowElement.toggleOpen(group, animate);
+    return DoorElement.toggleOpen(group, animate);
   }
 
   clearRoom(disposeGeometries = false): void {
@@ -171,6 +188,7 @@ export class RoomBuilder {
         wall.remove(obj);
         if (disposeGeometries) disposeOpeningObject(obj);
       }
+      refreshWallOpeningCutouts(wall);
     }
     this.elements.length = 0;
   }

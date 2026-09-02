@@ -22,7 +22,6 @@ import { useProject } from "../../context/useProject";
 import MateriaisSsotBootstrap from "../../core/catalog/MateriaisSsotBootstrap";
 import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "../../constants/viewerOptions";
 import { useUiStore } from "../../stores/uiStore";
-import { wallStore } from "../../stores/wallStore";
 import { PiproDesignWorkspace } from "../../core/pipro/PiproDesignWorkspace";
 import { loadPiproModel } from "../../core/pipro/piproModelsRegistry";
 import { INDUSTRIAL_FEATURES } from "../../core/unifiedIndustrialBox/industrialFeatures";
@@ -62,11 +61,6 @@ function PiproDesignBridge({
   useEffect(() => {
     if (bootRef.current) return;
     bootRef.current = true;
-    try {
-      wallStore.getState().clearRoom();
-    } catch {
-      /* ignore */
-    }
     if (editId) {
       const record = loadPiproModel(editId);
       if (record) workspace.loadFromRecord(record);

@@ -7,7 +7,6 @@ import type { WorkspaceBox, CutListItemComPreco } from "../core/types";
 import type { ProjectState, ProjectSnapshot, RoomSnapshot } from "./projectTypes";
 import { defaultState } from "./projectState";
 import { getMaterialByIdOrLabel } from "../core/materials/service";
-import { wallStore } from "../stores/wallStore";
 import { createEmptyProjectMeasurements } from "../3d/viewer-engine/measurement/internalRulerTypes";
 import { normalizeProjectRoom } from "../3d/viewer-engine/room/RoomEngine";
 import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
@@ -348,25 +347,13 @@ export function reviveState(snapshot: unknown, options?: ReviveStateOptions): Pr
 }
 
 export function captureRoomSnapshot(projectRoom?: ProjectRoomConfig | null): RoomSnapshot | null {
-  const ui = wallStore.getState();
-  if (projectRoom) {
-    const normalized = normalizeProjectRoom(projectRoom);
-    if (normalized) {
-      return projectRoomToRoomSnapshot(normalized, {
-        selectedWallId: ui.selectedWallId,
-        mainWallIndex: ui.mainWallIndex,
-      });
-    }
-  }
-  if (!ui.walls || ui.walls.length === 0) return null;
-  return {
-    walls: ui.walls.map((wall) => ({
-      ...wall,
-      openings: (wall.openings ?? []).map((opening) => ({ ...opening })),
-    })),
-    selectedWallId: ui.selectedWallId,
-    mainWallIndex: Math.max(0, Math.min(3, ui.mainWallIndex ?? 0)),
-  };
+  if (!projectRoom) return null;
+  const normalized = normalizeProjectRoom(projectRoom);
+  if (!normalized) return null;
+  return projectRoomToRoomSnapshot(normalized, {
+    selectedWallId: null,
+    mainWallIndex: 0,
+  });
 }
 
 export function readStoredProjects(): StoredProject[] {

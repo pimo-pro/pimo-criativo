@@ -122,6 +122,8 @@ function LegacyApp() {
   const clearSelection = useUiStore((state) => state.clearSelection);
   const photoModePanelOpen = useUiStore((state) => state.photoModePanelOpen);
   const setPhotoModePanelOpen = useUiStore((state) => state.setPhotoModePanelOpen);
+  const roomPanelOpen = useUiStore((state) => state.roomPanelOpen);
+  const setRoomPanelOpen = useUiStore((state) => state.setRoomPanelOpen);
   const [leftWidth, setLeftWidth] = useState(260);
   const resizeState = useRef({
     active: false,
@@ -131,6 +133,12 @@ function LegacyApp() {
   const { user, hasPermission, loading: authLoading } = useAuth();
 
   const clampLeftWidth = (value: number) => Math.min(420, Math.max(220, value));
+
+  useEffect(() => {
+    if (photoModePanelOpen || roomPanelOpen) {
+      setLeftOpen(true);
+    }
+  }, [photoModePanelOpen, roomPanelOpen]);
 
   const handleResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!leftOpen) return;
@@ -324,6 +332,9 @@ function LegacyApp() {
                           onSelect={(id) => {
                             if (photoModePanelOpen) {
                               setPhotoModePanelOpen(false);
+                            }
+                            if (roomPanelOpen) {
+                              setRoomPanelOpen(false);
                             }
                             setLeftPanelTab(id);
                             clearSelection();

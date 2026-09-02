@@ -1,7 +1,10 @@
 /**
- * Estado da sala (wallStore) — vista derivada em cm (Z-03.3).
+ * pimo-room v4 — wallStore: vista derivada em cm (Z-03.3).
  * SSOT canónico: ProjectState.room = ProjectRoomConfig (mm).
  * Sincronização: RoomEngine.applyProjectRoomToWallStore.
+ *
+ * Undo/redo fino fica para fases posteriores; aqui usa-se Zustand vanilla
+ * já presente no pimo (sem dependência zundo).
  */
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
@@ -37,29 +40,31 @@ export interface Wall {
 export interface WallStoreState {
   /** Painel de sala (paredes) aberto na UI. */
   isOpen: boolean;
-  /** Incrementado em loadRoomConfig/clearRoom para o Workspace recriar a mesh 3D da sala após restaurar snapshot. */
+  /** Incrementado em loadRoomConfig/clearRoom para o Workspace recriar a mesh 3D. */
   roomMeshSyncToken: number;
   walls: Wall[];
   selectedWallId: string | null;
-  /** Índice da parede principal (0..3). Parede onde se constrói a cozinha = "frente" lógica. Default 0. */
+  /** Índice da parede principal (0..3). Parede frontal lógica do projecto. */
   mainWallIndex: number;
   createWall: () => void;
   removeWall: (_id: string) => void;
   updateWall: (_id: string, _patch: Partial<Wall>, _options?: { skipSnap?: boolean }) => void;
   selectWall: (_id: string | null) => void;
   setOpen: (_isOpen: boolean) => void;
-  /** Define qual parede é a parede frontal (principal) do projeto. */
   setMainWallIndex: (_index: 0 | 1 | 2 | 3) => void;
   /** Recria a sala com 3 paredes padrão (formato em "U"). */
   resetRoom: () => void;
   /** Limpa a sala (sem paredes). */
   clearRoom: () => void;
-  /** Define numWalls (3 ou 4); ajusta lista de paredes se necessário. */
   setNumWalls: (_n: 3 | 4) => void;
-  /** Atualiza comprimentos/altura das paredes existentes (mantém ids e aberturas). */
+  /** Actualiza comprimentos/altura das paredes existentes (mantém ids e aberturas). */
   updateRoomDimensionsMeters: (_widthM: number, _depthM: number, _heightM: number) => void;
-  /** Restaura estado a partir de snapshot (ex.: ao carregar projeto). */
-  loadRoomConfig: (_snapshot: { walls: Wall[]; selectedWallId: string | null; mainWallIndex?: number } | null) => void;
+  /** Restaura estado a partir de snapshot (ex.: ao carregar projecto). */
+  loadRoomConfig: (_snapshot: {
+    walls: Wall[];
+    selectedWallId: string | null;
+    mainWallIndex?: number;
+  } | null) => void;
 }
 
 const DEFAULT_WALL: Omit<Wall, "id"> = {
@@ -81,14 +86,15 @@ const clampMainWallIndex = (index: number, wallsLength: number): 0 | 1 | 2 | 3 =
   return Math.max(0, Math.min(maxIndex, index)) as 0 | 1 | 2 | 3;
 };
 
-/**
- * Layout conectado em sistema centrado (cm). Footprint interior ≈ [-W/2,W/2]×[-D/2,D/2] em metros no viewer.
- */
 function computeConnectedLayout(walls: Wall[]): Array<{ x: number; z: number; rotation: number }> {
   return computeCenteredConnectedLayoutCm(walls);
 }
 
-export function getRoomDimensionsCm(walls: Wall[]): { widthCm: number; depthCm: number; heightCm: number } | null {
+export function getRoomDimensionsCm(walls: Wall[]): {
+  widthCm: number;
+  depthCm: number;
+  heightCm: number;
+} | null {
   return wallStoreFootprintCm(walls);
 }
 
@@ -98,14 +104,14 @@ function applyLayoutIfMissing(walls: Wall[]): Wall[] {
     const fallback = layout[index] ?? { x: 0, z: 0, rotation: 0 };
     return {
       ...wall,
-    position: wall.position ?? { x: fallback.x, z: fallback.z },
-    rotation: wall.rotation ?? fallback.rotation,
+      position: wall.position ?? { x: fallback.x, z: fallback.z },
+      rotation: wall.rotation ?? fallback.rotation,
     };
   });
 }
 
 export const wallStore = createStore<WallStoreState>((set, get) => ({
-  isOpen: true,
+  isOpen: false,
   roomMeshSyncToken: 0,
   walls: [],
   selectedWallId: null,
@@ -136,7 +142,6 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
     });
   },
 
-  /** Remove parede sempre por wall.id (nunca por índice). Preserva ordem das restantes e recalcula layout. */
   removeWall: (id: string) => {
     const { walls, selectedWallId, mainWallIndex } = get();
     if (!walls.some((w) => w.id === id)) return;
@@ -152,9 +157,7 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
   updateWall: (id: string, patch: Partial<Wall>, options = {}) => {
     const { walls } = get();
     if (!id || !walls.some((wall) => wall.id === id)) return;
-    const nextWalls = walls.map((wall) =>
-      wall.id === id ? { ...wall, ...patch } : wall
-    );
+    const nextWalls = walls.map((wall) => (wall.id === id ? { ...wall, ...patch } : wall));
     set({
       walls: options.skipSnap ? nextWalls : applyLayoutIfMissing(nextWalls),
     });
@@ -176,6 +179,7 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
     const withLayout = applyLayoutIfMissing([w1, w2, w3]);
     set({ walls: withLayout, selectedWallId: withLayout[0]?.id ?? null, mainWallIndex: 0 });
   },
+
   clearRoom: () => {
     set((s) => ({
       walls: [],
@@ -225,7 +229,13 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
 
   loadRoomConfig: (snapshot) => {
     if (!snapshot || !Array.isArray(snapshot.walls) || snapshot.walls.length === 0) {
-      logWallStore("invalid-room-config", { hasSnapshot: Boolean(snapshot) });
+      logWallStore("clear-or-invalid-room-config", { hasSnapshot: Boolean(snapshot) });
+      set((s) => ({
+        walls: [],
+        selectedWallId: null,
+        mainWallIndex: 0,
+        roomMeshSyncToken: s.roomMeshSyncToken + 1,
+      }));
       return;
     }
     const walls = applyLayoutIfMissing(snapshot.walls);
@@ -241,15 +251,13 @@ export const wallStore = createStore<WallStoreState>((set, get) => ({
             },
           }))
         : walls;
-    const mainWallIndex = clampMainWallIndex(
-      (snapshot as { mainWallIndex?: number }).mainWallIndex ?? 0,
-      migratedWalls.length
-    );
+    const mainWallIndex = clampMainWallIndex(snapshot.mainWallIndex ?? 0, migratedWalls.length);
     set({
       walls: migratedWalls,
-      selectedWallId: snapshot.selectedWallId && migratedWalls.some((w) => w.id === snapshot.selectedWallId)
-        ? snapshot.selectedWallId
-        : migratedWalls[mainWallIndex]?.id ?? migratedWalls[0]?.id ?? null,
+      selectedWallId:
+        snapshot.selectedWallId && migratedWalls.some((w) => w.id === snapshot.selectedWallId)
+          ? snapshot.selectedWallId
+          : migratedWalls[mainWallIndex]?.id ?? migratedWalls[0]?.id ?? null,
       mainWallIndex,
       roomMeshSyncToken: get().roomMeshSyncToken + 1,
     });

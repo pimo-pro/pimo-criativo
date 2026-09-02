@@ -5,8 +5,8 @@ import {
   ViewerRoomEngine,
 } from "../../../src/3d/viewer-engine/room/ViewerRoomEngine";
 
-describe("RoomEngine (Z-01.2.8 C)", () => {
-  it("Room 2.0 expõe espessura em mm; a API 3D converte paredes para metros", () => {
+describe("RoomEngine (pimo-room v4)", () => {
+  it("expõe espessura em mm; a API 3D converte paredes para metros", () => {
     expect(PROJECT_ROOM_WALL_THICKNESS_MM).toBe(200);
     const dims = roomConfigToDimensions({
       walls: [

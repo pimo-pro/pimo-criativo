@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import { useToast } from "../../../context/ToastContext";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
+import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
+import { applyWallViewerTransformToRoom } from "../../../3d/room/wallVertexEdit";
+import { wallStore } from "../../../stores/wallStore";
+import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
+import { getActiveViewerCore } from "../../../core/viewer/pimoViewerRuntime";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
@@ -13,12 +18,9 @@ import { loadViewerCore } from "../../../core/viewer/viewerEngineLoader";
 import { isViewerApiReady } from "../../../core/viewer/viewerReadiness";
 import { setActiveViewerCore, type ViewerCoreRuntime } from "../../../core/viewer/pimoViewerRuntime";
 import { mToMm } from "../../../utils/units";
-import { useWallStore, wallStore } from "../../../stores/wallStore";
-import { applyRoomMeshFromWallStore, applyRoomOpeningsFromWallStore, getRoomMeshFingerprintFromWallStore } from "../../../utils/roomMeshFromWallStore";
 import { uiStore, useUiStore } from "../../../stores/uiStore";
 import { groupStore, resolveActiveGroupMembers } from "../../../stores/groupStore";
 import { serializeState, reviveState } from "../../../context/projectPersistence";
-import { clampOpeningNoOverlap } from "../../../utils/openingConstraints";
 import BoxInfoOverlay from "./BoxInfoOverlay";
 import InternalMeasurementsPanel from "./InternalMeasurementsPanel";
 import IndustrialDesignPanel from "./IndustrialDesignPanel";
@@ -80,15 +82,18 @@ export default function Workspace({
   const viewerApi = usePimoViewer();
   const viewerReady = isViewerApiReady(viewerApi);
   const { registerViewerApi } = usePimoViewerContext();
-  const isRoomOpen = useWallStore((state) => state.isOpen);
-  const walls = useWallStore((state) => state.walls);
+  useViewerRoomSync(
+    viewerApi,
+    project.room,
+    project.viewerSettings?.showCeiling !== false
+  );
 
   const projectHasNonDefaultState = useMemo(() => {
     if (project.workspaceBoxes.length > 0) return true;
     if ((project.projectName?.trim() || "") !== defaultState.projectName) return true;
-    if (walls.length >= 3) return true;
+    if (project.room) return true;
     return false;
-  }, [project.workspaceBoxes.length, project.projectName, walls.length]);
+  }, [project.workspaceBoxes.length, project.projectName, project.room]);
 
   const handleTopToolbarNovo = useCallback(() => {
     if (projectHasNonDefaultState) setConfirmNewOpen(true);
@@ -129,9 +134,6 @@ export default function Workspace({
     };
   }, [handleUndo, handleRedo, registerWorkspaceUndoRedo]);
 
-  const roomMeshSyncToken = useWallStore((state) => state.roomMeshSyncToken);
-  const selectedWallId = useWallStore((state) => state.selectedWallId);
-  const selectedObject = useUiStore((state) => state.selectedObject);
   const setSelectedObject = useUiStore((state) => state.setSelectedObject);
   const setSelectedObjects = useUiStore((state) => state.setSelectedObjects);
   const toggleSelectedObject = useUiStore((state) => state.toggleSelectedObject);
@@ -142,7 +144,6 @@ export default function Workspace({
 
   const [contextSelectedBoxIds, setContextSelectedBoxIds] = useState<string[]>([]);
   const viewerCoreInstanceRef = useRef<{ dispose: () => void } | null>(null);
-  const lastRoomMeshFingerprintRef = useRef("");
   const projectRef = useRef(project);
   const ctrlOrMetaPressedRef = useRef(false);
   const pointerToggleSelectionRef = useRef(false);
@@ -160,6 +161,34 @@ export default function Workspace({
   });
   const [showKeyboardShortcutsHelp, setShowKeyboardShortcutsHelp] = useState(false);
   const [, setViewerMounted] = useState(false);
+
+  // Sync transforms do WallGizmo → project.room (SSOT mm).
+  useEffect(() => {
+    viewerApi.setOnWallTransform?.((wallIndex, position, rotationDeg) => {
+      const room = projectRef.current.room;
+      if (!room) return;
+      const mesh = getActiveViewerCore()?.roomManager?.wallsMain?.[wallIndex];
+      const lengthMm =
+        mesh && typeof (mesh as { userData?: { wallLengthMm?: number } }).userData?.wallLengthMm === "number"
+          ? (mesh as { userData: { wallLengthMm: number } }).userData.wallLengthMm
+          : room.walls[wallIndex]?.widthMm;
+      const next = applyWallViewerTransformToRoom(room, {
+        wallIndex,
+        positionM: position,
+        rotationDeg,
+        lengthMm,
+      });
+      actionsRef.current.setProjectRoom(next);
+      const label = WALL_INDEX_TO_LABEL[wallIndex];
+      if (label) {
+        const wall = next.walls.find((w) => w.label === label);
+        if (wall) wallStore.getState().selectWall(wall.id);
+      }
+    });
+    return () => {
+      viewerApi.setOnWallTransform?.(null);
+    };
+  }, [viewerApi]);
 
   // Montar ViewerCore via import dinâmico.
   // Runtime canónico: setActiveViewerCore. window.viewerCore fica só como ponte (HMR / dispose).
@@ -216,43 +245,6 @@ export default function Workspace({
       viewerSync.registerViewerApi(null);
     };
   }, [viewerApi, viewerSync]);
-
-  // Fluxo da sala é controlado exclusivamente pelo PainelSala (RoomManager).
-  // Evita remoção/criação implícita da sala em mudanças de seleção do wallStore.
-
-  /** Após alterações Room 2.0: rebuild só se geometria/aberturas mudaram; locked/visible sem rebuild. */
-  useEffect(() => {
-    const fingerprint = getRoomMeshFingerprintFromWallStore();
-    const room = projectRef.current.room;
-    if (
-      fingerprint &&
-      fingerprint === lastRoomMeshFingerprintRef.current &&
-      viewerApi.getRoomExists?.()
-    ) {
-      if (room) {
-        viewerApi.setRoomLocked?.(room.locked);
-        viewerApi.setRoomFloorMode?.(room.floorMode);
-        viewerApi.setRoomCeilingVisible?.(room.ceilingVisible && projectRef.current.viewerSettings.showCeiling);
-        viewerApi.setRoomHiddenWalls?.(room.hiddenWalls ?? []);
-        viewerApi.setRoomUtilities?.(room.utilities ?? []);
-        if (room.visible !== false) viewerApi.showRoom?.();
-        else viewerApi.hideRoom?.();
-      }
-      return;
-    }
-    lastRoomMeshFingerprintRef.current = fingerprint;
-    applyRoomMeshFromWallStore(viewerApi);
-    applyRoomOpeningsFromWallStore(viewerApi);
-    if (room) {
-      viewerApi.setRoomLocked?.(room.locked);
-      viewerApi.setRoomFloorMode?.(room.floorMode);
-      viewerApi.setRoomCeilingVisible?.(room.ceilingVisible && projectRef.current.viewerSettings.showCeiling);
-      viewerApi.setRoomHiddenWalls?.(room.hiddenWalls ?? []);
-      viewerApi.setRoomUtilities?.(room.utilities ?? []);
-      if (room.visible !== false) viewerApi.showRoom?.();
-      else viewerApi.hideRoom?.();
-    }
-  }, [viewerApi, roomMeshSyncToken, project.room]);
 
   // MultiBoxManager: sincroniza workspaceBoxes ↔ viewer; addBox/removeBox delegam a actions
   useMultiBoxManager({
@@ -482,190 +474,6 @@ export default function Workspace({
       });
     });
   }, [actions, project.workspaceBoxes, project.selectedWorkspaceBoxId, viewerApi]);
-
-  useEffect(() => {
-    viewerApi.setOnWallSelected?.((wallIndex) => {
-      if (wallIndex == null) {
-        wallStore.getState().selectWall(null);
-        return;
-      }
-      const wall = walls[wallIndex];
-      if (!wall) return;
-      actions.clearSelection();
-      wallStore.getState().setOpen(true);
-      wallStore.getState().selectWall(wall.id);
-      setSelectedTool("layout");
-      setSelectedObject({ type: "wall", id: wall.id });
-    });
-  }, [actions, viewerApi, walls, setSelectedObject, setSelectedTool]);
-
-  useEffect(() => {
-    if (!isRoomOpen || !viewerApi.selectWallByIndex) return;
-    const index = selectedWallId ? walls.findIndex((w) => w.id === selectedWallId) : -1;
-    viewerApi.selectWallByIndex(index >= 0 ? index : null);
-  }, [viewerApi, isRoomOpen, selectedWallId, walls]);
-
-  useEffect(() => {
-    if (selectedObject?.type === "roomElement" && selectedObject?.id) {
-      viewerApi.selectRoomElementById?.(selectedObject.id);
-    } else if (selectedObject?.type === "roomUtility" && selectedObject?.id) {
-      viewerApi.selectRoomUtilityById?.(selectedObject.id);
-    }
-  }, [viewerApi, selectedObject]);
-
-  useEffect(() => {
-    viewerApi.setOnWallTransform?.((wallIndex, position, rotation) => {
-      const wall = walls[wallIndex];
-      if (!wall) return;
-      wallStore.getState().updateWall(wall.id, {
-        position: {
-          x: position.x * 100,
-          y: wall.position?.y,
-          z: position.z * 100,
-        },
-        rotation,
-      }, { skipSnap: true });
-      const room = projectRef.current.room;
-      if (!room) return;
-      actionsRef.current.updateProjectRoom({
-        walls: room.walls.map((roomWall) =>
-          roomWall.id === wall.id
-            ? {
-                ...roomWall,
-                position: {
-                  ...roomWall.position,
-                  x: position.x * 1000,
-                  z: position.z * 1000,
-                },
-                rotationDeg: rotation,
-              }
-            : roomWall
-        ),
-      });
-    });
-  }, [viewerApi, walls]);
-
-  useEffect(() => {
-    viewerApi.setOnRoomElementSelected?.((roomElement) => {
-      if (roomElement == null) {
-        const currentSelectedObject = uiStore.getState().selectedObject;
-        if (import.meta.env.DEV) {
-          devLogger.debug("[SELECTION][Workspace] onRoomElementSelected:null", {
-            selectedObjectBefore: currentSelectedObject,
-          });
-        }
-        if (currentSelectedObject.type === "roomElement" || currentSelectedObject.type === "wall") {
-          if (import.meta.env.DEV) {
-            devLogger.debug("[SELECTION][Workspace] onRoomElementSelected:null -> clearUiSelection", {
-              reason: "current selection is room/wall",
-            });
-          }
-          clearUiSelection();
-        }
-        return;
-      }
-      actions.clearSelection();
-      const wall = walls[roomElement.wallId];
-      if (wall) {
-        wallStore.getState().setOpen(true);
-        wallStore.getState().selectWall(wall.id);
-      }
-      setSelectedTool("layout");
-      setSelectedObject({ type: "roomElement", id: roomElement.elementId });
-    });
-  }, [actions, viewerApi, walls, clearUiSelection, setSelectedObject, setSelectedTool]);
-
-  useEffect(() => {
-    viewerApi.setOnRoomUtilitySelected?.((roomUtility) => {
-      if (roomUtility == null) {
-        const currentSelectedObject = uiStore.getState().selectedObject;
-        if (currentSelectedObject.type === "roomUtility") clearUiSelection();
-        return;
-      }
-      actions.clearSelection();
-      const wall = walls[roomUtility.wallId];
-      if (wall) {
-        wallStore.getState().setOpen(true);
-        wallStore.getState().selectWall(wall.id);
-      }
-      setSelectedTool("layout");
-      setSelectedObject({ type: "roomUtility", id: roomUtility.utilityId });
-    });
-  }, [actions, viewerApi, walls, clearUiSelection, setSelectedObject, setSelectedTool]);
-
-  useEffect(() => {
-    viewerApi.setOnRoomElementTransform?.((elementId, config) => {
-      const wall = walls.find((w) => (w.openings ?? []).some((o) => o.id === elementId));
-      if (!wall) return;
-      const wallLengthMm = wall.lengthCm * 10;
-      const wallHeightMm = wall.heightCm * 10;
-      const { horizontalOffsetMm, floorOffsetMm } = clampOpeningNoOverlap(
-        config,
-        elementId,
-        wall.openings ?? [],
-        wallLengthMm,
-        wallHeightMm
-      );
-      const finalConfig = {
-        ...config,
-        horizontalOffsetMm,
-        floorOffsetMm,
-      };
-      const currentOpening = wall.openings?.find((o) => o.id === elementId);
-      wallStore.getState().updateWall(wall.id, {
-        openings: (wall.openings ?? []).map((o) =>
-          o.id === elementId
-            ? {
-                ...o,
-                widthMm: finalConfig.widthMm,
-                heightMm: finalConfig.heightMm,
-                floorOffsetMm: finalConfig.floorOffsetMm,
-                horizontalOffsetMm: finalConfig.horizontalOffsetMm,
-              }
-            : o
-        ),
-      });
-      const room = projectRef.current.room;
-      if (room) {
-        actionsRef.current.updateProjectRoom({
-          openings: room.openings.map((opening) =>
-            opening.id === elementId
-              ? {
-                  ...opening,
-                  widthMm: finalConfig.widthMm,
-                  heightMm: finalConfig.heightMm,
-                  thicknessMm: currentOpening?.thicknessMm ?? opening.thicknessMm,
-                  kind: currentOpening?.kind ?? opening.kind,
-                  floorOffsetMm: finalConfig.floorOffsetMm,
-                  verticalOffsetMm: finalConfig.floorOffsetMm,
-                  xPosMm: finalConfig.horizontalOffsetMm,
-                  horizontalOffsetMm: finalConfig.horizontalOffsetMm,
-                }
-              : opening
-          ),
-        });
-      }
-      viewerApi.updateRoomElementConfig?.(elementId, finalConfig);
-    });
-  }, [viewerApi, walls]);
-
-  useEffect(() => {
-    viewerApi.setOnRoomUtilityTransform?.((utilityId, patch) => {
-      const room = projectRef.current.room;
-      if (!room) return;
-      actionsRef.current.updateProjectRoom({
-        utilities: (room.utilities ?? []).map((utility) =>
-          utility.id === utilityId
-            ? {
-                ...utility,
-                positionAlongWall: patch.positionAlongWall,
-                heightMm: patch.heightMm,
-              }
-            : utility
-        ),
-      });
-    });
-  }, [viewerApi]);
 
   useEffect(() => {
     if (project.selectedWorkspaceBoxId) {
@@ -1059,7 +867,6 @@ const hasShownViewerReadyToastRef = useRef(false);
     project.remates,
     project.hematis,
     project.rodapes,
-    project.room,
     project.workspaceBoxes,
     project.boxes,
     settings.orlaRules,

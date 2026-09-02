@@ -1,5 +1,5 @@
 /**
- * Conversão interna de unidades da sala (Z-03.3).
+ * pimo-room v4 — conversão interna de unidades da sala (Z-03.3).
  * SSOT canónico: ProjectRoomConfig (mm).
  * Vistas derivadas: wallStore / roomSnapshot (cm), viewer (m).
  * Não expor API pública nova — consumidores continuam via RoomEngine.
@@ -11,10 +11,7 @@ import type {
   ProjectRoomOpening,
   ProjectRoomWall,
 } from "./roomEngineTypes";
-import {
-  WALL_INDEX_TO_LABEL,
-  WALL_LABEL_TO_INDEX,
-} from "./roomEngineTypes";
+import { WALL_INDEX_TO_LABEL, WALL_LABEL_TO_INDEX } from "./roomEngineTypes";
 
 export const MM_PER_CM = 10;
 export const MM_PER_M = 1000;
@@ -36,9 +33,11 @@ export function mToMm(m: number): number {
 }
 
 /** Footprint interior coerente com `getRoomDimensionsCm` (média das paredes opostas). */
-export function wallStoreFootprintMm(
-  walls: Wall[]
-): { widthMm: number; depthMm: number; heightMm: number } | null {
+export function wallStoreFootprintMm(walls: Wall[]): {
+  widthMm: number;
+  depthMm: number;
+  heightMm: number;
+} | null {
   if (!walls || walls.length < 3) return null;
   const w0 = walls[0]?.lengthCm ?? 0;
   const w2 = walls[2]?.lengthCm ?? w0;
@@ -46,10 +45,7 @@ export function wallStoreFootprintMm(
   const w3 = walls[3]?.lengthCm ?? w1;
   const widthMm = cmToMm((w0 + w2) / 2);
   const depthMm = cmToMm((w1 + w3) / 2);
-  const heightMm = Math.max(
-    ...walls.map((w) => cmToMm(w.heightCm ?? 0)),
-    2600
-  );
+  const heightMm = Math.max(...walls.map((w) => cmToMm(w.heightCm ?? 0)), 2600);
   return { widthMm, depthMm, heightMm };
 }
 
@@ -104,7 +100,10 @@ export function projectRoomToWallStoreWalls(room: ProjectRoomConfig): Wall[] {
 }
 
 export type WallStoreRoomExtras = Partial<
-  Pick<ProjectRoomConfig, "locked" | "visible" | "floorMode" | "ceilingVisible" | "hiddenWalls" | "utilities">
+  Pick<
+    ProjectRoomConfig,
+    "locked" | "visible" | "floorMode" | "ceilingVisible" | "hiddenWalls" | "utilities"
+  >
 >;
 
 const DEFAULT_DOOR_THICKNESS_MM = 40;

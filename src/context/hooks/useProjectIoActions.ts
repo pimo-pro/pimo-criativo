@@ -8,8 +8,7 @@ import {
   type ManualBackupEntry,
 } from "../projectPersistence";
 import { safeGetItem, safeParseJson, safeSetItem } from "../../utils/storage";
-import { wallStore } from "../../stores/wallStore";
-import { applyProjectRoomToWallStore, normalizeProjectRoom, wallStoreToProjectRoom } from "../../3d/viewer-engine/room/RoomEngine";
+import { normalizeProjectRoom, wallStoreToProjectRoom } from "../../3d/viewer-engine/room/RoomEngine";
 import { getCurrentProjectUser } from "../../core/projects/currentUser";
 import {
   DEFAULT_EMPRESA_EXECUTORA,
@@ -119,19 +118,16 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         }
         logProjectIo("project-loaded", { id, boxes: restored.workspaceBoxes?.length ?? 0 });
         if (restored.room) {
-          applyProjectRoomToWallStore(restored.room);
+          restored = { ...restored, room: normalizeProjectRoom(restored.room) ?? restored.room };
         } else if (entry.snapshot.roomSnapshot) {
           const rs = entry.snapshot.roomSnapshot as import("../projectTypes").RoomSnapshot;
           const promoted = rs.walls?.length ? wallStoreToProjectRoom(rs.walls) : null;
           const normalized = promoted ? normalizeProjectRoom(promoted) : null;
           if (normalized) {
             restored = { ...restored, room: normalized };
-            applyProjectRoomToWallStore(normalized);
-          } else {
-            wallStore.getState().loadRoomConfig(rs);
           }
         } else if (entry.snapshot.roomSnapshot === null) {
-          wallStore.getState().clearRoom();
+          restored = { ...restored, room: null };
         }
         clearAllCutlistCache();
         clearIndustrialLiveProject();
@@ -147,19 +143,16 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
           (snapshot.viewerSnapshot ?? null) as ProjectSnapshot["viewerSnapshot"]
         );
         if (restored.room) {
-          applyProjectRoomToWallStore(restored.room);
+          restored = { ...restored, room: normalizeProjectRoom(restored.room) ?? restored.room };
         } else if (snapshot.roomSnapshot) {
           const rs = snapshot.roomSnapshot as import("../projectTypes").RoomSnapshot;
           const promoted = rs.walls?.length ? wallStoreToProjectRoom(rs.walls) : null;
           const normalized = promoted ? normalizeProjectRoom(promoted) : null;
           if (normalized) {
             restored = { ...restored, room: normalized };
-            applyProjectRoomToWallStore(normalized);
-          } else {
-            wallStore.getState().loadRoomConfig(rs);
           }
         } else if (snapshot.roomSnapshot === null) {
-          wallStore.getState().clearRoom();
+          restored = { ...restored, room: null };
         }
         undoStackRef.current = [];
         redoStackRef.current = [];
@@ -180,7 +173,6 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
       mergeSnapshots: async (ids) => {
         const merged = await mergeProjectSnapshotsIntoWorkspace(ids);
         viewerSync.restoreViewerSnapshot(null);
-        wallStore.getState().clearRoom();
         undoStackRef.current = [];
         redoStackRef.current = [];
         clearAllCutlistCache();
@@ -227,7 +219,6 @@ export function useProjectIoActions(ctx: ProjectActionsExecutionContext): Projec
         if (!saved) return null;
 
         viewerSync.restoreViewerSnapshot(null);
-        wallStore.getState().clearRoom();
         undoStackRef.current = [];
         redoStackRef.current = [];
         clearAllCutlistCache();
