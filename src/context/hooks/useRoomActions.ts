@@ -3,11 +3,9 @@ import type { ProjectActions } from "../projectTypes";
 import type { ProjectRoomConfig } from "../../3d/viewer-engine/room/roomEngineTypes";
 import {
   applyProjectRoomDimensions,
-  applyProjectRoomToWallStore,
   createDefaultProjectRoom as buildDefaultProjectRoom,
   normalizeProjectRoom,
 } from "../../3d/viewer-engine/room/RoomEngine";
-import { wallStore } from "../../stores/wallStore";
 import type { ProjectActionsExecutionContext } from "./projectActionsDeps";
 import { appendChangelog } from "../projectState";
 
@@ -25,7 +23,6 @@ export function useRoomActions(ctx: ProjectActionsExecutionContext): RoomActions
         updateProject(
           (prev) => {
             if (!room) {
-              wallStore.getState().clearRoom();
               return {
                 ...prev,
                 room: null,
@@ -38,7 +35,6 @@ export function useRoomActions(ctx: ProjectActionsExecutionContext): RoomActions
             }
             const normalized = normalizeProjectRoom(room);
             if (!normalized) return prev;
-            applyProjectRoomToWallStore(normalized);
             return {
               ...prev,
               room: normalized,
@@ -66,7 +62,6 @@ export function useRoomActions(ctx: ProjectActionsExecutionContext): RoomActions
             ) {
               merged = applyProjectRoomDimensions(merged);
             }
-            applyProjectRoomToWallStore(merged);
             return {
               ...prev,
               room: merged,
@@ -80,7 +75,6 @@ export function useRoomActions(ctx: ProjectActionsExecutionContext): RoomActions
         updateProject(
           (prev) => {
             const room = buildDefaultProjectRoom();
-            applyProjectRoomToWallStore(room);
             return {
               ...prev,
               room,
@@ -97,18 +91,15 @@ export function useRoomActions(ctx: ProjectActionsExecutionContext): RoomActions
 
       removeProjectRoom: () => {
         updateProject(
-          (prev) => {
-            wallStore.getState().clearRoom();
-            return {
-              ...prev,
-              room: null,
-              changelog: appendChangelog(prev.changelog, {
-                timestamp: new Date(),
-                type: "doc",
-                message: "Sala removida",
-              }),
-            };
-          },
+          (prev) => ({
+            ...prev,
+            room: null,
+            changelog: appendChangelog(prev.changelog, {
+              timestamp: new Date(),
+              type: "doc",
+              message: "Sala removida",
+            }),
+          }),
           true
         );
       },
