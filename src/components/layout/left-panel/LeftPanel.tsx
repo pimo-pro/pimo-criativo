@@ -14,6 +14,7 @@ import RematePropertiesPanel from "../../settings/remate/RematePropertiesPanel";
 import RodapePropertiesPanel from "../../settings/rodape/RodapePropertiesPanel";
 import { useMaterialsForPicker } from "./hooks/useMaterialsForPicker";
 import PhotoModeSettingsContent from "./PhotoModeSettingsContent";
+import PainelSala from "./PainelSala";
 
 export type LeftPanelProps = {
   activeTab?: string;
@@ -21,6 +22,7 @@ export type LeftPanelProps = {
 
 export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
   const photoModePanelOpen = useUiStore((state) => state.photoModePanelOpen);
+  const roomPanelOpen = useUiStore((state) => state.roomPanelOpen);
   const selectedTool = useUiStore((state) => state.selectedTool);
   const selectedObject = useUiStore((state) => state.selectedObject);
   const { project, actions } = useProject();
@@ -68,6 +70,16 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
     );
   }
 
+  if (roomPanelOpen || selectedObject.type === "wall" || selectedObject.type === "roomElement") {
+    return (
+      <div className="left-panel-content">
+        <div className="left-panel-scroll">
+          <PainelSala />
+        </div>
+      </div>
+    );
+  }
+
   if (selectedObject.type === "remate") {
     return (
       <div className="left-panel-content">
@@ -85,15 +97,6 @@ export default function LeftPanel({ activeTab = "home" }: LeftPanelProps) {
           <RodapePropertiesPanel rodapeId={selectedObject.id} />
         </div>
       </div>
-    );
-  }
-
-  if (selectedObject.type === "wall" || selectedObject.type === "roomElement") {
-    return (
-      <PlaceholderLeftPanel
-        title="Sala"
-        description="O planeador de sala está em reconstrução. Esta selecção ficará disponível na nova versão."
-      />
     );
   }
 

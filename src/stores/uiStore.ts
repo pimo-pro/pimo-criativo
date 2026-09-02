@@ -18,6 +18,9 @@ export interface UiStoreState {
   /** Painel esquerdo: definições de captura (Photo Mode); o viewport principal é a pré-visualização. */
   photoModePanelOpen: boolean;
   setPhotoModePanelOpen: (_open: boolean) => void;
+  /** Painel esquerdo: configurações da sala (pimo-room / Salão). */
+  roomPanelOpen: boolean;
+  setRoomPanelOpen: (_open: boolean) => void;
   /** Painel lateral da Workspace Industrial de Design (furos / validação). */
   industrialDesignPanelOpen: boolean;
   setIndustrialDesignPanelOpen: (_open: boolean) => void;
@@ -47,11 +50,18 @@ export const uiStore = createStore<UiStoreState>((set) => ({
   selectedObject: { type: "none" },
   selectedObjects: [],
   photoModePanelOpen: false,
+  roomPanelOpen: false,
   industrialDesignPanelOpen: false,
   setPhotoModePanelOpen: (open) => {
     set((state) => {
       if (state.photoModePanelOpen === open) return state;
-      return { ...state, photoModePanelOpen: open };
+      return { ...state, photoModePanelOpen: open, roomPanelOpen: open ? false : state.roomPanelOpen };
+    });
+  },
+  setRoomPanelOpen: (open) => {
+    set((state) => {
+      if (state.roomPanelOpen === open) return state;
+      return { ...state, roomPanelOpen: open, photoModePanelOpen: open ? false : state.photoModePanelOpen };
     });
   },
   setIndustrialDesignPanelOpen: (open) => {
