@@ -81,7 +81,7 @@ export function useRoomActions(ctx: ProjectActionsExecutionContext): RoomActions
               changelog: appendChangelog(prev.changelog, {
                 timestamp: new Date(),
                 type: "doc",
-                message: "Sala Room 2.0 criada",
+                message: "Sala criada",
               }),
             };
           },

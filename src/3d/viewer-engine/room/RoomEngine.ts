@@ -1,6 +1,6 @@
 /**
- * STUB — RoomEngine de dados (feature/sala-rebuild-opensource).
- * Sem mesh 3D; mantém create/normalize/apply para persistência e autoRoomFill.
+ * pimo-room v4 — RoomEngine de dados (SSOT mm ↔ wallStore cm).
+ * Sem mesh 3D nesta fase; create/normalize/apply para persistência e autoRoomFill.
  */
 import { wallStore } from "../../../stores/wallStore";
 import type { Wall } from "../../../stores/wallStore";

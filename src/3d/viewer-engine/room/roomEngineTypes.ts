@@ -1,4 +1,7 @@
-/** Tipos Room 2.0 — fase visual. Não alimenta cutlist, CNC ou produção. */
+/**
+ * Tipos da sala (contrato ProjectRoomConfig) — pimo-room v4.
+ * Fase visual / layout. Não alimenta cutlist, CNC ou produção.
+ */
 
 export type RoomWallLabel = "norte" | "sul" | "este" | "oeste" | "extra";
 export type RoomOpeningKind = "normal" | "correr";
