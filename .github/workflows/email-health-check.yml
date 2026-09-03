@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          code=$(curl -sS -o /tmp/quotes-body.json -w "%{http_code}" \
+          code=$(curl -sS --max-time 15 --retry 2 --retry-delay 5 --retry-connrefused -o /tmp/quotes-body.json -w "%{http_code}" \
             "${BASE_URL}/api/quotes/index.php")
           echo "HTTP $code"
           cat /tmp/quotes-body.json
@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          code=$(curl -sS -o /tmp/fr-body.json -w "%{http_code}" \
+          code=$(curl -sS --max-time 15 --retry 2 --retry-delay 5 --retry-connrefused -o /tmp/fr-body.json -w "%{http_code}" \
             "${BASE_URL}/api/final-report/index.php")
           echo "HTTP $code"
           cat /tmp/fr-body.json
@@ -51,7 +51,7 @@ jobs:
             echo "Secret PIMO_EMAIL_HEALTH_SECRET em falta no repositório GitHub."
             exit 1
           fi
-          code=$(curl -sS -o /tmp/health-body.json -w "%{http_code}" \
+          code=$(curl -sS --max-time 15 --retry 2 --retry-delay 5 --retry-connrefused -o /tmp/health-body.json -w "%{http_code}" \
             -H "X-Pimo-Email-Health-Secret: ${PIMO_EMAIL_HEALTH_SECRET}" \
             "${BASE_URL}/api/email-health/index.php")
           echo "HTTP $code"
