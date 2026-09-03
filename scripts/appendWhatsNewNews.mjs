@@ -20,6 +20,26 @@ const PROD_NEWS_URL = process.env.PIMO_NEWS_URL || "https://pimo.pro/updates/new
 /** Mensagens de commit de release a ignorar na resolução do texto das Novidades. */
 const PUBLICATION_MSG_RE = /^publica[cç][aã]o\b/i;
 const RELEASE_CHORE_RE = /^chore\s*\(\s*release\s*\)\s*:/i;
+const IGNORED_COMMIT_SCOPES = new Set([
+  "lint",
+  "ci",
+  "chore",
+  "test",
+  "style",
+  "build",
+  "deps",
+  "release",
+  "refactor",
+]);
+const FRIENDLY_TYPE_LABEL = {
+  fix: "Correção: ",
+  feat: "Novidade: ",
+  feature: "Novidade: ",
+  update: "Atualização: ",
+  docs: "Documentação: ",
+};
+const CONVENTIONAL_TYPE_RE =
+  /^(fix|feat|feature|update|chore|docs|ci|test|style|build|perf|refactor|revert|deps|release|lint)(?:\(([^)]+)\))?:\s*(.*)$/i;
 
 function run(cmd) {
   try {
@@ -33,6 +53,67 @@ function isIgnoredCommitMessage(message) {
   const m = String(message || "").trim();
   if (!m) return true;
   return PUBLICATION_MSG_RE.test(m) || RELEASE_CHORE_RE.test(m);
+}
+
+function stripCoAuthoredByLines(message) {
+  return String(message || "")
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*co-authored-by:/i.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Prefixo conventional-commit na 1.ª linha: type, scope opcional, resto. */
+function parseConventionalPrefix(message) {
+  const first = String(message || "")
+    .trim()
+    .split(/\r?\n/)[0]
+    .trim();
+  const match = first.match(CONVENTIONAL_TYPE_RE);
+  if (!match) return null;
+  const scopeRaw = match[2] == null ? "" : String(match[2]).trim();
+  return {
+    type: match[1],
+    scope: scopeRaw || null,
+    rest: String(match[3] || "").trim(),
+  };
+}
+
+function shouldIgnoreCommitByScope(message) {
+  const parsed = parseConventionalPrefix(message);
+  if (!parsed || !parsed.scope) return false;
+  return parsed.scope
+    .split(/[,\s]+/)
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean)
+    .some((part) => IGNORED_COMMIT_SCOPES.has(part));
+}
+
+function friendlyFirstLine(message, version) {
+  const cleaned = stripCoAuthoredByLines(message);
+  const first = cleaned.split(/\r?\n/)[0].trim();
+  const parsed = parseConventionalPrefix(first);
+  const typeKey = parsed ? parsed.type.toLowerCase() : "";
+  const rest = parsed && parsed.rest ? parsed.rest : first;
+  const label = FRIENDLY_TYPE_LABEL[typeKey] || "";
+  const body = rest || `Release ${version || ""}`.trim();
+  return `${label}${body}`.trim();
+}
+
+function friendlyTitleFromMessage(message, version) {
+  const title = friendlyFirstLine(message, version);
+  if (!title) return `Release ${version || ""}`.trim();
+  return title.length > 120 ? `${title.slice(0, 117)}...` : title;
+}
+
+function friendlyDescriptionFromMessage(message, version) {
+  const cleaned = stripCoAuthoredByLines(message);
+  const first = friendlyFirstLine(cleaned, version);
+  if (!cleaned) return first;
+  const nl = cleaned.indexOf("\n");
+  if (nl === -1) return first;
+  return `${first}${cleaned.slice(nl)}`;
 }
 
 function inferType(message) {
@@ -90,17 +171,21 @@ function isHtmlPayload(text) {
  */
 function resolveRealCommitMessage(fallbackVersion) {
   const fromEnv = String(process.env.DEPLOY_COMMIT_MESSAGE || "").trim();
-  if (fromEnv && !isIgnoredCommitMessage(fromEnv)) return fromEnv;
+  if (fromEnv && !isIgnoredCommitMessage(fromEnv)) {
+    return stripCoAuthoredByLines(fromEnv) || fromEnv;
+  }
 
   const subjects = run("git log -40 --format=%s")
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean);
   for (const subject of subjects) {
-    if (!isIgnoredCommitMessage(subject)) return subject;
+    if (!isIgnoredCommitMessage(subject)) {
+      return stripCoAuthoredByLines(subject) || subject;
+    }
   }
 
-  if (fromEnv) return fromEnv;
+  if (fromEnv) return stripCoAuthoredByLines(fromEnv) || fromEnv;
   return `Release ${fallbackVersion || ""}`.trim();
 }
 
@@ -137,16 +222,20 @@ function normalizeEntry(raw) {
       : typeof raw.commitMessage === "string"
         ? raw.commitMessage
         : "";
+  description = stripCoAuthoredByLines(description);
   const commit =
     typeof raw.commit === "string" && raw.commit.trim() ? raw.commit.trim() : undefined;
 
   // Corrigir entradas históricas com texto fixo de publicação
   if (isIgnoredCommitMessage(description) && commit) {
     const repaired = messageForCommitHash(commit);
-    if (repaired) description = repaired;
+    if (repaired) description = stripCoAuthoredByLines(repaired);
   }
   if (isIgnoredCommitMessage(description)) {
     description = "";
+  }
+  if (shouldIgnoreCommitByScope(description || String(raw.title || ""))) {
+    return null;
   }
 
   const publishedAt =
@@ -161,6 +250,9 @@ function normalizeEntry(raw) {
   if (isIgnoredCommitMessage(title)) {
     title = shortTitle(description, version);
   }
+  const sourceText = description || title;
+  title = friendlyTitleFromMessage(sourceText, version);
+  description = friendlyDescriptionFromMessage(sourceText, version);
   if (!description) description = title;
   const author = typeof raw.author === "string" && raw.author.trim() ? raw.author.trim() : "pimo-pro";
   // Sem actionUrl — não exibir link GitHub Action
@@ -311,12 +403,13 @@ function resolveMeta() {
 
   const entry = {
     version: String(version).trim(),
-    title: shortTitle(commitMessage, version),
-    description: String(commitMessage).trim(),
+    title: friendlyTitleFromMessage(commitMessage, version),
+    description: friendlyDescriptionFromMessage(commitMessage, version),
     publishedAt,
     type,
     author: String(author).trim() || "pimo-pro",
     icon: iconForType(type),
+    skipByScope: shouldIgnoreCommitByScope(commitMessage),
   };
 
   const commit = resolveCommitHash();
@@ -336,10 +429,19 @@ async function main() {
     process.exit(1);
   }
 
+  const skipByScope = Boolean(entry.skipByScope);
+  delete entry.skipByScope;
+  if (skipByScope) {
+    console.log(
+      `Whats New: ${entry.version} ignorado (scope técnico) — sem nova entrada`
+    );
+  }
+
   // Preservar título/descrição já preparados no repo (ex.: release notes manuais).
   // Preferir sempre a descrição local mais longa (evita truncar para o título em re-deploys).
   const preset = local.news.find((n) => n.version === entry.version);
   if (
+    !skipByScope &&
     preset &&
     preset.title &&
     !isIgnoredCommitMessage(preset.title) &&
@@ -363,19 +465,29 @@ async function main() {
   const deployCommit = resolveCommitHash();
   if (deployCommit) entry.commit = deployCommit;
 
-  news = news.filter((n) => n.version !== entry.version);
-  news.push(entry);
-  news = sortByPublishedAtDesc(news).map((n) => {
-    const copy = { ...n };
-    delete copy.actionUrl;
-    return copy;
-  });
+  if (!skipByScope) {
+    news = news.filter((n) => n.version !== entry.version);
+    news.push(entry);
+  }
+  news = sortByPublishedAtDesc(news)
+    .map((n) => {
+      const copy = { ...n };
+      delete copy.actionUrl;
+      delete copy.skipByScope;
+      return copy;
+    })
+    .map(normalizeEntry)
+    .filter(Boolean);
 
   const written = writeNews({ news });
-  console.log(
-    `Whats New: ${entry.version} (${entry.type} ${entry.icon}) → ${NEWS_REL} — total ${written.news.length} registos` +
-      (entry.commit ? ` commit=${entry.commit}` : "")
-  );
+  if (!skipByScope) {
+    console.log(
+      `Whats New: ${entry.version} (${entry.type} ${entry.icon}) → ${NEWS_REL} — total ${written.news.length} registos` +
+        (entry.commit ? ` commit=${entry.commit}` : "")
+    );
+  } else {
+    console.log(`Whats New: ficheiro limpo — total ${written.news.length} registos`);
+  }
 }
 
 const isDirectRun =
@@ -395,4 +507,8 @@ export {
   resolveRealCommitMessage,
   normalizeEntry,
   iconForType,
+  stripCoAuthoredByLines,
+  shouldIgnoreCommitByScope,
+  friendlyTitleFromMessage,
+  friendlyDescriptionFromMessage,
 };
