@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-09-03T16:34:52.645Z",
+      "author": "pimo-pro",
+      "commitMessage": "fix(ajuda): limpar Novidades (scope técnico, Co-authored-by, texto amigável)",
+      "version": "v6.0903.1734"
+    },
+    {
       "publishedAt": "2026-09-02T10:58:27.850Z",
       "author": "pimo-pro",
       "commitMessage": "fix(auth): exceções permanentes à verificação de email no login",
@@ -1194,12 +1200,6 @@
       "author": "pimo-pro",
       "commitMessage": "release: versão completa — auto-correction + notificações industriais",
       "version": "v6.0715.0022"
-    },
-    {
-      "publishedAt": "2026-07-14T22:27:24.295Z",
-      "author": "pimo-pro",
-      "commitMessage": "fix(remate-rodape-stability): corrigir build de publicacao (RemateProductType e tipos rodape)",
-      "version": "v6.0714.2327"
     }
   ]
 }
