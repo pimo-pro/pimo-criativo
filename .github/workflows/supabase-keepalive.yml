@@ -5,12 +5,45 @@ on:
     - cron: '0 8 * * 1'
   workflow_dispatch: {}
 
+# Mantém activos os projectos Free (pause por inactividade ~7 dias):
+#   - Staging:    rszpnvmscehqapflaklv (PIMO-Staging)
+#   - Production: ritmrjwrmcsofyugviil (pimo-industrial)
+#
+# Pré-requisito: projecto tem de estar unpaused no dashboard Supabase.
+# Tabela: public.system_settings (SELECT via REST + anon key).
+
 jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Staging (PIMO-Staging)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_STAGING_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}
         run: |
-          curl -sf "${{ secrets.SUPABASE_STAGING_URL }}/rest/v1/system_settings?select=*&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}" \
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "ERRO: secrets SUPABASE_STAGING_URL / SUPABASE_STAGING_ANON_KEY em falta."
+            exit 1
+          fi
+          echo "Ping staging: ${SUPABASE_URL}"
+          curl -sf "${SUPABASE_URL}/rest/v1/system_settings?select=*&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -o /dev/null -w "HTTP status: %{http_code}\n"
+
+      - name: Ping Production (pimo-industrial)
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "ERRO: secrets VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY em falta."
+            exit 1
+          fi
+          echo "Ping production: ${SUPABASE_URL}"
+          curl -sf "${SUPABASE_URL}/rest/v1/system_settings?select=*&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
             -o /dev/null -w "HTTP status: %{http_code}\n"
