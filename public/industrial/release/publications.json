@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-09-27T18:10:23.257Z",
+      "author": "pimo-pro",
+      "commitMessage": "Versão estável de referência — PIMO-V4.0.0",
+      "version": "v6.0927.1910"
+    },
+    {
       "publishedAt": "2026-09-03T16:34:52.645Z",
       "author": "pimo-pro",
       "commitMessage": "fix(ajuda): limpar Novidades (scope técnico, Co-authored-by, texto amigável)",
@@ -1194,12 +1200,6 @@
       "author": "pimo-pro",
       "commitMessage": "release: versão completa — whats-new + auto-correction + notificações industriais",
       "version": "v6.0715.0042"
-    },
-    {
-      "publishedAt": "2026-07-14T23:22:36.290Z",
-      "author": "pimo-pro",
-      "commitMessage": "release: versão completa — auto-correction + notificações industriais",
-      "version": "v6.0715.0022"
     }
   ]
 }

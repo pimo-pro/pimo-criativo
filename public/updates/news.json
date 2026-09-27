@@ -1,15 +1,25 @@
 {
-  "updatedAt": "2026-09-03T16:34:53.794Z",
+  "updatedAt": "2026-09-27T18:10:23.827Z",
   "news": [
+    {
+      "version": "v6.0927.1910",
+      "title": "Publicada versão estável PIMO-V4.0.0 — ponto de retorno seguro antes da reestruturação e desenvolvimento do PIMO-V4.",
+      "description": "Publicada versão estável PIMO-V4.0.0 — ponto de retorno seguro antes da reestruturação e desenvolvimento do PIMO-V4.",
+      "publishedAt": "2026-09-27T18:10:23.672Z",
+      "type": "feature",
+      "author": "pimo-pro",
+      "icon": "feature",
+      "commit": "8882cdb0"
+    },
     {
       "version": "v6.0903.1734",
       "title": "Correção: limpar Novidades (scope técnico, Co-authored-by, texto amigável)",
       "description": "Correção: limpar Novidades (scope técnico, Co-authored-by, texto amigável)",
-      "publishedAt": "2026-09-03T16:34:53.646Z",
+      "publishedAt": "2026-09-03T17:40:10+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "9fd01d90"
+      "commit": "66868d2"
     },
     {
       "version": "v6.0902.1158",
