@@ -1,0 +1,12 @@
+NOTICE — Aedifex / Pascal (MIT)
+
+Portions of architectural room/node logic adapted for pimo-alfa may derive from:
+
+  Copyright (c) 2026 Pascal Group Inc. (https://github.com/pascalorg/editor)
+  Copyright (c) 2026 Aedifex Inc.
+
+Licensed under the MIT License — see external/aedifex/LICENSE (source tree)
+and keep this notice with adapted source under src/integration/aedifex/.
+
+UI, branding, icons, colors, and layout of the integrated product follow
+pimo-alfa exclusively; original Aedifex editor chrome is not used.

@@ -1,5 +1,8 @@
 # Novidades do Sistema
 
+### Release — PIMO-V4.0.0 (versão estável de referência)
+Publicada versão estável PIMO-V4.0.0 — ponto de retorno seguro antes da reestruturação e desenvolvimento do PIMO-V4.
+
 ### Release — gav_fundo comprimento SSOT (sideDepth+10)
 Correcção industrial do comprimento do fundo da gaveta (`gav_fun`): alinhamento traseiro flush com a costa (`gav_cost`).
 

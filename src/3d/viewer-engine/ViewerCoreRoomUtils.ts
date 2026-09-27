@@ -1,12 +1,19 @@
 /**
- * STUB no-op — sistema Sala removido (feature/sala-rebuild-opensource).
- * Mantém a superfície importada pelo ViewerCore / ViewerCore*Ops.
+ * ViewerCoreRoomUtils — superfície de sala para snap / auto-layout / constraints.
+ * Implementação restaurada via pimo-room-v4/adapters/viewerSurfaceAdapter (Fase A).
  */
 import * as THREE from "three";
 import type { AutoLayoutOpeningMm, AutoLayoutRoomBoundsMm } from "./autoLayout/autoLayoutTypes";
 import type { RoomOpeningLike } from "./snapping/smartSnappingTypes";
 import type { RoomBuilder } from "../room/RoomBuilder";
 import type { ViewerBoundsCache } from "./cache/ViewerBoundsCache";
+import {
+  applyRoomConstraintFromDeps,
+  getRoomBoundsMmFromDeps,
+  getRoomOpeningsForSnappingFromDeps,
+  getRoomOpeningsMmForAutoLayoutFromDeps,
+  isMeshInsideOrTouchingRoomFromDeps,
+} from "../../pimo-room-v4/adapters/viewerSurfaceAdapter";
 
 export type ViewerCoreRoomBounds = {
   minX: number;
@@ -30,39 +37,33 @@ export type ViewerCoreRoomUtilsDeps = {
 };
 
 export function getRoomBoundsMmForAutoLayoutImpl(
-  _deps: ViewerCoreRoomUtilsDeps
+  deps: ViewerCoreRoomUtilsDeps
 ): AutoLayoutRoomBoundsMm | null {
-  void _deps;
-  return null;
+  return getRoomBoundsMmFromDeps(deps);
 }
 
-export function getRoomOpeningsForSnappingImpl(_deps: ViewerCoreRoomUtilsDeps): RoomOpeningLike[] {
-  void _deps;
-  return [];
+export function getRoomOpeningsForSnappingImpl(deps: ViewerCoreRoomUtilsDeps): RoomOpeningLike[] {
+  return getRoomOpeningsForSnappingFromDeps(deps);
 }
 
-export function getRoomOpeningsMmForAutoLayoutImpl(_deps: ViewerCoreRoomUtilsDeps): AutoLayoutOpeningMm[] {
-  void _deps;
-  return [];
+export function getRoomOpeningsMmForAutoLayoutImpl(
+  deps: ViewerCoreRoomUtilsDeps
+): AutoLayoutOpeningMm[] {
+  return getRoomOpeningsMmForAutoLayoutFromDeps(deps);
 }
 
 export function applyRoomConstraintImpl(
-  _deps: ViewerCoreRoomUtilsDeps,
-  _movingMesh: THREE.Object3D,
-  _options: { ignoreY?: boolean } = {}
+  deps: ViewerCoreRoomUtilsDeps,
+  movingMesh: THREE.Object3D,
+  options: { ignoreY?: boolean } = {}
 ): void {
-  void _deps;
-  void _movingMesh;
-  void _options;
+  applyRoomConstraintFromDeps(deps, movingMesh, options);
 }
 
 export function isMeshInsideOrTouchingRoomImpl(
-  _deps: ViewerCoreRoomUtilsDeps,
-  _movingMesh: THREE.Object3D,
-  _tolerance = 0.02
+  deps: ViewerCoreRoomUtilsDeps,
+  movingMesh: THREE.Object3D,
+  tolerance = 0.02
 ): boolean {
-  void _deps;
-  void _movingMesh;
-  void _tolerance;
-  return false;
+  return isMeshInsideOrTouchingRoomFromDeps(deps, movingMesh, tolerance);
 }

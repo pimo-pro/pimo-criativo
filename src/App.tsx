@@ -47,6 +47,7 @@ import ProjectSharesAdminPage from "./pages/admin/ProjectSharesAdminPage";
 import ManageRolesPage from "./pages/admin/ManageRolesPage";
 import ManagePermissionsPage from "./pages/admin/ManagePermissionsPage";
 import GlobalSettingsAdminPage from "./pages/admin/GlobalSettingsAdminPage";
+import RoomSettingsAdminPage from "./pages/admin/RoomSettingsAdminPage";
 import DeployInfoPage from "./pages/admin/DeployInfoPage";
 import EmailStatusPage from "./pages/admin/EmailStatusPage";
 import { canAccessAdminPanel, canOpenProjectsShowroom, hasFullAccess } from "./auth/rbac";
@@ -578,6 +579,14 @@ export default function App() {
               element={
                 <PermissionRoute check={hasFullAccess}>
                   <GlobalSettingsAdminPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="/admin/room-settings"
+              element={
+                <PermissionRoute check={canAccessAdminPanel}>
+                  <RoomSettingsAdminPage />
                 </PermissionRoute>
               }
             />

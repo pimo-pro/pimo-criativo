@@ -496,7 +496,7 @@ export function notifyWallTransformImpl(deps: ViewerCoreRoomGeometryDeps): void 
 
 export function notifyRoomElementTransformImpl(deps: ViewerCoreRoomGeometryDeps): void {
   const elementId = deps.viewerState.getSelectedRoomElementId();
-  if (!elementId || !deps.onRoomElementTransform) return;
+  if (!elementId) return;
   const element = deps.roomBuilder.getElementById(elementId);
   if (!element || !element.parent) return;
   const wall = element.parent as THREE.Mesh;
@@ -519,7 +519,9 @@ export function notifyRoomElementTransformImpl(deps: ViewerCoreRoomGeometryDeps)
     horizontalOffsetMm,
     floorOffsetMm,
   };
-  deps.onRoomElementTransform(elementId, config);
+  // Abertura (cutout CSG) acompanha a porta/janela — position vinculada.
+  deps.roomBuilder.updateElementConfig(elementId, config);
+  deps.onRoomElementTransform?.(elementId, config);
 }
 
 export function notifyRoomUtilityTransformImpl(deps: ViewerCoreRoomGeometryDeps): void {

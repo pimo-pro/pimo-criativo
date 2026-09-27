@@ -72,6 +72,19 @@ export type ProjectRoomZone = {
   spaceRole?: "generic" | "room";
 };
 
+/** Metadados de catálogo (RoomEngine Fase C) — não alimentam cutlist/CNC. */
+export type ProjectRoomCatalogItemMeta = {
+  id: string;
+  catalogId: string;
+  levelId: string;
+  type?: string;
+  name?: string;
+  positionMm: { x: number; y: number; z: number };
+  rotationDeg: number;
+  scale?: { x: number; y: number; z: number };
+  src?: string;
+};
+
 export type ProjectRoomConfig = {
   widthMm: number;
   depthMm: number;
@@ -87,6 +100,8 @@ export type ProjectRoomConfig = {
   utilities: ProjectRoomUtility[];
   /** Opt-in: zonas polígono. Ausente em projetos legados. */
   zones?: ProjectRoomZone[];
+  /** Opt-in: metadados de itens do RoomEngine (não renderiza no pipeline industrial). */
+  catalogItems?: ProjectRoomCatalogItemMeta[];
 };
 
 export const ROOM_20_DEFAULTS = {

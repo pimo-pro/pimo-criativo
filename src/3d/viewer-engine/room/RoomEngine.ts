@@ -226,6 +226,31 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
   const zones: ProjectRoomZone[] | undefined = Array.isArray(raw.zones)
     ? raw.zones.map((z) => normalizeZone(z, { widthMm, depthMm, heightMm }))
     : undefined;
+  const catalogItems = Array.isArray(raw.catalogItems)
+    ? raw.catalogItems
+        .filter((i) => i && typeof i === "object" && typeof i.id === "string" && typeof i.catalogId === "string")
+        .map((i) => ({
+          id: i.id,
+          catalogId: i.catalogId,
+          levelId: typeof i.levelId === "string" ? i.levelId : "level-0",
+          type: typeof i.type === "string" ? i.type : undefined,
+          name: typeof i.name === "string" ? i.name : undefined,
+          positionMm: {
+            x: Number(i.positionMm?.x) || 0,
+            y: Number(i.positionMm?.y) || 0,
+            z: Number(i.positionMm?.z) || 0,
+          },
+          rotationDeg: Number(i.rotationDeg) || 0,
+          scale: i.scale
+            ? {
+                x: Math.max(0.1, Number(i.scale.x) || 1),
+                y: Math.max(0.1, Number(i.scale.y) || 1),
+                z: Math.max(0.1, Number(i.scale.z) || 1),
+              }
+            : undefined,
+          src: typeof i.src === "string" ? i.src : undefined,
+        }))
+    : undefined;
   return {
     widthMm,
     depthMm,
@@ -240,6 +265,7 @@ export function normalizeProjectRoom(raw: Partial<ProjectRoomConfig> | null | un
     openings,
     utilities,
     ...(zones && zones.length > 0 ? { zones } : {}),
+    ...(catalogItems && catalogItems.length > 0 ? { catalogItems } : {}),
   };
 }
 

@@ -5,6 +5,18 @@
  */
 export const changelog = [
   {
+    data: "2026-09-27",
+    versao: "PIMO-V4.0.0",
+    descricao:
+      "Publicada versão estável PIMO-V4.0.0 — ponto de retorno seguro antes da reestruturação e desenvolvimento do PIMO-V4.",
+  },
+  {
+    data: "2026-09-21",
+    versao: "pimo-alfa-v4.0-room-engine",
+    descricao:
+      "PIMO-ALFA v4.0 RoomEngine Edition — pimo-room-v4 (A–E+FINAL), IFC/GLB, AI, multi-level, isolamento industrial cutlist-safe; Admin room-settings; docs Release Notes.",
+  },
+  {
     data: "2026-08-22",
     versao: "gav-fundo-comprimento-ssot",
     descricao:

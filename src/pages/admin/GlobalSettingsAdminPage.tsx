@@ -12,6 +12,7 @@ import { getGlobalSettingsRemote, patchGlobalSettingsRemote } from "../../api/gl
 import { useToast } from "../../context/ToastContext";
 import { validateGlobalSettings } from "../../core/globalSettings/globalSettingsService";
 import { isObject } from "../../core/settings/settingsMerge";
+import { PIMO_ALFA_EDITION, PIMO_ALFA_VERSION, ROOM_ENGINE_VERSION } from "../../pimo-room-v4";
 
 function formatDocumentFromRemote(remote: {
   version: string;
@@ -151,6 +152,21 @@ export default function GlobalSettingsAdminPage() {
         title="Configuração global"
         subtitle="Editar o documento publicado em GET /config/global (api/data/global-settings.json). Apenas admin.full_access."
       />
+      <div
+        style={{
+          marginBottom: 16,
+          padding: "10px 14px",
+          border: "1px solid var(--border-color, rgba(255,255,255,0.12))",
+          borderRadius: 8,
+          fontSize: 13,
+          color: "var(--text-muted, #71717a)",
+        }}
+      >
+        <strong style={{ color: "var(--text-main)" }}>
+          PIMO-ALFA v{PIMO_ALFA_VERSION}
+        </strong>{" "}
+        — {PIMO_ALFA_EDITION} · RoomEngine v{ROOM_ENGINE_VERSION}
+      </div>
       <Section>
         <Card>
           <p style={{ marginTop: 0, fontSize: 14, color: "var(--text-muted, #71717a)" }}>
@@ -164,6 +180,9 @@ export default function GlobalSettingsAdminPage() {
             ) : (
               <span>Igual ao servidor</span>
             )}
+          </p>
+          <p style={{ fontSize: 13, marginBottom: 12 }}>
+            <Link to="/admin/room-settings">Configurações da Sala (pimo-room v4) →</Link>
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>

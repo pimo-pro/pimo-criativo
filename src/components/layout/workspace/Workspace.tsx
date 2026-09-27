@@ -8,6 +8,14 @@ import { applyWallViewerTransformToRoom } from "../../../3d/room/wallVertexEdit"
 import { wallStore } from "../../../stores/wallStore";
 import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import { getActiveViewerCore } from "../../../core/viewer/pimoViewerRuntime";
+import {
+  attachOpeningKeyboardListeners,
+  detachOpeningKeyboardListeners,
+  patchProjectOpeningFromDoorConfig,
+  registerOpeningKeyboardHandlers,
+  syncRoomStateOpeningFromConfig,
+} from "../../../pimo-room-v4/openingsHost";
+import { roomEngineStore } from "../../../pimo-room-v4/roomEngineStore";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
@@ -187,6 +195,40 @@ export default function Workspace({
     });
     return () => {
       viewerApi.setOnWallTransform?.(null);
+    };
+  }, [viewerApi]);
+
+  // Porta/janela → abertura (cutout + ProjectRoom) e teclado.
+  useEffect(() => {
+    registerOpeningKeyboardHandlers({
+      getProjectRoom: () => projectRef.current.room,
+      setProjectRoom: (next) => actionsRef.current.setProjectRoom(next),
+    });
+    attachOpeningKeyboardListeners();
+
+    viewerApi.setOnRoomElementTransform?.((elementId, config) => {
+      const room = projectRef.current.room;
+      if (!room) return;
+      const patched = patchProjectOpeningFromDoorConfig(room, elementId, config);
+      actionsRef.current.setProjectRoom(patched);
+      const engine = roomEngineStore.getState().roomState;
+      if (engine) {
+        roomEngineStore
+          .getState()
+          .setRoomState(syncRoomStateOpeningFromConfig(engine, elementId, config));
+      }
+    });
+
+    viewerApi.setOnRoomElementSelected?.((hit) => {
+      if (!hit) return;
+      uiStore.getState().setSelectedObject({ type: "roomElement", id: hit.elementId });
+    });
+
+    return () => {
+      registerOpeningKeyboardHandlers(null);
+      detachOpeningKeyboardListeners();
+      viewerApi.setOnRoomElementTransform?.(null);
+      viewerApi.setOnRoomElementSelected?.(null);
     };
   }, [viewerApi]);
 
@@ -1025,6 +1067,10 @@ const hasShownViewerReadyToastRef = useRef(false);
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         const uiSelection = uiStore.getState().selectedObject;
+        if (uiSelection.type === "roomElement") {
+          // Tratado por openingsHost (porta/janela).
+          return;
+        }
         if (uiSelection.type === "remate") {
           actionsRef.current.removeRemate(uiSelection.id);
           clearUiSelection();
