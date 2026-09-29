@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-09-29T18:59:09.926Z",
+      "author": "pimo-pro",
+      "commitMessage": "Release — W1–W7 · Consolidação RoomEngineBoundary · Isolamento do viewer · Preparação substituição módulo sala (khaled-pro)",
+      "version": "v6.0929.1959"
+    },
+    {
       "publishedAt": "2026-09-27T18:10:23.257Z",
       "author": "pimo-pro",
       "commitMessage": "Versão estável de referência — PIMO-V4.0.0",
@@ -1194,12 +1200,6 @@
       "author": "pimo-pro",
       "commitMessage": "release: versão completa — work-orders + pimo-trak + eventos industriais",
       "version": "v6.0715.0104"
-    },
-    {
-      "publishedAt": "2026-07-14T23:42:00.442Z",
-      "author": "pimo-pro",
-      "commitMessage": "release: versão completa — whats-new + auto-correction + notificações industriais",
-      "version": "v6.0715.0042"
     }
   ]
 }
