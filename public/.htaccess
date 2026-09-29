@@ -10,8 +10,14 @@
   RewriteRule ^users$ api/users/index.php [L]
   RewriteRule ^project-shares$ api/project-shares/index.php [L]
   RewriteRule ^invite-codes$ api/invite-codes/index.php [L]
+  RewriteRule ^user/settings$ api/user-settings/index.php [L]
 
-  # GET /config/global → ficheiro estático (evita 404 do bloco /config/ abaixo)
+  # PATCH/OPTIONS /config/global → API autenticada.
+  RewriteCond %{REQUEST_METHOD} ^(PATCH|OPTIONS)$
+  RewriteRule ^config/global$ api/global-config/index.php [L]
+
+  # GET/HEAD /config/global → ficheiro estático.
+  RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
   RewriteRule ^config/global$ config/global.json [L]
 
   # Assets Vite: se o ficheiro não existir, 404 real (NUNCA index.html / MIME text/html)

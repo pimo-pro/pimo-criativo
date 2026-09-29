@@ -1,25 +1,34 @@
 import type { WorkspaceBox } from "../types";
 import type { BoxOptions } from "../../3d/objects/BoxBuilder";
+import type { PimoViewerApi } from "../../context/PimoViewerContextCore";
 
 /**
  * Interface do Viewer para operações multi-box.
- * O Viewer (3d/core/Viewer.ts) já implementa esta interface via usePimoViewer.
+ * Subconjunto derivado do contrato canónico PimoViewerApi.
  */
-export type MultiBoxViewerApi = {
-  addBox: (_id: string, _options?: BoxOptions) => boolean;
-  removeBox: (_id: string) => boolean;
-  updateBox: (_id: string, _options: Partial<BoxOptions>) => boolean;
-  setBoxIndex: (_id: string, _index: number) => boolean;
-  setBoxGap: (_gap: number) => void;
+export type MultiBoxViewerApi = Pick<
+  PimoViewerApi,
+  | "addBox"
+  | "removeBox"
+  | "updateBox"
+  | "setBoxIndex"
+  | "setBoxGap"
+  | "addModelToBox"
+  | "removeModelFromBox"
+  | "listModels"
+  | "viewerReady"
+> & {
   setBoxSpacing?: (_spacing: number) => void;
   updateBoxSpacing?: (_spacing: number) => void;
-  addModelToBox: (_boxId: string, _modelPath: string, _modelId?: string) => boolean;
-  removeModelFromBox: (_boxId: string, _modelId: string) => boolean;
-  listModels: (_boxId: string) => Array<{ id: string; path: string }> | null;
-  selectBox: (_id: string | null) => void;
-  /** Quando true, o viewer está montado e pronto para receber caixas. */
-  viewerReady?: boolean;
+  selectBox: NonNullable<PimoViewerApi["selectBox"]>;
 };
+
+/** Superfície mínima consumida pelo sincronizador de caixas paramétricas. */
+export type CalculadoraViewerApi = Pick<
+  MultiBoxViewerApi,
+  "addBox" | "removeBox" | "updateBox" | "setBoxIndex" | "setBoxGap"
+> &
+  Pick<PimoViewerApi, "updateDrawerMaterial">;
 
 /**
  * Eventos emitidos pelo MultiBoxManager para o Viewer.

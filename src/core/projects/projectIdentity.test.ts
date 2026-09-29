@@ -1,14 +1,33 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildProjetosPagePath,
   isInternalProjectId,
   looksLikeWorkOrderUuid,
+  normalizeProjetosPageSlug,
   normalizeProjectName,
+  projectNameFromPageSlug,
   PROJECT_DISPLAY_FALLBACK,
   resolveProjectDisplayNameSafe,
+  toProjetosPageSlug,
 } from "./projectIdentity";
 
 describe("projectIdentity", () => {
+  it("é o contrato canónico dos slugs PROJETOS", () => {
+    expect(toProjetosPageSlug("Antunes Novo Cozinha")).toBe(
+      "Antunes_Novo_Cozinha"
+    );
+    expect(normalizeProjetosPageSlug("Antunes%20Novo%20Cozinha")).toBe(
+      "Antunes_Novo_Cozinha"
+    );
+    expect(projectNameFromPageSlug("Antunes_Novo_Cozinha")).toBe(
+      "Antunes Novo Cozinha"
+    );
+    expect(buildProjetosPagePath({ name: "Antunes Novo Cozinha" })).toBe(
+      "/PROJETOS/Antunes_Novo_Cozinha"
+    );
+  });
+
   it("normalizeProjectName ? Antunes_Novo_Cozinha", () => {
     expect(normalizeProjectName("Antunes Novo Cozinha")).toBe("Antunes_Novo_Cozinha");
   });

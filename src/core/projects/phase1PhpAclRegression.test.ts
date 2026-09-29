@@ -71,4 +71,19 @@ describe("Phase 1 — PHP source ACL regression", () => {
     expect(src).toContain("authz");
     expect(src).toContain("resourceAccess.php");
   });
+
+  it("Apache encaminha settings mutáveis para os handlers PHP", () => {
+    for (const rel of ["public/.htaccess", "public_html/.htaccess"]) {
+      const src = read(rel);
+      expect(src).toContain(
+        "RewriteRule ^user/settings$ api/user-settings/index.php [L]"
+      );
+      expect(src).toContain(
+        "RewriteRule ^config/global$ api/global-config/index.php [L]"
+      );
+      expect(src).toContain(
+        "RewriteRule ^config/global$ config/global.json [L]"
+      );
+    }
+  });
 });

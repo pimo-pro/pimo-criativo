@@ -3,7 +3,7 @@
  *
  * A superfície pública de produto é `PimoViewerApi`.
  * `window.viewerCore` permanece apenas como ponte de compatibilidade (HMR / dispose),
- * atribuída no Workspace dentro de `setOnViewerReady`.
+ * sincronizada exclusivamente por `setActiveViewerCore`.
  *
  * Módulos não-React devem usar `getActiveViewerCore()` / `getActivePimoViewerApi()`,
  * nunca `window.viewerCore`.
@@ -63,8 +63,16 @@ export type ViewerCoreRuntime = PimoViewerApi & {
 let activeViewerCore: ViewerCoreRuntime | null = null;
 let activePimoViewerApi: PimoViewerApi | null = null;
 
+function syncViewerCoreCompatibilityBridge(
+  core: ViewerCoreRuntime | null
+): void {
+  if (typeof window === "undefined") return;
+  window.viewerCore = core ?? undefined;
+}
+
 export function setActiveViewerCore(core: ViewerCoreRuntime | null): void {
   activeViewerCore = core;
+  syncViewerCoreCompatibilityBridge(core);
 }
 
 export function getActiveViewerCore(): ViewerCoreRuntime | null {

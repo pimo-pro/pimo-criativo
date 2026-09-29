@@ -2,10 +2,10 @@
  * Pré-visualização IFC no ViewerCore (caixas a partir do RoomState / modelo).
  */
 import * as THREE from "three";
-import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 import type { RoomState } from "../RoomState";
 import { RoomLevelGeometry } from "../levels/RoomLevelGeometry";
 import { enhancePbrMaterials } from "../glb/glbMaterials";
+import { getRoomEngineViewerHost } from "../roomEngineStore";
 
 const GROUP_NAME = "roomIfcPreview";
 
@@ -16,7 +16,7 @@ type ViewerCoreLoose = {
 let previewGroup: THREE.Group | null = null;
 
 function getCore(): ViewerCoreLoose | null {
-  return getActiveViewerCore() as unknown as ViewerCoreLoose | null;
+  return getRoomEngineViewerHost() as unknown as ViewerCoreLoose | null;
 }
 
 function disposeGroup(group: THREE.Group): void {

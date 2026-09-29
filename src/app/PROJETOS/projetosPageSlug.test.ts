@@ -8,7 +8,7 @@ import {
 } from "./projetosPageSlug";
 import type { SavedProjectRecord } from "@/core/projects/types";
 
-describe("projetosPageSlug", () => {
+describe("projetosPageSlug — fachada compatível", () => {
   it("usa o nome do projecto como slug", () => {
     expect(toProjetosPageSlug("NP2625622")).toBe("NP2625622");
     expect(buildProjetosPagePath({ name: "NP2625622" })).toBe("/PROJETOS/NP2625622");

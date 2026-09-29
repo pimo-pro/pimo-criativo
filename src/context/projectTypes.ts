@@ -436,46 +436,42 @@ export type ProjectSnapshot = {
   roomSnapshot?: RoomSnapshot | null;
 };
 
+/**
+ * Serviço estável usado pelo ProjectContext.
+ * Reutiliza as assinaturas da bridge ViewerApi sem duplicar contratos.
+ */
 export type ViewerSync = {
   notifyChangeSignal: unknown;
-  saveViewerSnapshot: () => ViewerSnapshot | null;
-  restoreViewerSnapshot: (_snapshot: ViewerSnapshot | null) => void;
+  saveViewerSnapshot: ViewerApi["saveSnapshot"];
+  restoreViewerSnapshot: ViewerApi["restoreSnapshot"];
   registerViewerApi: (_api: ViewerApi | null) => void;
-  renderScene: (_options: ViewerRenderOptions) => Promise<ViewerRenderResult | null>;
-  /** Define a ferramenta 3D ativa (select, move, rotate); aplica à caixa selecionada. */
-  setActiveTool: (_mode: ViewerToolMode) => void;
-  setUltraPerformanceMode: (_active: boolean) => void;
-  getUltraPerformanceMode: () => boolean;
-  createRoom: (_config: RoomConfig) => void;
-  removeRoom: () => void;
-  setPlacementMode: (_mode: "door" | "window" | null) => void;
-  addDoorToRoom: (_wallId: number, _config: DoorWindowConfig, _elementId?: string) => string;
-  addWindowToRoom: (_wallId: number, _config: DoorWindowConfig, _elementId?: string) => string;
-  setOnRoomElementPlaced: (
-    _cb: ((_wallId: number, _config: DoorWindowConfig, _type: "door" | "window") => void) | null
-  ) => void;
-  setOnRoomElementSelected: (
-    _cb: ((_data: { elementId: string; wallId: number; type: "door" | "window"; config: DoorWindowConfig } | null) => void) | null
-  ) => void;
-  updateRoomElementConfig: (_elementId: string, _config: DoorWindowConfig) => boolean;
-  setLockEnabled: (_enabled: boolean) => void;
-  getLockEnabled: () => boolean;
-  getCombinedBoundingBox: () => { width: number; height: number; depth: number } | null;
-  getSelectedBoxDimensions: () => { width: number; height: number; depth: number } | null;
-  subscribeSelectedBoxChange?: (_callback: (_id: string | null) => void) => () => void;
-  setDimensionsOverlayVisible: (_visible: boolean) => void;
-  getDimensionsOverlayVisible: () => boolean;
-  toggleDimensionsOverlay: () => boolean;
-  getPrintReadyDimensions?: () => import("../3d/viewer-engine/overlays/boxDimensionsLayout").PrintReadyDimensions;
-  getSelectedObjects: (
-    _multiBoxIds?: string[]
-  ) => Array<{ kind: "box" | "remate" | "rodape"; id: string }>;
-  align: (
-    _type: "right" | "left" | "front" | "back" | "top" | "bottom",
-    _multiBoxIds?: string[]
-  ) => boolean;
-  getSelectedBoxScreenPosition: () => { x: number; y: number } | null;
-  getRightmostX: () => number;
+  renderScene: ViewerApi["renderScene"];
+  setActiveTool: ViewerApi["setTool"];
+  setUltraPerformanceMode: ViewerApi["setUltraPerformanceMode"];
+  getUltraPerformanceMode: ViewerApi["getUltraPerformanceMode"];
+  createRoom: ViewerApi["createRoom"];
+  removeRoom: ViewerApi["removeRoom"];
+  setPlacementMode: ViewerApi["setPlacementMode"];
+  addDoorToRoom: ViewerApi["addDoorToRoom"];
+  addWindowToRoom: ViewerApi["addWindowToRoom"];
+  setOnRoomElementPlaced: ViewerApi["setOnRoomElementPlaced"];
+  setOnRoomElementSelected: ViewerApi["setOnRoomElementSelected"];
+  updateRoomElementConfig: ViewerApi["updateRoomElementConfig"];
+  setLockEnabled: ViewerApi["setLockEnabled"];
+  getLockEnabled: ViewerApi["getLockEnabled"];
+  getCombinedBoundingBox: ViewerApi["getCombinedBoundingBox"];
+  getSelectedBoxDimensions: ViewerApi["getSelectedBoxDimensions"];
+  subscribeSelectedBoxChange?: NonNullable<
+    ViewerApi["subscribeSelectedBoxChange"]
+  >;
+  setDimensionsOverlayVisible: ViewerApi["setDimensionsOverlayVisible"];
+  getDimensionsOverlayVisible: ViewerApi["getDimensionsOverlayVisible"];
+  toggleDimensionsOverlay: ViewerApi["toggleDimensionsOverlay"];
+  getPrintReadyDimensions?: NonNullable<ViewerApi["getPrintReadyDimensions"]>;
+  getSelectedObjects: ViewerApi["getSelectedObjects"];
+  align: ViewerApi["align"];
+  getSelectedBoxScreenPosition: ViewerApi["getSelectedBoxScreenPosition"];
+  getRightmostX: ViewerApi["getRightmostX"];
 };
 
 export interface ProjectActions {

@@ -7,15 +7,23 @@ import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
 import { applyWallViewerTransformToRoom } from "../../../3d/room/wallVertexEdit";
 import { wallStore } from "../../../stores/wallStore";
 import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
-import { getActiveViewerCore } from "../../../core/viewer/pimoViewerRuntime";
+import {
+  getActivePimoViewerApi,
+  getActiveViewerCore,
+  setActiveViewerCore,
+  type ViewerCoreRuntime,
+} from "../../../core/viewer/pimoViewerRuntime";
 import {
   attachOpeningKeyboardListeners,
   detachOpeningKeyboardListeners,
   patchProjectOpeningFromDoorConfig,
   registerOpeningKeyboardHandlers,
+  RoomEngineBoundary,
+  roomEngineStore,
   syncRoomStateOpeningFromConfig,
-} from "../../../pimo-room-v4/openingsHost";
-import { roomEngineStore } from "../../../pimo-room-v4/roomEngineStore";
+  type RoomEngineViewerApi,
+  type RoomEngineViewerHost,
+} from "../../../pimo-room-v4";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
@@ -24,7 +32,6 @@ import { useToolbarModal } from "../../../context/ToolbarModalContext";
 import { defaultState } from "../../../context/projectState";
 import { loadViewerCore } from "../../../core/viewer/viewerEngineLoader";
 import { isViewerApiReady } from "../../../core/viewer/viewerReadiness";
-import { setActiveViewerCore, type ViewerCoreRuntime } from "../../../core/viewer/pimoViewerRuntime";
 import { mToMm } from "../../../utils/units";
 import { uiStore, useUiStore } from "../../../stores/uiStore";
 import { groupStore, resolveActiveGroupMembers } from "../../../stores/groupStore";
@@ -233,10 +240,17 @@ export default function Workspace({
   }, [viewerApi]);
 
   // Montar ViewerCore via import dinâmico.
-  // Runtime canónico: setActiveViewerCore. window.viewerCore fica só como ponte (HMR / dispose).
+  // Runtime canónico: setActiveViewerCore sincroniza também a ponte global de compatibilidade.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    RoomEngineBoundary.viewer.setFallback({
+      getHost: () =>
+        getActiveViewerCore() as unknown as RoomEngineViewerHost | null,
+      getApi: () =>
+        (getActivePimoViewerApi() ??
+          getActiveViewerCore()) as unknown as RoomEngineViewerApi | null,
+    });
     setViewerMounted(false);
     let mounted = true;
     loadViewerCore()
@@ -247,8 +261,11 @@ export default function Workspace({
         window.setOnViewerReady = (callback) => core.setOnViewerReady(callback);
         core.setOnViewerReady(() => {
           if (!mounted) return;
-          setActiveViewerCore(core as unknown as ViewerCoreRuntime);
-          window.viewerCore = core as unknown as typeof window.viewerCore;
+          const runtime = core as unknown as ViewerCoreRuntime;
+          setActiveViewerCore(runtime);
+          RoomEngineBoundary.viewer.setHost(
+            runtime as unknown as RoomEngineViewerHost
+          );
           setViewerMounted(true);
         });
       })
@@ -264,8 +281,9 @@ export default function Workspace({
       if (core?.dispose) {
         core.dispose();
       }
+      RoomEngineBoundary.viewer.setHost(null);
       setActiveViewerCore(null);
-      (window as Window & { viewerCore?: unknown }).viewerCore = undefined;
+      RoomEngineBoundary.viewer.setFallback(null);
       delete window.setOnViewerReady;
       setViewerMounted(false);
     };

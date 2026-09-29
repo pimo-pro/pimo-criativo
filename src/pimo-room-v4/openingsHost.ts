@@ -4,11 +4,13 @@
  */
 import type { DoorWindowConfig } from "../3d/room/types";
 import type { ProjectRoomConfig, ProjectRoomOpening } from "../3d/viewer-engine/room/roomEngineTypes";
-import { getActiveViewerCore, getActivePimoViewerApi } from "../core/viewer/pimoViewerRuntime";
 import { uiStore } from "../stores/uiStore";
 import { OpeningsEngine } from "./OpeningsEngine";
 import { RoomConverter } from "./RoomConverter";
-import { roomEngineStore } from "./roomEngineStore";
+import {
+  getRoomEngineViewerApi,
+  roomEngineStore,
+} from "./roomEngineStore";
 import type { RoomState } from "./RoomState";
 
 let listenersAttached = false;
@@ -20,7 +22,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 function getSelectedOpeningId(): string | null {
-  const api = getActivePimoViewerApi() ?? getActiveViewerCore();
+  const api = getRoomEngineViewerApi();
   const fromViewer =
     (api as { viewerState?: { getSelectedRoomElementId?: () => string | null } } | null)?.viewerState
       ?.getSelectedRoomElementId?.() ?? null;
@@ -62,7 +64,7 @@ function ensureEngineFromProject(room: ProjectRoomConfig): RoomState {
 }
 
 function syncViewerOpening(opening: ProjectRoomOpening, wallIndex: number): void {
-  const api = getActivePimoViewerApi() ?? getActiveViewerCore();
+  const api = getRoomEngineViewerApi();
   if (!api?.updateRoomElementConfig) return;
   const ok = api.updateRoomElementConfig(opening.id, openingToDoorConfig(opening));
   if (ok) return;
@@ -84,7 +86,7 @@ function commitState(next: RoomState, focusId?: string | null): void {
       if (wallIndex >= 0) syncViewerOpening(opening, wallIndex);
     }
     uiStore.getState().setSelectedObject({ type: "roomElement", id: focusId });
-    getActiveViewerCore()?.selectRoomElementById?.(focusId);
+    getRoomEngineViewerApi()?.selectRoomElementById?.(focusId);
   }
 }
 
@@ -123,7 +125,7 @@ function onKeyDown(e: KeyboardEvent): void {
     roomEngineStore.getState().setRoomState(next);
     handlers?.setProjectRoom(RoomConverter.toProjectRoomConfig(next));
     uiStore.getState().clearSelection();
-    getActiveViewerCore()?.selectRoomElementById?.(null);
+    getRoomEngineViewerApi()?.selectRoomElementById?.(null);
     return;
   }
 

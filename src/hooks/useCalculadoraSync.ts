@@ -10,6 +10,7 @@ import { isPiBaseCabinetId } from "../data/moveisUnificados/pi/models";
 import { isCadOnlyWorkspaceBox } from "../core/viewer/isCadOnlyWorkspaceBox";
 import { getSettings } from "../core/settings/settingsService";
 import type { BoxOptions } from "../3d/objects/BoxBuilder";
+import type { CalculadoraViewerApi } from "../core/multibox/types";
 import { mmToM } from "../utils/units";
 import { devLogger } from "../utils/devLogger";
 import { getViewerMaterialId } from "../core/materials/service";
@@ -24,15 +25,6 @@ import { buildCornerDoorLayerItems, getCornerCabinetConfig, isCornerLayoutSsotMo
 import { isIndustrialFileGenerationActive } from "../core/fabrication/industrialGenerationSuspend";
 import type { RulesConfig } from "../core/rules/rulesConfig";
 import { getDrawerViewerLayoutRev } from "../3d/objects/DrawerFactory";
-
-type ViewerApi = {
-  addBox: (_id: string, _options?: BoxOptions) => boolean;
-  removeBox: (_id: string) => boolean;
-  updateBox: (_id: string, _options: Partial<BoxOptions>) => boolean;
-  setBoxIndex: (_id: string, _index: number) => boolean;
-  setBoxGap: (_gap: number) => void;
-  updateDrawerMaterial?: (_boxId: string, _drawerLayerId: string, _materialId: string) => void;
-};
 
 type BoxState = { index: number };
 
@@ -248,7 +240,7 @@ export function getBoxPositionAndRotation(workspaceBox: WorkspaceBox | undefined
 export const useCalculadoraSync = (
   boxes: BoxModule[],
   workspaceBoxes: WorkspaceBox[],
-  viewerApi: ViewerApi,
+  viewerApi: CalculadoraViewerApi,
   gap?: number,
   materialName?: string,
   /** Quando true, o viewer está montado e pronto para receber caixas. */

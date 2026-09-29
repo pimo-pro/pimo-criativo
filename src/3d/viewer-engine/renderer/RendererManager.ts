@@ -20,7 +20,11 @@ export class RendererManager {
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
     this.renderer.setPixelRatio(Math.min(dpr, isMobile ? 1.1 : 2));
-    this.renderer.setSize(container.clientWidth, container.clientHeight, false);
+    this.renderer.setSize(
+      Math.max(1, container.clientWidth || 0),
+      Math.max(1, container.clientHeight || 0),
+      false
+    );
 
     // --- Qualidade visual: gamma, contraste, sombras, antialiasing ---
     if ("outputColorSpace" in this.renderer) {
@@ -42,7 +46,11 @@ export class RendererManager {
   }
 
   setSize(width: number, height: number) {
-    this.renderer.setSize(width, height, false);
+    this.renderer.setSize(
+      Math.max(1, width || 0),
+      Math.max(1, height || 0),
+      false
+    );
   }
 
   render(scene: THREE.Scene, camera: THREE.Camera) {

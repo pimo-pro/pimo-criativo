@@ -2,9 +2,9 @@
  * Liga WalkthroughCamera ao ViewerCore activo (WebGL).
  */
 import * as THREE from "three";
-import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 import type { RoomState } from "../RoomState";
 import { RoomLevelGeometry } from "../levels/RoomLevelGeometry";
+import { getRoomEngineViewerHost } from "../roomEngineStore";
 import { WalkthroughCamera, type WalkthroughBoundsM } from "./WalkthroughCamera";
 
 type ViewerCoreLoose = {
@@ -18,7 +18,7 @@ let activeWalkthrough: WalkthroughCamera | null = null;
 let ghostGroup: THREE.Group | null = null;
 
 function getCore(): ViewerCoreLoose | null {
-  return getActiveViewerCore() as unknown as ViewerCoreLoose | null;
+  return getRoomEngineViewerHost() as unknown as ViewerCoreLoose | null;
 }
 
 function boundsFromState(state: RoomState): WalkthroughBoundsM {

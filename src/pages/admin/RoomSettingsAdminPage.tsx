@@ -17,9 +17,11 @@ import {
   RoomBridge,
   RoomIndustrialAdapter,
   AboutRoomEngineModal,
+  GlbExporter,
   applyAiPreset,
   autoArrange,
   autoDesign,
+  buildRectangularRoomState,
   buildRoomReportMetadata,
   exportGlb,
   getRoomState,
@@ -27,8 +29,6 @@ import {
   type AiPresetId,
   type RoomState,
 } from "../../pimo-room-v4";
-import { buildRectangularRoomState } from "../../pimo-room-v4/RoomConverter";
-import { GlbExporter } from "../../pimo-room-v4/glb/GlbExporter";
 
 export default function RoomSettingsAdminPage() {
   const [message, setMessage] = useState<string | null>(null);

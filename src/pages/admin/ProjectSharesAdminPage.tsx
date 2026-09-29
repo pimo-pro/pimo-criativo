@@ -8,7 +8,7 @@ import {
   type ProjectShareRecord,
 } from "../../api/projectSharesApi";
 import { getUsersRemote, type RemoteUserPublic } from "../../api/usersApi";
-import { apiClient } from "../../api/apiClient";
+import { listProjects } from "../../core/projects/projectsClient";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import PageContainer from "../../components/ui/PageContainer";
@@ -35,13 +35,11 @@ export default function ProjectSharesAdminPage() {
       const [shareList, userList, projectsRes] = await Promise.all([
         getProjectSharesRemote(),
         getUsersRemote(),
-        apiClient.get<{ status: string; projects?: Array<{ id: string; name: string; ownerName?: string }> }>(
-          "/projects?scope=all"
-        ),
+        listProjects("all"),
       ]);
       setShares(shareList);
       setUsers(userList.filter((u) => u.accountStatus !== "pending"));
-      const rows = projectsRes.data?.projects ?? [];
+      const rows = Array.isArray(projectsRes) ? projectsRes : [];
       setProjects(
         rows.map((p) => ({
           id: p.id,

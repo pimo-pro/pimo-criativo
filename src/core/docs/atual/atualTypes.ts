@@ -2,7 +2,7 @@
  * Tipos do hub — Secção Atual / Estado do Sistema (Fase 11).
  */
 
-import type { HubStatCard } from "@/pages/documentacao/loadHubStats";
+import type { HubStatCard } from "../dashboard/dashboardTypes";
 import type { PlaneamentoEntry, PlaneamentoStage } from "../planeamento/planeamentoTypes";
 
 export type AtualAlertLevel = "info" | "warn" | "critical";

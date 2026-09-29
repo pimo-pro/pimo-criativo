@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PimoRoom,
+  RoomEngineBoundary,
   ROOM_ENGINE_PHASE,
   ROOM_ENGINE_VERSION,
   RoomIndustrialAdapter,
@@ -26,6 +27,9 @@ describe("pimo-room v4 — Final Integration", () => {
     expect(PimoRoom.version).toBe("4.0");
     expect(PimoRoom.phase).toBe("FINAL");
     expect(PimoRoom.alfaVersion).toBe("4.0");
+    expect(RoomEngineBoundary.version).toBe("4.0");
+    expect(typeof RoomEngineBoundary.viewer.setHost).toBe("function");
+    expect(typeof RoomEngineBoundary.viewer.getHost).toBe("function");
   });
 
   it("API pública loadRoom / get/setRoomState", () => {

@@ -2,12 +2,16 @@
  * Indicadores de saúde do Hub (encoding / layout / loaders / navegação).
  */
 
-import { loadHubStats } from "@/pages/documentacao/loadHubStats";
 import { loadHubProgresso } from "../progresso/loadHubProgresso";
 import { loadHubPlaneamento } from "../planeamento/loadHubPlaneamento";
 import { loadHubAtual } from "../atual/loadHubAtual";
 import { loadHistoricoArchive } from "../archive/loadHistoricoArchive";
-import type { DashboardHealth, DashboardHealthItem, DashboardHealthStatus } from "./dashboardTypes";
+import {
+  loadHubStats,
+  type DashboardHealth,
+  type DashboardHealthItem,
+  type DashboardHealthStatus,
+} from "./dashboardTypes";
 
 function worst(a: DashboardHealthStatus, b: DashboardHealthStatus): DashboardHealthStatus {
   const rank = { ok: 0, warn: 1, fail: 2 };

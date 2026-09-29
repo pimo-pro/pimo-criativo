@@ -40,7 +40,21 @@ export {
   isWalkthroughActive,
   syncLevelGhosts,
 } from "./walkthrough/walkthroughHost";
-export { roomEngineStore, useRoomEngineStore } from "./roomEngineStore";
+export {
+  getRoomEngineViewerApi,
+  getRoomEngineViewerHost,
+  getRoomViewerApi,
+  getRoomViewerCore,
+  roomEngineStore,
+  setRoomEngineViewerFallback,
+  setRoomEngineViewerHost,
+  setRoomViewerCore,
+  useRoomEngineStore,
+  type RoomEngineOpeningConfig,
+  type RoomEngineViewerApi,
+  type RoomEngineViewerFallback,
+  type RoomEngineViewerHost,
+} from "./roomEngineStore";
 export type { CatalogItem, CatalogItemType, CatalogItemScale } from "./catalog/CatalogItem";
 export type { CatalogItemState } from "./catalog/CatalogItemState";
 export { CatalogItemManager, toCatalogItemState } from "./catalog/CatalogItemManager";
@@ -91,7 +105,13 @@ export {
 export { AboutRoomEngineModal } from "./ui/AboutRoomEngineModal";
 
 import { RoomBridge, type RoomBridgeImportResult } from "./RoomBridge";
-import { roomEngineStore } from "./roomEngineStore";
+import {
+  getRoomEngineViewerApi,
+  getRoomEngineViewerHost,
+  roomEngineStore,
+  setRoomEngineViewerFallback,
+  setRoomEngineViewerHost,
+} from "./roomEngineStore";
 import type { RoomState } from "./RoomState";
 import { AiEngine } from "./ai/AiEngine";
 import type { AiPresetId } from "./ai/AiPresets";
@@ -175,4 +195,18 @@ export const PimoRoom = {
   setRoomState,
   industrial: RoomIndustrialAdapter,
   bridge: RoomBridge,
+} as const;
+
+/**
+ * Boundary pública do RoomEngine.
+ * Consumidores externos devem entrar por esta fachada.
+ */
+export const RoomEngineBoundary = {
+  ...PimoRoom,
+  viewer: {
+    setHost: setRoomEngineViewerHost,
+    setFallback: setRoomEngineViewerFallback,
+    getHost: getRoomEngineViewerHost,
+    getApi: getRoomEngineViewerApi,
+  },
 } as const;

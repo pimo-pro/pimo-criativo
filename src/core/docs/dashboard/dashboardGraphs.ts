@@ -2,11 +2,14 @@
  * Dados SVG do Dashboard — timeline, barras, donut (sem libs).
  */
 
-import { loadHubStats } from "@/pages/documentacao/loadHubStats";
 import { loadHubProgresso } from "../progresso/loadHubProgresso";
 import { loadHubPlaneamento } from "../planeamento/loadHubPlaneamento";
 import { loadHubAtual } from "../atual/loadHubAtual";
-import type { DashboardGraph, DashboardSlice } from "./dashboardTypes";
+import {
+  loadHubStats,
+  type DashboardGraph,
+  type DashboardSlice,
+} from "./dashboardTypes";
 
 const C = {
   blue: "#3b82f6",

@@ -15,12 +15,12 @@ import {
 } from "../../src/core/viewer/pimoViewerRuntime";
 import { isViewerApiReady, isViewerCoreReady } from "../../src/core/viewer/viewerReadiness";
 import { ProjectLoader } from "../../src/core/viewer/formats/ProjectLoader";
+import { createViewerApiAdapter } from "../../src/core/viewer/viewerApiAdapter";
 import type { ProjectState } from "../../src/context/projectTypes";
 import type { PimoViewerApi } from "../../src/context/PimoViewerContextCore";
 
 const SRC_ROOT = join(process.cwd(), "src");
 const WINDOW_VIEWER_CORE_ALLOWLIST = new Set([
-  "src/components/layout/workspace/Workspace.tsx",
   "src/hooks/viewer/viewerCoreWindow.d.ts",
   "src/core/viewer/pimoViewerRuntime.ts",
   "src/core/viewer/viewerReadiness.ts",
@@ -47,6 +47,33 @@ afterEach(() => {
 });
 
 describe("PimoViewerApi (Z-01.2.8)", () => {
+  it("adapter preserva aliases e normaliza o bounding box", () => {
+    const setTransformMode = vi.fn();
+    const api = {
+      ...getPimoViewerStubApi(),
+      setTransformMode,
+      getCombinedBoundingBox: () => ({
+        min: { x: 0, y: 0, z: 0 },
+        max: { x: 1, y: 2, z: 3 },
+        size: { x: 1, y: 2, z: 3 },
+        width: 1,
+        height: 2,
+        depth: 3,
+      }),
+    } as PimoViewerApi;
+
+    const adapted = createViewerApiAdapter(api);
+    adapted?.setTool("move");
+
+    expect(setTransformMode).toHaveBeenCalledWith("translate");
+    expect(adapted?.getCombinedBoundingBox()).toEqual({
+      width: 1,
+      height: 2,
+      depth: 3,
+    });
+    expect(createViewerApiAdapter(null)).toBeNull();
+  });
+
   it("o stub é sempre válido, viewerReady false, addBox e setMeasurementMode existem", () => {
     const api = getPimoViewerStubApi();
     expect(api.viewerReady).toBe(false);

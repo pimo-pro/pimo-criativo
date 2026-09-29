@@ -184,6 +184,12 @@ describe("Phase 1 — remote API auth client", () => {
     expect(canUseRemoteProjectsApi()).toBe(false);
   });
 
+  it("token K/K legado com espaços → sem sync remoto", () => {
+    localStorage.setItem("pimo_auth_token", "  local-dev-token  ");
+    expect(getRemoteApiBearerToken()).toBeNull();
+    expect(canUseRemoteProjectsApi()).toBe(false);
+  });
+
   it("JWT real → sync remoto permitido", () => {
     localStorage.setItem("pimo_auth_token", "eyJhbGciOiJIUzI1NiJ9.payload.sig");
     expect(getRemoteApiBearerToken()).toBe("eyJhbGciOiJIUzI1NiJ9.payload.sig");

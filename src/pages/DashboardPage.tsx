@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { getProjects } from "../api/projectsApi";
+import { canViewAllProjects } from "../auth/rbacHelpers";
 import { useAuth } from "../auth/useAuth";
 import { useTheme, type ThemeId } from "../context/ThemeContext";
 import { listProjects } from "../core/projects/projectsClient";
@@ -1096,7 +1096,7 @@ function SectionContent({
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
-  const { user, permissions } = useAuth();
+  const { user, permissions, hasPermission } = useAuth();
   const { theme, setTheme } = useTheme();
 
   const username = user?.username ?? "—";
@@ -1106,7 +1106,7 @@ export default function DashboardPage() {
   const [activeSubItem, setActiveSubItem] = useState<SubItemId>("info");
   const [subpanelOpen, setSubpanelOpen] = useState(true);
 
-  // Remote API count
+  // Estado da lista canónica de projetos.
   const [projectsCount, setProjectsCount] = useState<number | null>(null);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -1136,41 +1136,23 @@ export default function DashboardPage() {
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(readLastOpenedId);
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPinnedIds);
 
-  // Remote API
-  useEffect(() => {
-    let cancelled = false;
-    getProjects()
-      .then((res) => {
-        if (!cancelled) {
-          setProjectsError(null);
-          // @PIMO-KEEP — guard: API pode devolver projects:undefined
-          const list = res.projects ?? [];
-          setProjectsCount(list.length);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled)
-          setProjectsError(e instanceof Error ? e.message : "Erro ao carregar projetos");
-      })
-      .finally(() => {
-        if (!cancelled) setProjectsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Local projects + derived stats
+  // Projetos canónicos (remoto + offline) e estatísticas derivadas.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const currentUser = getCurrentProjectUser();
-        const all = await listProjects("all");
+        const scope = canViewAllProjects(hasPermission) ? "all" : "mine";
+        const all = await listProjects(
+          scope,
+          scope === "mine" ? currentUser.ownerId : undefined
+        );
         if (cancelled) return;
 
         // @PIMO-KEEP — guard: lista pode ser inválida
         const safe = Array.isArray(all) ? all : [];
+        setProjectsError(null);
+        setProjectsCount(safe.length);
 
         // Basic stats
         const stats: ProjectStats = {
@@ -1235,16 +1217,23 @@ export default function DashboardPage() {
 
         // Refresh last opened in case localStorage changed
         if (!cancelled) setLastOpenedId(readLastOpenedId());
-      } catch {
-        /* Falha silenciosa — dados locais podem não estar disponíveis */
+      } catch (error) {
+        if (!cancelled) {
+          setProjectsError(
+            error instanceof Error ? error.message : "Erro ao carregar projetos"
+          );
+        }
       } finally {
-        if (!cancelled) setRecentLoading(false);
+        if (!cancelled) {
+          setProjectsLoading(false);
+          setRecentLoading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hasPermission]);
 
   const handleTogglePin = useCallback((id: string) => {
     setPinnedIds((prev) => {

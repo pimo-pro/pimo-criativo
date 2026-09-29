@@ -20,6 +20,24 @@ describe("ComposerEngine (Z-01.2.7)", () => {
     expect(engine.main).toBeNull();
   });
 
+  it("nível inicial baixo não cria composer nem FXAA", () => {
+    const engine = new ComposerEngine({
+      getRenderer: () => {
+        throw new Error("não deve criar pipeline no nível inicial baixo");
+      },
+      getScene: () => {
+        throw new Error("scene");
+      },
+      getCamera: () => {
+        throw new Error("camera");
+      },
+      getContainer: () => null,
+    });
+    expect(engine.ensureMain()).toBeNull();
+    expect(engine.main).toBeNull();
+    expect(engine.mainFxaa).toBeNull();
+  });
+
   it("dispose é idempotente", () => {
     const engine = new ComposerEngine({
       getRenderer: () => null as never,

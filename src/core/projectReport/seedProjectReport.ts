@@ -12,10 +12,10 @@ import {
   resolveMateriaisProjeto,
   resolveProjectDesigner,
 } from "@/core/projects/projectMeta";
-import { projectNameFromPageSlug } from "@/app/PROJETOS/projetosPageSlug";
 import {
   findOfflineProjectByAnyKey,
   isInternalProjectId,
+  projectNameFromPageSlug,
   resolveProjectIdentity,
 } from "@/core/projects/projectIdentity";
 import { toSavedRecordFromOffline } from "@/core/projects/projectsMappers";

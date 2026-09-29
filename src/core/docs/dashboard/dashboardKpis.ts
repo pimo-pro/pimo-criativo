@@ -3,10 +3,14 @@
  * Sem fetch; não altera loaders existentes.
  */
 
-import { loadHubStats } from "@/pages/documentacao/loadHubStats";
 import { loadHubProgresso } from "../progresso/loadHubProgresso";
 import { loadHubAtual } from "../atual/loadHubAtual";
-import type { DashboardCounters, DashboardKpi, DashboardTone } from "./dashboardTypes";
+import {
+  loadHubStats,
+  type DashboardCounters,
+  type DashboardKpi,
+  type DashboardTone,
+} from "./dashboardTypes";
 
 function sparkFromDelta(base: number, upPercent: number): number[] {
   const start = Math.max(1, Math.round(base / (1 + upPercent / 100)));

@@ -16,4 +16,20 @@ describe("Phase 1 — Admin UI gate source", () => {
       /path="\/admin\/settings\/industrial"[\s\S]*PermissionRoute check=\{canAccessAdminPanel\}/
     );
   });
+
+  it("Dashboard e Partilhas usam o cliente canónico de projetos", () => {
+    const dashboard = readFileSync(
+      resolve(__dirname, "../../pages/DashboardPage.tsx"),
+      "utf8"
+    );
+    const shares = readFileSync(
+      resolve(__dirname, "../../pages/admin/ProjectSharesAdminPage.tsx"),
+      "utf8"
+    );
+
+    expect(dashboard).not.toContain('../api/projectsApi');
+    expect(dashboard).toContain("canViewAllProjects(hasPermission)");
+    expect(shares).toContain('listProjects("all")');
+    expect(shares).not.toContain('apiClient.get');
+  });
 });

@@ -35,38 +35,33 @@ import {
   ensureRoomZones,
 } from "../../../3d/room/roomZones";
 import { autoZonesFromClosedLoops } from "../../../3d/room/roomAutoZones";
-import { getActiveViewerCore } from "../../../core/viewer/pimoViewerRuntime";
-import { RoomBridge } from "../../../pimo-room-v4/RoomBridge";
-import { RoomLevelManager } from "../../../pimo-room-v4/levels/RoomLevelManager";
-import { RoomConverter } from "../../../pimo-room-v4/RoomConverter";
-import { SlabEngine } from "../../../pimo-room-v4/SlabEngine";
-import { useRoomEngineStore } from "../../../pimo-room-v4/roomEngineStore";
 import {
-  startWalkthrough,
-  stopWalkthrough,
-  syncLevelGhosts,
-} from "../../../pimo-room-v4/walkthrough/walkthroughHost";
-import { MATERIAL_PRESETS } from "../../../pimo-room-v4/MaterialsEngine";
-import { CATALOG_PRESETS } from "../../../pimo-room-v4/catalog/CatalogPresets";
-import { CatalogItemManager } from "../../../pimo-room-v4/catalog/CatalogItemManager";
-import {
-  selectCatalogItem,
-  syncCatalogItems,
-} from "../../../pimo-room-v4/catalog/catalogHost";
-import { syncIfcPreviewFromRoomState } from "../../../pimo-room-v4/ifc/ifcHost";
-import { GlbExporter } from "../../../pimo-room-v4/glb/GlbExporter";
-import { AiEngine } from "../../../pimo-room-v4/ai/AiEngine";
-import { AI_PRESETS, type AiPresetId } from "../../../pimo-room-v4/ai/AiPresets";
-import {
-  showAiPreview,
-  clearAiPreview,
-  animateApplyAiLayout,
-} from "../../../pimo-room-v4/ai/aiHost";
-import { buildRoomReportMetadata } from "../../../pimo-room-v4/roomMetadata";
-import {
+  AI_PRESETS,
   AboutRoomEngineModal,
+  AiEngine,
+  CATALOG_PRESETS,
+  CatalogItemManager,
+  GlbExporter,
+  MATERIAL_PRESETS,
   PIMO_ALFA_VERSION,
   ROOM_ENGINE_VERSION,
+  RoomBridge,
+  RoomConverter,
+  RoomEngineBoundary,
+  RoomLevelManager,
+  SlabEngine,
+  animateApplyAiLayout,
+  buildRoomReportMetadata,
+  clearAiPreview,
+  selectCatalogItem,
+  showAiPreview,
+  startWalkthrough,
+  stopWalkthrough,
+  syncCatalogItems,
+  syncIfcPreviewFromRoomState,
+  syncLevelGhosts,
+  useRoomEngineStore,
+  type AiPresetId,
 } from "../../../pimo-room-v4";
 
 const DEFAULT_OPENING = {
@@ -1415,10 +1410,9 @@ export function PainelSala() {
               type="button"
               className="button button-primary"
               onClick={() => {
-                const core = getActiveViewerCore() as {
-                  roomBuilder?: { toggleElementOpen?: (_id: string) => boolean | null };
-                } | null;
-                core?.roomBuilder?.toggleElementOpen?.(selectedOpening.id);
+                RoomEngineBoundary.viewer
+                  .getHost()
+                  ?.roomBuilder?.toggleElementOpen?.(selectedOpening.id);
               }}
             >
               Abrir / fechar (swing)

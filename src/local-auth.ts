@@ -17,6 +17,11 @@ export const LOCAL_DEV_AUTH_TOKEN = "local-dev-token";
 
 const SESSION_KEY = "pimo_session";
 
+/** Reconhece o token K/K, incluindo valores legados com espaços. */
+export function isLocalDevAuthToken(token: string | null | undefined): boolean {
+  return typeof token === "string" && token.trim() === LOCAL_DEV_AUTH_TOKEN;
+}
+
 export type LocalAuthSession = {
   token: string;
   user: { id: string; name: string; role: string };

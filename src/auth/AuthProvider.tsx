@@ -4,6 +4,7 @@ import { getMe, login as loginApi, mapAuthUserFromApi } from "../api/authApi";
 import { setApiToken } from "../api/apiClient";
 import {
   clearLocalAuthSession,
+  isLocalDevAuthToken,
   readLocalAuthSession,
   tryLocalAuth,
 } from "../local-auth";
@@ -69,6 +70,13 @@ export function AuthProvider({ children }: Props) {
     const storedToken = localStorage.getItem(STORAGE_TOKEN);
     const storedUser = localStorage.getItem(STORAGE_USER);
     const storedPermissions = localStorage.getItem(STORAGE_PERMISSIONS);
+
+    // Nunca restaurar um token K/K legado como se fosse um JWT remoto.
+    if (isLocalDevAuthToken(storedToken)) {
+      clearSession();
+      setLoading(false);
+      return;
+    }
 
     if (!storedToken || !storedUser || !storedPermissions) {
       setLoading(false);

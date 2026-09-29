@@ -3,6 +3,11 @@
  */
 
 export type {
+  HubStatTone,
+  HubStatIcon,
+  HubStatDelta,
+  HubStatCard,
+  HubStatsSnapshot,
   DashboardTone,
   DashboardKpi,
   DashboardPoint,
@@ -17,6 +22,7 @@ export type {
   HubDashboardSnapshot,
 } from "./dashboardTypes";
 
+export { loadHubStats } from "./dashboardTypes";
 export { buildDashboardKpis } from "./dashboardKpis";
 export { buildDashboardGraphs } from "./dashboardGraphs";
 export { buildDashboardHealth } from "./dashboardHealth";

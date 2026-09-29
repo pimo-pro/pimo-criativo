@@ -4,12 +4,14 @@
  * - local-dev-token / ausente → sem sync remoto (offline)
  */
 
+import { isLocalDevAuthToken } from "../../local-auth";
+
 const AUTH_TOKEN_KEY = "pimo_auth_token";
 
 export function getRemoteApiBearerToken(): string | null {
   if (typeof localStorage === "undefined") return null;
   const token = (localStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
-  if (!token || token === "local-dev-token") return null;
+  if (!token || isLocalDevAuthToken(token)) return null;
   return token;
 }
 

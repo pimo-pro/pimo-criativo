@@ -3,7 +3,7 @@
  * Sem fetch. Não altera loaders de progresso/planeamento/stats/archive.
  */
 
-import { loadHubStats } from "@/pages/documentacao/loadHubStats";
+import { loadHubStats } from "../dashboard/dashboardTypes";
 import { loadHubProgresso } from "../progresso/loadHubProgresso";
 import { loadHubPlaneamento } from "../planeamento/loadHubPlaneamento";
 import { loadHistoricoArchive } from "../archive/loadHistoricoArchive";

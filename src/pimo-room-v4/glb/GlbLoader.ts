@@ -16,7 +16,7 @@ import {
 } from "../RoomState";
 import { computeFootprintFromWalls } from "../RoomGeometry";
 import { enhancePbrMaterials, ensureAssetLights } from "./glbMaterials";
-import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
+import { getRoomEngineViewerHost } from "../roomEngineStore";
 
 const loader = new GLTFLoader();
 
@@ -311,7 +311,7 @@ export const RoomGlbLoader = {
 
   /** Coloca o root GLB na cena ViewerCore (materiais PBR). */
   attachToViewer(root: THREE.Object3D): void {
-    const core = getActiveViewerCore() as unknown as {
+    const core = getRoomEngineViewerHost() as unknown as {
       sceneManager?: { scene: THREE.Scene };
     } | null;
     if (!core?.sceneManager?.scene) return;

@@ -78,4 +78,12 @@ describe("local-auth Phase 0", () => {
     await expect(tryLocalAuth("admin@pimo.local", "admin123")).resolves.toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("reconhece apenas o token local, mesmo com espaços legados", async () => {
+    const { isLocalDevAuthToken } = await import("./local-auth");
+    expect(isLocalDevAuthToken("local-dev-token")).toBe(true);
+    expect(isLocalDevAuthToken("  local-dev-token  ")).toBe(true);
+    expect(isLocalDevAuthToken("eyJhbGciOiJIUzI1NiJ9.payload.sig")).toBe(false);
+    expect(isLocalDevAuthToken(null)).toBe(false);
+  });
 });

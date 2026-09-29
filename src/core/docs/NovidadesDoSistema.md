@@ -1,5 +1,14 @@
 # Novidades do Sistema
 
+### Release — W1–W7 · RoomEngineBoundary e isolamento do viewer
+Consolidação das waves W1 até W7: fronteira formal da sala, remoção de dependências implícitas do viewer e preparação para substituição futura do módulo da sala, com compatibilidade total do runtime actual.
+
+- **W1–W7:** identidade/slug, core/docs, contratos viewer, runtime `window.viewerCore`, injecção de hosts Room e boundary formal
+- **RoomEngineBoundary:** criação e isolamento da fronteira da RoomEngine (hosts injectados; sem acoplamento oculto ao viewer)
+- **Viewer:** remoção de dependências implícitas; UI (PainelSala, Workspace, RoomSettings) passa pelo barrel `pimo-room-v4`
+- **Substituição futura:** módulo da sala preparado para troca sem alterar o runtime observável
+- **Compatibilidade:** comportamento do viewer/sala/industrial preservado; sem novas features de produto
+
 ### Release — PIMO-V4.0.0 (versão estável de referência)
 Publicada versão estável PIMO-V4.0.0 — ponto de retorno seguro antes da reestruturação e desenvolvimento do PIMO-V4.
 

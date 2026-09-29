@@ -4,10 +4,12 @@
  */
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 import type { RoomState } from "../RoomState";
 import { RoomLevelGeometry } from "../levels/RoomLevelGeometry";
-import { roomEngineStore } from "../roomEngineStore";
+import {
+  getRoomEngineViewerHost,
+  roomEngineStore,
+} from "../roomEngineStore";
 import { CatalogItemManager, toCatalogItemState } from "./CatalogItemManager";
 import type { CatalogItemState } from "./CatalogItemState";
 import { getCatalogPreset } from "./CatalogPresets";
@@ -33,7 +35,7 @@ const gltfCache = new Map<string, THREE.Object3D>();
 const gltfLoader = new GLTFLoader();
 
 function getCore(): ViewerCoreLoose | null {
-  return getActiveViewerCore() as unknown as ViewerCoreLoose | null;
+  return getRoomEngineViewerHost() as unknown as ViewerCoreLoose | null;
 }
 
 function ensureGroup(scene: THREE.Scene): THREE.Group {

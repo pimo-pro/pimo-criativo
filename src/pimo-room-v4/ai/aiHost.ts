@@ -2,12 +2,12 @@
  * Preview ghost + animações lerp no ViewerCore (Fase E).
  */
 import * as THREE from "three";
-import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
 import { createPlaceholderMesh } from "../catalog/createPlaceholderMesh";
 import { getCatalogPreset } from "../catalog/CatalogPresets";
 import { toCatalogItemState } from "../catalog/CatalogItemManager";
 import type { RoomState } from "../RoomState";
 import { RoomLevelGeometry } from "../levels/RoomLevelGeometry";
+import { getRoomEngineViewerHost } from "../roomEngineStore";
 import { syncCatalogItems } from "../catalog/catalogHost";
 
 const GHOST_NAME = "roomAiGhosts";
@@ -22,7 +22,7 @@ let animFrame = 0;
 let animating = false;
 
 function getCore(): ViewerCoreLoose | null {
-  return getActiveViewerCore() as unknown as ViewerCoreLoose | null;
+  return getRoomEngineViewerHost() as unknown as ViewerCoreLoose | null;
 }
 
 function disposeGroup(group: THREE.Group): void {

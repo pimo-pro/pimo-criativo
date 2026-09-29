@@ -48,7 +48,7 @@ export class ComposerEngine {
   mainFxaa: ShaderPass | null = null;
   private showcaseBloomProfile: BloomCapturePreset = LIVE_SHOWCASE_BLOOM;
   private mainBloomProfile: BloomCapturePreset = LIVE_MAIN_BLOOM;
-  private currentLevel: DisplayQualityLevel = "media";
+  private currentLevel: DisplayQualityLevel = "baixa";
   private readonly deps: ComposerEngineDeps;
 
   constructor(deps: ComposerEngineDeps) {
