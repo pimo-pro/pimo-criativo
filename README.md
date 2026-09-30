@@ -12,7 +12,7 @@
 <h1 align="center">PIMO Criativo</h1>
 
 <p align="center">
-  Plataforma web para desenho de mobiliário com visualização 3D, gestão de projetos e módulos industriais.
+  Plataforma paramétrica industrial que liga quem imagina um móvel a quem o sabe fabricar, do desenho em 3D ao ficheiro pronto para máquina CNC, num único fluxo.
 </p>
 
 <p align="center">
