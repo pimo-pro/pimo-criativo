@@ -1,15 +1,12 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg" />
-    <img src="docs/assets/banner-light.svg" alt="Banner PIMO Criativo" width="100%" />
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.png" />
+    <img src="docs/assets/banner-light.png" alt="Banner PiMo Studio" width="100%" />
   </picture>
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg" />
-    <img src="docs/assets/logo-light.svg" alt="Logótipo PIMO Criativo" width="110" />
-  </picture>
+  <img src="docs/assets/logo-pi.png" alt="Logótipo oficial PiMo Studio" width="260" />
 </p>
 
 <h1 align="center">PIMO Criativo</h1>
