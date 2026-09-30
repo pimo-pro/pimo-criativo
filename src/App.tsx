@@ -1,6 +1,7 @@
 import Header from "./components/layout/header/Header";
 import LeftToolbar from "./components/layout/left-toolbar/LeftToolbar";
 import LeftPanel from "./components/layout/left-panel/LeftPanel";
+import RightPanelDock from "./components/layout/right-panel/RightPanelDock";
 import ToolbarModals from "./components/layout/ToolbarModals";
 import Workspace from "./components/layout/workspace/Workspace";
 import Footer from "./components/layout/footer/Footer";
@@ -20,10 +21,12 @@ import MateriaisSsotBootstrap from "./core/catalog/MateriaisSsotBootstrap";
 import { SettingsProvider } from "./context/SettingsContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ThemeTemplateProvider } from "./context/ThemeTemplateContext";
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "./constants/viewerOptions";
 import { useUiStore } from "./stores/uiStore";
+import { LEFT_PANEL_DOM_ID, useLeftPanelChrome } from "./hooks/useLeftPanelChrome";
+import { Icon } from "@/components/icons";
 import HelpPage from "./pages/HelpPage";
 import LandingPage from "./pages/LandingPage";
 import UserProjectsPage from "./pages/UserProjectsPage";
@@ -117,7 +120,6 @@ const DevPimoTest = import.meta.env.DEV
   : null;
 
 function LegacyApp() {
-  const [leftOpen, setLeftOpen] = useState(true);
   const leftPanelTab = useUiStore((state) => state.selectedTool);
   const setLeftPanelTab = useUiStore((state) => state.setSelectedTool);
   const clearSelection = useUiStore((state) => state.clearSelection);
@@ -125,41 +127,19 @@ function LegacyApp() {
   const setPhotoModePanelOpen = useUiStore((state) => state.setPhotoModePanelOpen);
   const roomPanelOpen = useUiStore((state) => state.roomPanelOpen);
   const setRoomPanelOpen = useUiStore((state) => state.setRoomPanelOpen);
-  const [leftWidth, setLeftWidth] = useState(260);
-  const resizeState = useRef({
-    active: false,
-    startX: 0,
-    startWidth: 260,
+  const {
+    leftOpen,
+    openLeftPanel,
+    collapseLeftPanel,
+    handleResizeStart,
+    handleResizeMove,
+    handleResizeEnd,
+    handlePanelTransitionEnd,
+    panelShellStyle,
+  } = useLeftPanelChrome({
+    forceOpen: photoModePanelOpen || roomPanelOpen,
   });
   const { user, hasPermission, loading: authLoading } = useAuth();
-
-  const clampLeftWidth = (value: number) => Math.min(420, Math.max(220, value));
-
-  useEffect(() => {
-    if (photoModePanelOpen || roomPanelOpen) {
-      setLeftOpen(true);
-    }
-  }, [photoModePanelOpen, roomPanelOpen]);
-
-  const handleResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!leftOpen) return;
-    resizeState.current = {
-      active: true,
-      startX: event.clientX,
-      startWidth: leftWidth,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handleResizeMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!resizeState.current.active) return;
-    const delta = event.clientX - resizeState.current.startX;
-    setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
-  };
-
-  const handleResizeEnd = () => {
-    resizeState.current.active = false;
-  };
   const [showSystemDocs, setShowSystemDocs] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showDevTest, setShowDevTest] = useState(false);
@@ -339,37 +319,60 @@ function LegacyApp() {
                             }
                             setLeftPanelTab(id);
                             clearSelection();
-                            if (!leftOpen) setLeftOpen(true);
+                            if (!leftOpen) openLeftPanel();
                           }}
                         />
                       </div>
                       <div
+                        id={LEFT_PANEL_DOM_ID}
                         className="panel panel-shell panel-shell--side left-panel panel-shell-left"
-                        style={{
-                          width: leftOpen ? leftWidth : 0,
-                          minWidth: leftOpen ? leftWidth : 0,
-                          maxWidth: leftOpen ? leftWidth : 0,
-                          overflow: "hidden",
-                          transition: "width 0.2s ease",
-                          position: "relative",
-                        }}
+                        style={panelShellStyle}
+                        onTransitionEnd={handlePanelTransitionEnd}
+                        aria-hidden={!leftOpen}
                       >
                         <LeftPanel activeTab={leftPanelTab} />
                         {leftOpen && (
-                          <div
-                            className="panel-resizer"
-                            onPointerDown={handleResizeStart}
-                            onPointerMove={handleResizeMove}
-                            onPointerUp={handleResizeEnd}
-                            onPointerCancel={handleResizeEnd}
-                          />
+                          <>
+                            <button
+                              type="button"
+                              className="left-panel-collapse-btn"
+                              aria-label="Recolher painel lateral"
+                              aria-expanded="true"
+                              aria-controls={LEFT_PANEL_DOM_ID}
+                              onClick={collapseLeftPanel}
+                            >
+                              <span className="left-panel-collapse-btn__icon" aria-hidden="true">
+                                <Icon name="chevronRight" size={16} />
+                              </span>
+                            </button>
+                            <div
+                              className="panel-resizer"
+                              onPointerDown={handleResizeStart}
+                              onPointerMove={handleResizeMove}
+                              onPointerUp={handleResizeEnd}
+                              onPointerCancel={handleResizeEnd}
+                            />
+                          </>
                         )}
                       </div>
+                      {!leftOpen && (
+                        <button
+                          type="button"
+                          className="left-panel-reopen-btn"
+                          aria-label="Expandir painel lateral"
+                          aria-expanded="false"
+                          aria-controls={LEFT_PANEL_DOM_ID}
+                          onClick={openLeftPanel}
+                        >
+                          <Icon name="chevronRight" size={14} aria-hidden />
+                        </button>
+                      )}
                       <Workspace
                         viewerBackground={VIEWER_BACKGROUND}
                         viewerHeight="100%"
                         viewerOptions={viewerOptions}
                       />
+                      <RightPanelDock />
                       <ToolbarModals />
                     </div>
                     <BottomInfoPanelsOverlay />

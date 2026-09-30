@@ -9,7 +9,8 @@ import type { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
  * Invariantes:
  * - O core fornece callbacks sem efeitos colaterais irreversíveis por frame.
  * - ensureMainComposer/getMainComposer e getShowcaseComposer refletem o estado real do pipeline.
- * - onResize() ajusta renderer/camera/composers; o módulo não observa DOM por conta própria.
+ * - onResize() ajusta renderer/camera/composers; a observação DOM (window + ResizeObserver
+ *   do container) vive em registerViewerWindowEvents / ViewerCoreConstructorOps.
  */
 type ViewerRuntimeLoopDeps = {
   getRenderer: () => THREE.WebGLRenderer;

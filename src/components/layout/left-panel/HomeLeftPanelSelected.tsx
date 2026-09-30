@@ -90,7 +90,7 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
   return (
     <div className="left-panel-content">
       <div className="left-panel-scroll">
-        <aside className="panel-content panel-content--side">
+        <aside className="panel-content panel-content--side home-left-panel">
           <div className="design-panel-header">
             <SectionTitleWithHelp title="Início" helpText={HOME_SELECTED_SECTION_HELP_TEXT} />
           </div>
@@ -107,12 +107,11 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
             </Panel>
           )}
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          <div className="home-left-panel__actions">
             <button
               type="button"
               onClick={() => actions.addWorkspaceBox()}
               className="button button-primary"
-              style={{ flex: 1, minWidth: 140 }}
             >
               Adicionar Caixote
             </button>
@@ -121,7 +120,6 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
                 type="button"
                 onClick={() => actions.duplicateWorkspaceBox()}
                 className="button button-ghost"
-                style={{ flex: 1, minWidth: 140 }}
               >
                 Duplicar Caixa
               </button>
@@ -144,36 +142,42 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <div className="panel-field-row">
                     <span className="panel-label">Largura:</span>
-                    <NumericInput
-                      value={selectedBox.dimensoes.largura}
-                      onChange={(value) => {
-                        actions.setDimensoes({ largura: value });
-                      }}
-                      className="input input-xs"
-                      unit="mm"
-                    />
+                    <div className="panel-field">
+                      <NumericInput
+                        value={selectedBox.dimensoes.largura}
+                        onChange={(value) => {
+                          actions.setDimensoes({ largura: value });
+                        }}
+                        className="input input-xs"
+                        unit="mm"
+                      />
+                    </div>
                   </div>
                   <div className="panel-field-row">
                     <span className="panel-label">Altura:</span>
-                    <NumericInput
-                      value={selectedBox.dimensoes.altura}
-                      onChange={(value) => {
-                        actions.setDimensoes({ altura: value });
-                      }}
-                      className="input input-xs"
-                      unit="mm"
-                    />
+                    <div className="panel-field">
+                      <NumericInput
+                        value={selectedBox.dimensoes.altura}
+                        onChange={(value) => {
+                          actions.setDimensoes({ altura: value });
+                        }}
+                        className="input input-xs"
+                        unit="mm"
+                      />
+                    </div>
                   </div>
                   <div className="panel-field-row">
                     <span className="panel-label">Profundidade:</span>
-                    <NumericInput
-                      value={selectedBox.dimensoes.profundidade}
-                      onChange={(value) => {
-                        actions.setDimensoes({ profundidade: value });
-                      }}
-                      className="input input-xs"
-                      unit="mm"
-                    />
+                    <div className="panel-field">
+                      <NumericInput
+                        value={selectedBox.dimensoes.profundidade}
+                        onChange={(value) => {
+                          actions.setDimensoes({ profundidade: value });
+                        }}
+                        className="input input-xs"
+                        unit="mm"
+                      />
+                    </div>
                   </div>
                 </div>
                 {profundidadeLeitura && (
@@ -476,44 +480,46 @@ export function HomeLeftPanelSelected({ materialsPicker }: HomeLeftPanelSelected
                       {feetEnabled && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
                           <div className="panel-field-row">
-                            <label className="panel-label" style={{ minWidth: 110 }}>
+                            <label className="panel-label">
                               Altura (mm)
                             </label>
-                            <NumericInput
-                              value={feetHeightMm}
-                              min={40}
-                              onChange={(clamped) => {
-                                const partial: {
-                                  feetHeight: number;
-                                  y_mm?: number;
-                                  manualPosition?: boolean;
-                                } = { feetHeight: clamped };
-                                if (selectedBox.feetEnabled !== false && shouldLockY) {
-                                  partial.y_mm = clamped + selectedBox.dimensoes.altura / 2;
-                                  partial.manualPosition = true;
-                                }
-                                actions.updateWorkspaceBoxTransform(selectedBox.id, partial);
-                              }}
-                              className="input input-sm"
-                              style={{ width: 110 }}
-                            />
+                            <div className="panel-field">
+                              <NumericInput
+                                value={feetHeightMm}
+                                min={40}
+                                onChange={(clamped) => {
+                                  const partial: {
+                                    feetHeight: number;
+                                    y_mm?: number;
+                                    manualPosition?: boolean;
+                                  } = { feetHeight: clamped };
+                                  if (selectedBox.feetEnabled !== false && shouldLockY) {
+                                    partial.y_mm = clamped + selectedBox.dimensoes.altura / 2;
+                                    partial.manualPosition = true;
+                                  }
+                                  actions.updateWorkspaceBoxTransform(selectedBox.id, partial);
+                                }}
+                                className="input input-sm"
+                              />
+                            </div>
                           </div>
 
                           <div className="panel-field-row">
-                            <label className="panel-label" style={{ minWidth: 110 }}>
+                            <label className="panel-label">
                               Recuo frontal (mm)
                             </label>
-                            <NumericInput
-                              value={feetOffsetFrontMm}
-                              min={0}
-                              onChange={(value) => {
-                                actions.updateWorkspaceBoxTransform(selectedBox.id, {
-                                  feetOffsetFront: Math.max(0, Math.round(value)),
-                                });
-                              }}
-                              className="input input-sm"
-                              style={{ width: 110 }}
-                            />
+                            <div className="panel-field">
+                              <NumericInput
+                                value={feetOffsetFrontMm}
+                                min={0}
+                                onChange={(value) => {
+                                  actions.updateWorkspaceBoxTransform(selectedBox.id, {
+                                    feetOffsetFront: Math.max(0, Math.round(value)),
+                                  });
+                                }}
+                                className="input input-sm"
+                              />
+                            </div>
                           </div>
                         </div>
                       )}

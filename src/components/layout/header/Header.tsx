@@ -156,7 +156,7 @@ export default function Header() {
     <header
       style={{
         flexShrink: 0,
-        height: "45px",
+        height: "var(--top-toolbar-height)",
         background: `linear-gradient(90deg, var(--black), var(--navy))`,
         borderBottom: "1px solid var(--border)",
         display: "flex",

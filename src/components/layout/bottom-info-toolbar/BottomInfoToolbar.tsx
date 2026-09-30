@@ -77,8 +77,8 @@ const toolbarStyle: React.CSSProperties = {
   borderTop: "1px solid var(--toolbar-border)",
   borderBottom: "1px solid var(--toolbar-border)",
   flexShrink: 0,
-  minHeight: 40,
-  height: 40,
+  minHeight: "var(--bottom-info-toolbar-height)",
+  height: "var(--bottom-info-toolbar-height)",
   boxSizing: "border-box",
 };
 

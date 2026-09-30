@@ -19,7 +19,7 @@ export function HomeLeftPanelEmpty({
   return (
     <div className="left-panel-content">
       <div className="left-panel-scroll">
-        <aside className="panel-content panel-content--side">
+        <aside className="panel-content panel-content--side home-left-panel">
           <div className="design-panel-header">
             <SectionTitleWithHelp title="Início" helpText={HOME_SECTION_HELP_TEXT} />
           </div>

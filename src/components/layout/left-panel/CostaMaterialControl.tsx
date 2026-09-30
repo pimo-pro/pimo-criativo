@@ -88,7 +88,7 @@ export default function CostaMaterialControl({
         </span>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 240, padding: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, maxWidth: "100%", width: "100%", padding: 4 }}>
         <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>
           {isCustom
             ? `Actual: ${effective.label} · ${effective.thicknessMm} mm`

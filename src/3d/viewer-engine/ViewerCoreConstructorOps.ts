@@ -717,9 +717,12 @@ export function wireViewerCoreConstructorImpl(
 
     host.start();
     queueMicrotask(() => host.notifyViewerReady());
-    host.unregisterWindowEvents = registerViewerWindowEvents({
-      resize: host.updateCanvasSize,
-      keydown: host.boundShiftKeyDown,
-      keyup: host.boundShiftKeyUp,
-    });
+    host.unregisterWindowEvents = registerViewerWindowEvents(
+      {
+        resize: host.updateCanvasSize,
+        keydown: host.boundShiftKeyDown,
+        keyup: host.boundShiftKeyUp,
+      },
+      { container: host.container }
+    );
 }

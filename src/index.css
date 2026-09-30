@@ -32,13 +32,43 @@
 }
 
 :root {
-  --radius: 6px;
+  /* Raios */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius: var(--radius-md);
 
-  /* Espaçamento unificado: toolbars e painéis */
+  /* Espaçamento — toolbars e painéis */
   --space-toolbar-gap: 4px;
   --space-toolbar-padding-y: 6px;
   --space-toolbar-padding-x: 10px;
   --size-toolbar-icon: 28px;
+  --panel-gap: 16px;
+  --panel-padding: 16px;
+  --panel-field-gap: 6px;
+
+  /* Ícones */
+  --icon-size-sm: 14px;
+  --icon-size-md: 22px;
+
+  /* Alturas chrome */
+  --top-toolbar-height: 45px;
+  --bottom-info-toolbar-height: 40px;
+
+  /* Painel esquerdo (larguras) */
+  --left-panel-width-min: 220px;
+  --left-panel-width-max: 420px;
+  --left-panel-width-default: 260px;
+
+  /* Painel direito / dock (larguras) */
+  --right-panel-width-min: 220px;
+  --right-panel-width-max: 420px;
+  --right-panel-width-default: 260px;
+  /* Inset do botão reopen: Pipro sobrescreve com a largura do industrial */
+  --right-dock-edge-inset: 0px;
+
+  /* Rail esquerdo (fase RAIL) — base para fases seguintes */
+  --left-rail-width: 48px;
+  --left-rail-icon-box: 32px;
 }
 
 /* ========== TEMA ESCURO (padrão) ========== */
@@ -148,7 +178,6 @@
   --admin-card-bg: rgba(255, 255, 255, 0.04);
   --admin-card-border: rgba(255, 255, 255, 0.08);
   --bottom-info-panel-inner-bg: #111111;
-  --bottom-info-toolbar-height: 52px;
 }
 
 /* ========== TEMA CLARO (invertido) ========== */
@@ -258,7 +287,6 @@
   --admin-card-bg: rgba(0, 0, 0, 0.03);
   --admin-card-border: rgba(0, 0, 0, 0.08);
   --bottom-info-panel-inner-bg: #fafafa;
-  --bottom-info-toolbar-height: 52px;
 }
 
 /* Layout fixo: sem scroll global; cada área com scroll interno */
@@ -267,6 +295,12 @@ body,
 #root {
   height: 100%;
   overflow: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -310,6 +344,7 @@ body {
   min-height: 0;
   align-items: stretch;
   overflow: hidden;
+  position: relative;
 }
 
 /* Primeiro filho (wrapper da LeftToolbar): altura limitada para scroll interno */
@@ -318,12 +353,19 @@ body {
   overflow: hidden;
   display: flex;
   flex-shrink: 0;
+  flex: 0 0 var(--left-rail-width);
+  width: var(--left-rail-width);
+  min-width: var(--left-rail-width);
+  max-width: var(--left-rail-width);
 }
 
-/* Sidebar: estilo clean → ícone + nome por baixo; scroll interno se muitos itens */
+/* Rail esquerdo: só ícones; nome em tooltip flutuante no hover/focus */
 .left-toolbar {
-  width: 48px;
-  min-width: 48px;
+  box-sizing: border-box;
+  width: var(--left-rail-width);
+  min-width: var(--left-rail-width);
+  max-width: var(--left-rail-width);
+  flex-shrink: 0;
   height: 100%;
   max-height: 100%;
   overflow-y: auto;
@@ -334,24 +376,25 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 12px 8px;
+  gap: 4px;
+  padding: 8px 0;
   backdrop-filter: blur(8px);
 }
 
 .left-toolbar-item {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  width: 100%;
-  max-width: 56px;
-  padding: 10px 6px;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
   border: none;
   border-radius: 0;
   background: transparent;
   color: var(--text-main);
-  font-size: 10px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -359,10 +402,6 @@ body {
 .left-toolbar-item:hover:not(.left-toolbar-item--selected) {
   background: transparent;
   border: none;
-}
-
-.left-toolbar-item:hover:not(.left-toolbar-item--selected) .left-toolbar-label {
-  color: var(--text-main);
 }
 
 .left-toolbar-item--selected {
@@ -385,8 +424,8 @@ body {
 }
 
 .left-toolbar-icon {
-  width: 36px;
-  height: 36px;
+  width: var(--left-rail-icon-box);
+  height: var(--left-rail-icon-box);
   border-radius: 0;
   border: none;
   display: inline-flex;
@@ -401,23 +440,42 @@ body {
 }
 
 .left-toolbar-label {
-  text-align: center;
-  line-height: 1.15;
-  color: var(--text-muted);
-  font-size: 9px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--z-left-rail-tooltip);
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-toolbar);
+  background: var(--bg-toolbar);
+  color: var(--text-main);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 500;
   white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.12s ease, visibility 0.12s ease;
 }
 
-.left-toolbar-item--selected .left-toolbar-label {
-  color: var(--primary);
+.left-toolbar-item:hover .left-toolbar-label,
+.left-toolbar-item:focus-visible .left-toolbar-label {
+  opacity: 1;
+  visibility: visible;
 }
 
 :root {
   --z-viewer: 1;
   --z-left-panel: 20;
+  --z-left-panel-collapse: 22;
+  --z-left-panel-reopen: 25;
+  --z-right-panel-collapse: 22;
+  --z-right-panel-reopen: 25;
+  --z-left-rail-tooltip: 30;
   --z-overlay: 50;
   --z-modal: 9999;
 }
@@ -601,7 +659,7 @@ body {
 /* Rodapé fixo no fundo do painel esquerdo (botão Criar Caixa) */
 .left-panel-footer {
   flex-shrink: 0;
-  padding: 12px 16px;
+  padding: 12px var(--panel-padding);
   border-top: 1px solid var(--panel-footer-border);
   background: var(--panel-footer-bg);
 }
@@ -750,7 +808,7 @@ body {
 }
 
 .panel-shell-side {
-  width: 260px;
+  width: var(--left-panel-width-default);
   height: 100%;
   min-height: 0;
   display: flex;
@@ -765,8 +823,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--panel-gap);
+  padding: var(--panel-padding);
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -792,6 +850,128 @@ body {
   background: var(--panel-resizer-hover);
 }
 
+/* Fase collapse/reopen — chrome do painel esquerdo */
+.left-panel-collapse-btn,
+.left-panel-reopen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-toolbar);
+  background: var(--bg-toolbar);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.left-panel-collapse-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: var(--z-left-panel-collapse);
+  width: var(--size-toolbar-icon);
+  height: var(--size-toolbar-icon);
+  border-radius: var(--radius);
+}
+
+.left-panel-collapse-btn:hover,
+.left-panel-reopen-btn:hover {
+  background: var(--button-ghost-hover, var(--bg-item-hover));
+  color: var(--primary);
+}
+
+.left-panel-collapse-btn:focus-visible,
+.left-panel-reopen-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.left-panel-collapse-btn__icon {
+  display: inline-flex;
+  transform: rotate(180deg);
+}
+
+.left-panel-reopen-btn {
+  position: absolute;
+  left: var(--left-rail-width);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--z-left-panel-reopen);
+  width: 20px;
+  height: 56px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+
+.panel-shell-right {
+  background: var(--panel-left-bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -1px 0 0 rgba(255, 255, 255, 0.04);
+  z-index: var(--z-left-panel);
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.panel-resizer--right {
+  left: 0;
+  right: auto;
+}
+
+.right-panel-collapse-btn,
+.right-panel-reopen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-toolbar);
+  background: var(--bg-toolbar);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.right-panel-collapse-btn {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: var(--z-right-panel-collapse);
+  width: var(--size-toolbar-icon);
+  height: var(--size-toolbar-icon);
+  border-radius: var(--radius);
+}
+
+.right-panel-collapse-btn:hover,
+.right-panel-reopen-btn:hover {
+  background: var(--button-ghost-hover, var(--bg-item-hover));
+  color: var(--primary);
+}
+
+.right-panel-collapse-btn:focus-visible,
+.right-panel-reopen-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.right-panel-reopen-btn {
+  position: absolute;
+  right: var(--right-dock-edge-inset, 0px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--z-right-panel-reopen);
+  width: 20px;
+  height: 56px;
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: none;
+}
+
 .panel-shell-left {
   background: var(--panel-left-bg);
   border-right: 1px solid var(--border);
@@ -813,7 +993,7 @@ body {
 
 .panel-field-row {
   display: flex;
-  gap: 6px;
+  gap: var(--panel-field-gap);
   align-items: center;
 }
 
@@ -821,6 +1001,68 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   width: 88px;
+}
+
+/* Fase fluidez Início — contentor e campos adaptativos */
+.home-left-panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.home-left-panel .home-left-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--panel-field-gap);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-bottom: var(--panel-gap);
+}
+
+.home-left-panel .home-left-panel__actions .button {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-left-panel .panel-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--panel-field-gap);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-left-panel .panel-label {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-left-panel .panel-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-left-panel .panel-field > div {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-left-panel .panel-field .input,
+.home-left-panel .panel-field input,
+.home-left-panel .input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .panel-button {

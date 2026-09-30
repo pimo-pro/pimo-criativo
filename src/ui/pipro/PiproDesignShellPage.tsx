@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LeftToolbar from "../../components/layout/left-toolbar/LeftToolbar";
 import LeftPanel from "../../components/layout/left-panel/LeftPanel";
+import RightPanelDock from "../../components/layout/right-panel/RightPanelDock";
 import Workspace from "../../components/layout/workspace/Workspace";
 import BottomInfoToolbar from "../../components/layout/bottom-info-toolbar/BottomInfoToolbar";
 import { BottomInfoProvider } from "../../context/BottomInfoContext";
@@ -22,6 +23,8 @@ import { useProject } from "../../context/useProject";
 import MateriaisSsotBootstrap from "../../core/catalog/MateriaisSsotBootstrap";
 import { DEFAULT_VIEWER_OPTIONS, VIEWER_BACKGROUND } from "../../constants/viewerOptions";
 import { useUiStore } from "../../stores/uiStore";
+import { LEFT_PANEL_DOM_ID, useLeftPanelChrome } from "../../hooks/useLeftPanelChrome";
+import { Icon } from "@/components/icons";
 import { PiproDesignWorkspace } from "../../core/pipro/PiproDesignWorkspace";
 import { loadPiproModel } from "../../core/pipro/piproModelsRegistry";
 import { INDUSTRIAL_FEATURES } from "../../core/unifiedIndustrialBox/industrialFeatures";
@@ -298,15 +301,20 @@ function PiproDesignShellInner() {
   const [, setTick] = useState(0);
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
-  const [leftOpen, setLeftOpen] = useState(true);
   const leftPanelTab = useUiStore((state) => state.selectedTool);
   const setLeftPanelTab = useUiStore((state) => state.setSelectedTool);
   const clearSelection = useUiStore((state) => state.clearSelection);
-  const [leftWidth, setLeftWidth] = useState(260);
-  const resizeState = useRef({ active: false, startX: 0, startWidth: 260 });
+  const {
+    leftOpen,
+    openLeftPanel,
+    collapseLeftPanel,
+    handleResizeStart,
+    handleResizeMove,
+    handleResizeEnd,
+    handlePanelTransitionEnd,
+    panelShellStyle,
+  } = useLeftPanelChrome();
   const viewerOptions = useMemo(() => DEFAULT_VIEWER_OPTIONS, []);
-
-  const clampLeftWidth = (value: number) => Math.min(420, Math.max(220, value));
 
   return (
     <div
@@ -343,59 +351,74 @@ function PiproDesignShellInner() {
                   flexDirection: "column",
                 }}
               >
-                <div className="app-panels" style={{ flex: 1, minHeight: 0 }}>
+                <div
+                  className="app-panels"
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    ["--right-dock-edge-inset" as string]: "300px",
+                  }}
+                >
                   <div style={{ position: "relative", zIndex: 20 }}>
                     <LeftToolbar
                       selectedId={leftPanelTab}
                       onSelect={(id) => {
                         setLeftPanelTab(id);
                         clearSelection();
-                        if (!leftOpen) setLeftOpen(true);
+                        if (!leftOpen) openLeftPanel();
                       }}
                     />
                   </div>
                   <div
+                    id={LEFT_PANEL_DOM_ID}
                     className="panel panel-shell panel-shell--side left-panel panel-shell-left"
-                    style={{
-                      width: leftOpen ? leftWidth : 0,
-                      minWidth: leftOpen ? leftWidth : 0,
-                      maxWidth: leftOpen ? leftWidth : 0,
-                      overflow: "hidden",
-                      transition: "width 0.2s ease",
-                      position: "relative",
-                    }}
+                    style={panelShellStyle}
+                    onTransitionEnd={handlePanelTransitionEnd}
+                    aria-hidden={!leftOpen}
                   >
                     <LeftPanel activeTab={leftPanelTab} />
                     {leftOpen && (
-                      <div
-                        className="panel-resizer"
-                        onPointerDown={(e) => {
-                          resizeState.current = {
-                            active: true,
-                            startX: e.clientX,
-                            startWidth: leftWidth,
-                          };
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                        }}
-                        onPointerMove={(e) => {
-                          if (!resizeState.current.active) return;
-                          const delta = e.clientX - resizeState.current.startX;
-                          setLeftWidth(clampLeftWidth(resizeState.current.startWidth + delta));
-                        }}
-                        onPointerUp={() => {
-                          resizeState.current.active = false;
-                        }}
-                        onPointerCancel={() => {
-                          resizeState.current.active = false;
-                        }}
-                      />
+                      <>
+                        <button
+                          type="button"
+                          className="left-panel-collapse-btn"
+                          aria-label="Recolher painel lateral"
+                          aria-expanded="true"
+                          aria-controls={LEFT_PANEL_DOM_ID}
+                          onClick={collapseLeftPanel}
+                        >
+                          <span className="left-panel-collapse-btn__icon" aria-hidden="true">
+                            <Icon name="chevronRight" size={16} />
+                          </span>
+                        </button>
+                        <div
+                          className="panel-resizer"
+                          onPointerDown={handleResizeStart}
+                          onPointerMove={handleResizeMove}
+                          onPointerUp={handleResizeEnd}
+                          onPointerCancel={handleResizeEnd}
+                        />
+                      </>
                     )}
                   </div>
+                  {!leftOpen && (
+                    <button
+                      type="button"
+                      className="left-panel-reopen-btn"
+                      aria-label="Expandir painel lateral"
+                      aria-expanded="false"
+                      aria-controls={LEFT_PANEL_DOM_ID}
+                      onClick={openLeftPanel}
+                    >
+                      <Icon name="chevronRight" size={14} aria-hidden />
+                    </button>
+                  )}
                   <Workspace
                     viewerBackground={VIEWER_BACKGROUND}
                     viewerHeight="100%"
                     viewerOptions={viewerOptions}
                   />
+                  <RightPanelDock />
                   <PiproIndustrialSidePanel workspace={workspace} onChange={refresh} />
                 </div>
               </div>

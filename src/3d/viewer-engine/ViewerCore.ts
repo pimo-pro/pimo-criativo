@@ -3535,7 +3535,8 @@ export class ViewerCore {
     return this.pointerPicking.getContextMenuLayerHit(event);
   }
 
-  private updateCanvasSize = () => {
+  /** Sincroniza renderer/camera/composers com o container — sem reconstruir a cena. */
+  updateCanvasSize = () => {
     updateCanvasSizeImpl(this.getRuntimeOpsDeps());
   };
 

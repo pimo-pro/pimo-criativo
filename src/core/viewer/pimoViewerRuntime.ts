@@ -58,6 +58,7 @@ export type ViewerCoreRuntime = PimoViewerApi & {
   setCameraZoom?: (..._args: unknown[]) => void;
   getCameraZoom?: () => unknown;
   getBoxIdByMeshPublic?: (_mesh: import("three").Object3D) => string | null;
+  updateCanvasSize?: () => void;
 };
 
 let activeViewerCore: ViewerCoreRuntime | null = null;
@@ -77,6 +78,11 @@ export function setActiveViewerCore(core: ViewerCoreRuntime | null): void {
 
 export function getActiveViewerCore(): ViewerCoreRuntime | null {
   return activeViewerCore;
+}
+
+/** Sync do buffer WebGL com o DOM (Resize 3D / panel-resizer). No-op se não houver viewer. */
+export function syncActiveViewerCanvasSize(): void {
+  activeViewerCore?.updateCanvasSize?.();
 }
 
 export function setActivePimoViewerApi(api: PimoViewerApi | null): void {
