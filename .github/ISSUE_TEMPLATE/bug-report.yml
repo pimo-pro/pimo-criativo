@@ -1,0 +1,65 @@
+name: "🐞 Reportar bug"
+description: "Reportar um problema para ajudar a equipa a reproduzir e corrigir"
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo reporte. Preencha os campos com o máximo de detalhe possível.
+
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição do problema
+      description: O que está a acontecer e qual era o comportamento esperado?
+      placeholder: "Ex.: Ao abrir o workspace e adicionar uma caixa, a vista 3D deixa de responder."
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      description: Liste os passos, de forma objetiva.
+      placeholder: |
+        1. Ir para ...
+        2. Clicar em ...
+        3. Introduzir ...
+        4. Ver erro ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+      description: Qual é o impacto no trabalho/utilização?
+      placeholder: "Ex.: Bloqueia exportação de PDF técnico."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ambiente
+    attributes:
+      label: Ambiente
+      options:
+        - Local (npm run dev)
+        - Staging
+        - Produção
+        - Não sei
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / versão
+      placeholder: "Ex.: Chrome 128"
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências adicionais
+      description: Logs, screenshots, vídeo curto, stack traces.
+      placeholder: "Cole aqui informação adicional útil para diagnóstico."

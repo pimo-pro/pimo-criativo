@@ -1,0 +1,55 @@
+name: "✨ Pedido de funcionalidade"
+description: "Sugerir melhoria ou nova funcionalidade"
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pela sugestão. Tente ser específico para facilitar análise de produto e técnica.
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema/oportunidade
+      description: Que problema atual esta funcionalidade resolve?
+      placeholder: "Ex.: Atualmente não consigo ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta de solução
+      description: Como imagina a funcionalidade a funcionar?
+      placeholder: "Ex.: Adicionar opção ... no painel ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Existem abordagens alternativas?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - Workspace 3D
+        - Projetos
+        - Administração
+        - Industrial
+        - Exportação (PDF/CNC)
+        - Autenticação/Permissões
+        - Documentação
+        - Outra
+    validations:
+      required: true
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto adicional
+      description: Referências, mockups, exemplos, constraints.
