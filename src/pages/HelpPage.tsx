@@ -9,6 +9,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import SystemDocumentationPage from "../components/help/SystemDocumentationPage";
+import {
+  PIMO_INFO_CONTACTO_URL,
+  PIMO_INFO_FAQ_URL,
+  PIMO_INFO_HELP_CENTER_URL,
+  PIMO_INFO_NOVIDADES_URL,
+  PIMO_INFO_SECTION_URLS,
+} from "../constants/helpCenter";
 import { AJUDA_WHATS_NEW_PATH } from "../routes/ajudaRoutes";
 import type { SystemDocCategoryId } from "../utils/loadSystemDoc";
 import { SYSTEM_DOC_CATEGORIES } from "../utils/loadSystemDoc";
@@ -519,7 +526,15 @@ function StepList({ steps, alerts }: { steps:Step[]; alerts?:Alert[] }) {
   );
 }
 
-function SectionCard({ section, isActive }: { section:Section; isActive:boolean }) {
+function SectionCard({
+  section,
+  isActive,
+  externalGuideUrl,
+}: {
+  section: Section;
+  isActive: boolean;
+  externalGuideUrl?: string;
+}) {
   const isShortcuts = section.id === "atalhos";
   return (
     <div id={section.id} style={{ background:C.surface,border:`1px solid ${isActive?ciTint(section.accent, 27):C.border}`,borderRadius:14,overflow:"hidden",scrollMarginTop:80,transition:"border-color 0.2s" }}>
@@ -536,6 +551,30 @@ function SectionCard({ section, isActive }: { section:Section; isActive:boolean 
       {/* Body */}
       <div style={{ padding:"18px 20px",display:"flex",flexDirection:"column",gap:16 }}>
         <p style={{ margin:0,fontSize:13,color:C.muted,lineHeight:1.65,fontFamily:font }}>{section.intro}</p>
+        {externalGuideUrl ? (
+          <a
+            href={externalGuideUrl}
+            target="_blank"
+            rel="noopener"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              width: "fit-content",
+              gap: 6,
+              padding: "5px 9px",
+              borderRadius: 8,
+              fontSize: 11,
+              color: section.accent,
+              textDecoration: "none",
+              background: ciTint(section.accent, 8),
+              border: `1px solid ${ciTint(section.accent, 19)}`,
+              fontFamily: font,
+              fontWeight: 600,
+            }}
+          >
+            Ver guia completo em pimo.info ↗
+          </a>
+        ) : null}
 
         {isShortcuts ? (
           <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:8 }}>
@@ -633,6 +672,61 @@ export default function HelpPage() {
             onBackToUserHelp={backToUserHelp}
           />
         ) : (
+        <>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            marginBottom: 18,
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: ciTint(C.accent, 6),
+            border: `1px solid ${ciTint(C.accent, 18)}`,
+          }}
+        >
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.text }}>
+              Centro de Ajuda completo em pimo.info
+            </p>
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: C.muted }}>
+              Guias completos, perguntas frequentes, contacto e novidades sempre atualizados.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[
+              { label: "Abrir pimo.info", href: PIMO_INFO_HELP_CENTER_URL },
+              { label: "Perguntas frequentes", href: PIMO_INFO_FAQ_URL },
+              { label: "Contacto", href: PIMO_INFO_CONTACTO_URL },
+              { label: "Novidades", href: PIMO_INFO_NOVIDADES_URL },
+            ].map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noopener"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 10px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: C.accent,
+                  textDecoration: "none",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  fontWeight: 600,
+                }}
+              >
+                {item.label} ↗
+              </a>
+            ))}
+          </div>
+        </div>
+
         <div style={{ display:"grid",gridTemplateColumns:"198px 1fr",gap:28,alignItems:"start" }}>
 
           {/* Sidebar nav */}
@@ -678,9 +772,17 @@ export default function HelpPage() {
 
           {/* Content */}
           <div style={{ display:"flex",flexDirection:"column",gap:20 }}>
-            {SECTIONS.map((s)=><SectionCard key={s.id} section={s} isActive={active===s.id}/>)}
+            {SECTIONS.map((s) => (
+              <SectionCard
+                key={s.id}
+                section={s}
+                isActive={active === s.id}
+                externalGuideUrl={PIMO_INFO_SECTION_URLS[s.id]}
+              />
+            ))}
           </div>
         </div>
+        </>
         )}
       </div>
     </div>
