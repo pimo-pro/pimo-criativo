@@ -222,7 +222,7 @@ export function autoArrangeLevel(state: RoomState, levelId?: string): AiArrangeR
     if (next.type === "custom") seatIndex++;
   }
 
-  let nextState = structuredClone(state);
+  const nextState = structuredClone(state);
   nextState.version = 5;
   const byId = new Map(updated.map((i) => [i.id, i]));
   nextState.items = nextState.items.map((raw) => {
