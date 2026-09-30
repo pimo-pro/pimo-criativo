@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PIMO Criativo — Design de mobiliário com 3D e fluxo industrial</title>
+    <meta
+      name="description"
+      content="PIMO Criativo: plataforma web para desenho de mobiliário com visualização 3D, gestão de projetos e módulos industriais."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="./assets/banner-dark.svg" />
+          <img src="./assets/banner-light.svg" alt="Banner PIMO Criativo" />
+        </picture>
+        <div class="tagline">
+          <h1>PIMO Criativo</h1>
+          <p>
+            Plataforma web para desenho de mobiliário com visualização 3D, gestão de projetos e
+            suporte a operações industriais.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/pimo-pro/pimo-criativo">Ver repositório</a>
+            <a class="btn btn-secondary" href="https://github.com/pimo-pro/pimo-criativo#começar-rapidamente">Guia de instalação</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container grid grid-3">
+          <article class="card">
+            <h3>Workspace 3D</h3>
+            <p>
+              Edição visual de módulos com renderização 3D em tempo real baseada em Three.js e React Three Fiber.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Gestão de projetos</h3>
+            <p>
+              Fluxos de criação/gestão de projetos com áreas dedicadas, autenticação e controlo de permissões.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Módulos industriais</h3>
+            <p>
+              Rotas industriais para work orders, tracking, qualidade, operações e apoio ao pipeline de produção.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section gif-preview">
+        <div class="container">
+          <h2>Fluxo principal</h2>
+          <div class="card">
+            <img src="./assets/fluxo-principal.gif" alt="GIF com fluxo principal da aplicação" />
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Capturas reais da aplicação</h2>
+          <div class="shot-grid">
+            <figure>
+              <img src="./assets/ecra-home-workspace.png" alt="Ecrã do workspace 3D" />
+              <figcaption>Workspace 3D</figcaption>
+            </figure>
+            <figure>
+              <img src="./assets/ecra-apresentacao.png" alt="Ecrã de apresentação" />
+              <figcaption>Página de apresentação</figcaption>
+            </figure>
+            <figure>
+              <img src="./assets/ecra-ajuda.png" alt="Ecrã de ajuda" />
+              <figcaption>Secção de ajuda</figcaption>
+            </figure>
+            <figure>
+              <img src="./assets/ecra-documentacao.png" alt="Ecrã de documentação" />
+              <figcaption>Hub de documentação</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="section install">
+        <div class="container">
+          <h2>Instalação rápida</h2>
+          <div class="card">
+            <pre><code>npm ci
+npm run dev
+npm run build
+npm run test</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>
+          PIMO Criativo · Documentação visual do repositório · Deploy via GitHub Pages (GitHub Actions)
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

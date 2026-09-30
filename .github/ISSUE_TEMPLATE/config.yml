@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Perguntas gerais
+    url: https://github.com/pimo-pro/pimo-criativo/discussions
+    about: Use Discussions para perguntas e troca de ideias.

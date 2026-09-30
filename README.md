@@ -1,193 +1,297 @@
-# PIMO Criativo
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg" />
+    <img src="docs/assets/banner-light.svg" alt="Banner PIMO Criativo" width="100%" />
+  </picture>
+</p>
 
-![Logótipo PIMO](https://pimo.pro/logo-pi.png)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg" />
+    <img src="docs/assets/logo-light.svg" alt="Logótipo PIMO Criativo" width="110" />
+  </picture>
+</p>
 
-**[PIMO Criativo](https://pimo.pro)** é a plataforma web para criação de caixas e mobiliário modular com visualização 3D em tempo real. Gera automaticamente lista de corte, ficheiros CNC/TCN, planos de furação e relatórios de preço. Para carpintarias, designers e fábricas — sem instalação.
+<h1 align="center">PIMO Criativo</h1>
 
-📖 Documentação completa e guias de utilização: **[pimo.pro/ajuda](https://pimo.pro/ajuda)**
+<p align="center">
+  Plataforma web para desenho de mobiliário com visualização 3D, gestão de projetos e módulos industriais.
+</p>
 
-### Funcionalidades principais
+<p align="center">
+  <a href="https://github.com/pimo-pro/pimo-criativo/actions/workflows/verify.yml"><img alt="Verify" src="https://github.com/pimo-pro/pimo-criativo/actions/workflows/verify.yml/badge.svg" /></a>
+  <a href="https://github.com/pimo-pro/pimo-criativo/actions/workflows/deploy.yml"><img alt="Publish and Deploy" src="https://github.com/pimo-pro/pimo-criativo/actions/workflows/deploy.yml/badge.svg" /></a>
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827" />
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" />
+  <img alt="Three.js" src="https://img.shields.io/badge/Three.js-3D-000000?logo=threedotjs&logoColor=white" />
+  <img alt="Zustand" src="https://img.shields.io/badge/Zustand-UI_State-7C5C46" />
+  <a href="https://github.com/pimo-pro/pimo-criativo/tags"><img alt="Última tag" src="https://img.shields.io/github/v/tag/pimo-pro/pimo-criativo?label=tag" /></a>
+  <a href="https://github.com/pimo-pro/pimo-criativo/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/pimo-pro/pimo-criativo?style=social" /></a>
+  <img alt="Último commit" src="https://img.shields.io/github/last-commit/pimo-pro/pimo-criativo" />
+</p>
 
-- **Visualizador 3D** em tempo real (Three.js / React Three Fiber) com edição direta de caixas, materiais e ferragens (`src/3d`)
-- **Lista de corte (cutlist)** gerada automaticamente com dimensões, materiais e custos por peça
-- **Nesting / layout de corte** com modos Fast e PRO para otimizar o aproveitamento de chapa (`src/core/nesting3`, `src/nesting-v3`, `src/core/cutlayout`)
-- **Plano de furação** paramétrico (cavilhas, corrediças, dobradiças) para exportação CNC (`src/core/drill`, `src/core/drilling`)
-- **PIMO-TRAK** — etiquetas com QR code único por peça para rastreio de produção (`src/core/etiquetas`)
-- **Planeamento automático de espaço/sala** (`src/core/autoRoomFill`)
-- **Exportação industrial**: PDF técnico, ficheiros CNC/TCN, Drill XML e pacote ZIP completo (`src/core/cnc`)
-- **Relatórios de preço** com sistema de tarifas e custos industriais configuráveis (Orçamentos)
-- **Sistema Industrial**: painéis visuais de chão de fábrica (estação, operador, supervisor) sobre o fluxo de produção já existente
+> ℹ️ **Nota sobre licença:** este repositório **não inclui ficheiro LICENSE** neste momento.
 
-### Screenshots
+## Índice
 
-<!-- TODO: adicionar capturas de ecrã em docs/screenshots/ e atualizar os caminhos abaixo -->
-![Visualizador 3D](docs/screenshots/viewer-3d.png)
-![Planeador de sala](docs/screenshots/room-planner.png)
-![Lista de corte / nesting](docs/screenshots/cutlist-nesting.png)
+- [Visão geral](#visão-geral)
+- [Demonstração visual](#demonstração-visual)
+- [Funcionalidades principais](#funcionalidades-principais)
+- [Stack tecnológica](#stack-tecnológica)
+- [Arquitetura](#arquitetura)
+- [Começar rapidamente](#começar-rapidamente)
+- [Scripts disponíveis](#scripts-disponíveis)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [CI/CD](#cicd)
+- [GitHub Pages (landing estática)](#github-pages-landing-estática)
+- [Contribuição e suporte](#contribuição-e-suporte)
+- [FAQ](#faq)
 
----
+## Visão geral
 
-# PIMO v3 — Deploy Frontend (Hostinger) + Backend (Render)
+O **PIMO Criativo** é uma aplicação web construída com React + TypeScript para:
 
-Este repositório contém:
+- desenhar módulos/caixas de mobiliário;
+- visualizar em 3D (Three.js / React Three Fiber);
+- gerir projetos e áreas administrativas;
+- suportar fluxos industriais (work orders, tracking, quality, operações);
+- gerar artefactos técnicos (ex.: PDF e componentes de pipeline CNC presentes em `src/core/cnc`).
 
-- **Frontend** (Vite/React) na raiz
-- **Backend Node.js** em `backend/` (Express) para `/api/projects` e `/api/materials`
+A organização do estado do projeto gira à volta de `ProjectContext`/`ProjectState` (`src/context/`), com sincronização para o viewer 3D via `useViewerSync`.
 
-## Publicar o backend no Render
+## Demonstração visual
 
-### Opção A) Blueprint com `render.yaml`
+### Fluxo principal (GIF)
 
-O ficheiro `backend/render.yaml` já estápreparado com:
+![Fluxo principal da aplicação](docs/assets/fluxo-principal.gif)
 
-- `rootDir: backend`
-- `buildCommand: npm install && npm run build`
-- `startCommand: npm run start`
-- env vars: `PORT`, `PIMO_PROJECTS_DATA_DIR`
+### Capturas reais (ambiente local)
 
-No Render:
+| Workspace 3D | Apresentação |
+|---|---|
+| ![Workspace 3D](docs/assets/screenshots/ecra-home-workspace.png) | ![Apresentação](docs/assets/screenshots/ecra-apresentacao.png) |
 
-- Crie um **New → Blueprint**
-- Selecione este repositório
-- Confirme que o serviço chama **`pimo-backend`**
+| Ajuda | Documentação |
+|---|---|
+| ![Ajuda](docs/assets/screenshots/ecra-ajuda.png) | ![Documentação](docs/assets/screenshots/ecra-documentacao.png) |
 
-### Variáveis de ambiente (Render)
+## Funcionalidades principais
 
-- **`PORT`**: o Render injeta automaticamente; pode deixar como está.
-- **`PIMO_PROJECTS_DATA_DIR`**: diretório para gravar os projetos em JSON.
-  - No Render, use um caminho persistente (ex.: `/var/data/pimo/projects`) e conecte um **Disk** ao serviço.
+- **Editor visual 3D** com manipulação de módulos no workspace.
+- **Gestão de projetos** (áreas de projetos, páginas dedicadas e visualização protegida).
+- **Autenticação e autorização** com rotas protegidas e permissões (`src/auth`, `ProtectedRoute`, `PermissionRoute`).
+- **Administração** (utilizadores, permissões, settings, materiais/modelos em rotas admin).
+- **Módulos industriais** (`/industrial/*`) para operações, tracking, qualidade, retrabalho e work orders.
+- **Base técnica de produção** com módulos de cutlist/CNC/drilling/PDF no `src/core/`.
 
-## Configurar o frontend para usar o backend do Render
+## Stack tecnológica
 
-O frontend l— a variável `VITE_API_URL` para chamar a API:
+Confirmada a partir de `package.json` e código-fonte:
 
-- projetos: `VITE_API_URL + /api/projects/index.php`
-- materiais: `VITE_API_URL + /api/materials`
+- **Frontend:** React 19, TypeScript, Vite 7
+- **3D:** Three.js + @react-three/fiber + @react-three/drei
+- **Estado:** Context API + Zustand
+- **Testes:** Vitest
+- **Lint:** ESLint 9
+- **Integrações adicionais no repositório:** Supabase client, PostgreSQL (`pg`), utilitários PDF (`jspdf`, `jspdf-autotable`)
 
-### Em produção (Hostinger)
+## Arquitetura
 
-No build do frontend, defina:
+### Mapa de módulos (alto nível)
 
-- **`VITE_API_URL=https://pimo-backend.onrender.com`**
+```mermaid
+flowchart LR
+    UI[Componentes UI\nsrc/components + src/pages]
+    ROUTES[Rotas\nsrc/App.tsx]
+    AUTH[Auth/RBAC\nsrc/auth]
+    CTX[ProjectContext\nsrc/context]
+    CORE[Core de domínio\nsrc/core]
+    VIEWER[Viewer 3D\nsrc/3d + src/viewer]
+    INDUSTRIAL[Módulos Industriais\nsrc/app/industrial]
 
-No repositório, existe um `.env` para desenvolvimento e um `.env.example` como referência.
-
-## Testar o fluxo completo
-
-1. **Backend**: abra `GET /health` no serviço do Render para confirmar que estãonline.
-2. **Frontend**: abra o site em `pimo.pro`.
-3. DevTools → Network:
-   - Abrir modal de materiais → deve fazer `GET {VITE_API_URL}/api/materials`
-   - Clicar **«Gerar e Salvar Design”** → deve fazer `POST {VITE_API_URL}/api/projects/index.php`
-4. Testar também:
-   - listar projetos → `GET .../api/projects/index.php?scope=mine&ownerId=...`
-   - carregar projeto → `GET ...?action=load&id=...`
-   - renomear → `PUT ...?action=update&id=...`
-   - apagar → `DELETE ...?action=delete&id=...`
-
-## Publicar o frontend no Hostinger
-
-- Defina `VITE_API_URL` no ambiente de build (ou no `.env` antes de correr `npm run build`).
-- Faça upload de `dist/` para o `public_html` do domínio.
-
-## Arquitetura e Documento Normativo
-
-O arquivo `docs/PIMO-CRIATIVO-MASTER-PLAN.md` — a fonte de verdade arquitetural do projeto pimo-criativo.
-
-Todas as decisões de desenvolvimento (backend, frontend, permissóes, roles, fábricas, fases e demais aspectos estruturais) devem seguir esse documento.
-
-Novas funcionalidades devem ser planejadas e implementadas em alinhamento com as fases definidas no master plan (FASE 0, FASE 1, FASE 2, etc.), mantendo evolução incremental e compatibilidade entre fases.
-
-Módulos avançados, como produção, IA e plugins, não devem ser iniciados antes da conclusóo sólida das fases 0–4.
-
-Consulte `docs/PIMO-CRIATIVO-MASTER-PLAN.md` para detalhes completos de arquitetura, fases e regras do sistema.
-
-## Sistema de Eventos (Events System)
-
-O documento oficial do Sistema de Eventos estáem `docs/PIMO-CRIATIVO-PLANO-EVENTS-SYSTEM.md`.
-
-O Sistema de Eventos faz parte da arquitetura oficial do projeto pimo-criativo e — controlado pela feature flag global `features.eventsSystem`.
-
-O valor padrão da flag — `false`, garantindo que o sistema permaneça inativo até ser explicitamente habilitado.
-
-Com a flag desligada, o comportamento — totalmente no-op, sem impacto no fluxo principal da aplicação.
-
-Nesta fase inicial, nenhuma funcionalidade crítica do sistema depende exclusivamente do Events System.
-
-Toda integração futura com eventos deve uútilizar a função central (ex.: `recordEvent`), conforme definido no plano oficial.
-
-O desenvolvimento do Sistema de Eventos deve seguir as regras e fases definidas no Master Plan (`docs/PIMO-CRIATIVO-MASTER-PLAN.md`), e sua ativação deve ocorrer apenas após a consolidação das fases 0–4, conforme diretrizes arquiteturais.
-
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+    ROUTES --> UI
+    ROUTES --> AUTH
+    UI --> CTX
+    CTX --> CORE
+    CTX --> VIEWER
+    INDUSTRIAL --> CTX
+    INDUSTRIAL --> CORE
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Fluxo de dados do projeto para o viewer
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```mermaid
+sequenceDiagram
+    participant U as Utilizador
+    participant UI as UI/Actions
+    participant P as ProjectContext
+    participant S as useCalculadoraSync
+    participant V as Viewer API
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+    U->>UI: altera caixa/propriedades
+    UI->>P: actions.* (ProjectState)
+    P->>S: deteta diffs em workspaceBoxes
+    S->>V: addBox/updateBox/removeBox
+    V-->>UI: render 3D atualizado
 ```
+
+## Começar rapidamente
+
+### Pré-requisitos
+
+- Node.js (recomendado: **20.19.x**, alinhado com CI/workflows)
+- npm
+
+### Instalação
+
+```bash
+npm ci
+```
+
+### Desenvolvimento
+
+```bash
+npm run dev
+```
+
+O Vite arranca por omissão em `http://localhost:5173`.
+
+### Build de produção
+
+```bash
+npm run build
+```
+
+### Testes
+
+```bash
+npm run test
+```
+
+### Lint
+
+```bash
+npm run lint
+```
+
+> ✅ **Verificação real neste ambiente:** `npm ci`, `npm run dev`, `npm run build` e `npm run test` foram executados.
+
+## Scripts disponíveis
+
+<details>
+<summary>Expandir lista de scripts do <code>package.json</code></summary>
+
+| Script | Descrição prática |
+|---|---|
+| `npm run dev` | Inicia o servidor Vite em modo desenvolvimento |
+| `npm run build` | Type-check + build Vite + cópia de API para `dist` |
+| `npm run preview` | Serve localmente o build de produção |
+| `npm run test` | Executa testes em modo single-run (Vitest) |
+| `npm run test:watch` | Testes em watch mode |
+| `npm run lint` | Lint de ficheiros TS/TSX em `src` e scripts TS |
+| `npm run tsc:strict` | Type-check estrito com `tsconfig.strict.json` |
+| `npm run publish` | Fluxo de publicação por script Node |
+| `npm run deploy` | Build + commit/push + script de deploy (fluxo interno) |
+| `npm run release:daily` | Geração de notas de release diária |
+| `npm run release:email` | Envio de email com release notes |
+| `npm run pimo` | Script utilitário `scripts/pimo.sh` |
+| `npm run export:tcn:variants` | Exportação de variantes TCN |
+
+</details>
+
+## Estrutura do projeto
+
+<details>
+<summary>Expandir estrutura principal do repositório</summary>
+
+```text
+.
+├── src/
+│   ├── app/                # rotas de aplicação (inclui industrial)
+│   ├── auth/               # autenticação e autorização
+│   ├── components/         # componentes de interface
+│   ├── context/            # ProjectContext e providers
+│   ├── core/               # lógica de domínio (cutlist, cnc, regras, etc.)
+│   ├── 3d/                 # motor/viewer 3D
+│   ├── stores/             # stores Zustand de UI/estado derivado
+│   └── ...
+├── api/                    # endpoints/scripts da camada API no repositório
+├── docs/                   # documentação técnica e planos
+├── tests/                  # testes complementares
+├── scripts/                # scripts operacionais
+└── .github/workflows/      # pipelines GitHub Actions
+```
+
+</details>
+
+## Variáveis de ambiente
+
+<details>
+<summary>Expandir visão geral de variáveis (sem segredos)</summary>
+
+O ficheiro `.env.example` define chaves usadas em ambiente local/prod, incluindo:
+
+- `VITE_API_URL`
+- `VITE_TEXTURES_URL`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_PIMO_APP_ENV`
+- `PIMO_APP_ENV`
+- `PIMO_JWT_SECRET`
+- `PIMO_INTERNAL_API_SECRET`
+
+Nunca incluir segredos reais em commits.
+
+</details>
+
+## CI/CD
+
+Workflows existentes em `.github/workflows/` (entre outros):
+
+- `verify.yml` — lint + typecheck + testes
+- `deploy.yml` — publish/deploy orientado por tags `v*`
+- workflows operacionais de suporte (backup, migrações Supabase, health checks, etc.)
+
+## GitHub Pages (landing estática)
+
+Foi adicionada uma landing page estática em `docs/site/` com:
+
+- layout responsive;
+- modo claro/escuro automático;
+- reutilização dos assets visuais desta documentação;
+- resumo de funcionalidades e passos de instalação.
+
+O deploy é feito por workflow dedicado (`.github/workflows/pages.yml`) usando `actions/deploy-pages`.
+
+## Contribuição e suporte
+
+- Guia de contribuição: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Código de conduta: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- Política de segurança: [`SECURITY.md`](SECURITY.md)
+- Templates de issue: `.github/ISSUE_TEMPLATE/`
+- Template de pull request: `.github/pull_request_template.md`
+
+## FAQ
+
+<details>
+<summary>Existe licença definida?</summary>
+
+Não foi encontrado ficheiro `LICENSE` no repositório nesta revisão.
+
+</details>
+
+<details>
+<summary>Há router manual ou biblioteca de routing?</summary>
+
+O projeto usa `react-router-dom` (ver `src/main.tsx` e `src/App.tsx`) e mantém também algumas navegações por `window.history.pushState` em fluxos específicos.
+
+</details>
+
+<details>
+<summary>Posso correr sem serviços externos?</summary>
+
+Sim para desenvolvimento base de frontend. Algumas funcionalidades podem depender de configuração de API/credenciais (ver `.env.example`).
+
+</details>
