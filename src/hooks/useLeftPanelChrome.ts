@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -36,9 +35,10 @@ export function useLeftPanelChrome(options: UseLeftPanelChromeOptions = {}) {
     startWidth: LEFT_PANEL_WIDTH_DEFAULT,
   });
 
-  useEffect(() => {
-    if (forceOpen) setLeftOpen(true);
-  }, [forceOpen]);
+  // Ajuste de estado no render (em vez de effect) quando Photo Mode / Sala forçam abertura.
+  if (forceOpen && !leftOpen) {
+    setLeftOpen(true);
+  }
 
   const openLeftPanel = useCallback(() => {
     setLeftOpen(true);
