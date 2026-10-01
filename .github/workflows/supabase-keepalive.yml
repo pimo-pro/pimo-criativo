@@ -2,25 +2,32 @@ name: Supabase Keepalive
 
 on:
   schedule:
-    # Diário 08:00 UTC — o Free Plan exige actividade DB distribuída na semana
-    # (1x/semana NÃO chega; docs: "a few user requests each day").
+    # 2x/dia (08:00 e 20:00 UTC). O Free Plan exige "a few user requests each day"
+    # distribuídos na semana; 1 SELECT único por dia revelou-se insuficiente
+    # (aviso de pausa mesmo com job Staging a verde).
     - cron: '0 8 * * *'
+    - cron: '0 20 * * *'
   workflow_dispatch: {}
 
 # Mantém activos os projectos Free (pause por inactividade ~7 dias):
-#   - Staging:    rszpnvmscehqapflaklv (PIMO-Staging)
-#   - Production: ritmrjwrmcsofyugviil (pimo-industrial)
+#   - Staging:    rszpnvmscehqapflaklv (PIMO-Staging)  ← alvo principal
+#   - Production: ritmrjwrmcsofyugviil (pimo-industrial) ← best-effort
 #
 # Pré-requisito: se o projecto já estiver pausado, fazer Resume no dashboard
 # Supabase ANTES — o keepalive não consegue reactivar DNS/API pausados.
 # Tabela: public.system_settings (SELECT via REST + anon key).
+#
+# Secrets Staging (obrigatórios):
+#   SUPABASE_STAGING_URL, SUPABASE_STAGING_ANON_KEY
+# Secrets Production (best-effort; job não falha o workflow):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
 
 jobs:
   keepalive-staging:
     runs-on: ubuntu-latest
     name: Ping Staging (PIMO-Staging)
     steps:
-      - name: Ping REST system_settings
+      - name: Ping REST system_settings (DB activity)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_STAGING_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}
@@ -40,37 +47,64 @@ jobs:
               ;;
           esac
           echo "Ping staging host: $(echo "${SUPABASE_URL}" | sed -E 's#https://([^/]+).*#\1#')"
-          endpoint="${SUPABASE_URL}/rest/v1/system_settings?select=*&limit=1"
-          ok=0
-          for attempt in 1 2 3; do
-            echo "Tentativa ${attempt}/3..."
-            body_file="$(mktemp)"
-            code="$(curl -sS -o "${body_file}" -w "%{http_code}" \
-              "${endpoint}" \
-              -H "apikey: ${SUPABASE_ANON_KEY}" \
-              -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-              || true)"
-            echo "HTTP status: ${code}"
-            if [ "${code}" = "200" ]; then
-              ok=1
-              rm -f "${body_file}"
-              break
+
+          # Três pedidos REST distintos → "a few user requests" no mesmo dia.
+          # Prefer: count=exact força PostgREST a correr COUNT no Postgres
+          # (além do SELECT), gerando actividade DB real.
+          endpoints=(
+            "${SUPABASE_URL}/rest/v1/system_settings?select=key&limit=1"
+            "${SUPABASE_URL}/rest/v1/system_settings?select=key,updated_at&limit=1&order=updated_at.desc"
+            "${SUPABASE_URL}/rest/v1/system_settings?select=count()"
+          )
+
+          ping_once() {
+            local endpoint="$1"
+            local attempt code body_file hdr_file
+            for attempt in 1 2 3; do
+              echo "  tentativa ${attempt}/3 → ${endpoint##*/rest/v1/}"
+              body_file="$(mktemp)"
+              hdr_file="$(mktemp)"
+              code="$(curl -sS -D "${hdr_file}" -o "${body_file}" -w "%{http_code}" \
+                "${endpoint}" \
+                -H "apikey: ${SUPABASE_ANON_KEY}" \
+                -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+                -H "Accept: application/json" \
+                -H "Prefer: count=exact" \
+                || true)"
+              echo "  HTTP status: ${code}"
+              # Exige 2xx (não só 200) — 401/403/5xx falham o job.
+              if [[ "${code}" =~ ^2[0-9][0-9]$ ]]; then
+                echo "  content-range: $(grep -i '^content-range:' "${hdr_file}" | tr -d '\r' || true)"
+                rm -f "${body_file}" "${hdr_file}"
+                return 0
+              fi
+              echo "  Corpo (primeiros 500 chars):"
+              head -c 500 "${body_file}" || true
+              echo
+              rm -f "${body_file}" "${hdr_file}"
+              sleep $((attempt * 2))
+            done
+            return 1
+          }
+
+          ok_count=0
+          for endpoint in "${endpoints[@]}"; do
+            if ping_once "${endpoint}"; then
+              ok_count=$((ok_count + 1))
+            else
+              echo "ERRO: ping staging falhou para ${endpoint}"
+              exit 1
             fi
-            echo "Corpo (primeiros 500 chars):"
-            head -c 500 "${body_file}" || true
-            echo
-            rm -f "${body_file}"
-            sleep $((attempt * 2))
           done
-          if [ "${ok}" -ne 1 ]; then
-            echo "ERRO: ping staging falhou após 3 tentativas (projecto pausado ou secrets/RLS)."
-            exit 1
-          fi
-          echo "Staging keepalive OK."
+          echo "Staging keepalive OK (${ok_count}/${#endpoints[@]} pedidos 2xx)."
 
   keepalive-production:
     runs-on: ubuntu-latest
     name: Ping Production (pimo-industrial)
+    # Best-effort: Production tem falhado de forma consistente (secrets/API),
+    # o que mascarava o estado do Staging no Actions. Não alteramos Production
+    # no Supabase — só deixamos este job não falhar o workflow.
+    continue-on-error: true
     steps:
       - name: Ping REST system_settings
         env:
@@ -92,7 +126,7 @@ jobs:
               ;;
           esac
           echo "Ping production host: $(echo "${SUPABASE_URL}" | sed -E 's#https://([^/]+).*#\1#')"
-          endpoint="${SUPABASE_URL}/rest/v1/system_settings?select=*&limit=1"
+          endpoint="${SUPABASE_URL}/rest/v1/system_settings?select=key&limit=1"
           ok=0
           for attempt in 1 2 3; do
             echo "Tentativa ${attempt}/3..."
@@ -101,9 +135,10 @@ jobs:
               "${endpoint}" \
               -H "apikey: ${SUPABASE_ANON_KEY}" \
               -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+              -H "Prefer: count=exact" \
               || true)"
             echo "HTTP status: ${code}"
-            if [ "${code}" = "200" ]; then
+            if [[ "${code}" =~ ^2[0-9][0-9]$ ]]; then
               ok=1
               rm -f "${body_file}"
               break
