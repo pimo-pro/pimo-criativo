@@ -1,14 +1,20 @@
 /**
  * Feature flags de produto (não industriais).
  * `reportFinanceiroProvenance`: política SSOT+manual no Relatório §4.
- * Default false — comparar Antunes on/off antes de generalizar.
+ * `roomEngineVNext`: dual-path sala → pimo-room (M1+). Default false até activação final.
  *
  * Override local (dev/staging), sem rebuild:
  *   localStorage.setItem("pimo.features.reportFinanceiroProvenance", "1")
- *   localStorage.removeItem("pimo.features.reportFinanceiroProvenance")
+ *   localStorage.setItem("pimo.features.roomEngineVNext", "1")
+ *   localStorage.removeItem("pimo.features.roomEngineVNext")
  */
-export const features: { readonly reportFinanceiroProvenance: boolean } = {
+export const features: {
+  readonly reportFinanceiroProvenance: boolean;
+  /** Dual-path sala → pimo-room. Default off até activação final (M0–M10). */
+  readonly roomEngineVNext: boolean;
+} = {
   reportFinanceiroProvenance: false,
+  roomEngineVNext: false,
 };
 
 export type AppFeatureKey = keyof typeof features;
@@ -37,4 +43,8 @@ export function isFeatureEnabled(key: AppFeatureKey): boolean {
 
 export function isReportFinanceiroProvenanceEnabled(): boolean {
   return isFeatureEnabled("reportFinanceiroProvenance");
+}
+
+export function isRoomEngineVNextEnabled(): boolean {
+  return isFeatureEnabled("roomEngineVNext");
 }
