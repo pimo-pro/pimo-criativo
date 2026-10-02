@@ -46,7 +46,6 @@ import {
   PIMO_ALFA_VERSION,
   ROOM_ENGINE_VERSION,
   RoomBridge,
-  RoomConverter,
   RoomEngineBoundary,
   RoomLevelManager,
   SlabEngine,
@@ -63,6 +62,10 @@ import {
   useRoomEngineStore,
   type AiPresetId,
 } from "../../../pimo-room-v4";
+import {
+  projectRoomFromRoomState,
+  roomStateFromProjectRoom,
+} from "../../../pimo-room/dualPath";
 
 const DEFAULT_OPENING = {
   door: { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 },
@@ -321,7 +324,7 @@ export function PainelSala() {
     try {
       const base =
         engineState ??
-        (room ? RoomConverter.fromProjectRoomConfig(room) : null);
+        (room ? roomStateFromProjectRoom(room) : null);
       if (!base) {
         setImportMessage("Crie ou importe uma sala antes de importar um item GLB");
         return;
@@ -344,7 +347,7 @@ export function PainelSala() {
   };
 
   const resolveExportState = () =>
-    engineState ?? (room ? RoomConverter.fromProjectRoomConfig(room) : null);
+    engineState ?? (room ? roomStateFromProjectRoom(room) : null);
 
   const handleExportGlbRoom = async () => {
     const state = resolveExportState();
@@ -430,7 +433,7 @@ export function PainelSala() {
 
   const syncActiveLevelToProject = (nextEngine: typeof engineState) => {
     if (!nextEngine) return;
-    const projectRoom = RoomConverter.toProjectRoomConfig(nextEngine);
+    const projectRoom = projectRoomFromRoomState(nextEngine);
     const normalized = normalizeProjectRoom(projectRoom) ?? projectRoom;
     actions.setProjectRoom(normalized);
     wallStore.getState().setOpen(true);
@@ -439,7 +442,7 @@ export function PainelSala() {
   const handleAddLevel = () => {
     const base =
       engineState ??
-      (room ? RoomConverter.fromProjectRoomConfig(room) : null);
+      (room ? roomStateFromProjectRoom(room) : null);
     if (!base) {
       setImportMessage("Crie ou importe uma sala antes de adicionar níveis");
       return;
@@ -464,7 +467,7 @@ export function PainelSala() {
   const ensureEngineState = () => {
     if (engineState) return engineState;
     if (!room) return null;
-    const fromRoom = RoomConverter.fromProjectRoomConfig(room);
+    const fromRoom = roomStateFromProjectRoom(room);
     setRoomEngineState(fromRoom);
     return fromRoom;
   };
@@ -524,7 +527,7 @@ export function PainelSala() {
   const ensureEngineForAi = () => {
     const base =
       engineState ??
-      (room ? RoomConverter.fromProjectRoomConfig(room) : null);
+      (room ? roomStateFromProjectRoom(room) : null);
     if (!base) {
       setImportMessage("Crie ou importe uma sala antes de usar a AI");
       return null;
@@ -601,7 +604,7 @@ export function PainelSala() {
     }
     const state =
       engineState ??
-      (room ? RoomConverter.fromProjectRoomConfig(room) : null);
+      (room ? roomStateFromProjectRoom(room) : null);
     if (!state) {
       setImportMessage("Crie ou importe uma sala para o walkthrough");
       return;
@@ -621,7 +624,7 @@ export function PainelSala() {
     if (!slabEditOpen) {
       const base =
         engineState ??
-        (room ? RoomConverter.fromProjectRoomConfig(room) : null);
+        (room ? roomStateFromProjectRoom(room) : null);
       if (!base) {
         setImportMessage("Crie ou importe uma sala antes de editar a laje");
         return;

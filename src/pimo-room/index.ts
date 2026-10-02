@@ -11,6 +11,11 @@ export {
 } from "./convert";
 
 export {
+  roomStateFromProjectRoom,
+  projectRoomFromRoomState,
+} from "./dualPath";
+
+export {
   RoomIndustrialAdapter,
   toAutoRoomFillInput,
   type RoomIndustrialConstraints,
