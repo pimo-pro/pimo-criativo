@@ -27,6 +27,8 @@ export {
   gatedStopWalkthrough,
 } from "./advancedHostsGate";
 
+export { isRoomWallSnapEnabled } from "./wallSnapGate";
+
 export {
   RoomIndustrialAdapter,
   toAutoRoomFillInput,

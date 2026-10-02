@@ -1,8 +1,10 @@
 import type * as THREE from "three";
-import { snapModelToNearestWall, SNAP_THRESHOLD } from "../../snapping/ModelWallSnap";
+import { Vector3 } from "three";
+import { snapModelToNearestWall, SNAP_THRESHOLD, type SnapResult } from "../../snapping/ModelWallSnap";
 import type { TransformConstraints, ClampTransformContext } from "../constraints/TransformConstraints";
 import type { SmartAlignSnapEngine } from "./SmartAlignSnapEngine";
 import type { SmartAlignSnapContext, SmartSnapEntityKind } from "./smartAlignSnapTypes";
+import { isRoomWallSnapEnabled } from "../../../pimo-room/wallSnapGate";
 
 /** Limiar de ModelWallSnap (0,25 m) expresso em mm — D-10 / testes de drag. */
 export const SNAP_WALL_THRESHOLD_MM = SNAP_THRESHOLD * 1000;
@@ -70,7 +72,23 @@ export class SnapEngine {
   snapMeshToNearestMainWall(
     mesh: THREE.Object3D,
     mainWalls: THREE.Mesh[]
-  ): ReturnType<typeof snapModelToNearestWall> {
+  ): SnapResult {
+    if (!isRoomWallSnapEnabled()) {
+      return {
+        applied: false,
+        debug: {
+          currentWallId: null,
+          nearestWallId: null,
+          projection: 0,
+          wallLength: 0,
+          distanceToWall: Number.POSITIVE_INFINITY,
+          movementDirection: new Vector3(),
+          alignment: 0,
+          insideWallRange: false,
+          switchCondition: false,
+        },
+      };
+    }
     return snapModelToNearestWall(mesh, mainWalls);
   }
 }
