@@ -30,7 +30,7 @@ industrial (cutlist / nesting / CNC).
 
 ### Correcções pré-release 4.0
 
-- Remoção de labels/mensagens “Aedifex” na UI e RoomBridge
+- Remoção de labels/mensagens de integração externa na UI e RoomBridge
 - Botões unificados **Importar** / **Exportar** (JSON, IFC, GLB)
 - FloorEngine: piso alinhado a RoomGeometry após import
 - Portas/janelas: cutout acompanha o movimento; teclado (setas, Q/E, Delete, Ctrl+D)

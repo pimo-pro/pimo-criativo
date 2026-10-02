@@ -1,8 +1,5 @@
 /**
  * pimo-room v4 — geometria de paredes com cutouts CSG (WebGL / MeshStandardMaterial).
- *
- * Atribuição (MIT): ideia de cutouts de porta/janela em paredes adaptada de
- * Pascal Group Inc. / Aedifex Inc. (`generateExtrudedWall` / `collectCutoutBrushes`).
  * Implementação com `three-csg-ts` já presente no pimo (não three-bvh-csg / WebGPU).
  */
 

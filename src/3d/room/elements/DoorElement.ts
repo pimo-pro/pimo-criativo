@@ -1,8 +1,6 @@
 /**
  * DoorElement — porta com dobradiça (swing), correr, animação e materiais pimo.
- *
- * Atribuição (MIT): ideia de folha pivotada na dobradiça adaptada de
- * Pascal Group Inc. / Aedifex Inc. (door leaf / hinge). Implementação WebGL própria.
+ * Implementação WebGL própria (ViewerCore).
  */
 
 import * as THREE from "three";

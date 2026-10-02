@@ -1,9 +1,6 @@
-NOTICE — RoomEngine (pimo-alfa) Fase A
+NOTICE — RoomEngine (pimo-criativo)
 
-Portions of architectural wall/opening concepts adapted from:
-
-  Copyright (c) 2026 Pascal Group Inc. / Aedifex Inc.
-  MIT License — see external/aedifex/LICENSE
-
-UI, icons, colors, and layout remain pimo-alfa exclusively.
-WebGPU / Next / Tailwind Aedifex chrome is not used.
+Implementação nativa do RoomEngine no pimo-criativo.
+Renderer: ViewerCore WebGL.
+UI, ícones, cores e layout são exclusivos do projecto.
+O pipeline industrial (cutlist / nesting / CNC) permanece isolado.

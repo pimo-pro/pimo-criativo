@@ -1,10 +1,7 @@
 /**
  * pimo-room v4 — miters dinâmicos por junção real de paredes.
- *
- * Atribuição (MIT): ideia de junções/miters por endpoints adaptada de
- * Pascal Group Inc. / Aedifex Inc. (`calculateLevelMiters`). Implementação
- * simplificada para ângulos de bisel (`startMiterRad`/`endMiterRad`) usados
- * por `buildWallBoxGeometry` (WebGL / ExtrudeGeometry).
+ * Implementação simplificada (`startMiterRad`/`endMiterRad`) para
+ * `buildWallBoxGeometry` (WebGL / ExtrudeGeometry).
  */
 
 import * as THREE from "three";
@@ -19,7 +16,7 @@ export type WallAxis2D = {
 
 type EndKind = "start" | "end";
 
-const MITER_LIMIT_TAN = 10; // ≈ Aedifex MITER_LIMIT — evita picos em ângulos rasos
+const MITER_LIMIT_TAN = 10; // limite de tan — evita picos em ângulos rasos
 const DEFAULT_TOLERANCE_M = 0.08;
 
 function hypot2(dx: number, dz: number): number {

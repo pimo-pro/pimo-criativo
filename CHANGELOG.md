@@ -19,7 +19,7 @@
 - UI Importar/Exportar unificada (JSON, IFC, GLB)
 - FloorEngine sincroniza piso com RoomGeometry no import
 - Portas/janelas: cutout acompanha movimento; teclado (setas, Q/E, Delete, Ctrl+D)
-- Remoção de labels/mensagens “Aedifex” na UI e RoomBridge
+- Remoção de labels/mensagens de integração externa na UI e RoomBridge
 
 ### Notes
 - Pipeline industrial (cutlist / nesting / CNC) **não** alterado

@@ -5,9 +5,6 @@
  * `src/3d/viewer-engine/room/roomEngineTypes.ts`. Este módulo define tipos
  * auxiliares (metros, start/end) para construção/edição e converte de/para
  * o contrato existente — sem alterar o schema persistido.
- *
- * Atribuição (MIT): ideias de nós wall/door/window/zone adaptadas de
- * Pascal Group Inc. / Aedifex Inc. — apenas lógica de dados, sem renderer.
  * Sem Zod: o pimo-criativo não depende de Zod; tipagem TypeScript nativa.
  */
 

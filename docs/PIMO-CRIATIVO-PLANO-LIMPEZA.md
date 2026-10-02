@@ -1390,7 +1390,7 @@ Não depende de `enabledTools` nem do tipo de peça (industrial vs GLB). `should
 | Campo | Valor |
 |-------|--------|
 | **Estado** | Diagnóstico **concluído** (18-08-2026). **Zero** alterações a `src/`. |
-| **Gatilho de código** | Nenhum. Correcção, reescrita ou Aedifex exigem pedido explícito (ex.: «aplica Z-03.2»). |
+| **Gatilho de código** | Nenhum. Correcção ou reescrita exigem pedido explícito (ex.: «aplica Z-03.2»). |
 | **Exclusões** | BoxBuilder, malha, SnapEngine, LayoutEngine (algoritmo), schema ProjectState, PDF/XLSX/TCN/DRILL/PI — **não tocados** |
 | **Nota de ID** | **Z-03** original = adapter WO legado (`legacyWorkflowWorkOrderAdapter.ts`). **Z-03.1** é campanha **nova** de auditoria da sala, no mesmo espírito de Z-02.0. Não substitui Z-03. |
 
@@ -1407,7 +1407,7 @@ Não há ficheiros com os nomes pedidos `RoomGeometry`, `RoomConverter`, `RoomVa
 | RoomUtils | `roomCoordinates.ts`, `roomWorkspaceBounds.ts`, `wallSnapping.ts`, `openingPlacement.ts` |
 | RoomVisual | `WallFactory.ts`, `RoomBuilder.ts`, `ViewerCore.rebuildRoomFloorAndCeiling`, `roomFloorOverlay.ts` |
 
-**Aedifex:** zero referências no repositório. Tratado abaixo só como motor externo hipotético.
+**Motor externo de sala:** fora de âmbito neste diagnóstico; qualquer integração futura exige adapter para `ProjectRoomConfig`.
 
 ### 6.4.1 Diagrama de ficheiros e papéis
 
@@ -1644,7 +1644,7 @@ Presets de rato: irrelevantes para paredes. Presets de sala = labels Kitchen I/L
 
 Lógica antiga a não usar como fonte de verdade: `applySnapping` do wallStore; `RoomBuilder.createRoom` no-op; `createRoom(RoomConfig)` deprecated; `createRoomBox`; bind RoomManager directo em `useViewerRoom`.
 
-### 6.4.8 Integração potencial Aedifex (sem integrar)
+### 6.4.8 Integração potencial de motor externo de sala (sem integrar)
 
 Nada no repo. Encaixe possível **mantendo** `ProjectRoomConfig` como contrato industrial/visual de projecto:
 
@@ -1655,11 +1655,11 @@ Nada no repo. Encaixe possível **mantendo** `ProjectRoomConfig` como contrato i
 | Lógica de cantos/não-rectas (hoje inexistente de verdade) | Auto-fill a ler o **mesmo** `ProjectRoomConfig` |
 | Viewer meshes (RoomManager/WallFactory) | Kitchen 3.0, BoxBuilder, cutlist, TCN/DRILL/PI |
 
-**Core industrial (não substituir por Aedifex sem adapter):** `ProjectState.room` campos mm; `autoRoomFill` / Kitchen 3.0; caixas resultantes; envelope `roomSnapshot` (ou migrar com adapter).
+**Core industrial (não substituir por motor externo sem adapter):** `ProjectState.room` campos mm; `autoRoomFill` / Kitchen 3.0; caixas resultantes; envelope `roomSnapshot` (ou migrar com adapter).
 
 **Candidatas a substituição:** geometria 3D de paredes, fecho de polígono, multi-sala, paredes não axis-aligned, CSG de cantos, conversor wallStore↔mm (unificar unidades no adapter).
 
-Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 labels ou extra) e o inverso para round-trip. Sem isso, Kitchen 3.0 e persistência partem.
+Camada de compatibilidade mínima: `ExternalRoomModel → ProjectRoomConfig` (mm, 4 labels ou extra) e o inverso para round-trip. Sem isso, Kitchen 3.0 e persistência partem.
 
 ### 6.4.9 Duplicações, riscos e problemas
 
@@ -1697,7 +1697,7 @@ Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 l
 7. `createRoomBox` morto no ViewerCore.
 8. Comentários «sem impacto industrial» são verdadeiros para **paredes**, falsos para **caixas geradas pelo fill**.
 9. `useViewerRoom` ainda duplica o bind (D-09).
-10. Aedifex inexistente no repo — qualquer integração é trabalho novo + adapter.
+10. Motor externo de sala inexistente no repo — qualquer integração é trabalho novo + adapter.
 
 ### 6.4.10 Opções futuras (texto only — **não executar**)
 
@@ -1705,7 +1705,7 @@ Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 l
 |-------|-------------|--------------------|---------------|
 | **A — Corrigir o actual** | Um SSOT (`ProjectRoomConfig` mm); wallStore como vista; uma função de layout; matar aliases; round-trip 3 paredes; eliminar bind duplo | Produto continua rectângulo 3/4 paredes | Médio; reversível; não mexe BoxBuilder |
 | **B — Reescrever núcleo de geometria** | Novo `RoomKernel` polígono fechado, cantos correctos, multi-sala opcional; RoomManager só renderiza | Precisam de L, U irregular, paredes enviesadas | Alto; exige testes de fill + persistência |
-| **C — Aedifex + camada de compatibilidade** | Aedifex gera/edita geometria; adapter ↔ `ProjectRoomConfig`; Kitchen 3.0 e pipeline **inalterados** | Motor externo já cobre polígonos/aberturas melhor que BoxGeometry | Alto de integração; **proibido** sem adapter mm e sem manter IDs de parede |
+| **C — Motor externo + camada de compatibilidade** | Motor externo gera/edita geometria; adapter ↔ `ProjectRoomConfig`; Kitchen 3.0 e pipeline **inalterados** | Motor externo já cobre polígonos/aberturas melhor que BoxGeometry | Alto de integração; **proibido** sem adapter mm e sem manter IDs de parede |
 
 **Recomendação de leitura (não é execução):** A é pré-requisito de B ou C. Sem unificar mm/cm/m e o SSOT, um motor externo herda o drift.
 
@@ -1716,7 +1716,7 @@ Camada de compatibilidade mínima: `AedifexModel → ProjectRoomConfig` (mm, 4 l
 | Campo | Valor |
 |-------|--------|
 | **Estado** | Classificação **concluída** (19-08-2026). **Zero** alterações a `src/`. Nenhum ficheiro apagado. |
-| **Gatilho de código** | Nenhum. Remoção, unificação de SSOT, ou Aedifex exigem pedido explícito (ex.: «aplica Z-03.3»). |
+| **Gatilho de código** | Nenhum. Remoção ou unificação de SSOT exigem pedido explícito (ex.: «aplica Z-03.3»). |
 | **Exclusões** | BoxBuilder, SnapEngine, LayoutEngine (algoritmo), schema ProjectState industrial, PDF/XLSX/TCN/DRILL/PI — **não tocados** |
 | **Nota de ID** | Complementa §6.4 (Z-03.1). **Não** substitui Z-03 (adapter WO legado). |
 
@@ -1732,7 +1732,7 @@ Cada ficheiro (ou trecho, quando o ficheiro é misto) recebe **uma ou mais** eti
 | **legacy** | Geração anterior ainda referenciada, ou API morta dentro de ficheiro vivo. Não é SSOT. |
 | **unused** | Sem consumidores activos (método ou ficheiro). |
 | **candidate for removal** | Destino futuro de código, **depois** de unificar SSOT / matar bind duplo. **Não remover agora.** |
-| **candidate for replacement** | Geometria ou mesh que um motor externo (Aedifex) ou `RoomKernel` pode substituir **via adapter** para `ProjectRoomConfig`. |
+| **candidate for replacement** | Geometria ou mesh que um motor externo de sala ou `RoomKernel` pode substituir **via adapter** para `ProjectRoomConfig`. |
 
 Etiqueta extra (obrigatória quando o ficheiro gera ou ancora caixas):
 
@@ -1789,7 +1789,7 @@ Caminhos relativos a `src/` salvo indicação.
 
 | Ficheiro | Classificação | Camada | Notas |
 |----------|---------------|--------|-------|
-| `3d/viewer-engine/room/roomEngineTypes.ts` | **preservar (industrial-adjacente)** | Contrato | SSOT de tipos mm. **Não** substituir sem adapter Aedifex. Aliases `lengthMm`/`xPosMm` são dívida (Z31-D2), não motivo para apagar o tipo. |
+| `3d/viewer-engine/room/roomEngineTypes.ts` | **preservar (industrial-adjacente)** | Contrato | SSOT de tipos mm. **Não** substituir sem adapter para `ProjectRoomConfig`. Aliases `lengthMm`/`xPosMm` são dívida (Z31-D2), não motivo para apagar o tipo. |
 | `3d/viewer-engine/room/RoomEngine.ts` | **legacy** + **candidate for replacement** (conversores) | Contrato + runtime | Normaliza e converte mm↔cm. Manter `normalizeProjectRoom` no limite do adapter. |
 | `context/projectTypes.ts` (campo `room` + acções fill) | **preservar (industrial-adjacente)** | Contrato | Ficheiro **misto**: só o trecho sala/fill está no âmbito. Resto industrial **intocado**. |
 | `context/hooks/useRoomActions.ts` | industrial-safe | Runtime + contrato | Escreve `project.room` e sincroniza wallStore/viewer. |
@@ -1928,7 +1928,7 @@ Ordem sugerida **depois** de unificar SSOT (opção A em §6.4.10). Nenhum item 
 | `kitchenFinish/roomContext` | Rodapé/hemati FULL |
 | Caixas resultantes + `recomputeState` | Entrada real da indústria |
 | Envelope `room` + `roomSnapshot` até haver migração | Load de ficheiros antigos (Z31-R5) |
-| `ViewerRoomEngine` | Fachada estável para substituir meshes por Aedifex |
+| `ViewerRoomEngine` | Fachada estável para substituir meshes por motor externo de sala |
 | Testes `LayoutEngine` / `RoomEngine` | Regressão da fachada |
 
 ### 6.5.9 Riscos (classificação — sem mitigação de código)
@@ -1939,15 +1939,15 @@ Herdados de §6.4.9, com IDs de destino:
 |----|--------|------------------------|
 | Z32-R1 | Tratar Kitchen 3.0 como «só visual» e apagá-lo com as meshes | **preservar (industrial-adjacente)** |
 | Z32-R2 | Apagar `wallStore` antes de um único SSOT mm | **candidate for replacement**, não removal imediata |
-| Z32-R3 | Substituir RoomManager por Aedifex sem adapter → `ProjectRoomConfig` | Kitchen 3.0 e save partem |
+| Z32-R3 | Substituir RoomManager por motor externo sem adapter → `ProjectRoomConfig` | Kitchen 3.0 e save partem |
 | Z32-R4 | Confundir `v4/room` com RoomManager e apagar o canónico | Paralelos §6.5.5 |
 | Z32-R5 | Mexer em `LayoutEngine` / SnapEngine «porque têm room no nome» | Fora de âmbito; exclusão explícita |
 | Z32-R6 | Clamp `roomWorkspaceBounds` alterado sem testes de spawn | Caixas fora do sítio → cutlist **indirecto** |
 | Z31-R1…R7 | Ver §6.4.9 | Continuam válidos |
 
-### 6.5.10 Preparação para motores externos (Aedifex) — sem integrar
+### 6.5.10 Preparação para motores externos de sala — sem integrar
 
-Grep 19-08-2026: **zero** referências a Aedifex no repositório.
+Grep: scaffold de integração externa removido do repositório; domínio de sala é interno (`pimo-room-v4` / contrato `ProjectRoomConfig`).
 
 Contrato mínimo a **não partir** (igual §6.4.8, agora com etiquetas):
 
@@ -1955,14 +1955,14 @@ Contrato mínimo a **não partir** (igual §6.4.8, agora com etiquetas):
 |------------------------------------------|------------------------|
 | `Room.ts`, `WallFactory`, meshes RoomManager, `roomMeshFromWallStore`, layout cm do wallStore, `autoLayoutRoomGeometry` | `ProjectRoomConfig` mm, IDs de parede, openings mm, Kitchen 3.0, BoxBuilder, cutlist, TCN/DRILL/PI |
 
-Camada de compatibilidade: `AedifexModel → ProjectRoomConfig` e o inverso. Z-03.2 **não** cria essa camada.
+Camada de compatibilidade: `ExternalRoomModel → ProjectRoomConfig` e o inverso. Z-03.2 **não** cria essa camada.
 
 ### 6.5.11 O que esta fase **não** fez
 
 - Não apagou, moveu nem deprecou código em `src/`.
 - Não alterou comportamento industrial, BoxBuilder, SnapEngine, LayoutEngine, ProjectState industrial, nem pipeline.
 - Não unificou mm/cm/m (isso seria opção A / **Z-03.3** — agora executado em §6.6).
-- Não integrou Aedifex.
+- Não integrou motor externo de sala.
 
 **Próximo gatilho (código):** Z-03.5+ (evolução sala) só com pedido explícito.
 
@@ -2733,7 +2733,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Z-03.1** | Diagnóstico completo da sala / RoomManager em §6.4 |
 | **Código** | Nenhuma alteração a `src/` |
 | **Achado** | Três SSOT (`project.room` mm, wallStore cm, RoomManager m); paredes visuais; fill gera caixas industriais |
-| **Aedifex** | Ausente do repo; só pontos de encaixe documentados |
+| **Motor externo de sala** | Ausente do repo; só pontos de encaixe documentados |
 | **Z-03 original** | Adapter WO legado — **não** substituído |
 
 ### 13.33 Changelog v1.31 → v1.32
@@ -2744,7 +2744,7 @@ R-05, D-09, D-10, smoke ViewerCore, R-08, R-10, E2E mínimo. Ordem oficial: Z-01
 | **Código** | Nenhuma alteração a `src/` — nenhum ficheiro apagado |
 | **Etiquetas** | industrial-safe / legacy / unused / candidate for removal / candidate for replacement + preservar (industrial-adjacente) |
 | **Industrial** | BoxBuilder e pipeline sem imports de sala; impacto só indirecto via caixas (Kitchen 3.0 / clamp / rodapé FULL) |
-| **Aedifex** | Continua ausente; contrato mínimo documentado; sem integração |
+| **Motor externo de sala** | Continua ausente; contrato mínimo documentado; sem integração |
 | **Próximo código** | Z-03.5+ só com gatilho explícito |
 
 ### 13.34 Changelog v1.32 → v1.33

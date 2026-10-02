@@ -3,9 +3,7 @@
  *
  * Detecta ciclos mínimos no grafo de eixos de parede e gera
  * `ProjectRoomZone` (opt-in). Não altera salas sem activação explícita.
- *
- * Atribuição (MIT): ideia de faces/loops a partir de paredes adaptada de
- * Pascal Group Inc. / Aedifex Inc. (zone from wall network) — só lógica.
+ * Só lógica de dados (sem renderer).
  */
 
 import type { ProjectRoomConfig, ProjectRoomZone, ProjectRoomZonePoint } from "../viewer-engine/room/roomEngineTypes";

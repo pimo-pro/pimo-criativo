@@ -129,7 +129,7 @@ describe("Pré-release RoomEngine 4.0", () => {
     expect(next.openings.some((o) => o.id === id)).toBe(true);
   });
 
-  it("mensagens RoomBridge sem Aedifex", () => {
+  it("mensagens RoomBridge usam texto pimo (floorplan)", () => {
     expect(() => RoomBridge.jsonToRoomState({ foo: 1 })).toThrow(/floorplan/);
     expect(() => RoomBridge.jsonToRoomState({ foo: 1 })).toThrowError(
       /não reconhecido como floorplan \/ RoomState/

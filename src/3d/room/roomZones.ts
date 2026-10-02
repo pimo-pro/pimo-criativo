@@ -1,8 +1,6 @@
 /**
  * pimo-room v4 — zonas polígono (opt-in) + área / perímetro.
- *
- * Atribuição (MIT): ideia de nós zone com polígono adaptada de
- * Pascal Group Inc. / Aedifex Inc. — apenas lógica de dados/área.
+ * Apenas lógica de dados/área (sem renderer).
  */
 
 import type {
