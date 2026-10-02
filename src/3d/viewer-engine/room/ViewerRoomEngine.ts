@@ -1,7 +1,11 @@
 /**
  * pimo-room v4 — ViewerRoomEngine: delega create/remove/dims para o RoomManager.
+ * Implementa IRoomRenderer (M1) — superfície estável para coexistência legado/novo.
  */
 import type { RoomConfig } from "../../room/types";
+import type { IRoomRenderer } from "./IRoomRenderer";
+
+export type { IRoomRenderer } from "./IRoomRenderer";
 
 export type ViewerRoomManagerLike = {
   createRoom?: (
@@ -41,7 +45,7 @@ export function roomConfigToDimensions(config: RoomConfig): {
   return { widthM, depthM, heightM, numWalls: n };
 }
 
-export class ViewerRoomEngine {
+export class ViewerRoomEngine implements IRoomRenderer {
   private readonly getManager: () => ViewerRoomManagerLike | null | undefined;
 
   constructor(getManager: () => ViewerRoomManagerLike | null | undefined) {
