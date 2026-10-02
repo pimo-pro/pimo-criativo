@@ -7,6 +7,7 @@ import { collectAutoAlignmentCandidates } from "./smartSnappingAutoAlign";
 import { collectAutoSpacingCandidates } from "./smartSnappingAutoSpacing";
 import { collectOpeningCandidates, collectRoomCandidates } from "./smartSnappingRoom";
 import { applySmartSnapConstraints } from "./smartSnappingConstraints";
+import { isRoomWallSnapEnabled } from "../../../pimo-room/wallSnapGate";
 import {
   SNAP_VISUAL,
   kindToAlignment,
@@ -269,7 +270,7 @@ export class SmartSnapping {
         collectBasicBoxCandidates(moving, getAabb(entry.mesh), captureM, candidates);
       });
     } else {
-      if (this.roomSnappingEnabled && roomBounds) {
+      if (this.roomSnappingEnabled && roomBounds && isRoomWallSnapEnabled()) {
         collectRoomCandidates(moving, roomBounds, captureM, candidates, { wallOffsetMm: this.wallOffsetMm });
         if (openings.length) {
           collectOpeningCandidates(moving, openings, captureM, candidates);
