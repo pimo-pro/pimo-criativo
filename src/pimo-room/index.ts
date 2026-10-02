@@ -35,6 +35,12 @@ export {
 } from "./roomVisualGate";
 
 export {
+  applyRoomMeshFromProjectRoom,
+  applyRoomOpeningsFromProjectRoom,
+  getProjectRoomMeshFingerprint,
+} from "./applyRoomMeshFromProjectRoom";
+
+export {
   RoomIndustrialAdapter,
   toAutoRoomFillInput,
   type RoomIndustrialConstraints,

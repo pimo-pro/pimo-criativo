@@ -1,6 +1,6 @@
 /**
  * pimo-room v4 — sincroniza project.room (mm) → wallStore (cm) → RoomManager (m).
- * Padrão semelhante a useViewerSync para WorkspaceBox.
+ * M7: com roomEngineVNext, meshes vêm directamente de project.room (wallStore = vista UI).
  */
 import { useEffect, useRef } from "react";
 import type { PimoViewerApi } from "../../context/PimoViewerContextCore";
@@ -13,10 +13,16 @@ import {
   getRoomMeshFingerprintFromWallStore,
 } from "../../utils/roomMeshFromWallStore";
 import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
+import { isRoomEngineVNextEnabled } from "../../core/features";
 import {
   areRoomFloorCeilingEnabled,
   areRoomOpeningsVisualEnabled,
 } from "../../pimo-room/roomVisualGate";
+import {
+  applyRoomMeshFromProjectRoom,
+  applyRoomOpeningsFromProjectRoom,
+  getProjectRoomMeshFingerprint,
+} from "../../pimo-room/applyRoomMeshFromProjectRoom";
 
 function applyRoomVisualFlags(
   viewerApi: PimoViewerApi,
@@ -29,7 +35,6 @@ function applyRoomVisualFlags(
     viewerApi.setRoomCeilingVisible?.(room.ceilingVisible && showCeiling);
   } else {
     viewerApi.setRoomCeilingVisible?.(false);
-    // Força rebuild limpo (gate limpa piso/tecto em ViewerCoreRoomGeometry).
     viewerApi.setRoomFloorMode?.(room.floorMode);
   }
   viewerApi.setRoomHiddenWalls?.(room.hiddenWalls ?? []);
@@ -47,8 +52,9 @@ export function useViewerRoomSync(
   const roomMeshSyncToken = useWallStore((s) => s.roomMeshSyncToken);
   const lastFingerprintRef = useRef("");
   const visualGateKey = `${areRoomOpeningsVisualEnabled()}:${areRoomFloorCeilingEnabled()}`;
+  const useDirectMesh = isRoomEngineVNextEnabled();
 
-  // SSOT mm → vista cm
+  // SSOT mm → vista cm (UI / selecção; mantém-se em ambos os paths)
   useEffect(() => {
     if (room) {
       applyProjectRoomToWallStore(room);
@@ -57,23 +63,34 @@ export function useViewerRoomSync(
     }
   }, [room]);
 
-  // wallStore → meshes RoomManager / RoomBuilder
+  // Meshes: legado wallStore → mesh | M7 directo project.room → mesh
   useEffect(() => {
     if (!viewerApi?.createRoomWithDimensions) return;
-    const fingerprint = `${getRoomMeshFingerprintFromWallStore()}|${visualGateKey}`;
+
+    if (!room) {
+      lastFingerprintRef.current = "";
+      viewerApi.removeRoom?.();
+      getActiveViewerCore()?.roomManager?.clearZoneOverlay?.();
+      return;
+    }
+
+    const fingerprint = useDirectMesh
+      ? `${getProjectRoomMeshFingerprint(room)}|${visualGateKey}|direct`
+      : `${getRoomMeshFingerprintFromWallStore()}|${visualGateKey}|legacy`;
+
     if (fingerprint && fingerprint === lastFingerprintRef.current && viewerApi.getRoomExists?.()) {
-      if (room) {
-        applyRoomVisualFlags(viewerApi, room, showCeiling);
-      }
+      applyRoomVisualFlags(viewerApi, room, showCeiling);
       return;
     }
     lastFingerprintRef.current = fingerprint;
-    applyRoomMeshFromWallStore(viewerApi);
-    applyRoomOpeningsFromWallStore(viewerApi);
-    if (room) {
-      applyRoomVisualFlags(viewerApi, room, showCeiling);
+
+    if (useDirectMesh) {
+      applyRoomMeshFromProjectRoom(viewerApi, room);
+      applyRoomOpeningsFromProjectRoom(viewerApi, room);
     } else {
-      getActiveViewerCore()?.roomManager?.clearZoneOverlay?.();
+      applyRoomMeshFromWallStore(viewerApi);
+      applyRoomOpeningsFromWallStore(viewerApi);
     }
-  }, [viewerApi, roomMeshSyncToken, room, showCeiling, visualGateKey]);
+    applyRoomVisualFlags(viewerApi, room, showCeiling);
+  }, [viewerApi, roomMeshSyncToken, room, showCeiling, visualGateKey, useDirectMesh]);
 }
