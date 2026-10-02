@@ -3,8 +3,8 @@
  * Interior da sala: X ∈ [-W/2, W/2], Z ∈ [-D/2, D/2]. O clamp em XZ usa meia-dimensão da caixa.
  */
 import type { WorkspaceBox } from "../core/types";
-import type { Wall } from "../stores/wallStore";
-import { getRoomDimensionsCm } from "../stores/wallStore";
+import type { Wall } from "../3d/viewer-engine/room/roomUnitConversion";
+import { getRoomDimensionsCm } from "../3d/viewer-engine/room/roomUnitConversion";
 import { wallStoreWallFootprintXZMm } from "../pimo-room/mesh/impl/roomDynamicBounds";
 
 /** Recuo adicional nas paredes para colisão no estado do projeto (0 = encostar ao limite interior da sala). */

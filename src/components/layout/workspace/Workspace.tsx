@@ -5,7 +5,7 @@ import { usePimoViewer } from "../../../hooks/usePimoViewer";
 import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
 import { applyWallViewerTransformToRoom } from "../../../pimo-room/mesh/impl/wallVertexEdit";
-import { wallStore } from "../../../stores/wallStore";
+import { uiStore } from "../../../stores/uiStore";
 import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import {
   getActivePimoViewerApi,
@@ -197,7 +197,7 @@ export default function Workspace({
       const label = WALL_INDEX_TO_LABEL[wallIndex];
       if (label) {
         const wall = next.walls.find((w) => w.label === label);
-        if (wall) wallStore.getState().selectWall(wall.id);
+        if (wall) uiStore.getState().setSelectedObject({ type: "wall", id: wall.id });
       }
     });
     return () => {

@@ -1,36 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { createDefaultProjectRoom, applyProjectRoomToWallStore } from "../../../src/3d/viewer-engine/room/RoomEngine";
-import { wallStore } from "../../../src/stores/wallStore";
-import { RoomManager } from "../../../src/3d/room/RoomManager";
-import { RoomBuilder } from "../../../src/3d/room/RoomBuilder";
-import { DEFAULT_DOOR_CONFIG } from "../../../src/3d/room/types";
-import { PIMO_ROOM_MODULE } from "../../../src/3d/room/pimoRoomSchema";
+import { createDefaultProjectRoom } from "../../../src/3d/viewer-engine/room/RoomEngine";
+import { RoomMeshEngine } from "../../../src/pimo-room/mesh/RoomMeshEngine";
+import { RoomBuilder } from "../../../src/pimo-room/mesh/impl/RoomBuilder";
+import { DEFAULT_DOOR_CONFIG } from "../../../src/pimo-room/mesh/impl/types";
+import { PIMO_ROOM_MODULE } from "../../../src/pimo-room/mesh/impl/pimoRoomSchema";
 import type { WorkspaceBox } from "../../../src/core/types";
 import * as THREE from "three";
 
-describe("pimo-room verificação final (fase 6)", () => {
-  it("identifica pimo-room v4", () => {
+describe("pimo-room verificação final (M10.b)", () => {
+  it("identifica pimo-room", () => {
     expect(PIMO_ROOM_MODULE.name).toBe("pimo-room");
     expect(PIMO_ROOM_MODULE.version).toBe("4.0.0");
   });
 
   it("cria sala + abertura CSG e coexiste com WorkspaceBox de armário (dados)", () => {
-    wallStore.getState().clearRoom();
     const room = createDefaultProjectRoom();
-    applyProjectRoomToWallStore(room);
-    expect(wallStore.getState().walls.length).toBe(4);
+    expect(room.walls.length).toBe(4);
 
-    const manager = new RoomManager({
+    const manager = new RoomMeshEngine({
       setRoomFromManager: () => {},
       clearRoomFromManager: () => {},
     });
-    manager.createRoom(room.widthMm / 1000, room.depthMm / 1000, room.heightMm / 1000, 4, room.wallThicknessMm / 1000);
+    manager.createRoom(
+      room.widthMm / 1000,
+      room.depthMm / 1000,
+      room.heightMm / 1000,
+      4,
+      room.wallThicknessMm / 1000
+    );
     const builder = new RoomBuilder(() => manager.wallsMain);
     const doorId = builder.addDoorByIndex(0, { ...DEFAULT_DOOR_CONFIG, horizontalOffsetMm: 500 });
     expect(doorId).toBeTruthy();
     expect(manager.wallsMain[0].material).toBeInstanceOf(THREE.MeshStandardMaterial);
 
-    // Armário existente (contrato WorkspaceBox) — posição dentro do footprint centrado.
     const cabinet: Pick<WorkspaceBox, "id" | "x_mm" | "y_mm" | "z_mm" | "W" | "H" | "D"> = {
       id: "box-test-armario",
       x_mm: 0,

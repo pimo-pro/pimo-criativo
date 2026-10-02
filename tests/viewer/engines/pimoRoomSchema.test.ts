@@ -1,18 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   createDefaultProjectRoom,
-  applyProjectRoomToWallStore,
   normalizeProjectRoom,
+  projectRoomToWallStoreWalls,
   wallStoreToProjectRoom,
 } from "../../../src/3d/viewer-engine/room/RoomEngine";
 import {
   PIMO_ROOM_MODULE,
   pimoRoomGraphToProjectRoom,
   projectRoomToPimoRoomGraph,
-} from "../../../src/3d/room/pimoRoomSchema";
-import { wallStore } from "../../../src/stores/wallStore";
+} from "../../../src/pimo-room/mesh/impl/pimoRoomSchema";
 
-describe("pimo-room schema + store (fase 1)", () => {
+describe("pimo-room schema + snapshot cm (M10.b)", () => {
   it("identifica o módulo como pimo-room v4", () => {
     expect(PIMO_ROOM_MODULE.name).toBe("pimo-room");
     expect(PIMO_ROOM_MODULE.version.startsWith("4.")).toBe(true);
@@ -34,11 +33,9 @@ describe("pimo-room schema + store (fase 1)", () => {
     expect(normalized!.walls).toHaveLength(4);
   });
 
-  it("applyProjectRoomToWallStore popula wallStore e reconverte para ProjectRoomConfig", () => {
-    wallStore.getState().clearRoom();
+  it("projectRoom → paredes cm → ProjectRoomConfig preserva footprint", () => {
     const room = createDefaultProjectRoom();
-    applyProjectRoomToWallStore(room);
-    const { walls } = wallStore.getState();
+    const walls = projectRoomToWallStoreWalls(room);
     expect(walls.length).toBe(4);
     expect(walls.every((w) => w.openings)).toBe(true);
 
@@ -56,11 +53,22 @@ describe("pimo-room schema + store (fase 1)", () => {
     expect(back!.openings.length).toBe(room.openings.length);
   });
 
-  it("updateRoomDimensionsMeters actualiza footprint cm no store", () => {
-    wallStore.getState().clearRoom();
-    applyProjectRoomToWallStore(createDefaultProjectRoom());
-    wallStore.getState().updateRoomDimensionsMeters(5, 3.5, 2.7);
-    const walls = wallStore.getState().walls;
+  it("alterar dimensões no SSOT reflecte-se nas paredes cm derivadas", () => {
+    const room = createDefaultProjectRoom();
+    const scaled = normalizeProjectRoom({
+      ...room,
+      widthMm: 5000,
+      depthMm: 3500,
+      heightMm: 2700,
+      walls: room.walls.map((w) => ({
+        ...w,
+        widthMm: w.label === "sul" || w.label === "norte" ? 5000 : 3500,
+        lengthMm: w.label === "sul" || w.label === "norte" ? 5000 : 3500,
+        heightMm: 2700,
+      })),
+    });
+    expect(scaled).not.toBeNull();
+    const walls = projectRoomToWallStoreWalls(scaled!);
     expect(walls[0]?.lengthCm).toBeCloseTo(500, 0);
     expect(walls[1]?.lengthCm).toBeCloseTo(350, 0);
     expect(walls[0]?.heightCm).toBeCloseTo(270, 0);

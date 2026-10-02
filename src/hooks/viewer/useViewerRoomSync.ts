@@ -1,19 +1,11 @@
 /**
- * pimo-room v4 — sincroniza project.room (mm) → wallStore (cm) → RoomManager (m).
- * M7: com roomEngineVNext, meshes vêm directamente de project.room (wallStore = vista UI).
+ * Sincroniza project.room (mm) → meshes do viewer (m).
+ * M10.b: sem wallStore — SSOT directo via applyRoomMeshFromProjectRoom.
  */
 import { useEffect, useRef } from "react";
 import type { PimoViewerApi } from "../../context/PimoViewerContextCore";
 import type { ProjectRoomConfig } from "../../3d/viewer-engine/room/roomEngineTypes";
-import { applyProjectRoomToWallStore } from "../../3d/viewer-engine/room/RoomEngine";
-import { useWallStore, wallStore } from "../../stores/wallStore";
-import {
-  applyRoomMeshFromWallStore,
-  applyRoomOpeningsFromWallStore,
-  getRoomMeshFingerprintFromWallStore,
-} from "../../utils/roomMeshFromWallStore";
 import { getActiveViewerCore } from "../../core/viewer/pimoViewerRuntime";
-import { isRoomEngineVNextEnabled } from "../../core/features";
 import {
   areRoomFloorCeilingEnabled,
   areRoomOpeningsVisualEnabled,
@@ -49,21 +41,9 @@ export function useViewerRoomSync(
   room: ProjectRoomConfig | null | undefined,
   showCeiling: boolean
 ): void {
-  const roomMeshSyncToken = useWallStore((s) => s.roomMeshSyncToken);
   const lastFingerprintRef = useRef("");
   const visualGateKey = `${areRoomOpeningsVisualEnabled()}:${areRoomFloorCeilingEnabled()}`;
-  const useDirectMesh = isRoomEngineVNextEnabled();
 
-  // SSOT mm → vista cm (UI / selecção; mantém-se em ambos os paths)
-  useEffect(() => {
-    if (room) {
-      applyProjectRoomToWallStore(room);
-    } else {
-      wallStore.getState().clearRoom();
-    }
-  }, [room]);
-
-  // Meshes: legado wallStore → mesh | M7 directo project.room → mesh
   useEffect(() => {
     if (!viewerApi?.createRoomWithDimensions) return;
 
@@ -74,9 +54,7 @@ export function useViewerRoomSync(
       return;
     }
 
-    const fingerprint = useDirectMesh
-      ? `${getProjectRoomMeshFingerprint(room)}|${visualGateKey}|direct`
-      : `${getRoomMeshFingerprintFromWallStore()}|${visualGateKey}|legacy`;
+    const fingerprint = `${getProjectRoomMeshFingerprint(room)}|${visualGateKey}|direct`;
 
     if (fingerprint && fingerprint === lastFingerprintRef.current && viewerApi.getRoomExists?.()) {
       applyRoomVisualFlags(viewerApi, room, showCeiling);
@@ -84,13 +62,8 @@ export function useViewerRoomSync(
     }
     lastFingerprintRef.current = fingerprint;
 
-    if (useDirectMesh) {
-      applyRoomMeshFromProjectRoom(viewerApi, room);
-      applyRoomOpeningsFromProjectRoom(viewerApi, room);
-    } else {
-      applyRoomMeshFromWallStore(viewerApi);
-      applyRoomOpeningsFromWallStore(viewerApi);
-    }
+    applyRoomMeshFromProjectRoom(viewerApi, room);
+    applyRoomOpeningsFromProjectRoom(viewerApi, room);
     applyRoomVisualFlags(viewerApi, room, showCeiling);
-  }, [viewerApi, roomMeshSyncToken, room, showCeiling, visualGateKey, useDirectMesh]);
+  }, [viewerApi, room, showCeiling, visualGateKey]);
 }

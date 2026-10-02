@@ -2142,12 +2142,12 @@ export class ViewerCore {
 
   /*
    * ROOM SYSTEM — 3 subsistemas complementares:
-   * 1. RoomManager: sala principal (paredes, piso)
+   * 1. RoomMeshEngine: sala principal (paredes)
    * 2. RoomBuilder: aberturas (portas/janelas)
-   * 3. wallStore + roomMeshFromWallStore: persistência e restore automático
+   * 3. project.room (mm) + applyRoomMeshFromProjectRoom: SSOT e sync
    *
-   * Fluxo de criação: createRoomWithDimensions -> RoomManager
-   * Fluxo de restore: loadRoomConfig -> roomMeshSyncToken -> Workspace -> applyRoomMeshFromWallStore
+   * Fluxo de criação: createRoomWithDimensions -> RoomMeshEngine
+   * Fluxo de sync: useViewerRoomSync(project.room) -> applyRoomMeshFromProjectRoom
    */
   /**
    * @deprecated Preferir `createRoomWithDimensions` no fluxo de UI (Painel Sala).
