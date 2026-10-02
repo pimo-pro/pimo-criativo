@@ -5,6 +5,12 @@
  */
 export const changelog = [
   {
+    data: "2026-10-02",
+    versao: "pimo-vnext-m10",
+    descricao:
+      "PIMO vNext (M10 Final) — RoomMeshEngine + pimo-room/domain; remoção de RoomManager/3d/room/pimo-room-v4/wallStore; sync SSOT project.room (mm); UI via uiStore; industrial/CNC intacto.",
+  },
+  {
     data: "2026-09-27",
     versao: "PIMO-V4.0.0",
     descricao:
