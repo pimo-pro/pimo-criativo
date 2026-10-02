@@ -5,7 +5,7 @@
 import type { WorkspaceBox } from "../core/types";
 import type { Wall } from "../stores/wallStore";
 import { getRoomDimensionsCm } from "../stores/wallStore";
-import { wallStoreWallFootprintXZMm } from "../3d/room/roomDynamicBounds";
+import { wallStoreWallFootprintXZMm } from "../pimo-room/mesh/impl/roomDynamicBounds";
 
 /** Recuo adicional nas paredes para colisão no estado do projeto (0 = encostar ao limite interior da sala). */
 export const ROOM_COLLISION_INSET_MM = 0;

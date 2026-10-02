@@ -3,7 +3,7 @@
  * Usa tokens próximos de `getSceneMaterialConfig` + madeira/vidro distintos das paredes.
  */
 import * as THREE from "three";
-import { getSceneMaterialConfig } from "../viewer-engine/materials";
+import { getSceneMaterialConfig } from "../../../3d/viewer-engine/materials";
 
 export type OpeningMaterialSet = {
   leaf: THREE.MeshStandardMaterial;

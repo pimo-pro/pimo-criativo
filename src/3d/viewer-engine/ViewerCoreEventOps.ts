@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import type { DoorWindowConfig } from "../room/types";
+import type { DoorWindowConfig } from "../../pimo-room/mesh/impl/types";
 import type { ProjectRoomUtility } from "./room/roomEngineTypes";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import type { WallGizmo } from "../gizmos/WallGizmo";
 import type { HighlightManager } from "./highlight";
 import type { ViewerState, SelectedDivSep } from "./state/ViewerState";

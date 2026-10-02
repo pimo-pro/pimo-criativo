@@ -8,8 +8,8 @@ import type {
 import type { SnapDebugData } from "../snapping/ModelWallSnap";
 import type { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import type { WallGizmo } from "../gizmos/WallGizmo";
-import type { RoomManager } from "../room/RoomManager";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { RoomMeshEngine } from "../../pimo-room/mesh/RoomMeshEngine";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import type { CameraManager } from "./camera";
 import type { Controls } from "./controls";
 import type { MouseInputPreset } from "./controls/MouseInputMapper";
@@ -146,7 +146,7 @@ export type ViewerCoreEngineApisOpsDeps = {
   selectedBoxChangeListeners: Set<(id: string | null) => void>;
   wallGizmo: WallGizmo | null;
   roomBuilder: RoomBuilder;
-  roomManager: RoomManager | null;
+  roomManager: RoomMeshEngine | null;
   boundsCache: ViewerBoundsCache;
   defaultGroundSize: number;
   orlaVisualizer: OrlaVisualizer;

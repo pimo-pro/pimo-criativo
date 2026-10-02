@@ -2,9 +2,9 @@
  * Host de teclado/selecção para portas e janelas (aberturas).
  * Comportamento alinhado a CatalogItem: setas, Shift+setas, Q/E, Delete, Ctrl+D.
  */
-import type { DoorWindowConfig } from "../3d/room/types";
-import type { ProjectRoomConfig, ProjectRoomOpening } from "../3d/viewer-engine/room/roomEngineTypes";
-import { uiStore } from "../stores/uiStore";
+import type { DoorWindowConfig } from "../mesh/impl/types";
+import type { ProjectRoomConfig, ProjectRoomOpening } from "../../3d/viewer-engine/room/roomEngineTypes";
+import { uiStore } from "../../stores/uiStore";
 import { OpeningsEngine } from "./OpeningsEngine";
 import { RoomConverter } from "./RoomConverter";
 import {

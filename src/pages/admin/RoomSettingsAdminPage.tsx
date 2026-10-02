@@ -28,7 +28,7 @@ import {
   setRoomState,
   type AiPresetId,
   type RoomState,
-} from "../../pimo-room-v4";
+} from "../../pimo-room/domain";
 
 export default function RoomSettingsAdminPage() {
   const [message, setMessage] = useState<string | null>(null);

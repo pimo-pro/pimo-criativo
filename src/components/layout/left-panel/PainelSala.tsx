@@ -28,13 +28,13 @@ import {
   type OpeningHorizontalAlign,
   type OpeningVerticalAlign,
 } from "../../../utils/openingConstraints";
-import { applyWallLengthToRoom } from "../../../3d/room/roomAdvancedEdit";
+import { applyWallLengthToRoom } from "../../../pimo-room/mesh/impl/roomAdvancedEdit";
 import {
   computeZoneMetrics,
   createMainZoneFromRoom,
   ensureRoomZones,
-} from "../../../3d/room/roomZones";
-import { autoZonesFromClosedLoops } from "../../../3d/room/roomAutoZones";
+} from "../../../pimo-room/mesh/impl/roomZones";
+import { autoZonesFromClosedLoops } from "../../../pimo-room/mesh/impl/roomAutoZones";
 import {
   AI_PRESETS,
   AboutRoomEngineModal,
@@ -53,7 +53,7 @@ import {
   selectCatalogItem,
   useRoomEngineStore,
   type AiPresetId,
-} from "../../../pimo-room-v4";
+} from "../../../pimo-room/domain";
 import {
   projectRoomFromRoomState,
   roomStateFromProjectRoom,
@@ -751,7 +751,7 @@ export function PainelSala() {
           Salão
         </div>
         <span
-          title="pimo-room-v4"
+          title="pimo-room/domain"
           style={{
             fontSize: 10,
             letterSpacing: "0.02em",

@@ -3,7 +3,7 @@ import {
   areRoomAdvancedHostsEnabled,
   gatedSyncLevelGhosts,
 } from "../../src/pimo-room/advancedHostsGate";
-import { createEmptyRoomState } from "../../src/pimo-room-v4/RoomState";
+import { createEmptyRoomState } from "../../src/pimo-room/domain/RoomState";
 
 const LS_KEY = "pimo.features.roomEngineVNext";
 

@@ -14,7 +14,7 @@ export const changelog = [
     data: "2026-09-21",
     versao: "pimo-alfa-v4.0-room-engine",
     descricao:
-      "PIMO-ALFA v4.0 RoomEngine Edition — pimo-room-v4 (A–E+FINAL), IFC/GLB, AI, multi-level, isolamento industrial cutlist-safe; Admin room-settings; docs Release Notes.",
+      "PIMO-ALFA v4.0 RoomEngine Edition — pimo-room/domain (A–E+FINAL), IFC/GLB, AI, multi-level, isolamento industrial cutlist-safe; Admin room-settings; docs Release Notes.",
   },
   {
     data: "2026-08-22",

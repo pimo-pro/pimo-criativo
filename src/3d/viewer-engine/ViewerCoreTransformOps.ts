@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import type { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { keepModelInsideRoom, preventModelWallIntersection } from "../collision/ModelCollision";
-import type { DoorWindowConfig } from "../room/types";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { DoorWindowConfig } from "../../pimo-room/mesh/impl/types";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import { historyManager } from "../../core/viewer/historyManager";
 import { decodeSelectionId } from "../../core/viewer/selectionIds";
 import { applyRemateRotationSnapToMesh } from "../../core/remate/remateRotationSnap";

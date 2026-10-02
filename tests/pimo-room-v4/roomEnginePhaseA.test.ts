@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
-import { RoomConverter, buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { RoomValidator } from "../../src/pimo-room-v4/RoomValidator";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
+import { RoomConverter, buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { RoomValidator } from "../../src/pimo-room/domain/RoomValidator";
 
 describe("RoomEngine Fase A", () => {
   it("converte retângulo ↔ ProjectRoomConfig", () => {

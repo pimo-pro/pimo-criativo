@@ -2,7 +2,7 @@
  * Bridge floorplan JSON / RoomState / ProjectRoomConfig.
  * Unidades do grafo de nós legado: metros → mm no RoomState.
  */
-import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
+import type { ProjectRoomConfig } from "../../3d/viewer-engine/room/roomEngineTypes";
 import { CeilingEngine } from "./CeilingEngine";
 import { FloorEngine } from "./FloorEngine";
 import { RoomConverter } from "./RoomConverter";

@@ -5,9 +5,10 @@
 import * as THREE from "three";
 import type { ViewerBackgroundMode } from "../../context/projectTypes";
 import { snapHorizontalOffset } from "../../utils/openingConstraints";
-import type { DoorWindowConfig } from "../room/types";
-import type { RoomManager, RoomBounds, WallEntryForViewer } from "../room/RoomManager";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { DoorWindowConfig } from "../../pimo-room/mesh/impl/types";
+import type { RoomBounds, WallEntryForViewer } from "../../pimo-room/mesh/impl/RoomManager";
+import type { RoomMeshEngine } from "../../pimo-room/mesh/RoomMeshEngine";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import { updateWallCulling } from "../visibility/WallRaycastCulling";
 import type { MaterialPipelineFacade } from "./materials/materialPipelineFacade";
 import type { ViewerBoundsCache } from "./cache/ViewerBoundsCache";
@@ -62,7 +63,7 @@ export type ViewerCoreRoomGeometryDeps = {
   roomBuilder: RoomBuilder;
   wallGizmo: WallGizmo | null;
   viewerState: ViewerState;
-  getRoomManager: () => RoomManager | null;
+  getRoomManager: () => RoomMeshEngine | null;
   defaultGroundSize: number;
   getBackgroundMode: () => ViewerBackgroundMode;
   disposeObject: (object: THREE.Object3D) => void;

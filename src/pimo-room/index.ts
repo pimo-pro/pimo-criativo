@@ -1,6 +1,6 @@
 /**
  * pimo-room — API pública consolidada (M2 + activação vNext).
- * Domínio unificado em ./domain; mesh em ./mesh; legado pimo-room-v4 mantido até M10.
+ * Domínio unificado em ./domain; mesh em ./mesh; legado pimo-room/domain mantido até M10.
  */
 
 export {

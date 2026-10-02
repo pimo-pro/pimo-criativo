@@ -1,7 +1,6 @@
 /**
  * wallMeshBuilder — fachada de geometria de paredes (vNext).
- * Hoje delega em WallFactory/CSG/miters (paridade visual com legado).
- * M10: inline desta lógica para eliminar dependência de src/3d/room.
+ * Inline via mesh/impl (WallFactory/CSG/miters) — sem src/3d/room.
  */
 import * as THREE from "three";
 import {
@@ -11,10 +10,10 @@ import {
   positionMainWalls,
   setWallThicknessM,
   type RoomNumWalls,
-} from "../../3d/room/WallFactory";
-import { Room } from "../../3d/room/Room";
-import { buildWallBoxGeometry } from "../../3d/room/wallGeometryCsg";
-import { applyDynamicMitersToWallMeshes } from "../../3d/room/wallMiters";
+} from "./impl/WallFactory";
+import { Room } from "./impl/Room";
+import { buildWallBoxGeometry } from "./impl/wallGeometryCsg";
+import { applyDynamicMitersToWallMeshes } from "./impl/wallMiters";
 
 export type { RoomNumWalls };
 export { Room, getWallThicknessM, setWallThicknessM };

@@ -1,6 +1,6 @@
 /**
  * pimo-room — versões (M2 fachada).
- * Fonte de verdade continua em pimo-room-v4 até M9.
+ * Fonte de verdade continua em pimo-room/domain até M9.
  */
 export {
   ROOM_ENGINE_VERSION,
@@ -9,7 +9,7 @@ export {
   PIMO_ALFA_VERSION,
   PIMO_ALFA_EDITION,
   PIMO_ROOM_CAPABILITIES,
-} from "../pimo-room-v4/version";
+} from "./domain/version";
 
 /** Identificador do pacote fachada M2. */
 export const PIMO_ROOM_FACADE = "pimo-room" as const;

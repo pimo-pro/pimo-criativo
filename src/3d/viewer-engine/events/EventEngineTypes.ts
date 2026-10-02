@@ -4,7 +4,7 @@
  */
 
 import type * as THREE from "three";
-import type { DoorWindowConfig } from "../../room/types";
+import type { DoorWindowConfig } from "../../../pimo-room/mesh/impl/types";
 import type { ProjectRoomUtility } from "../room/roomEngineTypes";
 import type { MouseButtonAction } from "../controls/MouseInputMapper";
 import type { InternalSelectionState } from "../selection/internalSelectionTypes";

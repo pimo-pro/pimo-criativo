@@ -8,7 +8,7 @@ import { isMeshInsideOrTouchingRoomBounds } from "../../viewer/core/viewerUtils"
 import { setBox3FromObjectExcludingLayoutProxy } from "../../3d/viewer-engine/box/boxAabbUtils";
 import type { AutoLayoutOpeningMm, AutoLayoutRoomBoundsMm } from "../../3d/viewer-engine/autoLayout/autoLayoutTypes";
 import type { RoomOpeningLike } from "../../3d/viewer-engine/snapping/smartSnappingTypes";
-import type { RoomBuilder } from "../../3d/room/RoomBuilder";
+import type { RoomBuilder } from "../mesh/impl/RoomBuilder";
 import type { ViewerBoundsCache } from "../../3d/viewer-engine/cache/ViewerBoundsCache";
 import { mToMm } from "../../utils/units";
 

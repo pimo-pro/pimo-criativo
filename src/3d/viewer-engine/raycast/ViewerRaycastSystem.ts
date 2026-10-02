@@ -6,8 +6,8 @@ import {
 import {
   DEFAULT_DOOR_CONFIG,
   DEFAULT_WINDOW_CONFIG,
-} from "../../room/types";
-import type { DoorWindowConfig } from "../../room/types";
+} from "../../../pimo-room/mesh/impl/types";
+import type { DoorWindowConfig } from "../../../pimo-room/mesh/impl/types";
 import type { ViewerBoxEntry } from "../types";
 import { getPointerNdc } from "../utils";
 import { devLogger } from "../../../utils/devLogger";

@@ -28,7 +28,7 @@ import {
   type RoomSnapshotUiState,
   type WallStoreRoomExtras,
 } from "./roomUnitConversion";
-import { normalizeZone, syncMainZoneToFootprint } from "../../room/roomZones";
+import { normalizeZone, syncMainZoneToFootprint } from "../../../pimo-room/mesh/impl/roomZones";
 
 export type { ProjectRoomConfig, ProjectRoomOpening, ProjectRoomWall, ProjectRoomZone, RoomOpeningKind, RoomWallLabel };
 export { ROOM_20_DEFAULTS, WALL_LABELS, WALL_LABEL_TITLES };

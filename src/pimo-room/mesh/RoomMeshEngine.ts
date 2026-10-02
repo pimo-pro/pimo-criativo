@@ -9,11 +9,11 @@ import {
   DEFAULT_ROOM_DEPTH,
   DEFAULT_ROOM_HEIGHT,
   DEFAULT_ROOM_WIDTH,
-} from "../../3d/room/Room";
-import { computeDynamicRoomBounds } from "../../3d/room/roomDynamicBounds";
-import { rebuildZoneOverlayGroup } from "../../3d/room/zoneOverlay";
+} from "./impl/Room";
+import { computeDynamicRoomBounds } from "./impl/roomDynamicBounds";
+import { rebuildZoneOverlayGroup } from "./impl/zoneOverlay";
 import type { ProjectRoomZone } from "../../3d/viewer-engine/room/roomEngineTypes";
-import type { IRoomManagerViewer, RoomBounds, WallEntryForViewer } from "../../3d/room/RoomManager";
+import type { IRoomManagerViewer, RoomBounds, WallEntryForViewer } from "./impl/RoomManager";
 import {
   Room,
   buildExtraWallMesh,

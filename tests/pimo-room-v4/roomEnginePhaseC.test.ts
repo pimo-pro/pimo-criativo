@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
-import { RoomLevelManager } from "../../src/pimo-room-v4/levels/RoomLevelManager";
-import { CatalogItemManager } from "../../src/pimo-room-v4/catalog/CatalogItemManager";
-import { CATALOG_PRESETS } from "../../src/pimo-room-v4/catalog/CatalogPresets";
-import { createPlaceholderMesh } from "../../src/pimo-room-v4/catalog/createPlaceholderMesh";
-import { buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { RoomConverter } from "../../src/pimo-room-v4/RoomConverter";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
+import { RoomLevelManager } from "../../src/pimo-room/domain/levels/RoomLevelManager";
+import { CatalogItemManager } from "../../src/pimo-room/domain/catalog/CatalogItemManager";
+import { CATALOG_PRESETS } from "../../src/pimo-room/domain/catalog/CatalogPresets";
+import { createPlaceholderMesh } from "../../src/pimo-room/domain/catalog/createPlaceholderMesh";
+import { buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { RoomConverter } from "../../src/pimo-room/domain/RoomConverter";
 
 describe("RoomEngine Fase C — Catálogo", () => {
   it("importa JSON com items[]", () => {

@@ -15,7 +15,7 @@ import {
   setRoomViewerCore,
   type RoomEngineViewerApi,
   type RoomEngineViewerHost,
-} from "../../pimo-room-v4";
+} from "../../pimo-room/domain";
 
 afterEach(() => {
   RoomEngineBoundary.viewer.setHost(null);

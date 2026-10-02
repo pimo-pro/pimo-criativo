@@ -22,7 +22,7 @@ import {
   SPECIAL_CATALOG,
 } from "./moduleCatalog";
 import { analyzeRoomWalls, detectRoomCorners, runAlongToWorld } from "./roomAnalysis";
-import { getEffectiveRoomSpanMm } from "../../3d/room/roomDynamicBounds";
+import { getEffectiveRoomSpanMm } from "../../pimo-room/mesh/impl/roomDynamicBounds";
 import type { AnalyzedWallRun } from "./autoRoomFillTypes";
 import { packWallSpan } from "./wallPacking";
 import {

@@ -3,7 +3,7 @@
  * Adicionado ao grupo do RoomManager — sem alterar ViewerCore.ts.
  */
 import * as THREE from "three";
-import type { ProjectRoomZone } from "../viewer-engine/room/roomEngineTypes";
+import type { ProjectRoomZone } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import { polygonCentroidMm } from "./roomZones";
 import { createZoneDimensionSprite } from "./zoneDimensionLabels";
 

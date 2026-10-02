@@ -3,7 +3,7 @@ import type { TransformControls } from "three/examples/jsm/controls/TransformCon
 import type { EdgeOutlineSystem } from "../outline";
 import type { WallGizmo } from "../gizmos/WallGizmo";
 import type { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
-import type { RoomManager } from "../room/RoomManager";
+import type { RoomMeshEngine } from "../../pimo-room/mesh/RoomMeshEngine";
 import type { SnapshotRenderer } from "./snapshot";
 import type { HighlightManager } from "./highlight";
 import type { InternalSelectionOutline, InternalSelectionState } from "./selection";
@@ -21,7 +21,7 @@ import type { MeasurementEngine } from "./measurement/MeasurementEngine";
 import type { SmartSnapping } from "./snapping/SmartSnapping";
 import type { RemateSmartSnapping } from "./snapping/RemateSmartSnapping";
 import type { SmartAlignOverlayFacade } from "./snapping/smartAlignOverlayFacade";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import type { DisplayMaterialController } from "./materials/displayMaterialController";
 import type { MaterialPipelineFacade } from "./materials/materialPipelineFacade";
 import type { SceneManager } from "./scene/SceneManager";
@@ -89,8 +89,8 @@ export type ViewerCoreLifecycleOpsDeps = {
   setWallGizmo: (value: WallGizmo | null) => void;
   getSnapDebugOverlay: () => SnapDebugOverlay | null;
   setSnapDebugOverlay: (value: SnapDebugOverlay | null) => void;
-  getRoomManager: () => RoomManager | null;
-  setRoomManager: (value: RoomManager | null) => void;
+  getRoomManager: () => RoomMeshEngine | null;
+  setRoomManager: (value: RoomMeshEngine | null) => void;
   setSnapshotRenderer: (value: SnapshotRenderer | null) => void;
   selectedBoxChangeListeners: Set<(id: string | null) => void>;
   getSelectionOpsDeps: () => ViewerCoreSelectionOpsDeps;

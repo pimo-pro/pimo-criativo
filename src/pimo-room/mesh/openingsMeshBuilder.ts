@@ -3,9 +3,9 @@
  * Delega nos elementos WebGL existentes (paridade visual).
  * M10: inline quando DoorElement/WindowElement saírem de src/3d/room.
  */
-import type { DoorWindowConfig } from "../../3d/room/types";
-import { DoorElement } from "../../3d/room/elements/DoorElement";
-import { WindowElement } from "../../3d/room/elements/WindowElement";
+import type { DoorWindowConfig } from "./impl/types";
+import { DoorElement } from "./impl/elements/DoorElement";
+import { WindowElement } from "./impl/elements/WindowElement";
 import type * as THREE from "three";
 
 export type OpeningMeshKind = "door" | "window";

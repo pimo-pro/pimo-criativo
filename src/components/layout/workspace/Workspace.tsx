@@ -4,7 +4,7 @@ import { useToast } from "../../../context/ToastContext";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
 import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
-import { applyWallViewerTransformToRoom } from "../../../3d/room/wallVertexEdit";
+import { applyWallViewerTransformToRoom } from "../../../pimo-room/mesh/impl/wallVertexEdit";
 import { wallStore } from "../../../stores/wallStore";
 import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import {
@@ -23,7 +23,7 @@ import {
   syncRoomStateOpeningFromConfig,
   type RoomEngineViewerApi,
   type RoomEngineViewerHost,
-} from "../../../pimo-room-v4";
+} from "../../../pimo-room/domain";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
