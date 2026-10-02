@@ -16,6 +16,18 @@ export {
 } from "./dualPath";
 
 export {
+  areRoomAdvancedHostsEnabled,
+  gatedSyncLevelGhosts,
+  gatedSyncCatalogItems,
+  gatedSyncIfcPreviewFromRoomState,
+  gatedShowAiPreview,
+  gatedClearAiPreview,
+  gatedAnimateApplyAiLayout,
+  gatedStartWalkthrough,
+  gatedStopWalkthrough,
+} from "./advancedHostsGate";
+
+export {
   RoomIndustrialAdapter,
   toAutoRoomFillInput,
   type RoomIndustrialConstraints,

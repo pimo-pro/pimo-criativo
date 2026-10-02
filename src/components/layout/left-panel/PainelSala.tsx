@@ -49,16 +49,8 @@ import {
   RoomEngineBoundary,
   RoomLevelManager,
   SlabEngine,
-  animateApplyAiLayout,
   buildRoomReportMetadata,
-  clearAiPreview,
   selectCatalogItem,
-  showAiPreview,
-  startWalkthrough,
-  stopWalkthrough,
-  syncCatalogItems,
-  syncIfcPreviewFromRoomState,
-  syncLevelGhosts,
   useRoomEngineStore,
   type AiPresetId,
 } from "../../../pimo-room-v4";
@@ -66,6 +58,17 @@ import {
   projectRoomFromRoomState,
   roomStateFromProjectRoom,
 } from "../../../pimo-room/dualPath";
+import {
+  areRoomAdvancedHostsEnabled,
+  gatedAnimateApplyAiLayout,
+  gatedClearAiPreview,
+  gatedShowAiPreview,
+  gatedStartWalkthrough,
+  gatedStopWalkthrough,
+  gatedSyncCatalogItems,
+  gatedSyncIfcPreviewFromRoomState,
+  gatedSyncLevelGhosts,
+} from "../../../pimo-room/advancedHostsGate";
 
 const DEFAULT_OPENING = {
   door: { widthMm: 900, heightMm: 2100, thicknessMm: 40, floorOffsetMm: 0 },
@@ -254,9 +257,9 @@ export function PainelSala() {
     }
     const normalized = normalizeProjectRoom(result.projectRoom) ?? result.projectRoom;
     setRoomEngineState(result.state);
-    syncLevelGhosts(result.state);
-    void syncCatalogItems(result.state);
-    syncIfcPreviewFromRoomState(result.state);
+    gatedSyncLevelGhosts(result.state);
+    void gatedSyncCatalogItems(result.state);
+    gatedSyncIfcPreviewFromRoomState(result.state);
     actions.setProjectRoom(normalized);
     wallStore.getState().setOpen(true);
     const levelsN = result.state.levels.length;
@@ -335,7 +338,7 @@ export function PainelSala() {
         return;
       }
       setRoomEngineState(result.state);
-      void syncCatalogItems(result.state);
+      void gatedSyncCatalogItems(result.state);
       syncActiveLevelToProject(result.state);
       setImportMessage(`Item GLB importado: ${file.name}`);
     } catch (e) {
@@ -450,8 +453,8 @@ export function PainelSala() {
     const next = RoomLevelManager.addLevelAbove(base);
     setRoomEngineState(next);
     syncActiveLevelToProject(next);
-    syncLevelGhosts(next);
-    void syncCatalogItems(next);
+    gatedSyncLevelGhosts(next);
+    void gatedSyncCatalogItems(next);
     setImportMessage(`Nível adicionado: ${next.levels[next.levels.length - 1]?.name ?? ""}`);
   };
 
@@ -460,8 +463,8 @@ export function PainelSala() {
     const next = RoomLevelManager.setActiveLevel(engineState, levelId);
     setRoomEngineState(next);
     syncActiveLevelToProject(next);
-    syncLevelGhosts(next);
-    void syncCatalogItems(next);
+    gatedSyncLevelGhosts(next);
+    void gatedSyncCatalogItems(next);
   };
 
   const ensureEngineState = () => {
@@ -485,7 +488,7 @@ export function PainelSala() {
     const added = next.items[next.items.length - 1];
     setRoomEngineState(next);
     syncActiveLevelToProject(next);
-    void syncCatalogItems(next);
+    void gatedSyncCatalogItems(next);
     if (added) {
       setSelectedItemId(added.id);
       selectCatalogItem(added.id);
@@ -503,7 +506,7 @@ export function PainelSala() {
     setSelectedItemId(null);
     selectCatalogItem(null);
     syncActiveLevelToProject(next);
-    void syncCatalogItems(next);
+    void gatedSyncCatalogItems(next);
     setImportMessage("Item removido");
   };
 
@@ -516,7 +519,7 @@ export function PainelSala() {
     const added = next.items[next.items.length - 1];
     setRoomEngineState(next);
     syncActiveLevelToProject(next);
-    void syncCatalogItems(next);
+    void gatedSyncCatalogItems(next);
     if (added) {
       setSelectedItemId(added.id);
       selectCatalogItem(added.id);
@@ -537,6 +540,10 @@ export function PainelSala() {
   };
 
   const handleAiAutoArrange = () => {
+    if (!areRoomAdvancedHostsEnabled()) {
+      setImportMessage("Hosts avançados desligados (roomEngineVNext)");
+      return;
+    }
     const base = ensureEngineForAi();
     if (!base) return;
     if (CatalogItemManager.list(base, base.activeLevelId).length === 0) {
@@ -549,13 +556,17 @@ export function PainelSala() {
       return;
     }
     setAiPreview(result.previewState, "arrange", result.affectedIds);
-    showAiPreview(result.previewState, result.affectedIds);
+    gatedShowAiPreview(result.previewState, result.affectedIds);
     setImportMessage(
       `Preview Auto-Arrange — ${result.affectedIds.length} item(ns). Aplicar Layout para confirmar.`
     );
   };
 
   const handleAiAutoDesign = () => {
+    if (!areRoomAdvancedHostsEnabled()) {
+      setImportMessage("Hosts avançados desligados (roomEngineVNext)");
+      return;
+    }
     const base = ensureEngineForAi();
     if (!base) return;
     const result = AiEngine.previewDesign(base, {
@@ -567,7 +578,7 @@ export function PainelSala() {
       return;
     }
     setAiPreview(result.previewState, "design", result.affectedIds);
-    showAiPreview(result.previewState, result.affectedIds);
+    gatedShowAiPreview(result.previewState, result.affectedIds);
     setImportMessage(
       `Preview Auto-Design (${aiStyleId}) — ${result.affectedIds.length} item(ns). Aplicar Layout para confirmar.`
     );
@@ -583,22 +594,22 @@ export function PainelSala() {
     const applied = AiEngine.applyPreview(base, aiPreviewState);
     setRoomEngineState(applied);
     syncActiveLevelToProject(applied);
-    clearAiPreview();
+    gatedClearAiPreview();
     clearAiPreviewStore();
-    await animateApplyAiLayout(base, applied);
+    await gatedAnimateApplyAiLayout(base, applied);
     setImportMessage(`Layout AI aplicado (${applied.aiPreset ?? aiStyleId})`);
   };
 
   const handleAiCancelPreview = () => {
-    clearAiPreview();
+    gatedClearAiPreview();
     clearAiPreviewStore();
-    if (engineState) void syncCatalogItems(engineState);
+    if (engineState) void gatedSyncCatalogItems(engineState);
     setImportMessage("Preview AI cancelado");
   };
 
   const handleToggleWalkthrough = () => {
     if (walkthroughActive) {
-      stopWalkthrough();
+      gatedStopWalkthrough();
       setWalkthroughActive(false);
       return;
     }
@@ -610,12 +621,12 @@ export function PainelSala() {
       return;
     }
     if (!engineState) setRoomEngineState(state);
-    const result = startWalkthrough(state);
+    const result = gatedStartWalkthrough(state);
     if (!result.ok) {
       setImportMessage(result.error ?? "Walkthrough indisponível");
       return;
     }
-    void syncCatalogItems(state);
+    void gatedSyncCatalogItems(state);
     setWalkthroughActive(true);
     setImportMessage("Walkthrough activo — clique no viewer, WASD + rato");
   };
