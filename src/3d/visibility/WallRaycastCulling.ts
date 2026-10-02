@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { RoomBounds } from "../room/RoomManager";
+import type { RoomBounds } from "../../pimo-room/mesh/impl/RoomManager";
 
 const raycaster = new THREE.Raycaster();
 

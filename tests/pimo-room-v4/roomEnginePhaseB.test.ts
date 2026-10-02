@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
-import { RoomLevelManager } from "../../src/pimo-room-v4/levels/RoomLevelManager";
-import { RoomLevelGeometry } from "../../src/pimo-room-v4/levels/RoomLevelGeometry";
-import { SlabEngine } from "../../src/pimo-room-v4/SlabEngine";
-import { RoomConverter, buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { enrichLevelsWithElevations } from "../../src/pimo-room-v4/levels/RoomLevelState";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
+import { RoomLevelManager } from "../../src/pimo-room/domain/levels/RoomLevelManager";
+import { RoomLevelGeometry } from "../../src/pimo-room/domain/levels/RoomLevelGeometry";
+import { SlabEngine } from "../../src/pimo-room/domain/SlabEngine";
+import { RoomConverter, buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { enrichLevelsWithElevations } from "../../src/pimo-room/domain/levels/RoomLevelState";
 
 describe("RoomEngine Fase B", () => {
   it("importa JSON com 2 níveis", () => {

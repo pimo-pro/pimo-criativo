@@ -695,7 +695,7 @@ export interface ProjectActions {
   logChangelog: (_message: string) => void;
   /** Substitui a configuração Room 2.0 (null = sem sala). */
   setProjectRoom: (_room: import("../3d/viewer-engine/room/roomEngineTypes").ProjectRoomConfig | null) => void;
-  /** Atualiza parcialmente project.room e sincroniza wallStore/viewer. */
+  /** Atualiza parcialmente project.room e sincroniza o viewer. */
   updateProjectRoom: (_patch: Partial<import("../3d/viewer-engine/room/roomEngineTypes").ProjectRoomConfig>) => void;
   /** Cria sala padrão Room 2.0 (4000×2500×2600 mm). */
   createDefaultProjectRoom: () => void;

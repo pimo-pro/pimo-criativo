@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import type { ViewerOptions } from "@/viewer/core/viewerTypes";
 import type { MaterialSet } from "../materials/MaterialLibrary";
-import type { DoorWindowConfig } from "../room/types";
+import type { DoorWindowConfig } from "../../pimo-room/mesh/impl/types";
 import type { ViewerMaterialQuality } from "../../context/projectTypes";
 import { createViewerFoundation, createViewerDisplayFacade, createViewerSelectionSystems, createViewerMaterialSystems, createViewerControls } from "./composition/ViewerCompositionRoot";
 import type { ViewerDisplayFacade, ViewerLightIntensities } from "./composition/ViewerCompositionRoot";
@@ -11,7 +11,7 @@ import { ensureViewerCameraEngine } from "./engines/CameraEngine";
 import { createViewerSelectionEngine } from "./engines/SelectionEngine";
 import { ensureViewerMeasurementEngine } from "./engines/MeasurementEngine";
 import { ensureViewerSnapEngine } from "./engines/SnapEngine";
-import { RoomBuilder } from "../room/RoomBuilder";
+import { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import { ViewerRaycastSystem } from "./raycast/ViewerRaycastSystem";
 import { PointerPickingFacade } from "./input/PointerPickingFacade";
 import { IndustrialDesignWorkspaceMode } from "./modes/IndustrialDesignWorkspaceMode";
@@ -49,7 +49,8 @@ import { MeasurementAnchorsVisualizer } from "./measurement/MeasurementAnchorsVi
 import { DimensionsOverlayController } from "./overlays/DimensionsOverlayController";
 import type { BoxBoundsInput } from "./overlays/boxDimensionsOverlay";
 import { WallGizmo } from "../gizmos/WallGizmo";
-import { RoomManager, type IRoomManagerViewer } from "../room/RoomManager";
+import type { IRoomManagerViewer } from "../../pimo-room/mesh/impl/RoomManager";
+import { RoomMeshEngine } from "../../pimo-room/mesh/RoomMeshEngine";
 import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { SnapshotRenderer } from "./snapshot";
 import { TransformConstraints } from "./constraints/TransformConstraints";
@@ -201,7 +202,7 @@ export type ViewerCoreConstructorOpsDeps = {
   measurementAnchorsVisualizer: MeasurementAnchorsVisualizer | null;
   dimensionsOverlay: DimensionsOverlayController;
   wallGizmo: WallGizmo | null;
-  roomManager: RoomManager | null;
+  roomManager: RoomMeshEngine | null;
   snapDebugOverlay: SnapDebugOverlay | null;
   snapshotRenderer: SnapshotRenderer | null;
   constraints: TransformConstraints;
@@ -609,7 +610,8 @@ export function wireViewerCoreConstructorImpl(
     host.sceneManager.scene.add(host.rodapeVisualizer.getRoot());
     host.setWallEditMode(false);
 
-    host.roomManager = new RoomManager(host as unknown as IRoomManagerViewer);
+    // M10: sempre RoomMeshEngine (substituto do RoomManager).
+    host.roomManager = new RoomMeshEngine(host as unknown as IRoomManagerViewer);
     if (import.meta.env.DEV) {
       host.snapDebugOverlay = new SnapDebugOverlay();
     }

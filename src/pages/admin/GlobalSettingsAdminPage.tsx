@@ -12,7 +12,7 @@ import { getGlobalSettingsRemote, patchGlobalSettingsRemote } from "../../api/gl
 import { useToast } from "../../context/ToastContext";
 import { validateGlobalSettings } from "../../core/globalSettings/globalSettingsService";
 import { isObject } from "../../core/settings/settingsMerge";
-import { PIMO_ALFA_EDITION, PIMO_ALFA_VERSION, ROOM_ENGINE_VERSION } from "../../pimo-room-v4";
+import { PIMO_ALFA_EDITION, PIMO_ALFA_VERSION, ROOM_ENGINE_VERSION } from "../../pimo-room/domain";
 
 function formatDocumentFromRemote(remote: {
   version: string;

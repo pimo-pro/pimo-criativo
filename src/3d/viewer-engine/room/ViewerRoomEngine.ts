@@ -2,7 +2,7 @@
  * pimo-room v4 — ViewerRoomEngine: delega create/remove/dims para o RoomManager.
  * Implementa IRoomRenderer (M1) — superfície estável para coexistência legado/novo.
  */
-import type { RoomConfig } from "../../room/types";
+import type { RoomConfig } from "../../../pimo-room/mesh/impl/types";
 import type { IRoomRenderer } from "./IRoomRenderer";
 
 export type { IRoomRenderer } from "./IRoomRenderer";

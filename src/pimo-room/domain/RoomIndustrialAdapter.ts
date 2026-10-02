@@ -3,8 +3,8 @@
  * Níveis / slabs / itens / AI NÃO alimentam cutlist nem CNC.
  * Apenas ProjectRoomConfig (paredes/aberturas do nível activo) entra no autoRoomFill.
  */
-import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
-import type { WorkspaceBox } from "../core/types";
+import type { ProjectRoomConfig } from "../../3d/viewer-engine/room/roomEngineTypes";
+import type { WorkspaceBox } from "../../core/types";
 import { RoomConverter } from "./RoomConverter";
 import type { RoomState } from "./RoomState";
 import { computeFootprintFromWalls } from "./RoomGeometry";

@@ -1,6 +1,6 @@
 import type * as THREE from "three";
 import type { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import type { ViewerState, SelectedDivSep } from "./state/ViewerState";
 import type { ViewerBoxEntry } from "./types";
 import type { IViewerToolsEngine } from "./tools/ToolsEngineTypes";

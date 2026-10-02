@@ -2,8 +2,8 @@
  * pimo-room v4 — sincroniza transforms de parede do viewer para ProjectRoomConfig (opt-in).
  * Não altera o contrato rectangular canónico; actualiza posição/rotação/comprimento da parede.
  */
-import type { ProjectRoomConfig } from "../viewer-engine/room/roomEngineTypes";
-import { applyProjectRoomDimensions, normalizeProjectRoom } from "../viewer-engine/room/RoomEngine";
+import type { ProjectRoomConfig } from "../../../3d/viewer-engine/room/roomEngineTypes";
+import { applyProjectRoomDimensions, normalizeProjectRoom } from "../../../3d/viewer-engine/room/RoomEngine";
 import { applyWallLengthToRoom } from "./roomAdvancedEdit";
 
 export type WallViewerTransform = {

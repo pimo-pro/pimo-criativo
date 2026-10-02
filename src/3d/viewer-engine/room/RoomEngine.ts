@@ -1,9 +1,8 @@
 /**
- * pimo-room v4 — RoomEngine de dados (SSOT mm ↔ wallStore cm).
- * Sem mesh 3D nesta fase; create/normalize/apply para persistência e autoRoomFill.
+ * RoomEngine de dados — SSOT ProjectRoomConfig (mm).
+ * Sidecar roomSnapshot (cm) só para promoção em load; sem wallStore vivo (M10.b).
  */
-import { wallStore } from "../../../stores/wallStore";
-import type { Wall } from "../../../stores/wallStore";
+import type { Wall } from "./roomUnitConversion";
 import { centeredWallPositionForLabel } from "../../../utils/roomCoordinates";
 import {
   ROOM_20_DEFAULTS,
@@ -20,21 +19,22 @@ import {
   type RoomWallLabel,
 } from "./roomEngineTypes";
 import {
-  deriveWallStoreConfigFromProjectRoom,
   projectRoomToRoomSnapshot,
+  projectRoomToWallStoreWalls,
   wallStoreFootprintCm,
   wallStoreFootprintMm,
   wallStoreToProjectRoom,
   type RoomSnapshotUiState,
   type WallStoreRoomExtras,
 } from "./roomUnitConversion";
-import { normalizeZone, syncMainZoneToFootprint } from "../../room/roomZones";
+import { normalizeZone, syncMainZoneToFootprint } from "../../../pimo-room/mesh/impl/roomZones";
 
 export type { ProjectRoomConfig, ProjectRoomOpening, ProjectRoomWall, ProjectRoomZone, RoomOpeningKind, RoomWallLabel };
 export { ROOM_20_DEFAULTS, WALL_LABELS, WALL_LABEL_TITLES };
 export type { RoomSnapshotUiState, WallStoreRoomExtras };
 export {
   projectRoomToRoomSnapshot,
+  projectRoomToWallStoreWalls,
   wallStoreFootprintCm,
   wallStoreFootprintMm,
   wallStoreToProjectRoom,
@@ -291,18 +291,7 @@ export function applyProjectRoomDimensions(room: ProjectRoomConfig): ProjectRoom
   return normalized.zones?.length ? syncMainZoneToFootprint(normalized) : normalized;
 }
 
-export function applyProjectRoomToWallStore(room: ProjectRoomConfig): void {
-  const normalized = normalizeProjectRoom(room);
-  if (!normalized) return;
-  const ui = wallStore.getState();
-  const derived = deriveWallStoreConfigFromProjectRoom(normalized, {
-    selectedWallId: ui.selectedWallId,
-    mainWallIndex: ui.mainWallIndex,
-  });
-  wallStore.getState().loadRoomConfig(derived);
-}
-
-/** Helper tipado para consumidores que passam walls do store. */
+/** Helper tipado para promoção roomSnapshot (cm) → ProjectRoomConfig (mm). */
 export function wallStoreWallsToProjectRoom(walls: Wall[], extras?: WallStoreRoomExtras): ProjectRoomConfig | null {
   return wallStoreToProjectRoom(walls, extras);
 }

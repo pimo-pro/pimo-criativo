@@ -1,62 +1,40 @@
 /**
- * pimo-room v4 — RoomManager: sala única, paredes principais/extra, lock e visibilidade.
- * Piso visual: ViewerCore.rebuildRoomFloorAndCeiling — não criar mesh de piso aqui.
+ * RoomMeshEngine — gestor de meshes de sala do path vNext.
+ * API compatível com RoomManager (paridade funcional/visual).
+ * Usa builders em src/pimo-room/mesh/ em vez de WallFactory directo.
+ * Piso/tecto continuam no ViewerCore (rebuildRoomFloorAndCeiling) via floor/ceiling builders.
  */
 import * as THREE from "three";
-import { Room, DEFAULT_ROOM_WIDTH, DEFAULT_ROOM_DEPTH, DEFAULT_ROOM_HEIGHT } from "./Room";
-import type { RoomNumWalls } from "./WallFactory";
 import {
-  createMainWalls,
-  createExtraWall,
-  positionMainWalls,
+  DEFAULT_ROOM_DEPTH,
+  DEFAULT_ROOM_HEIGHT,
+  DEFAULT_ROOM_WIDTH,
+} from "./impl/Room";
+import { computeDynamicRoomBounds } from "./impl/roomDynamicBounds";
+import { rebuildZoneOverlayGroup } from "./impl/zoneOverlay";
+import type { ProjectRoomZone } from "../../3d/viewer-engine/room/roomEngineTypes";
+import type { IRoomManagerViewer, RoomBounds, WallEntryForViewer } from "./impl/RoomManager";
+import {
+  Room,
+  buildExtraWallMesh,
+  buildWallGeometry,
   getWallThicknessM,
+  refreshWallMiters,
+  repositionMainWallMeshes,
   setWallThicknessM,
-} from "./WallFactory";
-import { computeDynamicRoomBounds } from "./roomDynamicBounds";
-import { applyDynamicMitersToWallMeshes } from "./wallMiters";
-import { buildWallBoxGeometry } from "./wallGeometryCsg";
-import { rebuildZoneOverlayGroup } from "./zoneOverlay";
-import type { ProjectRoomZone } from "../viewer-engine/room/roomEngineTypes";
+  wallMeshBuilder,
+  type RoomNumWalls,
+} from "./wallMeshBuilder";
 
-export type RoomBounds = {
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-  minY: number;
-  maxY: number;
-  centerX: number;
-  centerZ: number;
-};
-
-export type WallEntryForViewer = {
-  id: number;
-  normal: THREE.Vector3;
-  mesh: THREE.Mesh;
-};
+export type { RoomBounds, WallEntryForViewer, IRoomManagerViewer };
 
 /**
- * Interface mínima que o Viewer deve implementar para integração com o RoomManager.
- * Evita dependência circular Viewer -> RoomManager -> Viewer.
+ * Motor de mesh vNext — substituto estrutural do RoomManager no path flag ON.
  */
-export interface IRoomManagerViewer {
-  setRoomFromManager(
-    _walls: WallEntryForViewer[],
-    _bounds: RoomBounds,
-    _group: THREE.Group
-  ): void;
-  clearRoomFromManager(): void;
-}
-
-/**
- * Gestor da sala única: dimensões, paredes principais/extra, lock e visibilidade.
- * Piso visual: ViewerCore.rebuildRoomFloorAndCeiling (Room 2.0) — não criar mesh de piso aqui.
- */
-export class RoomManager {
+export class RoomMeshEngine {
   room: Room | null = null;
   wallsMain: THREE.Mesh[] = [];
   wallsExtra: THREE.Mesh[] = [];
-  /** Grupo que contém as paredes; adicionado à cena pelo Viewer. */
   group: THREE.Group;
   locked = false;
   private _visible = true;
@@ -67,7 +45,7 @@ export class RoomManager {
   constructor(viewer: IRoomManagerViewer) {
     this.viewer = viewer;
     this.group = new THREE.Group();
-    this.group.name = "roomManager";
+    this.group.name = "roomMeshEngine";
   }
 
   createRoom(
@@ -80,18 +58,16 @@ export class RoomManager {
     this.removeRoom();
     if (wallThicknessM != null) setWallThicknessM(wallThicknessM);
     this.room = new Room(width, depth, height, -width / 2, -depth / 2);
-    this.wallsMain = createMainWalls(this.room, numWalls, wallThicknessM ?? getWallThicknessM());
+    this.wallsMain = wallMeshBuilder(this.room, numWalls, wallThicknessM ?? getWallThicknessM());
     this.wallsExtra = [];
     this.nextExtraWallId = numWalls >= 4 ? 4 : 3;
     this.group.clear();
-
     this.wallsMain.forEach((mesh) => this.group.add(mesh));
     this.syncBoundsToViewer();
   }
 
   removeRoom(): void {
     this.viewer.clearRoomFromManager();
-
     [...this.wallsMain, ...this.wallsExtra].forEach((w) => {
       w.geometry.dispose();
       if (!Array.isArray(w.material)) (w.material as THREE.Material).dispose();
@@ -99,12 +75,10 @@ export class RoomManager {
     this.wallsMain = [];
     this.wallsExtra = [];
     this.clearZoneOverlay();
-
     this.group.clear();
     this.room = null;
   }
 
-  /** Overlay de zonas polígono (opt-in). Não afecta autoRoomFill. */
   setZones(zones: ProjectRoomZone[] | null | undefined): void {
     this.zoneOverlay = rebuildZoneOverlayGroup(this.zoneOverlay, zones);
     if (!this.zoneOverlay.parent && this.group) {
@@ -124,13 +98,13 @@ export class RoomManager {
     this.room.width = Math.max(0.1, width);
     this.room.depth = Math.max(0.1, depth);
     this.room.height = Math.max(0.1, height);
-    positionMainWalls(this.room, this.wallsMain);
+    repositionMainWallMeshes(this.room, this.wallsMain);
     this.syncBoundsToViewer();
   }
 
   addExtraWall(): THREE.Mesh {
     const id = this.nextExtraWallId++;
-    const wall = createExtraWall(id);
+    const wall = buildExtraWallMesh(id);
     this.wallsExtra.push(wall);
     this.group.add(wall);
     this.refreshWallMiters();
@@ -149,9 +123,16 @@ export class RoomManager {
     const entry = this.getWallsForViewer().find((wall) => wall.id === config.id);
     const wall = entry?.mesh;
     if (!wall) return false;
-    const miters = (wall.userData.wallMiters as { startMiterRad?: number; endMiterRad?: number } | null) ?? undefined;
+    const miters =
+      (wall.userData.wallMiters as { startMiterRad?: number; endMiterRad?: number } | null) ??
+      undefined;
     wall.geometry.dispose();
-    wall.geometry = buildWallBoxGeometry(config.lengthM, config.heightM, config.thicknessM, miters);
+    wall.geometry = buildWallGeometry({
+      lengthM: config.lengthM,
+      heightM: config.heightM,
+      thicknessM: config.thicknessM,
+      miters,
+    });
     wall.position.set(
       config.position.x,
       config.position.y ?? config.heightM / 2,
@@ -175,7 +156,7 @@ export class RoomManager {
     rotationDeg: number;
     isMainWall?: boolean;
   }): THREE.Mesh {
-    const wall = createExtraWall(config.id, {
+    const wall = buildExtraWallMesh(config.id, {
       lengthM: config.lengthM,
       heightM: config.heightM,
       thicknessM: config.thicknessM,
@@ -199,11 +180,8 @@ export class RoomManager {
     return wall;
   }
 
-  /** Recalcula miters dinâmicos em todas as paredes (principais + extras). */
   refreshWallMiters(): void {
-    const all = [...this.wallsMain, ...this.wallsExtra];
-    if (all.length === 0) return;
-    applyDynamicMitersToWallMeshes(all);
+    refreshWallMiters([...this.wallsMain, ...this.wallsExtra]);
   }
 
   setLocked(flag: boolean): void {
@@ -215,14 +193,12 @@ export class RoomManager {
     return computeDynamicRoomBounds(this.room, [...this.wallsMain, ...this.wallsExtra]);
   }
 
-  /** Propaga bounds dinâmicos ao ViewerCore (piso, snapping, constraints). */
   private syncBoundsToViewer(): void {
     const bounds = this.getBounds();
     if (!bounds) return;
     this.viewer.setRoomFromManager(this.getWallsForViewer(), bounds, this.group);
   }
 
-  /** Recalcula bounds dinâmicos (paredes extras) e atualiza piso/snapping no viewer. */
   refreshDynamicBounds(): void {
     this.syncBoundsToViewer();
   }
@@ -241,10 +217,6 @@ export class RoomManager {
     return [...main, ...extra];
   }
 
-  /**
-   * Chamado quando uma parede principal é movida/rotacionada (ex.: pelo gizmo).
-   * Se locked, recalcula o retângulo a partir da parede movida e reposiciona as 4 principais.
-   */
   onMainWallTransformed(
     wallIndex: number,
     position: { x: number; z: number },
@@ -285,7 +257,7 @@ export class RoomManager {
       }
     }
 
-    positionMainWalls(this.room, this.wallsMain);
+    repositionMainWallMeshes(this.room, this.wallsMain);
     this.syncBoundsToViewer();
   }
 

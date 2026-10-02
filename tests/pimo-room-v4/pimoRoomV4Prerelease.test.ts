@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { FloorEngine } from "../../src/pimo-room-v4/FloorEngine";
-import { OpeningsEngine } from "../../src/pimo-room-v4/OpeningsEngine";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
-import { buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { patchProjectOpeningFromDoorConfig } from "../../src/pimo-room-v4/openingsHost";
+import { FloorEngine } from "../../src/pimo-room/domain/FloorEngine";
+import { OpeningsEngine } from "../../src/pimo-room/domain/OpeningsEngine";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
+import { buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { patchProjectOpeningFromDoorConfig } from "../../src/pimo-room/domain/openingsHost";
 import type { DoorWindowConfig } from "../../src/3d/room/types";
 
 describe("Pré-release RoomEngine 4.0", () => {

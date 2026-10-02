@@ -3,7 +3,7 @@
  */
 import * as THREE from "three";
 import type { Room } from "./Room";
-import { getSceneMaterialConfig } from "../viewer-engine/materials";
+import { getSceneMaterialConfig } from "../../../3d/viewer-engine/materials";
 import { buildWallBoxGeometry } from "./wallGeometryCsg";
 import { applyDynamicMitersToWallMeshes } from "./wallMiters";
 

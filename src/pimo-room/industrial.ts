@@ -1,17 +1,16 @@
 /**
  * pimo-room — fronteira industrial (M2).
- * Reexporta o adapter cutlist-safe; workspaceBoxes permanece [].
+ * Reexporta o adapter cutlist-safe via domínio unificado; workspaceBoxes permanece [].
  */
 export {
   RoomIndustrialAdapter,
   type RoomIndustrialConstraints,
   type RoomFurnitureHint,
   type RoomIndustrialSyncResult,
-} from "../pimo-room-v4/RoomIndustrialAdapter";
+} from "./domain";
 
 import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
-import { RoomIndustrialAdapter } from "../pimo-room-v4/RoomIndustrialAdapter";
-import type { RoomState } from "../pimo-room-v4/RoomState";
+import { RoomIndustrialAdapter, type RoomState } from "./domain";
 
 /** Única entrada formal sala → autoRoomFill (ProjectRoomConfig). */
 export function toAutoRoomFillInput(state: RoomState): ProjectRoomConfig {

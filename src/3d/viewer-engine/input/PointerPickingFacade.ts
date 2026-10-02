@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { MouseMenuTarget } from "../../../ui/context-menu/ContextMenuEngine";
-import type { DoorWindowConfig } from "../../room/types";
+import type { DoorWindowConfig } from "../../../pimo-room/mesh/impl/types";
 import type { ProjectRoomUtility } from "../room/roomEngineTypes";
 import type { SelectedDivSep } from "../state/ViewerState";
 import type { InternalSelectionHit } from "../selection";

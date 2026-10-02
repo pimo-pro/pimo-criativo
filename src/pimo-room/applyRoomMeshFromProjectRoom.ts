@@ -1,6 +1,6 @@
 /**
  * Sync directo ProjectRoomConfig (mm) → meshes Viewer (m) — M7.
- * Usado quando roomEngineVNext está activo; wallStore permanece vista UI.
+ * Usado no path vNext; SSOT é project.room (mm).
  */
 import type { PimoViewerApi } from "../context/PimoViewerContextCore";
 import { getActiveViewerCore } from "../core/viewer/pimoViewerRuntime";

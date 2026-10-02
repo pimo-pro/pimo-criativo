@@ -6,7 +6,6 @@ import { useMemo, useRef, useState } from "react";
 import { useProject } from "../../../context/useProject";
 import Panel from "../../ui/Panel";
 import { useUiStore, uiStore } from "../../../stores/uiStore";
-import { wallStore, useWallStore } from "../../../stores/wallStore";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import {
   ROOM_20_DEFAULTS,
@@ -28,13 +27,13 @@ import {
   type OpeningHorizontalAlign,
   type OpeningVerticalAlign,
 } from "../../../utils/openingConstraints";
-import { applyWallLengthToRoom } from "../../../3d/room/roomAdvancedEdit";
+import { applyWallLengthToRoom } from "../../../pimo-room/mesh/impl/roomAdvancedEdit";
 import {
   computeZoneMetrics,
   createMainZoneFromRoom,
   ensureRoomZones,
-} from "../../../3d/room/roomZones";
-import { autoZonesFromClosedLoops } from "../../../3d/room/roomAutoZones";
+} from "../../../pimo-room/mesh/impl/roomZones";
+import { autoZonesFromClosedLoops } from "../../../pimo-room/mesh/impl/roomAutoZones";
 import {
   AI_PRESETS,
   AboutRoomEngineModal,
@@ -53,7 +52,7 @@ import {
   selectCatalogItem,
   useRoomEngineStore,
   type AiPresetId,
-} from "../../../pimo-room-v4";
+} from "../../../pimo-room/domain";
 import {
   projectRoomFromRoomState,
   roomStateFromProjectRoom,
@@ -137,7 +136,6 @@ export function PainelSala() {
   const room = project.room;
   const wallEditMode = project.viewerSettings.wallEditMode === true;
   const selectedObject = useUiStore((s) => s.selectedObject);
-  const selectedWallId = useWallStore((s) => s.selectedWallId);
   const setRoomPanelOpen = useUiStore((s) => s.setRoomPanelOpen);
   const snapEnabled = useUiStore((s) => s.roomOpeningSnapEnabled);
   const setRoomOpeningSnapEnabled = useUiStore((s) => s.setRoomOpeningSnapEnabled);
@@ -189,11 +187,8 @@ export function PainelSala() {
     if (selectedObject.type === "wall") {
       return room.walls.find((w) => w.id === selectedObject.id) ?? null;
     }
-    if (selectedWallId) {
-      return room.walls.find((w) => w.id === selectedWallId) ?? null;
-    }
     return room.walls[0] ?? null;
-  }, [room, selectedObject, selectedWallId]);
+  }, [room, selectedObject]);
 
   const selectedOpening =
     selectedObject.type === "roomElement"
@@ -216,7 +211,7 @@ export function PainelSala() {
       }) ?? base
     );
     actions.setProjectRoom(next);
-    wallStore.getState().setOpen(true);
+    setRoomPanelOpen(true);
   };
 
   const handleApplyDimensions = () => {
@@ -238,7 +233,6 @@ export function PainelSala() {
 
   const handleRemove = () => {
     actions.removeProjectRoom();
-    wallStore.getState().clearRoom();
     uiStore.getState().clearSelection();
   };
 
@@ -261,7 +255,7 @@ export function PainelSala() {
     void gatedSyncCatalogItems(result.state);
     gatedSyncIfcPreviewFromRoomState(result.state);
     actions.setProjectRoom(normalized);
-    wallStore.getState().setOpen(true);
+    setRoomPanelOpen(true);
     const levelsN = result.state.levels.length;
     const itemsN = result.state.items.length;
     const warn =
@@ -439,7 +433,7 @@ export function PainelSala() {
     const projectRoom = projectRoomFromRoomState(nextEngine);
     const normalized = normalizeProjectRoom(projectRoom) ?? projectRoom;
     actions.setProjectRoom(normalized);
-    wallStore.getState().setOpen(true);
+    setRoomPanelOpen(true);
   };
 
   const handleAddLevel = () => {
@@ -739,7 +733,6 @@ export function PainelSala() {
   };
 
   const selectWall = (wallId: string) => {
-    wallStore.getState().selectWall(wallId);
     uiStore.getState().setSelectedObject({ type: "wall", id: wallId });
   };
 
@@ -751,7 +744,7 @@ export function PainelSala() {
           Salão
         </div>
         <span
-          title="pimo-room-v4"
+          title="pimo-room/domain"
           style={{
             fontSize: 10,
             letterSpacing: "0.02em",

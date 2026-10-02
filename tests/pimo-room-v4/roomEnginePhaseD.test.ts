@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
-import { IfcLoader } from "../../src/pimo-room-v4/ifc/IfcLoader";
-import { IfcParser } from "../../src/pimo-room-v4/ifc/IfcParser";
-import { extractIfcModel } from "../../src/pimo-room-v4/ifc/IfcExtractor";
-import { GlbExporter, buildRoomExportScene } from "../../src/pimo-room-v4/glb/GlbExporter";
-import { RoomGlbLoader } from "../../src/pimo-room-v4/glb/GlbLoader";
-import { CatalogItemManager } from "../../src/pimo-room-v4/catalog/CatalogItemManager";
-import { RoomLevelManager } from "../../src/pimo-room-v4/levels/RoomLevelManager";
-import { buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { enhancePbrMaterials } from "../../src/pimo-room-v4/glb/glbMaterials";
-import { createEmptyRoomState, newId, ROOM_ENGINE_DEFAULTS } from "../../src/pimo-room-v4/RoomState";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
+import { IfcLoader } from "../../src/pimo-room/domain/ifc/IfcLoader";
+import { IfcParser } from "../../src/pimo-room/domain/ifc/IfcParser";
+import { extractIfcModel } from "../../src/pimo-room/domain/ifc/IfcExtractor";
+import { GlbExporter, buildRoomExportScene } from "../../src/pimo-room/domain/glb/GlbExporter";
+import { RoomGlbLoader } from "../../src/pimo-room/domain/glb/GlbLoader";
+import { CatalogItemManager } from "../../src/pimo-room/domain/catalog/CatalogItemManager";
+import { RoomLevelManager } from "../../src/pimo-room/domain/levels/RoomLevelManager";
+import { buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { enhancePbrMaterials } from "../../src/pimo-room/domain/glb/glbMaterials";
+import { createEmptyRoomState, newId, ROOM_ENGINE_DEFAULTS } from "../../src/pimo-room/domain/RoomState";
 import { buildIfcTwoLevels, buildSimpleIfcOneLevel } from "./fixtures/ifcFixtures";
 
 describe("RoomEngine Fase D — IFC / GLB", () => {

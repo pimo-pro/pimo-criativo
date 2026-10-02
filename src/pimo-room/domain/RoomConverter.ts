@@ -5,14 +5,14 @@ import {
   applyProjectRoomDimensions,
   createDefaultProjectRoom,
   normalizeProjectRoom,
-} from "../3d/viewer-engine/room/RoomEngine";
+} from "../../3d/viewer-engine/room/RoomEngine";
 import type {
   ProjectRoomConfig,
   ProjectRoomOpening,
   ProjectRoomWall,
   RoomWallLabel,
-} from "../3d/viewer-engine/room/roomEngineTypes";
-import { centeredWallPositionForLabel } from "../utils/roomCoordinates";
+} from "../../3d/viewer-engine/room/roomEngineTypes";
+import { centeredWallPositionForLabel } from "../../utils/roomCoordinates";
 import { CeilingEngine } from "./CeilingEngine";
 import { FloorEngine } from "./FloorEngine";
 import { computeFootprintFromWalls } from "./RoomGeometry";

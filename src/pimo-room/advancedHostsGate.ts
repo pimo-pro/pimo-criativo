@@ -1,10 +1,8 @@
 /**
- * Gate de hosts avançados de sala (M4).
- * Default (flag off): hosts activos.
- * roomEngineVNext on: AI / IFC preview / catálogo / walkthrough / level ghosts = no-op
- * (ainda não portados para o path novo).
+ * Gate de hosts avançados de sala (M4) — activação vNext.
+ * flag ON → hosts ON; flag OFF → legado (hosts ON).
+ * Sempre activos para não regressar UX (AI / IFC / catálogo / walkthrough).
  */
-import { isRoomEngineVNextEnabled } from "../core/features";
 import {
   animateApplyAiLayout,
   clearAiPreview,
@@ -14,11 +12,11 @@ import {
   syncCatalogItems,
   syncIfcPreviewFromRoomState,
   syncLevelGhosts,
-} from "../pimo-room-v4";
-import type { RoomState } from "../pimo-room-v4/RoomState";
+  type RoomState,
+} from "./domain";
 
 export function areRoomAdvancedHostsEnabled(): boolean {
-  return !isRoomEngineVNextEnabled();
+  return true;
 }
 
 export function gatedSyncLevelGhosts(state: RoomState): void {

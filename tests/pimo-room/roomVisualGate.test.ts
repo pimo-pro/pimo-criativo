@@ -23,7 +23,7 @@ function installLocalStoragePolyfill(): void {
   });
 }
 
-describe("roomVisualGate (M6)", () => {
+describe("roomVisualGate (M6 — activação vNext)", () => {
   beforeEach(() => {
     installLocalStoragePolyfill();
     localStorage.removeItem(LS_KEY);
@@ -37,14 +37,14 @@ describe("roomVisualGate (M6)", () => {
     }
   });
 
-  it("default (flag off): openings e piso/tecto activos", () => {
+  it("default: openings e piso/tecto activos", () => {
     expect(areRoomOpeningsVisualEnabled()).toBe(true);
     expect(areRoomFloorCeilingEnabled()).toBe(true);
   });
 
-  it("flag on: openings e piso/tecto desligados", () => {
+  it("flag on: openings e piso/tecto continuam activos", () => {
     localStorage.setItem(LS_KEY, "1");
-    expect(areRoomOpeningsVisualEnabled()).toBe(false);
-    expect(areRoomFloorCeilingEnabled()).toBe(false);
+    expect(areRoomOpeningsVisualEnabled()).toBe(true);
+    expect(areRoomFloorCeilingEnabled()).toBe(true);
   });
 });

@@ -7,7 +7,7 @@ import type {
   ProjectRoomConfig,
   ProjectRoomZone,
   ProjectRoomZonePoint,
-} from "../viewer-engine/room/roomEngineTypes";
+} from "../../../3d/viewer-engine/room/roomEngineTypes";
 
 const MM2_TO_M2 = 1e-6;
 const MM_TO_M = 1e-3;

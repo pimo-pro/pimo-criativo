@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
-import { buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { CatalogItemManager } from "../../src/pimo-room-v4/catalog/CatalogItemManager";
-import { RoomLevelManager } from "../../src/pimo-room-v4/levels/RoomLevelManager";
-import { SlabEngine } from "../../src/pimo-room-v4/SlabEngine";
-import { AiEngine } from "../../src/pimo-room-v4/ai/AiEngine";
-import { AiAutoArrange } from "../../src/pimo-room-v4/ai/AiAutoArrange";
-import { AiAutoDesign } from "../../src/pimo-room-v4/ai/AiAutoDesign";
-import { AI_PRESETS } from "../../src/pimo-room-v4/ai/AiPresets";
-import { getLevelBounds, boxesOverlap, toFootprint } from "../../src/pimo-room-v4/ai/AiRules";
-import { toCatalogItemState } from "../../src/pimo-room-v4/catalog/CatalogItemManager";
-import { GlbExporter } from "../../src/pimo-room-v4/glb/GlbExporter";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
+import { buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { CatalogItemManager } from "../../src/pimo-room/domain/catalog/CatalogItemManager";
+import { RoomLevelManager } from "../../src/pimo-room/domain/levels/RoomLevelManager";
+import { SlabEngine } from "../../src/pimo-room/domain/SlabEngine";
+import { AiEngine } from "../../src/pimo-room/domain/ai/AiEngine";
+import { AiAutoArrange } from "../../src/pimo-room/domain/ai/AiAutoArrange";
+import { AiAutoDesign } from "../../src/pimo-room/domain/ai/AiAutoDesign";
+import { AI_PRESETS } from "../../src/pimo-room/domain/ai/AiPresets";
+import { getLevelBounds, boxesOverlap, toFootprint } from "../../src/pimo-room/domain/ai/AiRules";
+import { toCatalogItemState } from "../../src/pimo-room/domain/catalog/CatalogItemManager";
+import { GlbExporter } from "../../src/pimo-room/domain/glb/GlbExporter";
 
 function baseRoom() {
   return buildRectangularRoomState({

@@ -1,11 +1,9 @@
 /**
  * pimo-room — conversão domínio ↔ ProjectRoomConfig (M2).
- * Reutiliza RoomConverter / RoomBridge de pimo-room-v4 (sem formatos externos).
+ * Usa domínio unificado em ./domain (Bridge / Converter).
  */
 import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
-import { RoomBridge } from "../pimo-room-v4/RoomBridge";
-import { RoomConverter } from "../pimo-room-v4/RoomConverter";
-import type { RoomState } from "../pimo-room-v4/RoomState";
+import { RoomBridge, RoomConverter, type RoomState } from "./domain";
 
 /**
  * Aceita RoomState, ProjectRoomConfig ou floorplan JSON já suportado pelo RoomBridge.

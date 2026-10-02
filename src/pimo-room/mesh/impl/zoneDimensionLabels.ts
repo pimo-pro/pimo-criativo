@@ -3,7 +3,7 @@
  * Sem CSS2DRenderer; CanvasTexture + Sprite (padrão já usado no viewer).
  */
 import * as THREE from "three";
-import type { ProjectRoomZone } from "../viewer-engine/room/roomEngineTypes";
+import type { ProjectRoomZone } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import { computeZoneMetrics } from "./roomZones";
 
 function makeLabelTexture(lines: string[]): THREE.CanvasTexture {

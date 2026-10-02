@@ -1,8 +1,8 @@
 /**
- * @deprecated Use `src/pimo-room` (fachada M2+) ou `src/pimo-room-v4` (domínio).
+ * @deprecated Use `src/pimo-room` (fachada M2+) ou `src/pimo-room/domain` (domínio).
  * Shim de compatibilidade — não adicionar lógica nova aqui.
  */
-export * from "../pimo-room-v4";
+export * from "../pimo-room/domain";
 export {
   PimoRoom,
   loadRoom,
@@ -14,7 +14,7 @@ export {
   autoDesign,
   getRoomState,
   setRoomState,
-} from "../pimo-room-v4";
+} from "../pimo-room/domain";
 export {
   fromExternalGraph,
   toProjectRoomConfig,

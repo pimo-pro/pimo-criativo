@@ -4,8 +4,8 @@ import { useToast } from "../../../context/ToastContext";
 import { usePimoViewer } from "../../../hooks/usePimoViewer";
 import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
-import { applyWallViewerTransformToRoom } from "../../../3d/room/wallVertexEdit";
-import { wallStore } from "../../../stores/wallStore";
+import { applyWallViewerTransformToRoom } from "../../../pimo-room/mesh/impl/wallVertexEdit";
+import { uiStore } from "../../../stores/uiStore";
 import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import {
   getActivePimoViewerApi,
@@ -23,7 +23,7 @@ import {
   syncRoomStateOpeningFromConfig,
   type RoomEngineViewerApi,
   type RoomEngineViewerHost,
-} from "../../../pimo-room-v4";
+} from "../../../pimo-room/domain";
 import { useMultiBoxManager } from "../../../core/multibox";
 import { usePimoViewerContext } from "../../../hooks/usePimoViewerContext";
 import UnifiedTopToolbar from "../unified-toolbar/UnifiedTopToolbar";
@@ -197,7 +197,7 @@ export default function Workspace({
       const label = WALL_INDEX_TO_LABEL[wallIndex];
       if (label) {
         const wall = next.walls.find((w) => w.label === label);
-        if (wall) wallStore.getState().selectWall(wall.id);
+        if (wall) uiStore.getState().setSelectedObject({ type: "wall", id: wall.id });
       }
     });
     return () => {

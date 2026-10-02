@@ -6,7 +6,7 @@
  * Só lógica de dados (sem renderer).
  */
 
-import type { ProjectRoomConfig, ProjectRoomZone, ProjectRoomZonePoint } from "../viewer-engine/room/roomEngineTypes";
+import type { ProjectRoomConfig, ProjectRoomZone, ProjectRoomZonePoint } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import { projectRoomToPimoRoomGraph } from "./pimoRoomSchema";
 import { polygonAreaMm2, createMainZoneFromRoom } from "./roomZones";
 

@@ -23,7 +23,7 @@ function installLocalStoragePolyfill(): void {
   });
 }
 
-describe("PimoRoomRenderer / createRoomRenderer (M8)", () => {
+describe("PimoRoomRenderer / createRoomRenderer (M8 — activação)", () => {
   beforeEach(() => {
     installLocalStoragePolyfill();
     localStorage.removeItem(LS_KEY);
@@ -37,21 +37,20 @@ describe("PimoRoomRenderer / createRoomRenderer (M8)", () => {
     }
   });
 
-  it("flag off: factory devolve ViewerRoomEngine legado", () => {
-    const engine = createRoomRenderer(() => null);
-    expect(engine).toBeInstanceOf(ViewerRoomEngine);
-    expect(engine).not.toBeInstanceOf(PimoRoomRenderer);
-  });
-
-  it("flag on: factory devolve PimoRoomRenderer", () => {
-    localStorage.setItem(LS_KEY, "1");
+  it("default (flag on): factory devolve PimoRoomRenderer", () => {
     const engine = createRoomRenderer(() => null);
     expect(engine).toBeInstanceOf(PimoRoomRenderer);
     expect((engine as PimoRoomRenderer).rendererKind).toBe("pimo-room-vnext");
   });
 
+  it("flag off: factory devolve ViewerRoomEngine legado", () => {
+    localStorage.setItem(LS_KEY, "0");
+    const engine = createRoomRenderer(() => null);
+    expect(engine).toBeInstanceOf(ViewerRoomEngine);
+    expect(engine).not.toBeInstanceOf(PimoRoomRenderer);
+  });
+
   it("PimoRoomRenderer cumpre IRoomRenderer e delega createRoom", () => {
-    localStorage.setItem(LS_KEY, "1");
     const createRoom = vi.fn();
     const engine: IRoomRenderer = createRoomRenderer(() => ({
       createRoom,
@@ -63,11 +62,12 @@ describe("PimoRoomRenderer / createRoomRenderer (M8)", () => {
 
   it("ensureRoomRenderer troca de instância se a flag mudar", () => {
     const getManager = () => null;
-    const legacy = ensureRoomRenderer(null, getManager);
-    expect(legacy).toBeInstanceOf(ViewerRoomEngine);
-    localStorage.setItem(LS_KEY, "1");
-    const vnext = ensureRoomRenderer(legacy, getManager);
+    const vnext = ensureRoomRenderer(null, getManager);
     expect(vnext).toBeInstanceOf(PimoRoomRenderer);
-    expect(vnext).not.toBe(legacy);
+    localStorage.setItem(LS_KEY, "0");
+    const legacy = ensureRoomRenderer(vnext, getManager);
+    expect(legacy).toBeInstanceOf(ViewerRoomEngine);
+    expect(legacy).not.toBeInstanceOf(PimoRoomRenderer);
+    expect(legacy).not.toBe(vnext);
   });
 });

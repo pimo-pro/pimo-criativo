@@ -65,7 +65,7 @@ import {
 import { SYSTEM_BACK_MM } from "../../core/baseCabinets";
 import type { ViewerOptions } from "@/viewer/core/viewerTypes";
 export type { ViewerOptions } from "@/viewer/core/viewerTypes";
-import { RoomBuilder } from "../room/RoomBuilder";
+import { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import type { ViewerCoreCameraOpsDeps } from "./ViewerCoreCameraOps";
 import {
   syncCameraTargetImpl,
@@ -311,12 +311,12 @@ import {
   syncRemateVisualsImpl,
   syncRodapeVisualsImpl,
 } from "./ViewerCoreFinishOps";
-import type { RoomConfig, DoorWindowConfig } from "../room/types";
-import {
-  RoomManager,
-  type RoomBounds,
-  type WallEntryForViewer,
-} from "../room/RoomManager";
+import type { RoomConfig, DoorWindowConfig } from "../../pimo-room/mesh/impl/types";
+import type {
+  RoomBounds,
+  WallEntryForViewer,
+} from "../../pimo-room/mesh/impl/RoomManager";
+import type { RoomMeshEngine } from "../../pimo-room/mesh/RoomMeshEngine";
 import type {
   UltraPerformanceModeOptions,
   ViewerBackgroundMode,
@@ -604,7 +604,7 @@ export class ViewerCore {
   }
 
   /** Gestor da sala única (4 paredes principais + extras + piso + lock). */
-  private roomManager: RoomManager | null = null;
+  private roomManager: RoomMeshEngine | null = null;
   /** Snapshot/restore da câmera. */
   private snapshotRenderer: SnapshotRenderer | null = null;
   /** Overlay de debug do snapping (somente DEV). */
@@ -2142,12 +2142,12 @@ export class ViewerCore {
 
   /*
    * ROOM SYSTEM — 3 subsistemas complementares:
-   * 1. RoomManager: sala principal (paredes, piso)
+   * 1. RoomMeshEngine: sala principal (paredes)
    * 2. RoomBuilder: aberturas (portas/janelas)
-   * 3. wallStore + roomMeshFromWallStore: persistência e restore automático
+   * 3. project.room (mm) + applyRoomMeshFromProjectRoom: SSOT e sync
    *
-   * Fluxo de criação: createRoomWithDimensions -> RoomManager
-   * Fluxo de restore: loadRoomConfig -> roomMeshSyncToken -> Workspace -> applyRoomMeshFromWallStore
+   * Fluxo de criação: createRoomWithDimensions -> RoomMeshEngine
+   * Fluxo de sync: useViewerRoomSync(project.room) -> applyRoomMeshFromProjectRoom
    */
   /**
    * @deprecated Preferir `createRoomWithDimensions` no fluxo de UI (Painel Sala).

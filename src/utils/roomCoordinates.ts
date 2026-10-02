@@ -6,7 +6,7 @@
 import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
 import type { RoomWallLabel } from "../3d/viewer-engine/room/roomEngineTypes";
 import { ROOM_20_DEFAULTS } from "../3d/viewer-engine/room/roomEngineTypes";
-import type { Wall } from "../stores/wallStore";
+import type { Wall } from "../3d/viewer-engine/room/roomUnitConversion";
 
 export type RoomPositionMm = { x: number; y: number; z: number };
 

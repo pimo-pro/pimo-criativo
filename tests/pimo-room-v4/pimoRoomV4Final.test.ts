@@ -14,10 +14,10 @@ import {
   loadRoom,
   setRoomState,
   getRoomState,
-} from "../../src/pimo-room-v4";
-import { buildRectangularRoomState } from "../../src/pimo-room-v4/RoomConverter";
-import { CatalogItemManager } from "../../src/pimo-room-v4/catalog/CatalogItemManager";
-import { RoomBridge } from "../../src/pimo-room-v4/RoomBridge";
+} from "../../src/pimo-room/domain";
+import { buildRectangularRoomState } from "../../src/pimo-room/domain/RoomConverter";
+import { CatalogItemManager } from "../../src/pimo-room/domain/catalog/CatalogItemManager";
+import { RoomBridge } from "../../src/pimo-room/domain/RoomBridge";
 import { buildSimpleIfcOneLevel } from "./fixtures/ifcFixtures";
 
 describe("pimo-room v4 — Final Integration", () => {

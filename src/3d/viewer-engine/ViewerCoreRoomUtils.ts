@@ -1,11 +1,11 @@
 /**
  * ViewerCoreRoomUtils — superfície de sala para snap / auto-layout / constraints.
- * Implementação restaurada via pimo-room-v4/adapters/viewerSurfaceAdapter (Fase A).
+ * Implementação restaurada via pimo-room/domain/adapters/viewerSurfaceAdapter (Fase A).
  */
 import * as THREE from "three";
 import type { AutoLayoutOpeningMm, AutoLayoutRoomBoundsMm } from "./autoLayout/autoLayoutTypes";
 import type { RoomOpeningLike } from "./snapping/smartSnappingTypes";
-import type { RoomBuilder } from "../room/RoomBuilder";
+import type { RoomBuilder } from "../../pimo-room/mesh/impl/RoomBuilder";
 import type { ViewerBoundsCache } from "./cache/ViewerBoundsCache";
 import {
   applyRoomConstraintFromDeps,
@@ -13,7 +13,7 @@ import {
   getRoomOpeningsForSnappingFromDeps,
   getRoomOpeningsMmForAutoLayoutFromDeps,
   isMeshInsideOrTouchingRoomFromDeps,
-} from "../../pimo-room-v4/adapters/viewerSurfaceAdapter";
+} from "../../pimo-room/domain/adapters/viewerSurfaceAdapter";
 
 export type ViewerCoreRoomBounds = {
   minX: number;

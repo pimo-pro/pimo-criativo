@@ -5,7 +5,7 @@
 
 import * as THREE from "three";
 import type { DoorWindowConfig } from "./types";
-import { clampOpeningToWall } from "../../utils/openingConstraints";
+import { clampOpeningToWall } from "../../../utils/openingConstraints";
 
 export function placeOpeningGroupOnWall(
   group: THREE.Object3D,

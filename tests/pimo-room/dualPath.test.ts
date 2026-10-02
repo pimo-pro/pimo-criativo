@@ -39,6 +39,7 @@ describe("pimo-room dualPath (M3)", () => {
   });
 
   it("flag off: round-trip preserva footprint", () => {
+    localStorage.setItem(LS_KEY, "0");
     const room = createDefaultProjectRoom();
     const state = roomStateFromProjectRoom(room);
     const back = projectRoomFromRoomState(state);
@@ -47,8 +48,8 @@ describe("pimo-room dualPath (M3)", () => {
     expect(back.walls.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("flag on: round-trip equivalente (mesma lógica v4)", () => {
-    localStorage.setItem(LS_KEY, "1");
+  it("flag on (default): round-trip equivalente via domínio", () => {
+    localStorage.removeItem(LS_KEY);
     const room = createDefaultProjectRoom();
     const state = roomStateFromProjectRoom(room);
     const back = projectRoomFromRoomState(state);

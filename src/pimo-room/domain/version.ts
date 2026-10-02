@@ -4,7 +4,7 @@
 export const PIMO_ALFA_VERSION = "4.0" as const;
 export const ROOM_ENGINE_VERSION = "4.0" as const;
 export const ROOM_ENGINE_PHASE = "FINAL" as const;
-export const PIMO_ROOM_PACKAGE = "pimo-room-v4" as const;
+export const PIMO_ROOM_PACKAGE = "pimo-room" as const;
 export const PIMO_ALFA_EDITION = "RoomEngine Edition" as const;
 
 export const PIMO_ROOM_CAPABILITIES = [

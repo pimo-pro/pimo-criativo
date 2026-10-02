@@ -24,7 +24,7 @@ import { hoodPlacementForCooktop } from "./specialPlacement";
 import { getBaseCabinetById } from "../baseCabinets";
 import { SPECIAL_CATALOG } from "./moduleCatalog";
 import { runAlongToWorld } from "./roomAnalysis";
-import { getEffectiveRoomSpanMm } from "../../3d/room/roomDynamicBounds";
+import { getEffectiveRoomSpanMm } from "../../pimo-room/mesh/impl/roomDynamicBounds";
 import type { AnalyzedWallRun } from "./autoRoomFillTypes";
 
 const UPPER_GAP_MM = 680;

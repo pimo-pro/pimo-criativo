@@ -3,7 +3,7 @@
  * Implementação actual: ViewerRoomEngine → RoomManager (legado).
  * Novas implementações devem cumprir este contrato sem alterar PimoViewerApi.
  */
-import type { RoomConfig } from "../../room/types";
+import type { RoomConfig } from "../../../pimo-room/mesh/impl/types";
 
 export interface IRoomRenderer {
   createRoomWithDimensions(

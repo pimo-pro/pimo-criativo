@@ -3,11 +3,11 @@
  * Sistema centrado; metros no viewer, mm no projeto/wallStore.
  */
 import * as THREE from "three";
-import type { ProjectRoomConfig, ProjectRoomWall } from "../viewer-engine/room/roomEngineTypes";
-import type { Wall } from "../../stores/wallStore";
+import type { ProjectRoomConfig, ProjectRoomWall } from "../../../3d/viewer-engine/room/roomEngineTypes";
+import type { Wall } from "../../../3d/viewer-engine/room/roomUnitConversion";
 import type { Room } from "./Room";
 import type { RoomBounds } from "./RoomManager";
-import type { FloorBoundsMm } from "../../utils/roomWorkspaceBounds";
+import type { FloorBoundsMm } from "../../../utils/roomWorkspaceBounds";
 
 const _box = new THREE.Box3();
 

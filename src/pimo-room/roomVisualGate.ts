@@ -1,15 +1,12 @@
 /**
- * Gate visual de openings / piso / tecto (M6).
- * Default (flag off): visuais activos.
- * roomEngineVNext on: não sincroniza openings mesh nem rebuild de piso/tecto.
+ * Gate visual de openings / piso / tecto (M6) — activação vNext.
+ * flag ON → visuais ON; flag OFF → legado (visuais ON).
  * Schema ProjectRoomConfig permanece intacto.
  */
-import { isRoomEngineVNextEnabled } from "../core/features";
-
 export function areRoomOpeningsVisualEnabled(): boolean {
-  return !isRoomEngineVNextEnabled();
+  return true;
 }
 
 export function areRoomFloorCeilingEnabled(): boolean {
-  return !isRoomEngineVNextEnabled();
+  return true;
 }

@@ -24,9 +24,10 @@ function installLocalStoragePolyfill(): void {
   });
 }
 
-describe("roomEngineVNext flag (M1)", () => {
+describe("roomEngineVNext flag (activação)", () => {
   beforeEach(() => {
     installLocalStoragePolyfill();
+    localStorage.removeItem(LS_KEY);
   });
 
   afterEach(() => {
@@ -37,17 +38,17 @@ describe("roomEngineVNext flag (M1)", () => {
     }
   });
 
-  it("default é false (comportamento legado intacto)", () => {
-    expect(features.roomEngineVNext).toBe(false);
-    expect(isRoomEngineVNextEnabled()).toBe(false);
+  it("default é true (motor vNext activo)", () => {
+    expect(features.roomEngineVNext).toBe(true);
+    expect(isRoomEngineVNextEnabled()).toBe(true);
   });
 
-  it("override localStorage 1 activa a flag", () => {
+  it("override localStorage 1 mantém a flag activa", () => {
     localStorage.setItem(LS_KEY, "1");
     expect(isRoomEngineVNextEnabled()).toBe(true);
   });
 
-  it("override localStorage 0 força off", () => {
+  it("override localStorage 0 força off (legado)", () => {
     localStorage.setItem(LS_KEY, "0");
     expect(isRoomEngineVNextEnabled()).toBe(false);
   });

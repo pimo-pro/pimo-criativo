@@ -17,8 +17,8 @@ import {
   type ProjectRoomWall,
   type RoomOpeningKind,
   type RoomWallLabel,
-} from "../viewer-engine/room/roomEngineTypes";
-import { centeredWallPositionForLabel } from "../../utils/roomCoordinates";
+} from "../../../3d/viewer-engine/room/roomEngineTypes";
+import { centeredWallPositionForLabel } from "../../../utils/roomCoordinates";
 
 /** Ponto 2D no plano do nível (metros): [x, z]. */
 export type PimoRoomPoint2 = readonly [number, number];

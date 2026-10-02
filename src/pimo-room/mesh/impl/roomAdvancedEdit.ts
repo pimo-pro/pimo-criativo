@@ -1,8 +1,8 @@
 /**
  * pimo-room v4 — helpers de edição avançada da sala (comprimento de parede / footprint).
  */
-import type { ProjectRoomConfig, ProjectRoomWall, RoomWallLabel } from "../viewer-engine/room/roomEngineTypes";
-import { applyProjectRoomDimensions, normalizeProjectRoom } from "../viewer-engine/room/RoomEngine";
+import type { ProjectRoomConfig, ProjectRoomWall, RoomWallLabel } from "../../../3d/viewer-engine/room/roomEngineTypes";
+import { applyProjectRoomDimensions, normalizeProjectRoom } from "../../../3d/viewer-engine/room/RoomEngine";
 
 /** Actualiza o comprimento de uma parede canónica e sincroniza width/depth da sala. */
 export function applyWallLengthToRoom(

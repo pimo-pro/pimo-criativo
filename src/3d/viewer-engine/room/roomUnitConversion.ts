@@ -1,10 +1,8 @@
 /**
- * pimo-room v4 — conversão interna de unidades da sala (Z-03.3).
+ * Conversão de unidades da sala (Z-03.3 / M10.b).
  * SSOT canónico: ProjectRoomConfig (mm).
- * Vistas derivadas: wallStore / roomSnapshot (cm), viewer (m).
- * Não expor API pública nova — consumidores continuam via RoomEngine.
+ * Vista derivada de persistência: roomSnapshot (cm). Viewer: metros.
  */
-import type { Wall, WallOpening } from "../../../stores/wallStore";
 import type { RoomSnapshot } from "../../../context/projectTypes";
 import type {
   ProjectRoomConfig,
@@ -12,6 +10,30 @@ import type {
   ProjectRoomWall,
 } from "./roomEngineTypes";
 import { WALL_INDEX_TO_LABEL, WALL_LABEL_TO_INDEX } from "./roomEngineTypes";
+
+/** Parede em cm — formato do sidecar roomSnapshot (não é store vivo). */
+export interface WallOpening {
+  id: string;
+  type: "door" | "window";
+  kind?: "normal" | "correr";
+  widthMm: number;
+  heightMm: number;
+  thicknessMm?: number;
+  floorOffsetMm: number;
+  horizontalOffsetMm: number;
+  modelId?: string;
+}
+
+export interface Wall {
+  id: string;
+  lengthCm: number;
+  heightCm: number;
+  thicknessCm: number;
+  color: string;
+  position?: { x: number; y?: number; z: number };
+  rotation?: number;
+  openings: WallOpening[];
+}
 
 export const MM_PER_CM = 10;
 export const MM_PER_M = 1000;
@@ -32,7 +54,7 @@ export function mToMm(m: number): number {
   return m * MM_PER_M;
 }
 
-/** Footprint interior coerente com `getRoomDimensionsCm` (média das paredes opostas). */
+/** Footprint interior coerente com média das paredes opostas. */
 export function wallStoreFootprintMm(walls: Wall[]): {
   widthMm: number;
   depthMm: number;
@@ -63,7 +85,16 @@ export function wallStoreFootprintCm(walls: Wall[]): {
   };
 }
 
-/** Vista derivada wallStore (cm) a partir do SSOT mm. */
+/** Alias estável — footprint em cm a partir de paredes do sidecar. */
+export function getRoomDimensionsCm(walls: Wall[]): {
+  widthCm: number;
+  depthCm: number;
+  heightCm: number;
+} | null {
+  return wallStoreFootprintCm(walls);
+}
+
+/** Vista derivada cm a partir do SSOT mm (sidecar roomSnapshot). */
 export function projectRoomToWallStoreWalls(room: ProjectRoomConfig): Wall[] {
   return room.walls
     .slice()
@@ -109,7 +140,7 @@ export type WallStoreRoomExtras = Partial<
 const DEFAULT_DOOR_THICKNESS_MM = 40;
 const DEFAULT_WINDOW_THICKNESS_MM = 40;
 
-/** Reconstrói ProjectRoomConfig a partir de wallStore (cm). Requer ≥4 paredes canónicas. */
+/** Reconstrói ProjectRoomConfig a partir de paredes cm (roomSnapshot). Requer ≥4 paredes. */
 export function wallStoreToProjectRoom(
   walls: Wall[],
   extras?: WallStoreRoomExtras
@@ -196,18 +227,4 @@ export function projectRoomToRoomSnapshot(
     selectedWallId,
     mainWallIndex,
   };
-}
-
-/** Payload para `wallStore.loadRoomConfig` derivado do SSOT. */
-export function deriveWallStoreConfigFromProjectRoom(
-  room: ProjectRoomConfig,
-  ui?: Partial<RoomSnapshotUiState>
-): { walls: Wall[]; selectedWallId: string | null; mainWallIndex: number } {
-  const walls = projectRoomToWallStoreWalls(room);
-  const mainWallIndex = Math.max(0, Math.min(3, ui?.mainWallIndex ?? 0));
-  const selectedWallId =
-    ui?.selectedWallId && walls.some((w) => w.id === ui.selectedWallId)
-      ? ui.selectedWallId
-      : walls[mainWallIndex]?.id ?? walls[0]?.id ?? null;
-  return { walls, selectedWallId, mainWallIndex };
 }
