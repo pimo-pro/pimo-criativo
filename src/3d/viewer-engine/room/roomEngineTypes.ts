@@ -1,6 +1,10 @@
 /**
  * Tipos da sala (contrato ProjectRoomConfig) — pimo-room v4.
  * Fase visual / layout. Não alimenta cutlist, CNC ou produção.
+ *
+ * FREEZE M0: shape congelado — ver docs/PROJECT_ROOM_CONFIG_FREEZE.md
+ * e tests/viewer/engines/projectRoomConfigFreeze.test.ts.
+ * Alterações ao contrato exigem revisão explícita.
  */
 
 export type RoomWallLabel = "norte" | "sul" | "este" | "oeste" | "extra";
