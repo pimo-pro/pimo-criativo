@@ -127,10 +127,12 @@ describe("pimo-room v4 — Final Integration", () => {
     expect(sync.workspaceBoxes).toEqual([]);
   });
 
-  it("shim room-engine reexporta pimo-room-v4", async () => {
+  it("shim room-engine reexporta domínio v4 e fachada pimo-room", async () => {
     const shim = await import("../../src/room-engine");
     expect(shim.ROOM_ENGINE_PHASE).toBe("FINAL");
     expect(shim.ROOM_ENGINE_VERSION).toBe("4.0");
     expect(typeof shim.loadRoom).toBe("function");
+    expect(shim.PIMO_ROOM_FACADE).toBe("pimo-room");
+    expect(typeof shim.createRoomRenderer).toBe("function");
   });
 });
