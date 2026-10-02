@@ -1,14 +1,15 @@
 import { ViewerRoomEngine, type ViewerRoomManagerLike } from "../room/ViewerRoomEngine";
+import { createRoomRenderer, ensureRoomRenderer } from "../../../pimo-room/createRoomRenderer";
 
 export function createViewerRoomEngine(
-  getManager: () => ViewerRoomManagerLike | null | undefined,
+  getManager: () => ViewerRoomManagerLike | null | undefined
 ): ViewerRoomEngine {
-  return new ViewerRoomEngine(getManager);
+  return createRoomRenderer(getManager);
 }
 
 export function ensureViewerRoomEngine(
   current: ViewerRoomEngine | null,
-  getManager: () => ViewerRoomManagerLike | null | undefined,
+  getManager: () => ViewerRoomManagerLike | null | undefined
 ): ViewerRoomEngine {
-  return current ?? createViewerRoomEngine(getManager);
+  return ensureRoomRenderer(current, getManager);
 }

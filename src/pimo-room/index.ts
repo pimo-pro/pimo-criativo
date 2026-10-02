@@ -40,6 +40,9 @@ export {
   getProjectRoomMeshFingerprint,
 } from "./applyRoomMeshFromProjectRoom";
 
+export { PimoRoomRenderer } from "./PimoRoomRenderer";
+export { createRoomRenderer, ensureRoomRenderer } from "./createRoomRenderer";
+
 export {
   RoomIndustrialAdapter,
   toAutoRoomFillInput,
