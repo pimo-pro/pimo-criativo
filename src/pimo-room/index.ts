@@ -30,6 +30,11 @@ export {
 export { isRoomWallSnapEnabled } from "./wallSnapGate";
 
 export {
+  areRoomOpeningsVisualEnabled,
+  areRoomFloorCeilingEnabled,
+} from "./roomVisualGate";
+
+export {
   RoomIndustrialAdapter,
   toAutoRoomFillInput,
   type RoomIndustrialConstraints,

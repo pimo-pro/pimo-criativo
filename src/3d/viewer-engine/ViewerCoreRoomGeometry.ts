@@ -21,6 +21,7 @@ import {
   getRoomFloorExpandM,
   getRoomFloorOverlayAppearance,
 } from "./materials/roomFloorOverlay";
+import { areRoomFloorCeilingEnabled } from "../../pimo-room/roomVisualGate";
 
 export type ViewerCoreRoomWallEntry = {
   id: number;
@@ -292,6 +293,7 @@ export function rebuildRoomFloorAndCeilingImpl(deps: ViewerCoreRoomGeometryDeps)
   const roomBounds = deps.getRoomBounds();
   if (!roomBoxGroup || !roomBounds) return;
   clearRoomFloorRootImpl(deps);
+  if (!areRoomFloorCeilingEnabled()) return;
   const sceneConfig = deps.materialPipeline.getSceneMaterialConfig();
   const group = new THREE.Group();
   group.name = "room-floor-root";
