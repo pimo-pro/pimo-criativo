@@ -5,7 +5,6 @@ import { usePimoViewer } from "../../../hooks/usePimoViewer";
 import { useViewerRoomSync } from "../../../hooks/viewer/useViewerRoomSync";
 import { createViewerApiAdapter } from "../../../core/viewer/viewerApiAdapter";
 import { applyWallViewerTransformToRoom } from "../../../pimo-room/mesh/impl/wallVertexEdit";
-import { uiStore } from "../../../stores/uiStore";
 import { WALL_INDEX_TO_LABEL } from "../../../3d/viewer-engine/room/roomEngineTypes";
 import {
   getActivePimoViewerApi,
