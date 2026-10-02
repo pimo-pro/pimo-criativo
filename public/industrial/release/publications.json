@@ -2,6 +2,12 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-10-02T20:39:40.671Z",
+      "author": "pimo-pro",
+      "commitMessage": "Publicação PIMO — Sistema Industrial",
+      "version": "v6.1002.2139"
+    },
+    {
       "publishedAt": "2026-10-02T20:01:36.960Z",
       "author": "pimo-pro",
       "commitMessage": "release(room): PIMO vNext — publicação oficial",
@@ -1194,12 +1200,6 @@
       "author": "pimo-pro",
       "commitMessage": "Publicação PIMO — Sistema Industrial",
       "version": "v6.0715.1224"
-    },
-    {
-      "publishedAt": "2026-07-15T10:31:48.303Z",
-      "author": "pimo-pro",
-      "commitMessage": "chore(supabase): validar public.users após migrations industriais",
-      "version": "v6.0715.1131"
     }
   ]
 }

@@ -1,21 +1,31 @@
 {
-  "updatedAt": "2026-10-02T20:01:39.030Z",
+  "updatedAt": "2026-10-02T20:39:42.309Z",
   "news": [
     {
-      "version": "v6.1002.2101",
+      "version": "v6.1002.2139",
       "title": "PIMO vNext — publicação oficial",
       "description": "PIMO vNext — publicação oficial",
-      "publishedAt": "2026-10-02T20:01:38.657Z",
+      "publishedAt": "2026-10-02T20:39:41.932Z",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "8c832853"
+      "commit": "76c0d3dc"
     },
     {
       "version": "v6.1002.2056",
       "title": "PIMO vNext — publicação oficial",
       "description": "PIMO vNext — publicação oficial",
-      "publishedAt": "2026-10-02T19:56:07.124Z",
+      "publishedAt": "2026-10-02T21:05:13+01:00",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "76c0d3d"
+    },
+    {
+      "version": "v6.1002.2101",
+      "title": "PIMO vNext — publicação oficial",
+      "description": "PIMO vNext — publicação oficial",
+      "publishedAt": "2026-10-02T20:01:38.657Z",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
