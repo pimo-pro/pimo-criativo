@@ -8,6 +8,7 @@ import { getActiveViewerCore } from "../core/viewer/pimoViewerRuntime";
 import { getRoomDimensionsCm, wallStore } from "../stores/wallStore";
 import { ROOM_20_DEFAULTS } from "../3d/viewer-engine/room/RoomEngine";
 import { wallStorePositionToViewerMeters } from "./roomCoordinates";
+import { areRoomOpeningsVisualEnabled } from "../pimo-room/roomVisualGate";
 
 export function applyRoomMeshFromWallStore(
   viewerApi: Pick<PimoViewerApi, "createRoomWithDimensions" | "removeRoom"> | null | undefined
@@ -83,6 +84,7 @@ export function getRoomMeshFingerprintFromWallStore(): string {
 export function applyRoomOpeningsFromWallStore(
   viewerApi: Pick<PimoViewerApi, "addDoorToRoom" | "addWindowToRoom" | "getRoomExists"> | null | undefined
 ): void {
+  if (!areRoomOpeningsVisualEnabled()) return;
   if (!viewerApi?.addDoorToRoom || !viewerApi.addWindowToRoom) return;
   if (!viewerApi.getRoomExists?.()) return;
   const { walls } = wallStore.getState();
