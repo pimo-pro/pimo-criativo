@@ -1,15 +1,45 @@
 {
-  "updatedAt": "2026-09-29T18:59:11.371Z",
+  "updatedAt": "2026-10-02T18:24:26.670Z",
   "news": [
+    {
+      "version": "v6.1002.1924",
+      "title": "Correção: corrigir imports pós-M10 para build de produção",
+      "description": "Correção: corrigir imports pós-M10 para build de produção",
+      "publishedAt": "2026-10-02T18:24:26.503Z",
+      "type": "fix",
+      "author": "pimo-pro",
+      "icon": "fix",
+      "commit": "fbca49e1"
+    },
+    {
+      "version": "v6.0929.1960",
+      "title": "Adicionar links do centro de ajuda pimo.info em /ajuda (#11)",
+      "description": "Adicionar links do centro de ajuda pimo.info em /ajuda (#11)",
+      "publishedAt": "2026-10-01T00:02:45+01:00",
+      "type": "update",
+      "author": "Khaled",
+      "icon": "update",
+      "commit": "4c1915f"
+    },
+    {
+      "version": "v6.1001.0046",
+      "title": "Adicionar links do centro de ajuda pimo.info em /ajuda (#11)",
+      "description": "Adicionar links do centro de ajuda pimo.info em /ajuda (#11)",
+      "publishedAt": "2026-10-01T00:02:45+01:00",
+      "type": "update",
+      "author": "Khaled",
+      "icon": "update",
+      "commit": "4c1915f"
+    },
     {
       "version": "v6.0929.1959",
       "title": "Release — W1–W7 · Consolidação RoomEngineBoundary · Isolamento do viewer · Preparação substituição módulo sala (khale...",
       "description": "Release — W1–W7 · Consolidação RoomEngineBoundary · Isolamento do viewer · Preparação substituição módulo sala (khaled-pro)",
-      "publishedAt": "2026-09-29T18:59:11.076Z",
+      "publishedAt": "2026-09-29T20:05:12+01:00",
       "type": "update",
       "author": "pimo-pro",
       "icon": "update",
-      "commit": "bf8aedf6"
+      "commit": "e1b222f"
     },
     {
       "version": "v6.0927.1910",
