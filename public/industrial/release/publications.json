@@ -2,6 +2,18 @@
   "_pimoKep": "pimo-kep-fix-001",
   "publications": [
     {
+      "publishedAt": "2026-10-02T20:01:36.960Z",
+      "author": "pimo-pro",
+      "commitMessage": "release(room): PIMO vNext — publicação oficial",
+      "version": "v6.1002.2101"
+    },
+    {
+      "publishedAt": "2026-10-02T19:56:05.837Z",
+      "author": "pimo-pro",
+      "commitMessage": "release(room): PIMO vNext — publicação oficial",
+      "version": "v6.1002.2056"
+    },
+    {
       "publishedAt": "2026-10-02T18:24:25.821Z",
       "author": "pimo-pro",
       "commitMessage": "fix(room): corrigir imports pós-M10 para build de produção",
@@ -1188,18 +1200,6 @@
       "author": "pimo-pro",
       "commitMessage": "chore(supabase): validar public.users após migrations industriais",
       "version": "v6.0715.1131"
-    },
-    {
-      "publishedAt": "2026-07-15T00:35:01.535Z",
-      "author": "pimo-pro",
-      "commitMessage": "fix(system-events): corrigir user_id fkey e garantir uútilizador industrial válido",
-      "version": "v6.0715.0135"
-    },
-    {
-      "publishedAt": "2026-07-15T00:05:49.082Z",
-      "author": "pimo-pro",
-      "commitMessage": "release: versão completa — work-orders + pimo-trak + eventos industriais",
-      "version": "v6.0715.0105"
     }
   ]
 }

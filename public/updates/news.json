@@ -1,9 +1,29 @@
 {
-  "updatedAt": "2026-10-02T19:31:06.767Z",
+  "updatedAt": "2026-10-02T20:01:39.030Z",
   "news": [
     {
+      "version": "v6.1002.2101",
+      "title": "PIMO vNext — publicação oficial",
+      "description": "PIMO vNext — publicação oficial",
+      "publishedAt": "2026-10-02T20:01:38.657Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "8c832853"
+    },
+    {
+      "version": "v6.1002.2056",
+      "title": "PIMO vNext — publicação oficial",
+      "description": "PIMO vNext — publicação oficial",
+      "publishedAt": "2026-10-02T19:56:07.124Z",
+      "type": "update",
+      "author": "pimo-pro",
+      "icon": "update",
+      "commit": "8c832853"
+    },
+    {
       "version": "v6.1002.2031",
-      "title": "PIMO vNext — lançamento oficial (M10 Final)",
+      "title": "O PIMO vNext está oficialmente concluído e é agora o motor principal do sistema. RoomMeshEngine substitui o RoomManag...",
       "description": "O PIMO vNext está oficialmente concluído e é agora o motor principal do sistema. RoomMeshEngine substitui o RoomManager; mesh derivado de project.room (mm). Domínio unificado em pimo-room/domain (AI/IFC/Catalog/Bridge/Converter); pimo-room-v4 removido. UI via uiStore; sync sem wallStore; legado 3d/room e wallStore eliminados. Industrial/CNC intacto. Base sólida para a nova geração do PIMO.",
       "publishedAt": "2026-10-02T19:31:06.767Z",
       "type": "feature",
@@ -14,11 +34,11 @@
       "version": "v6.1002.1924",
       "title": "Correção: corrigir imports pós-M10 para build de produção",
       "description": "Correção: corrigir imports pós-M10 para build de produção",
-      "publishedAt": "2026-10-02T18:24:26.503Z",
+      "publishedAt": "2026-10-02T19:28:48+01:00",
       "type": "fix",
       "author": "pimo-pro",
       "icon": "fix",
-      "commit": "fbca49e1"
+      "commit": "9ddb846"
     },
     {
       "version": "v6.0929.1960",
