@@ -22,6 +22,8 @@ import {
   getRoomFloorOverlayAppearance,
 } from "./materials/roomFloorOverlay";
 import { areRoomFloorCeilingEnabled } from "../../pimo-room/roomVisualGate";
+import { floorMeshBuilder } from "../../pimo-room/mesh/floorMeshBuilder";
+import { ceilingMeshBuilder } from "../../pimo-room/mesh/ceilingMeshBuilder";
 
 export type ViewerCoreRoomWallEntry = {
   id: number;
@@ -301,16 +303,7 @@ export function rebuildRoomFloorAndCeilingImpl(deps: ViewerCoreRoomGeometryDeps)
   const shape = getRoomFloorShape(deps, expandM);
   if (!shape) return;
   const floorAppearance = getRoomFloorOverlayAppearance(deps.getBackgroundMode());
-  const floorGeom = new THREE.ShapeGeometry(shape);
-  floorGeom.rotateX(-Math.PI / 2);
   const floorMat = createRoomFloorOverlayMaterial(floorAppearance);
-  const floor = new THREE.Mesh(floorGeom, floorMat);
-  floor.position.y = roomBounds.minY + 0.002;
-  floor.name = "room-floor-root";
-  floor.userData.isRoomFloor = true;
-  floor.renderOrder = 1;
-  group.add(floor);
-
   const outline = createRoomFloorOutline(
     roomBounds.minX,
     roomBounds.maxX,
@@ -320,23 +313,21 @@ export function rebuildRoomFloorAndCeilingImpl(deps: ViewerCoreRoomGeometryDeps)
     roomBounds.minY + 0.004,
     floorAppearance.outlineColor
   );
+  const { floor } = floorMeshBuilder(shape, roomBounds, floorMat, outline);
+  group.add(floor);
   group.add(outline);
 
-  const ceilingGeom = new THREE.ShapeGeometry(shape);
-  ceilingGeom.rotateX(Math.PI / 2);
-  const ceilingMat = new THREE.MeshStandardMaterial({
-    color: sceneConfig.roomBox.color,
-    roughness: sceneConfig.roomBox.roughness,
-    metalness: sceneConfig.roomBox.metalness,
-    transparent: true,
-    opacity: Math.min(0.45, sceneConfig.roomBox.opacity),
-    side: THREE.DoubleSide,
-  });
-  const ceiling = new THREE.Mesh(ceilingGeom, ceilingMat);
-  ceiling.position.y = roomBounds.maxY;
-  ceiling.name = "room-ceiling";
-  ceiling.userData.isRoomCeiling = true;
-  ceiling.visible = deps.getRoomCeilingVisible();
+  const ceiling = ceilingMeshBuilder(
+    shape,
+    { maxY: roomBounds.maxY },
+    {
+      color: sceneConfig.roomBox.color,
+      roughness: sceneConfig.roomBox.roughness,
+      metalness: sceneConfig.roomBox.metalness,
+      opacity: sceneConfig.roomBox.opacity,
+    },
+    deps.getRoomCeilingVisible()
+  );
   group.add(ceiling);
 
   roomBoxGroup.add(group);

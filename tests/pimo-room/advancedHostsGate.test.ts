@@ -24,7 +24,7 @@ function installLocalStoragePolyfill(): void {
   });
 }
 
-describe("advancedHostsGate (M4)", () => {
+describe("advancedHostsGate (M4 — activação vNext)", () => {
   beforeEach(() => {
     installLocalStoragePolyfill();
     localStorage.removeItem(LS_KEY);
@@ -38,16 +38,16 @@ describe("advancedHostsGate (M4)", () => {
     }
   });
 
-  it("default (flag off): hosts avançados activos", () => {
+  it("default: hosts avançados activos", () => {
     expect(areRoomAdvancedHostsEnabled()).toBe(true);
   });
 
-  it("flag on: hosts avançados desligados", () => {
+  it("flag on: hosts avançados continuam activos", () => {
     localStorage.setItem(LS_KEY, "1");
-    expect(areRoomAdvancedHostsEnabled()).toBe(false);
+    expect(areRoomAdvancedHostsEnabled()).toBe(true);
   });
 
-  it("gatedSyncLevelGhosts não lança com flag on (no-op)", () => {
+  it("gatedSyncLevelGhosts não lança com flag on", () => {
     localStorage.setItem(LS_KEY, "1");
     expect(() => gatedSyncLevelGhosts(createEmptyRoomState())).not.toThrow();
   });

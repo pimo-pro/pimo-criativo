@@ -1,10 +1,7 @@
 /**
- * Gate de snap/encaixe de caixas nas paredes (M5).
- * Default (flag off): snap activo.
- * roomEngineVNext on: ModelWallSnap / candidatos room-opening desligados (UX only; CNC intacto).
+ * Gate de snap/encaixe de caixas nas paredes (M5) — activação vNext.
+ * flag ON → snap ON; flag OFF → legado (snap ON).
  */
-import { isRoomEngineVNextEnabled } from "../core/features";
-
 export function isRoomWallSnapEnabled(): boolean {
-  return !isRoomEngineVNextEnabled();
+  return true;
 }

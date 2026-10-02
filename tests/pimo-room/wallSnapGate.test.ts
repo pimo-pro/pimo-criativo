@@ -20,7 +20,7 @@ function installLocalStoragePolyfill(): void {
   });
 }
 
-describe("wallSnapGate (M5)", () => {
+describe("wallSnapGate (M5 — activação vNext)", () => {
   beforeEach(() => {
     installLocalStoragePolyfill();
     localStorage.removeItem(LS_KEY);
@@ -34,12 +34,12 @@ describe("wallSnapGate (M5)", () => {
     }
   });
 
-  it("default (flag off): snap de parede activo", () => {
+  it("default: snap de parede activo", () => {
     expect(isRoomWallSnapEnabled()).toBe(true);
   });
 
-  it("flag on: snap de parede desligado", () => {
+  it("flag on: snap de parede continua activo", () => {
     localStorage.setItem(LS_KEY, "1");
-    expect(isRoomWallSnapEnabled()).toBe(false);
+    expect(isRoomWallSnapEnabled()).toBe(true);
   });
 });

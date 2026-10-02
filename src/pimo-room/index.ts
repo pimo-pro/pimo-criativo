@@ -1,7 +1,6 @@
 /**
- * pimo-room — API pública consolidada (M2).
- * Fachada sobre o domínio existente em `pimo-room-v4`.
- * Default da app permanece em pimo-room-v4 até activação (flag / fases seguintes).
+ * pimo-room — API pública consolidada (M2 + activação vNext).
+ * Domínio unificado em ./domain; mesh em ./mesh; legado pimo-room-v4 mantido até M10.
  */
 
 export {
@@ -61,5 +60,17 @@ export {
   PIMO_ROOM_FACADE,
 } from "./version";
 
-export type { RoomState } from "../pimo-room-v4/RoomState";
+export type { RoomState } from "./domain";
 export type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
+
+export { RoomMeshEngine } from "./mesh/RoomMeshEngine";
+export {
+  wallMeshBuilder,
+  floorMeshBuilder,
+  ceilingMeshBuilder,
+  openingsMeshBuilder,
+} from "./mesh";
+export {
+  RoomBridge,
+  RoomConverter,
+} from "./domain";

@@ -1,6 +1,6 @@
 /**
- * PimoRoomRenderer (M8) — implementação IRoomRenderer do path vNext.
- * Delega ao mesmo RoomManager via ViewerRoomEngine (sem segundo WebGL).
+ * PimoRoomRenderer (M8/vNext) — implementação IRoomRenderer do path novo.
+ * Delega ao RoomMeshEngine (via getManager do ViewerCore) — mesma superfície IRoomRenderer.
  */
 import {
   ViewerRoomEngine,

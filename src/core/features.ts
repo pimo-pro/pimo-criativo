@@ -1,20 +1,20 @@
 /**
  * Feature flags de produto (não industriais).
  * `reportFinanceiroProvenance`: política SSOT+manual no Relatório §4.
- * `roomEngineVNext`: dual-path sala → pimo-room (M1+). Default false até activação final.
+ * `roomEngineVNext`: dual-path sala → pimo-room (M1+). Default true (activação vNext).
  *
  * Override local (dev/staging), sem rebuild:
  *   localStorage.setItem("pimo.features.reportFinanceiroProvenance", "1")
- *   localStorage.setItem("pimo.features.roomEngineVNext", "1")
+ *   localStorage.setItem("pimo.features.roomEngineVNext", "0")  // forçar legado
  *   localStorage.removeItem("pimo.features.roomEngineVNext")
  */
 export const features: {
   readonly reportFinanceiroProvenance: boolean;
-  /** Dual-path sala → pimo-room. Default off até activação final (M0–M10). */
+  /** Dual-path sala → pimo-room. Default on após activação segura. */
   readonly roomEngineVNext: boolean;
 } = {
   reportFinanceiroProvenance: false,
-  roomEngineVNext: false,
+  roomEngineVNext: true,
 };
 
 export type AppFeatureKey = keyof typeof features;

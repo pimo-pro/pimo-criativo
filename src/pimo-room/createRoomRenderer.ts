@@ -1,7 +1,7 @@
 /**
  * Factory IRoomRenderer (M8).
- * Flag off → ViewerRoomEngine (legado).
- * Flag on → PimoRoomRenderer (vNext, mesmo RoomManager).
+ * Flag off → ViewerRoomEngine (legado / RoomManager).
+ * Flag on → PimoRoomRenderer (vNext / RoomMeshEngine).
  */
 import { isRoomEngineVNextEnabled } from "../core/features";
 import {

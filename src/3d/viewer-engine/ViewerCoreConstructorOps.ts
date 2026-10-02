@@ -50,6 +50,8 @@ import { DimensionsOverlayController } from "./overlays/DimensionsOverlayControl
 import type { BoxBoundsInput } from "./overlays/boxDimensionsOverlay";
 import { WallGizmo } from "../gizmos/WallGizmo";
 import { RoomManager, type IRoomManagerViewer } from "../room/RoomManager";
+import { isRoomEngineVNextEnabled } from "../../core/features";
+import { RoomMeshEngine } from "../../pimo-room/mesh/RoomMeshEngine";
 import { SnapDebugOverlay } from "../../debug/SnapDebugOverlay";
 import { SnapshotRenderer } from "./snapshot";
 import { TransformConstraints } from "./constraints/TransformConstraints";
@@ -609,7 +611,12 @@ export function wireViewerCoreConstructorImpl(
     host.sceneManager.scene.add(host.rodapeVisualizer.getRoot());
     host.setWallEditMode(false);
 
-    host.roomManager = new RoomManager(host as unknown as IRoomManagerViewer);
+    // Flag ON → RoomMeshEngine (vNext); OFF → RoomManager legado (paridade API).
+    host.roomManager = (
+      isRoomEngineVNextEnabled()
+        ? new RoomMeshEngine(host as unknown as IRoomManagerViewer)
+        : new RoomManager(host as unknown as IRoomManagerViewer)
+    ) as RoomManager;
     if (import.meta.env.DEV) {
       host.snapDebugOverlay = new SnapDebugOverlay();
     }

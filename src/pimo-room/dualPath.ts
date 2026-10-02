@@ -1,11 +1,10 @@
 /**
- * Dual-path SSOT sala (M3): flag off → pimo-room-v4; flag on → fachada pimo-room.
- * Ambos os ramos usam a mesma lógica de conversão hoje → paridade com default off.
+ * Dual-path SSOT sala (M3): flag off → legado directo; flag on → fachada pimo-room/domain.
+ * Ambos os ramos usam a mesma lógica de conversão → paridade.
  */
 import type { ProjectRoomConfig } from "../3d/viewer-engine/room/roomEngineTypes";
 import { isRoomEngineVNextEnabled } from "../core/features";
-import { RoomConverter } from "../pimo-room-v4/RoomConverter";
-import type { RoomState } from "../pimo-room-v4/RoomState";
+import { RoomConverter, type RoomState } from "./domain";
 import {
   fromProjectRoomConfig as facadeFromProjectRoom,
   toProjectRoomConfig as facadeToProjectRoom,
